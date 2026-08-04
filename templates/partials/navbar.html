@@ -1,0 +1,47 @@
+{{define "navbar"}}
+<div class="header-outer">
+<header>
+  <div class="nav-side nav-left">
+    <nav>
+      <a href="/" class="{{if eq .ActivePage "inicio"}}active{{end}}">Inicio</a>
+      <a href="/tienda" class="{{if eq .ActivePage "tienda"}}active{{end}}">Tienda</a>
+      <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}">Blog</a>
+    </nav>
+  </div>
+
+  <a href="/" class="mark" aria-label="Avante Optics">
+    <img class="mark-logo" src="/static/images/avante-logo.png" alt="Avante Optics">
+  </a>
+
+  <div class="nav-side nav-right">
+    <nav>
+      <a href="#appointment">Agendar</a>
+    </nav>
+    <div class="head-auth">
+      <a href="/iniciar-sesion" class="head-auth-login">Iniciar sesión</a>
+      <a href="/registro" class="head-auth-register">Registro</a>
+    </div>
+    <div class="head-actions">
+      <button class="head-icon-btn cart" id="cartBtn" aria-label="Carrito">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      </button>
+      <a href="#tracking" class="head-icon-btn" aria-label="Rastrear pedido">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+      </a>
+      <button class="hamburger" id="menuBtn" aria-label="Menú"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+
+  <!-- menu completo, solo visible en movil (el desplegable) -->
+  <nav id="mainNav">
+    <a href="/" class="{{if eq .ActivePage "inicio"}}active{{end}}">Inicio</a>
+    <a href="/tienda" class="{{if eq .ActivePage "tienda"}}active{{end}}">Tienda</a>
+    <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}">Blog</a>
+    <a href="#appointment">Agendar</a>
+    <a href="#tracking">Rastreo</a>
+    <a href="/iniciar-sesion">Iniciar sesión</a>
+    <a href="/registro">Registro</a>
+  </nav>
+</header>
+</div>
+{{end}}

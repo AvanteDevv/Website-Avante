@@ -1,0 +1,289 @@
+/* ===========================================================
+   Avante Optics — Panel de administración
+   Hoja de estilos independiente: no depende de index.css.
+   =========================================================== */
+
+:root{
+  --ink:#15161a;
+  --muted:#767b8a;
+  --line:#E1E5FA;
+  --bg:#ffffff;
+  --pill:#111111;
+  --accent:#041cff;
+  --accent-hover:#0015E0;
+  --accent-soft:#eef0ff;
+  --accent-border:#c7cffa;
+  --radius-lg:26px;
+  --radius-md:18px;
+  --radius-sm:14px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --shadow-sm: 0 1px 3px rgba(4,28,255,.06);
+  --shadow-md: 0 14px 30px -16px rgba(4,28,255,.20);
+  --shadow-lg: 0 26px 48px -18px rgba(4,28,255,.30);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+
+body.admin-body{
+  background:#ffffff;
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.06), transparent 45%);
+  min-height:100vh;
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-optical-sizing:auto;
+  font-variation-settings:"wdth" 100;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- Logo ---------- */
+.logo{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:700;
+  font-size:20px;
+  letter-spacing:.5px;
+  display:flex;
+  align-items:center;
+  gap:2px;
+}
+.logo .dot{
+  display:inline-block;
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--accent);
+  margin:0 2px;
+}
+
+/* ---------- Botón base ---------- */
+.btn{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:12px;
+  letter-spacing:1.5px;
+  font-weight:600;
+  padding:14px 34px;
+  border-radius:30px;
+  border:1px solid var(--ink);
+  background:transparent;
+  color:var(--ink);
+  cursor:pointer;
+  transition:transform .2s var(--ease), background .2s var(--ease), color .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
+}
+.btn:hover{transform:translateY(-2px);}
+.btn:active{transform:translateY(0) scale(.97);}
+.btn.solid{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+  box-shadow:0 10px 24px rgba(4,28,255,.25);
+}
+.btn.solid:hover{background:var(--accent-hover);border-color:var(--accent-hover);box-shadow:0 14px 30px rgba(4,28,255,.32);}
+
+
+/* ===========================================================
+   LAYOUT
+   =========================================================== */
+.admin-shell{
+  display:flex;
+  min-height:100vh;
+}
+.admin-main{
+  flex:1;
+  min-width:0;
+  padding:32px 44px 60px;
+}
+
+/* Barra superior: marca + usuario */
+.page-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:36px;
+}
+.page-topbar-user{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  background:#fff;
+  border-radius:100px;
+  padding:6px 18px 6px 6px;
+  box-shadow:var(--shadow-md);
+}
+.admin-user-avatar{
+  width:34px;height:34px;
+  border-radius:50%;
+  background:var(--accent);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;
+  font-weight:600;
+  flex-shrink:0;
+}
+.admin-user-info{min-width:0;line-height:1.3;}
+.admin-user-info .name{font-size:13px;font-weight:600;white-space:nowrap;}
+.admin-user-info .email{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
+
+.admin-header{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:32px;
+}
+.admin-header h1{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:600;
+  font-size:30px;
+  letter-spacing:-.01em;
+}
+.admin-header p{
+  font-size:13.5px;
+  color:var(--muted);
+  margin-top:6px;
+  max-width:520px;
+}
+
+/* ---------- Stat cards ---------- */
+.admin-stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:16px;
+  margin-bottom:32px;
+}
+.admin-stat-card{
+  position:relative;
+  background:#fff;
+  border-radius:var(--radius-md);
+  border:1.5px solid var(--line);
+  padding:22px 24px;
+  box-shadow:var(--shadow-md);
+  overflow:hidden;
+  transition:box-shadow .3s var(--ease), transform .3s var(--ease), border-color .3s var(--ease);
+}
+.admin-stat-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-4px);border-color:var(--accent-border);}
+.admin-stat-card:before{
+  content:'';
+  position:absolute;
+  top:-30%;
+  right:-20%;
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  background:var(--accent-soft);
+  z-index:0;
+  transition:transform .5s var(--ease);
+}
+.admin-stat-card:hover:before{transform:scale(1.15);}
+.admin-stat-card .num{
+  position:relative;
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:600;
+  font-size:32px;
+  color:var(--accent);
+}
+.admin-stat-card .label{
+  position:relative;
+  font-size:12.5px;
+  color:var(--muted);
+  margin-top:6px;
+  font-weight:500;
+}
+
+/* ---------- Panel + tabla ---------- */
+.admin-panel{
+  background:#fff;
+  border-radius:var(--radius-lg);
+  border:1.5px solid var(--line);
+  overflow:hidden;
+  box-shadow:var(--shadow-md);
+}
+.admin-panel-head{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+  justify-content:space-between;
+  padding:20px 24px;
+  border-bottom:1px solid var(--line);
+}
+.admin-panel-head h2{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:600;
+  font-size:16.5px;
+}
+.admin-search{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:13px;
+  border:1.5px solid var(--line);
+  border-radius:var(--radius-sm);
+  padding:9px 14px;
+  min-width:200px;
+  transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.admin-search:hover{border-color:var(--accent-border);}
+.admin-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);}
+
+.admin-table-wrap{overflow-x:auto;}
+table.admin-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13.5px;
+}
+.admin-table th{
+  text-align:left;
+  font-size:11px;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:600;
+  padding:14px 24px;
+  background:#ffffff;
+  border-bottom:1.5px solid var(--line);
+  white-space:nowrap;
+}
+.admin-table td{
+  padding:16px 24px;
+  border-bottom:1px solid #EEF0FC;
+  white-space:nowrap;
+  transition:background .2s var(--ease);
+}
+.admin-table tr:last-child td{border-bottom:none;}
+.admin-table tr:hover td{background:var(--accent-soft);}
+.admin-badge{
+  display:inline-block;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.4px;
+  padding:6px 13px;
+  border-radius:100px;
+}
+.admin-badge.pendiente{background:#fdf1d6;color:#8a6a12;}
+.admin-badge.confirmada{background:#dff3e4;color:#1f7a3d;}
+.admin-badge.cancelada{background:#fbe0e0;color:#a3231b;}
+.admin-empty{
+  display:none;
+  text-align:center;
+  padding:60px 24px 68px;
+  color:var(--muted);
+  font-size:13.5px;
+  line-height:1.7;
+}
+.admin-row-actions{display:flex;gap:8px;}
+.admin-icon-btn{
+  width:34px;height:34px;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  color:var(--muted);
+  transition:background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease), transform .2s var(--ease);
+}
+.admin-icon-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);transform:translateY(-2px);}
+.admin-icon-btn:active{transform:translateY(0) scale(.92);}
+.admin-icon-btn svg{width:14px;height:14px;}
+@media (max-width: 720px){
+  .admin-main{padding:24px 20px 100px;}
+  .page-topbar-user .admin-user-info{display:none;}
+  .page-topbar-user{padding:6px;}
+  .admin-header h1{font-size:24px;}
+}

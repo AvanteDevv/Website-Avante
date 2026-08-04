@@ -1,0 +1,253 @@
+/* ===========================================================
+   Avante Optics — Panel de administración
+   Hoja de estilos independiente: no depende de index.css.
+   =========================================================== */
+
+:root{
+  --ink:#15161a;
+  --muted:#767b8a;
+  --line:#E1E5FA;
+  --bg:#ffffff;
+  --pill:#111111;
+  --accent:#041cff;
+  --accent-hover:#0015E0;
+  --accent-soft:#eef0ff;
+  --accent-border:#c7cffa;
+  --radius-lg:26px;
+  --radius-md:18px;
+  --radius-sm:14px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --shadow-sm: 0 1px 3px rgba(4,28,255,.06);
+  --shadow-md: 0 14px 30px -16px rgba(4,28,255,.20);
+  --shadow-lg: 0 26px 48px -18px rgba(4,28,255,.30);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+
+body.admin-body{
+  background:#ffffff;
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.06), transparent 45%);
+  min-height:100vh;
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-optical-sizing:auto;
+  font-variation-settings:"wdth" 100;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- Logo ---------- */
+.logo{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:700;
+  font-size:20px;
+  letter-spacing:.5px;
+  display:flex;
+  align-items:center;
+  gap:2px;
+}
+.logo .dot{
+  display:inline-block;
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--accent);
+  margin:0 2px;
+}
+
+/* ---------- Botón base ---------- */
+.btn{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:12px;
+  letter-spacing:1.5px;
+  font-weight:600;
+  padding:14px 34px;
+  border-radius:30px;
+  border:1px solid var(--ink);
+  background:transparent;
+  color:var(--ink);
+  cursor:pointer;
+  transition:transform .2s var(--ease), background .2s var(--ease), color .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
+}
+.btn:hover{transform:translateY(-2px);}
+.btn:active{transform:translateY(0) scale(.97);}
+.btn.solid{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+  box-shadow:0 10px 24px rgba(4,28,255,.25);
+}
+.btn.solid:hover{background:var(--accent-hover);border-color:var(--accent-hover);box-shadow:0 14px 30px rgba(4,28,255,.32);}
+
+
+/* ===========================================================
+   LOGIN
+   =========================================================== */
+.admin-login-wrap{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:1.1fr 1fr;
+}
+@media (max-width:860px){
+  .admin-login-wrap{grid-template-columns:1fr;}
+  .admin-login-visual{display:none;}
+}
+.admin-login-visual{
+  position:relative;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,.14), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(255,255,255,.10), transparent 50%),
+    linear-gradient(155deg, var(--accent), #0015E0 60%, #000850);
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:52px;
+  overflow:hidden;
+}
+.admin-login-visual:before{
+  content:'';
+  position:absolute;
+  inset:auto -20% -30% auto;
+  width:70%;
+  aspect-ratio:1;
+  border-radius:50%;
+  background:rgba(255,255,255,.06);
+}
+.admin-login-visual:after{
+  content:'';
+  position:absolute;
+  inset:auto -8% -18% auto;
+  width:44%;
+  aspect-ratio:1;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.16);
+}
+.admin-login-visual .logo{color:#fff;font-size:22px;}
+.admin-login-visual .logo .dot{background:#fff;}
+.admin-login-visual-copy{position:relative;max-width:360px;}
+.admin-login-visual-copy h2{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:600;
+  font-size:30px;
+  line-height:1.25;
+  letter-spacing:-.01em;
+  margin-bottom:14px;
+}
+.admin-login-visual-copy p{
+  font-size:14px;
+  line-height:1.6;
+  color:rgba(255,255,255,.78);
+}
+.admin-login-visual-foot{
+  position:relative;
+  font-size:12px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.6);
+}
+
+.admin-login-form-side{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+.admin-login-card{
+  width:100%;
+  max-width:380px;
+  padding:12px 6px;
+  text-align:left;
+}
+.admin-login-card .logo{display:none;}
+.admin-login-card .eyebrow{
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:10px;
+}
+.admin-login-card h1{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:600;
+  font-size:26px;
+  margin:0 0 6px;
+}
+.admin-login-card .sub{
+  font-size:13.5px;
+  color:var(--muted);
+  margin-bottom:32px;
+}
+.admin-field{
+  text-align:left;
+  margin-bottom:18px;
+}
+.admin-field label{
+  display:block;
+  font-size:11.5px;
+  letter-spacing:1px;
+  font-weight:600;
+  color:var(--muted);
+  margin-bottom:8px;
+  text-transform:uppercase;
+}
+.admin-field-input{
+  position:relative;
+  display:flex;
+  align-items:center;
+}
+.admin-field-input > svg{
+  position:absolute;
+  left:14px;
+  width:16px;height:16px;
+  color:var(--muted);
+  pointer-events:none;
+}
+.admin-field-toggle{
+  position:absolute;
+  right:6px;
+  width:30px;height:30px;
+  border-radius:50%;
+  border:none;
+  background:transparent;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+  cursor:pointer;
+  transition:background .25s var(--ease), color .25s var(--ease);
+}
+.admin-field-toggle:hover{background:var(--accent-soft);color:var(--accent);}
+.admin-field-toggle svg{width:17px;height:17px;}
+.admin-field input{
+  width:100%;
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:14px;
+  color:var(--ink);
+  border:1.5px solid var(--line);
+  border-radius:var(--radius-sm);
+  padding:13px 44px 13px 40px;
+  background:#fff;
+  transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.admin-field input:hover{border-color:var(--accent-border);}
+.admin-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);}
+.admin-login-error{
+  font-size:12.5px;
+  color:#b3261e;
+  margin:-6px 0 16px;
+  min-height:16px;
+  opacity:0;
+  transition:opacity .25s ease;
+}
+.admin-login-error.show{opacity:1;}
+.admin-login-card .btn{width:100%;padding:15px 34px;}
+.admin-login-hint{
+  margin-top:24px;
+  font-size:11.5px;
+  color:var(--muted);
+  line-height:1.6;
+  background:var(--accent-soft);
+  border-radius:var(--radius-sm);
+  padding:14px 16px;
+}
+.admin-login-hint strong{color:var(--ink);}

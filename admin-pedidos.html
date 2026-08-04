@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pedidos — Avante Optics Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin-pedidos.css">
+<link rel="stylesheet" href="sidebar.css">
+</head>
+<body class="admin-body">
+
+<div class="admin-sidebar-backdrop" id="adminSidebarBackdrop" style="display:none"></div>
+<button class="admin-hamburger" id="adminHamburger" aria-hidden="true" style="display:none"></button>
+
+<nav class="navbar" id="adminSidebar">
+  <ul class="navbar__menu">
+    <li class="navbar__item">
+      <a href="admin-citas.html" class="navbar__link">
+        <i data-feather="calendar"></i>
+        <span>Citas</span>
+      </a>
+    </li>
+    <li class="navbar__item">
+      <a href="admin-pedidos.html" class="navbar__link active">
+        <i data-feather="shopping-bag"></i>
+        <span>Pedidos</span>
+      </a>
+    </li>
+    <li class="navbar__item">
+      <a href="admin-login.html" class="navbar__link" id="adminLogoutBtn">
+        <i data-feather="log-out"></i>
+        <span>Cerrar sesión</span>
+      </a>
+    </li>
+  </ul>
+</nav>
+
+<div class="admin-shell">
+  <main class="admin-main">
+    <header class="page-topbar">
+      <div class="logo">AVANTE<span class="dot"></span></div>
+      <div class="page-topbar-user">
+        <div class="admin-user-avatar">A</div>
+        <div class="admin-user-info">
+          <div class="name">Administrador</div>
+          <div class="email" id="adminUserEmail">admin@avanteoptics.mx</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="admin-header">
+      <div>
+        <h1>Pedidos</h1>
+        <p>Datos de ejemplo — el sitio público aún no tiene un carrito de compras real. Conecta tu tienda/backend para ver pedidos verdaderos aquí.</p>
+      </div>
+    </div>
+
+    <div class="admin-stats">
+      <div class="admin-stat-card">
+        <div class="num" id="pedidosCount">0</div>
+        <div class="label">Pedidos (ejemplo)</div>
+      </div>
+    </div>
+
+    <div class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>Todos los pedidos</h2>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Cliente</th>
+              <th>Total</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody id="pedidosTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="sidebar.js"></script>
+<script src="admin-pedidos.js"></script>
+
+</body>
+</html>
