@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis favoritos — Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="userbar.css">
+<link rel="stylesheet" href="sidebar.css">
+<link rel="stylesheet" href="mis-favoritos.css">
+</head>
+<body class="cuenta-body">
+
+{{template "userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "sidebar" .}}
+
+
+  <main class="cuenta-main">
+    <div class="cuenta-header">
+      <h1>Mis favoritos</h1>
+      <p>Los armazones que has guardado desde el Directorio y la tienda en línea.</p>
+    </div>
+
+    <div class="fav-grid">
+      <div class="fav-card">
+        <div class="fav-top">
+          <button type="button" class="fav-remove" title="Quitar de favoritos" aria-label="Quitar de favoritos">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </button>
+        </div>
+        <div class="fav-photo">
+          <span class="fav-badge">Nuevo</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="4.3"/><circle cx="16" cy="12" r="4.3"/><path d="M12.3 12h-.6"/></svg>
+        </div>
+        <h3 class="fav-name">Aurora</h3>
+        <div class="fav-brand-row">
+          <span class="fav-brand">Avante</span>
+          <span><span class="fav-price">$1,240</span></span>
+        </div>
+        <a href="/tienda" class="fav-buy">Ver en la tienda</a>
+      </div>
+      <div class="fav-card">
+        <div class="fav-top">
+          <button type="button" class="fav-remove" title="Quitar de favoritos" aria-label="Quitar de favoritos">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </button>
+        </div>
+        <div class="fav-photo">
+          <span class="fav-badge">-15%</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="8" height="8" rx="2"/><rect x="13" y="8" width="8" height="8" rx="2"/><path d="M11 12h2"/></svg>
+        </div>
+        <h3 class="fav-name">Meridian</h3>
+        <div class="fav-brand-row">
+          <span class="fav-brand">Avante</span>
+          <span><span class="fav-old">$1,150</span><span class="fav-price">$980</span></span>
+        </div>
+        <a href="/tienda" class="fav-buy">Ver en la tienda</a>
+      </div>
+      <div class="fav-card">
+        <div class="fav-top">
+          <button type="button" class="fav-remove" title="Quitar de favoritos" aria-label="Quitar de favoritos">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </button>
+        </div>
+        <div class="fav-photo">
+          
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="4.2"/><circle cx="17" cy="12" r="4.2"/><path d="M11.2 12h1.6M2.5 9 5 7.4M21.5 9 19 7.4"/></svg>
+        </div>
+        <h3 class="fav-name">Solstice</h3>
+        <div class="fav-brand-row">
+          <span class="fav-brand">Avante</span>
+          <span><span class="fav-price">$1,090</span></span>
+        </div>
+        <a href="/tienda" class="fav-buy">Ver en la tienda</a>
+      </div>
+    </div>
+
+    <div class="empty-state" id="favEmptyState" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <p>Todavía no tienes armazones guardados. Explora el directorio o la tienda en línea y guarda los que más te gusten.</p>
+      <a href="/tienda" class="btn solid small">Ir a la tienda</a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="userbar.js"></script>
+<script src="sidebar.js"></script>
+<script src="mis-favoritos.js"></script>
+</body>
+</html>

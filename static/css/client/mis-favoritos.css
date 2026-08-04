@@ -1,0 +1,157 @@
+/* ===========================================================
+   Avante Optics — Panel del cliente ("Mi cuenta")
+   Hoja de estilos compartida por mi-perfil, mis-pedidos,
+   mis-citas, mis-favoritos y configuracion.
+
+   Reutiliza la identidad del sitio público (paleta azul,
+   Fraunces + Public Sans, navbar tipo píldora) y adopta la
+   estructura de panel limpia del admin (fondo blanco, tarjetas,
+   tablas, badges).
+   =========================================================== */
+
+:root{
+  --blue-900:#000850;
+  --blue-700:#0015E0;
+  --blue-600:#041cff;
+  --blue-500:#3E50FF;
+  --blue-300:#8992FF;
+  --blue-100:#EAEFFF;
+  --blue-50:#F5F7FF;
+  --white:#FFFFFF;
+  --ink:#0A0E38;
+  --grey:#6670A6;
+  --line:#DDE3FA;
+  --serif:'Fraunces', serif;
+  --sans:'Public Sans', sans-serif;
+  --ease:cubic-bezier(.16,.84,.44,1);
+
+  --radius-lg:26px;
+  --radius-md:18px;
+  --radius-sm:14px;
+  --shadow-sm: 0 1px 3px rgba(4,28,255,.06);
+  --shadow-md: 0 14px 30px -16px rgba(4,28,255,.18);
+  --shadow-lg: 0 26px 48px -18px rgba(4,28,255,.28);
+}
+
+/* ---------- Modo oscuro: redefine los mismos tokens, todo lo
+   demás (paneles, tarjetas, botones, badges...) ya los usa y
+   se re-tema solo, sin tocar cada componente ---------- */
+body.dark{
+  --white:#10163a;
+  --ink:#F2F4FF;
+  --grey:#9AA3D6;
+  --line:#2A3266;
+  --blue-50:rgba(62,80,255,.16);
+  --blue-100:rgba(137,146,255,.28);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.25);
+  --shadow-md: 0 14px 30px -16px rgba(0,0,0,.45);
+  --shadow-lg: 0 26px 48px -18px rgba(0,0,0,.55);
+}
+body.dark.cuenta-body{
+  background:#070b24;
+  background-image:radial-gradient(circle at 100% 0%, rgba(62,80,255,.12), transparent 45%);
+}
+body.dark{ transition:background-color .3s var(--ease); }
+body.dark .fav-card{ transition:background-color .3s var(--ease), border-color .3s var(--ease); }
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--white);
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%; display:block;}
+a{color:inherit; text-decoration:none;}
+button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+ul{list-style:none;}
+input,select,textarea{font-family:inherit;}
+::selection{background:var(--blue-600); color:var(--white);}
+
+body.cuenta-body{
+  background:#ffffff;
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.05), transparent 45%);
+  min-height:100vh;
+}
+
+.btn{
+  padding:15px 34px;
+  font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase;
+  border:1px solid var(--ink);
+  border-radius:30px;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  transition:background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease), transform .2s var(--ease);
+}
+.btn:hover{ transform:translateY(-2px); }
+.btn.solid{ background:var(--blue-600); border-color:var(--blue-600); color:var(--white); }
+.btn.solid:hover{ background:var(--blue-700); border-color:var(--blue-700); }
+.btn:not(.solid):hover{ background:var(--ink); color:var(--white); }
+.btn.small{ padding:10px 22px; font-size:11px; letter-spacing:1px; }
+.btn.danger{ border-color:#e2554a; color:#e2554a; }
+.btn.danger:hover{ background:#e2554a; color:var(--white); }
+
+
+/* =========================================================
+   CUENTA SHELL — sidebar + contenido
+   ========================================================= */
+.cuenta-shell{
+  max-width:1180px; margin:0 auto;
+  padding:36px 24px 90px;
+  display:flex; align-items:flex-start; gap:32px;
+}
+@media (max-width:900px){ .cuenta-shell{ flex-direction:column; padding:28px 18px 70px; gap:22px; } }
+
+
+.cuenta-main{ flex:1; min-width:0; }
+
+.cuenta-header{ margin-bottom:28px; }
+.cuenta-header h1{
+  font-family:var(--serif); font-weight:500; font-size:32px; letter-spacing:-.01em; color:var(--ink);
+}
+.cuenta-header p{ font-size:14px; color:var(--grey); margin-top:7px; max-width:560px; line-height:1.55; }
+
+
+@media (max-width:520px){
+  .cuenta-header h1{ font-size:26px; }
+}
+/* ---------- Favoritos: shop card compacta ---------- */
+.fav-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:22px; }
+.fav-card{
+  position:relative; background:var(--white); border-radius:22px; border:1.5px solid var(--blue-100);
+  padding:14px; display:flex; flex-direction:column;
+  transition:box-shadow .3s var(--ease), transform .3s var(--ease), border-color .3s var(--ease);
+  box-shadow:0 12px 26px -18px rgba(20,40,120,.20);
+}
+.fav-card:hover{ box-shadow:0 22px 40px -18px rgba(20,40,120,.28); transform:translateY(-4px); border-color:var(--blue-300); }
+.fav-top{ display:flex; justify-content:flex-end; margin-bottom:8px; }
+.fav-remove{
+  width:32px; height:32px; border-radius:50%; background:var(--white); border:1px solid var(--blue-100);
+  display:flex; align-items:center; justify-content:center; color:#ff4d6a; flex-shrink:0;
+  transition:background .2s var(--ease), transform .2s var(--ease);
+}
+.fav-remove svg{ width:15px; height:15px; fill:#ff4d6a; stroke:#ff4d6a; }
+.fav-remove:hover{ background:#ff4d6a; }
+.fav-remove:hover svg{ fill:var(--white); stroke:var(--white); }
+.fav-photo{
+  position:relative; width:100%; aspect-ratio:1/1; border-radius:16px; margin-bottom:10px;
+  background:var(--blue-50); display:flex; align-items:center; justify-content:center; color:var(--blue-500);
+}
+.fav-photo svg{ width:46%; height:46%; }
+.fav-badge{ position:absolute; top:8px; left:8px; background:var(--ink); color:var(--white); font-size:10px; font-weight:700; padding:4px 10px; border-radius:10px; }
+.fav-name{ font-family:var(--serif); font-weight:500; font-size:15.5px; color:var(--ink); margin:0 2px 6px; }
+.fav-brand-row{ display:flex; justify-content:space-between; align-items:center; margin:0 2px 12px; }
+.fav-brand{ font-size:11.5px; color:var(--grey); }
+.fav-old{ font-size:11px; color:var(--grey); text-decoration:line-through; margin-right:6px; }
+.fav-price{ font-family:var(--sans); font-weight:700; font-size:13.5px; }
+.fav-buy{
+  background:var(--blue-600); color:var(--white); border-radius:14px; padding:9px; text-align:center;
+  font-size:11.5px; font-weight:700; margin-top:auto;
+  transition:background .2s var(--ease);
+}
+.fav-buy:hover{ background:var(--blue-700); }
+
+/* ---------- Estado vacío ---------- */
+.empty-state{ text-align:center; padding:64px 24px 72px; color:var(--grey); }
+.empty-state svg{ width:44px; height:44px; color:var(--blue-300); margin:0 auto 16px; }
+.empty-state p{ font-size:13.5px; line-height:1.7; max-width:360px; margin:0 auto 20px; }

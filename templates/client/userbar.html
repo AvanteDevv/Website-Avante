@@ -1,0 +1,30 @@
+{{define "userbar"}}
+<div class="header-outer">
+<header class="userbar-row">
+  <div class="userbar" id="userbar">
+    <button type="button" class="userbar-trigger">
+      <span class="userbar-avatar">CA</span>
+      <span class="userbar-name">Cliente</span>
+      <svg class="userbar-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div class="userbar-menu">
+      <div class="userbar-menu-head">
+        <span class="userbar-avatar">CA</span>
+        <div>
+          <div class="name">Cliente Avante</div>
+          <div class="email">cliente@avanteoptics.mx</div>
+        </div>
+      </div>
+        <a href="/mi-perfil" class="userbar-menu-link{{if eq .ActivePage "mi-perfil"}} active{{end}}"><i data-feather="user"></i>Mi perfil</a>
+        <a href="/mis-pedidos" class="userbar-menu-link{{if eq .ActivePage "mis-pedidos"}} active{{end}}"><i data-feather="shopping-bag"></i>Mis pedidos</a>
+        <a href="/mis-citas" class="userbar-menu-link{{if eq .ActivePage "mis-citas"}} active{{end}}"><i data-feather="calendar"></i>Mis citas</a>
+        <a href="/mis-favoritos" class="userbar-menu-link{{if eq .ActivePage "mis-favoritos"}} active{{end}}"><i data-feather="heart"></i>Favoritos</a>
+        <a href="/configuracion" class="userbar-menu-link{{if eq .ActivePage "configuracion"}} active{{end}}"><i data-feather="settings"></i>Configuración</a>
+      <div class="userbar-menu-divider"></div>
+      <a href="/" class="userbar-menu-link"><i data-feather="home"></i>Volver al sitio</a>
+      <a href="#" class="userbar-menu-link logout"><i data-feather="log-out"></i>Cerrar sesión</a>
+    </div>
+  </div>
+</header>
+</div>
+{{end}}
