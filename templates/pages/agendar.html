@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avante Optics — Agenda tu cita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/partials/navbar.css">
+<link rel="stylesheet" href="/static/css/partials/footer.css">
+<link rel="stylesheet" href="/static/css/agendar.css">
+</head>
+<body>
+
+{{template "navbar" .}}
+
+<section class="strip" id="appointment">
+  <div class="section-head reveal-blur">
+    <div class="eyebrow"><svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>Visítanos<svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg></div>
+    <h2>Agenda tu cita</h2>
+    <p>Elige el día y la hora que mejor te acomode.</p>
+  </div>
+  <div class="appt-card reveal-rise">
+    <div class="appt-side">
+      <div class="appt-side-daynum" id="apptDayNum">--</div>
+      <div class="appt-side-weekday" id="apptWeekday">Elige un día</div>
+      <div class="appt-side-monthyear" id="apptSideMonthYear"></div>
+      <div class="appt-side-details">
+        <div class="appt-detail-label">Detalles de tu cita</div>
+        <div class="appt-detail-row"><span>Hora</span><strong id="apptDetailTime">Por definir</strong></div>
+        <div class="appt-detail-row"><span>Dirección</span><strong id="apptDetailAddress">Luis Donaldo Colosio #69, Col. Centro, Hermosillo, Son.</strong></div>
+      </div>
+    </div>
+
+    <div class="appt-main">
+      <div class="appt-view appt-view-day active" id="apptDayView">
+        <div class="appt-weekdays"><span>DOM</span><span>LUN</span><span>MAR</span><span>MIÉ</span><span>JUE</span><span>VIE</span><span>SÁB</span></div>
+        <div class="appt-day-grid" id="apptDayGrid"></div>
+      </div>
+
+      <div class="appt-view appt-view-hour" id="apptHourView">
+        <div class="appt-nav-row">
+          <button type="button" class="appt-back" id="apptBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Volver</button>
+          <span id="apptHourDateLabel"></span>
+        </div>
+        <hr class="appt-line">
+        <div class="appt-hour-grid" id="apptHourGrid"></div>
+        <button type="button" class="btn solid appt-hour-submit" id="apptSubmit">Confirmar cita</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+{{template "footer" .}}
+
+<div class="modal-overlay" id="apptModalOverlay">
+  <div class="modal-card">
+    <button class="modal-close" id="apptModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <div class="modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+    <h3>¡Cita confirmada!</h3>
+    <p id="apptModalText">Te esperamos en Avante Optics.</p>
+    <button class="btn solid modal-ok" id="apptModalOk">Listo</button>
+  </div>
+</div>
+
+<script src="/static/js/agendar.js"></script>
+<script src="/static/js/partials/footer.js"></script>
+<a href="https://wa.me/526622131792?text=Hola%2C%20me%20gustar%C3%ADa%20m%C3%A1s%20informaci%C3%B3n" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contáctanos por WhatsApp">
+  <span class="whatsapp-float-ring"></span>
+  <span class="whatsapp-float-ring delay"></span>
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg>
+  <span class="whatsapp-float-tip">Escríbenos por WhatsApp</span>
+</a>
+<script src="/static/js/partials/navbar.js"></script>
+</body>
+</html>

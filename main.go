@@ -24,6 +24,8 @@ func loadTemplates() *template.Template {
 	tmpl = template.Must(tmpl.ParseGlob("templates/client/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/admin/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth-admin/*.html"))
+	tmpl = template.Must(tmpl.ParseGlob("templates/ecommerce/*.html"))
+	tmpl = template.Must(tmpl.ParseGlob("templates/pages/*.html"))
 	return tmpl
 }
 
@@ -124,15 +126,30 @@ func main() {
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
 
-	// Cuando existan tienda.html / blog.html directo en templates/, se
-	// agregan aquí de la misma forma:
-	//
-	// router.GET("/tienda", func(c *gin.Context) {
-	// 	c.HTML(http.StatusOK, "eccomerce.html", gin.H{"ActivePage": "tienda"})
-	// })
-	// router.GET("/blog", func(c *gin.Context) {
-	// 	c.HTML(http.StatusOK, "blog.html", gin.H{"ActivePage": "blog"})
-	// })
+	// Tienda en línea (templates/ecommerce/*.html)
+	router.GET("/tienda", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "ecommerce.html", gin.H{
+			"ActivePage": "tienda",
+		})
+	})
+	router.GET("/tienda/:producto", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "detalle-producto.html", gin.H{
+			"ActivePage": "tienda",
+			"Producto":   c.Param("producto"),
+		})
+	})
+
+	// Páginas sueltas (templates/pages/*.html)
+	router.GET("/blog", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "blog.html", gin.H{
+			"ActivePage": "blog",
+		})
+	})
+	router.GET("/agendar", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "agendar.html", gin.H{
+			"ActivePage": "agendar",
+		})
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {

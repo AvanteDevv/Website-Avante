@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avante Optics — Detalle del producto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/partials/navbar.css">
+<link rel="stylesheet" href="/static/css/partials/footer.css">
+<link rel="stylesheet" href="/static/css/detalle-producto.css">
+</head>
+<body>
+
+{{template "navbar" .}}
+
+<nav class="crumb" aria-label="Ruta de navegación">
+  <a href="index.html">Inicio</a>
+  <span class="sep">/</span>
+  <a href="index.html#shop">Directorio</a>
+  <span class="sep">/</span>
+  <span class="current" id="crumbName">Producto</span>
+</nav>
+
+<section class="pd-wrap">
+  <div class="pd-gallery reveal-rise">
+    <div class="pd-main-wrap">
+      <div class="pd-ellipse"></div>
+      <div class="pd-main">
+        <img id="pdMainImg" src="" alt="">
+        <span class="pd-badge-float" id="pdBadge" style="display:none;"></span>
+        <button type="button" class="pd-fav-float" id="pdFav" aria-label="Agregar a favoritos" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        </button>
+        <button type="button" class="pd-nav-arrow prev" id="pdPrevImg" aria-label="Imagen anterior">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <button type="button" class="pd-nav-arrow next" id="pdNextImg" aria-label="Imagen siguiente">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+    </div>
+    <div class="pd-thumbs" id="pdThumbs"></div>
+  </div>
+
+  <div class="pd-info">
+    <div class="pd-brand-row">
+      <span class="pd-brand-badge" id="pdBrandBadge"></span>
+      <span id="pdBrand"></span>
+    </div>
+    <h1 class="pd-title" id="pdTitle"></h1>
+    <div class="pd-price-row">
+      <span class="pd-old-price" id="pdOldPrice" style="display:none;"></span>
+      <span class="pd-new-price" id="pdNewPrice"></span>
+    </div>
+    <p class="pd-desc" id="pdDesc"></p>
+
+    <div class="pd-divider"></div>
+
+    <div class="pd-field-label">Graduación</div>
+
+    <div class="pd-rx-tabs" id="pdRxTabs">
+      <button type="button" class="pd-rx-tab active" data-mode="preset">Elegir opción</button>
+      <button type="button" class="pd-rx-tab" data-mode="manual">Ingresarla manualmente</button>
+    </div>
+
+    <div class="pd-rx-panel" id="pdRxPreset">
+      <div class="pd-sizes" id="pdRxOptions"></div>
+    </div>
+
+    <div class="pd-rx-panel" id="pdRxManual" style="display:none;">
+      <div class="pd-rx-manual-row">
+        <label>OD (ojo derecho)<input type="text" id="pdRxOD" placeholder="Ej. -1.50"></label>
+        <label>OI (ojo izquierdo)<input type="text" id="pdRxOI" placeholder="Ej. -1.75"></label>
+      </div>
+    </div>
+
+    <a href="#" class="pd-rx-help" id="pdRxHelp">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/></svg>
+      ¿No conoces tu graduación? Agenda tu examen de vista
+      <svg class="pd-tryon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+    </a>
+
+    <div class="pd-qty-row">
+      <div class="pd-qty">
+        <button type="button" id="pdQtyMinus" aria-label="Reducir cantidad">−</button>
+        <span id="pdQtyVal">1</span>
+        <button type="button" id="pdQtyPlus" aria-label="Aumentar cantidad">+</button>
+      </div>
+      <button type="button" class="pd-buy" id="pdBuy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Agregar al carrito</span>
+      </button>
+      <div class="pd-share-wrap">
+        <button type="button" class="pd-share" id="pdShare" aria-label="Compartir">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"></line><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"></line></svg>
+        </button>
+        <div class="pd-share-menu" id="pdShareMenu">
+          <a href="#" class="fb" aria-label="Compartir en Facebook" onclick="return false;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12"/></svg></a>
+          <a href="#" class="wa" aria-label="Compartir en WhatsApp" onclick="return false;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg></a>
+          <a href="#" class="ig" aria-label="Compartir en Instagram" onclick="return false;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c2.7 0 3 0 4.1.1 1.1.1 1.8.2 2.5.5.7.3 1.2.6 1.8 1.2.6.6.9 1.1 1.2 1.8.3.7.4 1.4.5 2.5.1 1 .1 1.4.1 4.1s0 3.1-.1 4.1c-.1 1.1-.2 1.8-.5 2.5-.3.7-.6 1.2-1.2 1.8-.6.6-1.1.9-1.8 1.2-.7.3-1.4.4-2.5.5-1 .1-1.4.1-4.1.1s-3 0-4.1-.1c-1.1-.1-1.8-.2-2.5-.5-.7-.3-1.2-.6-1.8-1.2-.6-.6-.9-1.1-1.2-1.8-.3-.7-.4-1.4-.5-2.5C2 15.1 2 14.7 2 12s0-3.1.1-4.1c.1-1.1.2-1.8.5-2.5.3-.7.6-1.2 1.2-1.8.6-.6 1.1-.9 1.8-1.2.7-.3 1.4-.4 2.5-.5C8.9 2 9.3 2 12 2Zm0 4.9a5.1 5.1 0 1 0 0 10.2 5.1 5.1 0 0 0 0-10.2Zm0 8.4a3.3 3.3 0 1 1 0-6.6 3.3 3.3 0 0 1 0 6.6Zm5.3-8.6a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Z"/></svg></a>
+          <a href="#" class="link" aria-label="Copiar enlace" onclick="return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.5-1.5"/></svg></a>
+        </div>
+      </div>
+    </div>
+
+    <a href="probador-virtual.html" class="pd-tryon-link" id="pdTryOn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="4.2"/><circle cx="17" cy="12" r="4.2"/><path d="M11.2 12h1.6M2.5 9 5 7.4M21.5 9 19 7.4"/></svg>
+      Pruébate estos lentes en el probador virtual
+      <svg class="pd-tryon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+    </a>
+
+    <div class="pd-perks">
+      <div class="pd-perk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3.5L22 13.5V17h-6"/><circle cx="6.5" cy="19.5" r="1.8"/><circle cx="17.5" cy="19.5" r="1.8"/></svg> Envío gratis en pedidos desde $500</div>
+      <div class="pd-perk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4Z"/></svg> Garantía de 1 año en armazón y bisagras</div>
+      <div class="pd-perk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.3"/><path d="M3 4v5h5"/></svg> Devoluciones gratuitas dentro de 30 días</div>
+    </div>
+  </div>
+</section>
+
+<section class="strip" id="related">
+  <div class="section-head reveal-blur">
+    <div class="eyebrow">También te puede interesar</div>
+    <h2>Sigue mirando</h2>
+  </div>
+  <div class="rel-grid" id="relGrid"></div>
+</section>
+
+<div class="modal-overlay" id="apptBookOverlay">
+  <div class="modal-card appt-modal-card">
+    <button class="modal-close" id="apptBookClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <div class="appt-card">
+      <div class="appt-side">
+        <div class="appt-side-daynum" id="apptDayNum">--</div>
+        <div class="appt-side-weekday" id="apptWeekday">Elige un día</div>
+        <div class="appt-side-monthyear" id="apptSideMonthYear"></div>
+        <div class="appt-side-details">
+          <div class="appt-detail-label">Detalles de tu cita</div>
+          <div class="appt-detail-row"><span>Hora</span><strong id="apptDetailTime">Por definir</strong></div>
+          <div class="appt-detail-row"><span>Dirección</span><strong>Blvd. Luis Encinas 123, Col. Centro, Hermosillo, Son.</strong></div>
+        </div>
+      </div>
+      <div class="appt-main">
+        <div class="appt-view appt-view-day active" id="apptDayView">
+          <div class="appt-weekdays"><span>DOM</span><span>LUN</span><span>MAR</span><span>MIÉ</span><span>JUE</span><span>VIE</span><span>SÁB</span></div>
+          <div class="appt-day-grid" id="apptDayGrid"></div>
+        </div>
+        <div class="appt-view appt-view-hour" id="apptHourView">
+          <div class="appt-nav-row">
+            <button type="button" class="appt-back" id="apptBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Volver</button>
+            <span id="apptHourDateLabel"></span>
+          </div>
+          <hr class="appt-line">
+          <div class="appt-hour-grid" id="apptHourGrid"></div>
+          <button type="button" class="btn solid appt-hour-submit" id="apptSubmit">Confirmar cita</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="apptModalOverlay">
+  <div class="modal-card">
+    <button class="modal-close" id="apptModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <div class="modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+    <h3>¡Cita confirmada!</h3>
+    <p id="apptModalText">Te esperamos en Avante Optics.</p>
+    <button class="btn solid modal-ok" id="apptModalOk">Listo</button>
+  </div>
+</div>
+
+{{template "footer" .}}
+
+<script src="/static/js/detalle-producto.js"></script>
+<script src="/static/js/partials/footer.js"></script>
+<a href="https://wa.me/526622131792?text=Hola%2C%20me%20gustar%C3%ADa%20m%C3%A1s%20informaci%C3%B3n" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Cont\xc3\xa1ctanos por WhatsApp">
+  <span class="whatsapp-float-ring"></span>
+  <span class="whatsapp-float-ring delay"></span>
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg>
+  <span class="whatsapp-float-tip">Escr\xc3\xadbenos por WhatsApp</span>
+</a>
+<script src="/static/js/partials/navbar.js"></script>
+</body>
+</html>

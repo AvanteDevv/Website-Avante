@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Cards horizontales</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Ruda:wght@400;600;700&family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/css/partials/navbar.css">
+<link rel="stylesheet" href="static/css/partials/footer.css">
+<link rel="stylesheet" href="static/css/eccomerce/eccomerce.css">
+</head>
+<body>
+
+{{template "navbar" .}}
+
+<div class="cards-wrapper">
+  <div class="card">
+    <img class="avatar-img" src="coreana.png" alt="avatar-1" />
+  </div>
+  <div class="card">
+    <img class="avatar-img" src="avante-rubia.png" alt="avatar-2" />
+  </div>
+  <div class="card">
+    <img class="avatar-img" src="ph1.png" alt="avatar-3" />
+  </div>
+  <div class="card">
+    <img class="avatar-img" src="pelirroja.png" alt="avatar-4" />
+  </div>
+  <div class="card">
+    <img class="avatar-img" src="mexicana.png" alt="avatar-5" />
+  </div>
+
+  <canvas class="scan-line-canvas" id="scanLine"></canvas>
+  <p class="lens-fx-source" id="lensFxSource">Todo se ve mejor enfocado: los detalles que antes dejabas pasar, ahora no se te van a escapar.</p>
+  <canvas class="lens-fx" id="lensFx" aria-hidden="true"></canvas>
+
+  <div class="glasses-wrap">
+    <img class="glasses-img" src="sc-lent.png" alt="lentes" />
+  </div>
+
+  <div class="hero-socials">
+    <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12"/></svg></a>
+    <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c2.7 0 3 0 4.1.1 1.1.1 1.8.2 2.5.5.7.3 1.2.6 1.8 1.2.6.6.9 1.1 1.2 1.8.3.7.4 1.4.5 2.5.1 1 .1 1.4.1 4.1s0 3.1-.1 4.1c-.1 1.1-.2 1.8-.5 2.5-.3.7-.6 1.2-1.2 1.8-.6.6-1.1.9-1.8 1.2-.7.3-1.4.4-2.5.5-1 .1-1.4.1-4.1.1s-3 0-4.1-.1c-1.1-.1-1.8-.2-2.5-.5-.7-.3-1.2-.6-1.8-1.2-.6-.6-.9-1.1-1.2-1.8-.3-.7-.4-1.4-.5-2.5C2 15.1 2 14.7 2 12s0-3.1.1-4.1c.1-1.1.2-1.8.5-2.5.3-.7.6-1.2 1.2-1.8.6-.6 1.1-.9 1.8-1.2.7-.3 1.4-.4 2.5-.5C8.9 2 9.3 2 12 2Zm0 4.9a5.1 5.1 0 1 0 0 10.2 5.1 5.1 0 0 0 0-10.2Zm0 8.4a3.3 3.3 0 1 1 0-6.6 3.3 3.3 0 0 1 0 6.6Zm5.3-8.6a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Z"/></svg></a>
+    <a href="#" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg></a>
+  </div>
+</div>
+
+<section class="dir-section">
+  <div class="dir-wrap">
+    <div class="dir-toolbar">
+      <div class="dir-toolbar-side"></div>
+
+      <div class="dir-search">
+        <div class="dir-search-glow"></div>
+        <div class="dir-search-inner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="dirSearchInput" placeholder="Buscar monturas, marcas...">
+        </div>
+      </div>
+
+      <div class="dir-toolbar-side right">
+        <div class="dir-toolbar-actions">
+          <button type="button" class="dir-toggle-btn" id="dirFilterToggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"></line><circle cx="9" cy="7" r="2"></circle><line x1="4" y1="17" x2="20" y2="17"></line><circle cx="15" cy="17" r="2"></circle></svg>
+            <span id="dirFilterToggleLabel">Ocultar filtros</span>
+          </button>
+
+          <div class="dir-sort" id="dirSort">
+            <button type="button" class="dir-sort-btn" id="dirSortBtn">
+              <span>Ordenar por: <strong id="dirSortLabel">Más relevante</strong></span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="dir-sort-menu" id="dirSortMenu">
+              <button type="button" class="active" data-value="Más relevante">Más relevante</button>
+              <button type="button" data-value="Más nuevo">Más nuevo</button>
+              <button type="button" data-value="Precio: menor a mayor">Precio: menor a mayor</button>
+              <button type="button" data-value="Precio: mayor a menor">Precio: mayor a menor</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dir-layout" id="dirLayout">
+      <aside class="dir-filters" id="dirFilters">
+        <div class="dir-filter-group">
+          <h4>Categoría</h4>
+          <label class="dir-check"><input type="checkbox" checked><span>Todo</span></label>
+          <label class="dir-check"><input type="checkbox"><span>Lentes de sol</span></label>
+          <label class="dir-check"><input type="checkbox"><span>Armazones ópticos</span></label>
+          <label class="dir-check"><input type="checkbox"><span>Lectura</span></label>
+          <label class="dir-check"><input type="checkbox"><span>Deportivos</span></label>
+        </div>
+        <div class="dir-filter-group">
+          <h4>Género</h4>
+          <label class="dir-check"><input type="checkbox"><span>Hombre</span></label>
+          <label class="dir-check"><input type="checkbox"><span>Mujer</span></label>
+          <label class="dir-check"><input type="checkbox"><span>Unisex</span></label>
+        </div>
+        <div class="dir-filter-group">
+          <h4>Material</h4>
+          <label class="dir-check"><input type="checkbox"><span>Acetato</span></label>
+          <label class="dir-check"><input type="checkbox"><span>Metal</span></label>
+          <label class="dir-check"><input type="checkbox"><span>Titanio</span></label>
+        </div>
+        <div class="dir-filter-group">
+          <h4>Precio</h4>
+          <label class="dir-check"><input type="checkbox"><span>Menos de $500</span></label>
+          <label class="dir-check"><input type="checkbox"><span>$500 – $700</span></label>
+          <label class="dir-check"><input type="checkbox"><span>Más de $700</span></label>
+        </div>
+      </aside>
+
+      <div class="shop-grid" id="shopGrid"></div>
+    </div>
+  </div>
+</section>
+
+
+{{template "footer" .}}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/snap.svg/0.5.1/snap.svg-min.js"></script>
+<script src="static/js/eccomerce/eccomerce.js"></script>
+<script src="static/js/partials/footer.js"></script>
+<a href="https://wa.me/526620000000?text=Hola%2C%20me%20gustar%C3%ADa%20m%C3%A1s%20informaci%C3%B3n" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contáctanos por WhatsApp">
+  <span class="whatsapp-float-ring"></span>
+  <span class="whatsapp-float-ring delay"></span>
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg>
+  <span class="whatsapp-float-tip">Escríbenos por WhatsApp</span>
+</a>
+<script src="static/js/partials/navbar.js"></script>
+</body>
+</html>
