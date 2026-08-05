@@ -143,7 +143,7 @@ buyBtn.addEventListener('click', () => {
 const relGrid = document.getElementById('relGrid');
 const related = PRODUCTS.map((p,i) => ({...p, i})).filter(p => p.i !== pid).slice(0, 4);
 relGrid.innerHTML = related.map(p => `
-  <a class="rel-card" href="detalle-producto.html?id=${p.i}">
+  <a class="rel-card" href="/eccomerce/detalle?id=${p.i}">
     <div class="rel-photo"><img src="${PRODUCT_IMAGES[p.i % PRODUCT_IMAGES.length]}" alt="${p.name}"></div>
     <div class="rel-name">${p.name}</div>
     <div class="rel-price-row">

@@ -445,7 +445,7 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
   const sizeSelect = card.querySelector('.shop-size-select');
   if(sizeSelect) sizeSelect.addEventListener('click', (e) => {
     e.stopPropagation();
-    window.location.href = `detalle-producto.html?id=${cardIndex}`;
+    window.location.href = `/eccomerce/detalle?id=${cardIndex}`;
   });
 
   const rulerBtn = card.querySelector('.shop-ruler-btn');
@@ -464,7 +464,7 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
 
   card.style.cursor = 'pointer';
   card.addEventListener('click', () => {
-    window.location.href = `detalle-producto.html?id=${cardIndex}`;
+    window.location.href = `/eccomerce/detalle?id=${cardIndex}`;
   });
 });
 
