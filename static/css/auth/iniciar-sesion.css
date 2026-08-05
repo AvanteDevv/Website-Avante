@@ -205,8 +205,9 @@ form{ display:flex; flex-direction:column; gap:18px; }
   position:fixed; left:50%; bottom:26px; transform:translate(-50%,120%);
   display:flex; align-items:center; gap:10px; background:var(--ink); color:var(--white);
   padding:14px 22px; border-radius:100px; font-size:13px; font-weight:600;
-  box-shadow:0 20px 40px -12px rgba(8,24,72,.4); transition:transform .35s var(--ease); z-index:300;
-  max-width:90vw;
+  box-shadow:0 20px 40px -12px rgba(8,24,72,.4);
+  transition:transform .35s var(--ease), visibility .35s var(--ease);
+  z-index:300; max-width:90vw; visibility:hidden;
 }
-.auth-toast.show{ transform:translate(-50%,0); }
+.auth-toast.show{ transform:translate(-50%,0); visibility:visible; }
 .auth-toast svg{ width:16px; height:16px; color:var(--blue-300); flex-shrink:0; }
