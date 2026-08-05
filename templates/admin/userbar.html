@@ -1,0 +1,30 @@
+{{define "admin-userbar"}}
+<div class="header-outer">
+<header class="userbar-row">
+  <div class="userbar" id="userbar">
+    <button type="button" class="userbar-trigger">
+      <span class="userbar-avatar">AD</span>
+      <span class="userbar-name">Admin</span>
+      <svg class="userbar-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div class="userbar-menu">
+      <div class="userbar-menu-head">
+        <span class="userbar-avatar">AD</span>
+        <div>
+          <div class="name">Administrador</div>
+          <div class="email">admin@avanteoptics.mx</div>
+        </div>
+      </div>
+        <a href="/admin/dashboard" class="userbar-menu-link{{if eq .ActivePage "admin-dashboard"}} active{{end}}"><i data-feather="grid"></i>Resumen</a>
+        <a href="/admin/citas" class="userbar-menu-link{{if eq .ActivePage "admin-citas"}} active{{end}}"><i data-feather="calendar"></i>Citas</a>
+        <a href="/admin/pedidos" class="userbar-menu-link{{if eq .ActivePage "admin-pedidos"}} active{{end}}"><i data-feather="shopping-bag"></i>Pedidos</a>
+        <a href="/admin/base-de-datos" class="userbar-menu-link{{if eq .ActivePage "admin-base-de-datos"}} active{{end}}"><i data-feather="database"></i>Base de datos</a>
+        <a href="/admin/configuracion" class="userbar-menu-link{{if eq .ActivePage "admin-configuracion"}} active{{end}}"><i data-feather="settings"></i>Configuración</a>
+      <div class="userbar-menu-divider"></div>
+      <a href="/" class="userbar-menu-link"><i data-feather="home"></i>Volver al sitio</a>
+      <a href="/admin/logout" class="userbar-menu-link logout"><i data-feather="log-out"></i>Cerrar sesión</a>
+    </div>
+  </div>
+</header>
+</div>
+{{end}}

@@ -22,6 +22,7 @@ func loadTemplates() *template.Template {
 	tmpl = template.Must(tmpl.ParseGlob("templates/partials/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/client/*.html"))
+	tmpl = template.Must(tmpl.ParseGlob("templates/admin/*.html"))
 	return tmpl
 }
 
@@ -92,6 +93,13 @@ func main() {
 	router.GET("/configuracion", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "configuracion.html", gin.H{
 			"ActivePage": "configuracion",
+		})
+	})
+
+	// Vistas del panel de administrador (templates/admin/*.html)
+	router.GET("/admin/base-de-datos", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "base-de-datos.html", gin.H{
+			"ActivePage": "admin-base-de-datos",
 		})
 	})
 
