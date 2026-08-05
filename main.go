@@ -127,12 +127,12 @@ func main() {
 	router.GET("/admin/logout", handlers.AdminLogout)
 
 	// Tienda en línea (templates/ecommerce/*.html)
-	router.GET("/tienda", func(c *gin.Context) {
+	router.GET("/eccomerce", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "ecommerce.html", gin.H{
 			"ActivePage": "tienda",
 		})
 	})
-	router.GET("/tienda/:producto", func(c *gin.Context) {
+	router.GET("/eccomerce/:producto", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "detalle-producto.html", gin.H{
 			"ActivePage": "tienda",
 			"Producto":   c.Param("producto"),
