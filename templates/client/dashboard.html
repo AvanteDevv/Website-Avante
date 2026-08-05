@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/partials/userbar.css">
+<link rel="stylesheet" href="/css/partials/sidebar.css">
+<link rel="stylesheet" href="/css/client/dashboard.css">
+</head>
+<body class="cuenta-body">
+
+{{template "userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header">
+      <h1>¡Hola de nuevo!</h1>
+      <p>Este es el resumen de tu cuenta en Avante Optics.</p>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div>
+        <h3>Próxima cita</h3>
+        <div class="stat-value">12 de agosto, 10:00 AM</div>
+        <a href="/mis-citas" class="stat-link">Ver mis citas <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></a>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></div>
+        <h3>Pedidos</h3>
+        <div class="stat-value">3 pedidos</div>
+        <a href="/mis-pedidos" class="stat-link">Ver pedidos <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></a>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+        <h3>Favoritos</h3>
+        <div class="stat-value">3 guardados</div>
+        <a href="/mis-favoritos" class="stat-link">Ver favoritos <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></a>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+        <h3>Mi cuenta</h3>
+        <div class="stat-value">Datos y contraseña</div>
+        <a href="/mi-perfil" class="stat-link">Editar perfil <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Tus próximas citas</h2>
+          <p>Así va tu agenda con Avante Optics.</p>
+        </div>
+        <a href="/agendar" class="btn ghost sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Agendar cita</a>
+      </div>
+      <div class="mini-list">
+        <div class="mini-row">
+          <div class="mini-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div>
+          <div class="mini-row-text">
+            <div class="mini-row-title">12 de agosto</div>
+            <div class="mini-row-sub">10:00 AM · Luis Donaldo Colosio #69</div>
+          </div>
+          <span class="badge pendiente">Pendiente</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Pedidos recientes</h2>
+          <p>Tus últimas compras en Avante Optics.</p>
+        </div>
+        <a href="/mis-pedidos" class="btn ghost sm">Ver todos</a>
+      </div>
+      <div class="mini-list">
+        <div class="mini-row">
+          <div class="mini-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></div>
+          <div class="mini-row-text">
+            <div class="mini-row-title">Pedido A-10482</div>
+            <div class="mini-row-sub">18 de julio, 2026 · $1,309.00</div>
+          </div>
+          <span class="badge entregado">Entregado</span>
+        </div>
+        <div class="mini-row">
+          <div class="mini-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></div>
+          <div class="mini-row-text">
+            <div class="mini-row-title">Pedido A-10465</div>
+            <div class="mini-row-sub">30 de junio, 2026 · $540.00</div>
+          </div>
+          <span class="badge camino">En camino</span>
+        </div>
+        <div class="mini-row">
+          <div class="mini-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></div>
+          <div class="mini-row-text">
+            <div class="mini-row-title">Pedido A-10412</div>
+            <div class="mini-row-sub">2 de junio, 2026 · $480.00</div>
+          </div>
+          <span class="badge entregado">Entregado</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/js/partials/userbar.js"></script>
+<script src="/js/partials/sidebar.js"></script>
+<script src="/js/client/dashboard.js"></script>
+</body>
+</html>

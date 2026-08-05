@@ -21,6 +21,7 @@ func loadTemplates() *template.Template {
 	tmpl := template.Must(template.ParseGlob("templates/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/partials/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth/*.html"))
+	tmpl = template.Must(tmpl.ParseGlob("templates/client/*.html"))
 	return tmpl
 }
 
@@ -59,6 +60,38 @@ func main() {
 	router.GET("/registro", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "registro.html", gin.H{
 			"ActivePage": "registro",
+		})
+	})
+
+	// Vistas del panel de cliente (templates/client/*.html)
+	router.GET("/dashboard", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "dashboard.html", gin.H{
+			"ActivePage": "dashboard",
+		})
+	})
+	router.GET("/mis-favoritos", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "mis-favoritos.html", gin.H{
+			"ActivePage": "mis-favoritos",
+		})
+	})
+	router.GET("/mis-pedidos", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "mis-pedidos.html", gin.H{
+			"ActivePage": "mis-pedidos",
+		})
+	})
+	router.GET("/mi-perfil", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "mi-perfil.html", gin.H{
+			"ActivePage": "mi-perfil",
+		})
+	})
+	router.GET("/mis-citas", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "mis-citas.html", gin.H{
+			"ActivePage": "mis-citas",
+		})
+	})
+	router.GET("/configuracion", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "configuracion.html", gin.H{
+			"ActivePage": "configuracion",
 		})
 	})
 

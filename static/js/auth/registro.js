@@ -102,7 +102,7 @@ registerForm.addEventListener('submit', async (e) => {
     registerForm.reset();
     strengthBars.forEach(bar => bar.style.background = 'var(--line)');
     strengthLabel.textContent = 'Usa al menos 8 caracteres, con letras y números.';
-    setTimeout(() => { window.location.href = data.redirect || '/mis-favoritos'; }, 1200);
+    setTimeout(() => { window.location.href = data.redirect || '/dashboard'; }, 1200);
   } catch(err){
     showToast('No se pudo conectar con el servidor. Intenta de nuevo.');
     registerSubmitBtn.disabled = false;

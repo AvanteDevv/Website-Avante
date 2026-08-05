@@ -70,7 +70,7 @@ loginForm.addEventListener('submit', async (e) => {
 
     showToast(data.message || 'Bienvenido de vuelta a Avante Optics');
     loginForm.reset();
-    setTimeout(() => { window.location.href = data.redirect || '/mis-favoritos'; }, 900);
+    setTimeout(() => { window.location.href = data.redirect || '/dashboard'; }, 900);
   } catch(err){
     showToast('No se pudo conectar con el servidor. Intenta de nuevo.');
     loginSubmitBtn.disabled = false;
