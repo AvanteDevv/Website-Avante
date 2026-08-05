@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis pedidos — Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/css/client/userbar.css">
+<link rel="stylesheet" href="static/css/client/sidebar.css">
+<link rel="stylesheet" href="static/css/client/mis-pedidos.css">
+</head>
+<body class="cuenta-body">
+
+{{template "userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header">
+      <h1>Mis pedidos</h1>
+      <p>Historial y estado de tus compras en Avante Optics.</p>
+    </div>
+
+    <div class="hint-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span>Estos son pedidos de ejemplo — el sitio aún no tiene un carrito de compras conectado a un backend real. En cuanto lo esté, aquí verás tu historial verdadero.</span>
+    </div>
+
+    <div class="cuenta-stats">
+      <div class="cuenta-stat-card"><div class="num">3</div><div class="label">Pedidos totales</div></div>
+      <div class="cuenta-stat-card"><div class="num">1</div><div class="label">En proceso</div></div>
+      <div class="cuenta-stat-card"><div class="num">2</div><div class="label">Entregados</div></div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Todos los pedidos</h2>
+      </div>
+      <div class="panel-body no-pad">
+        <div class="order-list">
+        <div class="order-card">
+          <div class="order-top">
+            <div>
+              <div class="order-id">AVT-10493</div>
+              <div class="order-date">Pedido el 15 de julio de 2026</div>
+              <div class="order-items">Armazón Meridian + micas antirreflejantes</div>
+            </div>
+            <div class="order-total">
+              <span class="status-badge camino">En camino</span>
+              <div class="amount">$1,180.00</div>
+            </div>
+          </div>
+          <div class="order-steps">
+            <div class="order-step done"><span class="dot"></span><span class="lbl">Recibido</span></div>
+            <div class="order-step done"><span class="dot"></span><span class="lbl">Preparación</span></div>
+            <div class="order-step done"><span class="dot"></span><span class="lbl">Enviado</span></div>
+            <div class="order-step current"><span class="dot"></span><span class="lbl">En camino</span></div>
+            <div class="order-step "><span class="dot"></span><span class="lbl">Entregado</span></div>
+          </div>
+          <div class="order-actions">
+            <a href="/#tracking" class="btn small">Rastrear pedido</a>
+          </div>
+        </div>
+        <div class="order-card">
+          <div class="order-top">
+            <div>
+              <div class="order-id">AVT-10488</div>
+              <div class="order-date">Pedido el 2 de julio de 2026</div>
+              <div class="order-items">Lentes de sol Solstice</div>
+            </div>
+            <div class="order-total">
+              <span class="status-badge entregado">Entregado</span>
+              <div class="amount">$890.00</div>
+            </div>
+          </div>
+          <div class="order-steps">
+            <div class="order-step done"><span class="dot"></span><span class="lbl">Recibido</span></div>
+            <div class="order-step done"><span class="dot"></span><span class="lbl">Preparación</span></div>
+            <div class="order-step done"><span class="dot"></span><span class="lbl">Enviado</span></div>
+            <div class="order-step done"><span class="dot"></span><span class="lbl">En camino</span></div>
+            <div class="order-step current"><span class="dot"></span><span class="lbl">Entregado</span></div>
+          </div>
+          <div class="order-actions">
+            <a href="/#tracking" class="btn small">Rastrear pedido</a>
+          </div>
+        </div>
+        <div class="order-card">
+          <div class="order-top">
+            <div>
+              <div class="order-id">AVT-10471</div>
+              <div class="order-date">Pedido el 18 de junio de 2026</div>
+              <div class="order-items">Armazón Aurora + examen de graduación</div>
+            </div>
+            <div class="order-total">
+              <span class="status-badge entregado">Entregado</span>
+              <div class="amount">$1,540.00</div>
+            </div>
+          </div>
+          <div class="order-steps">
+            <div class="order-step done"><span class="dot"></span><span class="lbl">Recibido</span></div>
+            <div class="order-step done"><span class="dot"></span><span class="lbl">Preparación</span></div>
+            <div class="order-step done"><span class="dot"></span><span class="lbl">Enviado</span></div>
+            <div class="order-step done"><span class="dot"></span><span class="lbl">En camino</span></div>
+            <div class="order-step current"><span class="dot"></span><span class="lbl">Entregado</span></div>
+          </div>
+          <div class="order-actions">
+            <a href="/#tracking" class="btn small">Rastrear pedido</a>
+          </div>
+        </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="static/js/client/sidebar.js"></script>
+<script src="static/js/client/userbar.js"></script>
+<script src="static/js/client/mis-pedidos.js"></script>
+</body>
+</html>

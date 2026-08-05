@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuración — Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/css/client/userbar.css">
+<link rel="stylesheet" href="static/css/client/sidebar.css">
+<link rel="stylesheet" href="static/css/client/configuracion.css">
+</head>
+<body class="cuenta-body">
+
+{{template "userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header">
+      <h1>Configuración</h1>
+      <p>Notificaciones, forma de contacto y opciones de tu cuenta.</p>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Notificaciones</h2>
+        <p>Elige qué avisos quieres recibir.</p>
+      </div>
+      <div class="panel-body">
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <div class="title">Recordatorios de citas</div>
+            <div class="desc">Avisos antes de tu examen de vista agendado.</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <div class="title">Actualizaciones de pedidos</div>
+            <div class="desc">Cuando tu pedido cambia de estatus o está listo.</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <div class="title">Promociones y novedades</div>
+            <div class="desc">Ofertas, lanzamientos y noticias de Avante Optics.</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Preferencia de contacto</h2>
+        <p>Cómo prefieres que te contactemos para citas y pedidos.</p>
+      </div>
+      <div class="panel-body">
+        <div class="pill-options">
+          <label class="pill-option">
+            <input type="radio" name="settingsContactPref" checked>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Z"/></svg>
+            WhatsApp
+          </label>
+          <label class="pill-option">
+            <input type="radio" name="settingsContactPref">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+            Correo
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <button type="button" class="btn solid small">Guardar cambios</button>
+    </div>
+
+    <section class="panel" style="margin-top:22px;">
+      <div class="panel-head">
+        <h2>Cuenta</h2>
+      </div>
+      <div class="panel-body">
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <div class="title">Cerrar sesión en todos los dispositivos</div>
+            <div class="desc">Termina cualquier sesión iniciada en otros equipos.</div>
+          </div>
+          <button type="button" class="btn small">Cerrar sesiones</button>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <div class="title">Eliminar mi cuenta</div>
+            <div class="desc">Borra tu perfil, citas y favoritos guardados.</div>
+          </div>
+          <button type="button" class="btn small danger">Eliminar cuenta</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="static/js/client/sidebar.js"></script>
+<script src="static/js/client/userbar.js"></script>
+<script src="static/js/client/configuracion.js"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis citas — Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/css/client/userbar.css">
+<link rel="stylesheet" href="static/css/client/sidebar.css">
+<link rel="stylesheet" href="static/css/client/mis-citas.css">
+</head>
+<body class="cuenta-body">
+
+{{template "userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header">
+      <h1>Mis citas</h1>
+      <p>Tus citas de examen visual agendadas en Avante Optics.</p>
+    </div>
+
+    <div class="cuenta-stats">
+      <div class="cuenta-stat-card"><div class="num">3</div><div class="label">Citas totales</div></div>
+      <div class="cuenta-stat-card"><div class="num">2</div><div class="label">Próximas</div></div>
+      <div class="cuenta-stat-card"><div class="num">9 AGO</div><div class="label">Siguiente cita</div></div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Próximas y anteriores</h2>
+        <a href="/agendar" class="btn solid small">+ Agendar nueva cita</a>
+      </div>
+      <div class="panel-body no-pad">
+        <div class="appt-list">
+      <div class="appt-row">
+        <div class="appt-date-block">
+          <div class="day">9</div>
+          <div class="mon">AGO</div>
+        </div>
+        <div class="appt-info">
+          <div class="time">Examen de vista · 10:30 AM</div>
+          <div class="meta">Agendada el 4 de agosto de 2026</div>
+        </div>
+        <span class="status-badge confirmada">confirmada</span>
+        <div class="appt-actions">
+          <button type="button" class="btn small danger">Cancelar</button>
+        </div>
+      </div>
+      <div class="appt-row">
+        <div class="appt-date-block">
+          <div class="day">16</div>
+          <div class="mon">AGO</div>
+        </div>
+        <div class="appt-info">
+          <div class="time">Examen de vista · 4:00 PM</div>
+          <div class="meta">Agendada el 4 de agosto de 2026</div>
+        </div>
+        <span class="status-badge pendiente">pendiente</span>
+        <div class="appt-actions">
+          <button type="button" class="btn small danger">Cancelar</button>
+        </div>
+      </div>
+      <div class="appt-row">
+        <div class="appt-date-block">
+          <div class="day">15</div>
+          <div class="mon">JUL</div>
+        </div>
+        <div class="appt-info">
+          <div class="time">Examen de vista · 9:00 AM</div>
+          <div class="meta">Agendada el 10 de julio de 2026</div>
+        </div>
+        <span class="status-badge cancelada">cancelada</span>
+        <div class="appt-actions">
+
+        </div>
+      </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="static/js/client/sidebar.js"></script>
+<script src="static/js/client/userbar.js"></script>
+<script src="static/js/client/mis-citas.js"></script>
+</body>
+</html>

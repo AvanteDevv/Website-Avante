@@ -1,0 +1,152 @@
+/* ===========================================================
+   Avante Optics — Configuración
+   =========================================================== */
+
+:root{
+  --blue-900:#000850;
+  --blue-700:#0015E0;
+  --blue-600:#041cff;
+  --blue-500:#3E50FF;
+  --blue-300:#8992FF;
+  --blue-100:#EAEFFF;
+  --blue-50:#F5F7FF;
+  --white:#FFFFFF;
+  --ink:#0A0E38;
+  --grey:#6670A6;
+  --line:#DDE3FA;
+  --serif:'Fraunces', serif;
+  --sans:'Public Sans', sans-serif;
+  --ease:cubic-bezier(.16,.84,.44,1);
+
+  --radius-lg:26px;
+  --radius-md:18px;
+  --radius-sm:14px;
+  --shadow-sm: 0 1px 3px rgba(4,28,255,.06);
+  --shadow-md: 0 14px 30px -16px rgba(4,28,255,.18);
+  --shadow-lg: 0 26px 48px -18px rgba(4,28,255,.28);
+}
+
+/* ---------- Modo oscuro ---------- */
+body.dark{
+  --white:#10163a;
+  --ink:#F2F4FF;
+  --grey:#9AA3D6;
+  --line:#2A3266;
+  --blue-50:rgba(62,80,255,.16);
+  --blue-100:rgba(137,146,255,.28);
+}
+body.dark.cuenta-body{
+  background:#070b24;
+  background-image:radial-gradient(circle at 100% 0%, rgba(62,80,255,.12), transparent 45%);
+}
+body.dark{ transition:background-color .3s var(--ease); }
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--white);
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%; display:block;}
+a{color:inherit; text-decoration:none;}
+button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+ul{list-style:none;}
+input,select,textarea{font-family:inherit;}
+::selection{background:var(--blue-600); color:var(--white);}
+
+body.cuenta-body{
+  background:#ffffff;
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.05), transparent 45%);
+  min-height:100vh;
+}
+
+.btn{
+  padding:15px 34px;
+  font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase;
+  border:1px solid var(--ink);
+  border-radius:30px;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  transition:background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease), transform .2s var(--ease);
+}
+.btn:hover{ transform:translateY(-2px); }
+.btn.solid{ background:var(--blue-600); border-color:var(--blue-600); color:var(--white); }
+.btn.solid:hover{ background:var(--blue-700); border-color:var(--blue-700); }
+.btn:not(.solid):hover{ background:var(--ink); color:var(--white); }
+.btn.small{ padding:10px 22px; font-size:11px; letter-spacing:1px; }
+.btn.danger{ border-color:#e2554a; color:#e2554a; }
+.btn.danger:hover{ background:#e2554a; color:var(--white); }
+
+/* =========================================================
+   CUENTA SHELL — sidebar + contenido
+   ========================================================= */
+.cuenta-shell{
+  max-width:1180px; margin:0 auto;
+  padding:36px 24px 90px;
+  display:flex; align-items:flex-start; gap:32px;
+}
+@media (max-width:900px){ .cuenta-shell{ flex-direction:column; padding:28px 18px 70px; gap:22px; } }
+
+.cuenta-main{ flex:1; min-width:0; }
+
+.cuenta-header{ margin-bottom:28px; }
+.cuenta-header h1{
+  font-family:var(--serif); font-weight:500; font-size:32px; letter-spacing:-.01em; color:var(--ink);
+}
+.cuenta-header p{ font-size:14px; color:var(--grey); margin-top:7px; max-width:560px; line-height:1.55; }
+
+/* ---------- Panel genérico ---------- */
+.panel{
+  background:var(--white); border:1.5px solid var(--line); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-md); overflow:hidden; margin-bottom:22px;
+}
+.panel-head{
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+  padding:20px 26px; border-bottom:1px solid var(--line);
+}
+.panel-head h2{ font-family:var(--sans); font-weight:700; font-size:15.5px; }
+.panel-head p{ font-size:12.5px; color:var(--grey); margin-top:3px; }
+.panel-body{ padding:26px; }
+
+.form-actions{ display:flex; justify-content:flex-end; gap:12px; margin-top:22px; }
+
+/* ---------- Pills de opción (preferencia de contacto) ---------- */
+.pill-options{ display:flex; flex-wrap:wrap; gap:10px; }
+.pill-option{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 18px; border:1.5px solid var(--line); border-radius:100px;
+  font-size:12.5px; font-weight:600; color:var(--grey);
+  transition:border-color .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
+}
+.pill-option svg{ width:15px; height:15px; }
+.pill-option:hover{ border-color:var(--blue-300); }
+.pill-option input{ display:none; }
+.pill-option:has(input:checked){ background:var(--blue-600); border-color:var(--blue-600); color:var(--white); }
+
+/* ---------- Toggle switch ---------- */
+.toggle-row{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:16px 0; border-bottom:1px solid var(--line);
+}
+.toggle-row:last-child{ border-bottom:none; }
+.toggle-row .toggle-text .title{ font-size:13.5px; font-weight:700; color:var(--ink); }
+.toggle-row .toggle-text .desc{ font-size:12px; color:var(--grey); margin-top:3px; }
+.toggle-switch{ position:relative; width:44px; height:26px; flex-shrink:0; }
+.toggle-switch input{ position:absolute; inset:0; opacity:0; cursor:pointer; margin:0; z-index:1; }
+.toggle-track{
+  position:absolute; inset:0; background:var(--line); border-radius:100px;
+  transition:background .25s var(--ease);
+}
+.toggle-track:before{
+  content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
+  background:var(--white); box-shadow:0 2px 5px rgba(10,14,56,.25);
+  transition:transform .25s var(--ease);
+}
+.toggle-switch input:checked ~ .toggle-track{ background:var(--blue-600); }
+.toggle-switch input:checked ~ .toggle-track:before{ transform:translateX(18px); }
+
+@media (max-width:520px){
+  .cuenta-header h1{ font-size:26px; }
+  .panel-body{ padding:20px; }
+}
