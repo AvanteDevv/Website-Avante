@@ -38,6 +38,13 @@ func Connect() {
 }
 
 func buildDSN() string {
+	// MYSQL_PUBLIC_URL: host público, funciona desde tu computadora local.
+	// MYSQL_URL: host interno (mysql.railway.internal), solo funciona
+	// cuando tu app corre DENTRO de Railway. Por eso probamos primero la
+	// pública y solo caemos a la interna si no existe.
+	if raw := os.Getenv("MYSQL_PUBLIC_URL"); raw != "" {
+		return parseMySQLURL(raw)
+	}
 	if raw := os.Getenv("MYSQL_URL"); raw != "" {
 		return parseMySQLURL(raw)
 	}
