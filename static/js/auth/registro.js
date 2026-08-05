@@ -55,7 +55,9 @@ pw.addEventListener('input', () => {
 });
 
 const registerForm = document.getElementById('registerForm');
-registerForm.addEventListener('submit', (e) => {
+const registerSubmitBtn = registerForm.querySelector('.auth-submit');
+
+registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('regName');
   const email = document.getElementById('regEmail');
@@ -76,14 +78,36 @@ registerForm.addEventListener('submit', (e) => {
   if(!terms.checked){ ok = false; showToast('Debes aceptar los términos y condiciones'); }
   if(!ok) return;
 
-  showToast('Cuenta creada. Revisa tu correo para confirmar.');
+  registerSubmitBtn.disabled = true;
+
   try{
-    localStorage.setItem('avante_profile', JSON.stringify({ name: name.value.trim(), email: email.value.trim(), phone: '' }));
-  } catch(err){ /* localStorage no disponible: se ignora silenciosamente */ }
-  registerForm.reset();
-  strengthBars.forEach(bar => bar.style.background = 'var(--line)');
-  strengthLabel.textContent = 'Usa al menos 8 caracteres, con letras y números.';
-  setTimeout(() => { window.location.href = '/iniciar-sesion'; }, 1200);
+    const res = await fetch('/api/registro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.value.trim(),
+        email: email.value.trim(),
+        password: pw1.value
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if(!res.ok){
+      showToast(data.error || 'No se pudo crear la cuenta.');
+      registerSubmitBtn.disabled = false;
+      return;
+    }
+
+    showToast(data.message || 'Cuenta creada correctamente.');
+    registerForm.reset();
+    strengthBars.forEach(bar => bar.style.background = 'var(--line)');
+    strengthLabel.textContent = 'Usa al menos 8 caracteres, con letras y números.';
+    setTimeout(() => { window.location.href = data.redirect || '/mis-favoritos'; }, 1200);
+  } catch(err){
+    showToast('No se pudo conectar con el servidor. Intenta de nuevo.');
+    registerSubmitBtn.disabled = false;
+  }
 });
+
 document.getElementById('googleBtn').addEventListener('click', () => showToast('Conecta tu cuenta de Google para continuar'));
 document.getElementById('facebookBtn').addEventListener('click', () => showToast('Conecta tu cuenta de Facebook para continuar'));

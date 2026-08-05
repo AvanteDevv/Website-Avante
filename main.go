@@ -4,9 +4,18 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+
+	"avante-optics/auth"
+	"avante-optics/db"
+	"avante-optics/handlers"
 )
+
+// ⚠️ Ajusta "avante-optics" en los imports de arriba para que coincida con
+// el nombre del módulo en tu go.mod (primera línea: "module xxxxx").
 
 func loadTemplates() *template.Template {
 	tmpl := template.Must(template.ParseGlob("templates/*.html"))
@@ -16,6 +25,18 @@ func loadTemplates() *template.Template {
 }
 
 func main() {
+	// .env es opcional: en local lo usas para tus credenciales de Railway;
+	// en producción (Railway/otro host) las variables ya vienen inyectadas
+	// directo al entorno, así que si no hay .env no pasa nada.
+	if err := godotenv.Load(); err != nil {
+		log.Println("No se encontró .env — usando variables de entorno del sistema.")
+	}
+
+	db.Connect()
+	defer db.DB.Close()
+
+	auth.InitStore()
+
 	router := gin.Default()
 
 	router.SetHTMLTemplate(loadTemplates())
@@ -41,6 +62,29 @@ func main() {
 		})
 	})
 
-	log.Println("Servidor corriendo en http://localhost:8080")
-	router.Run(":8080")
+	// API de autenticación — llamadas desde iniciar-sesion.js / registro.js
+	api := router.Group("/api")
+	{
+		api.POST("/registro", handlers.Register)
+		api.POST("/iniciar-sesion", handlers.Login)
+	}
+	router.GET("/logout", handlers.Logout)
+
+	// Cuando existan tienda.html / blog.html directo en templates/, se
+	// agregan aquí de la misma forma:
+	//
+	// router.GET("/tienda", func(c *gin.Context) {
+	// 	c.HTML(http.StatusOK, "eccomerce.html", gin.H{"ActivePage": "tienda"})
+	// })
+	// router.GET("/blog", func(c *gin.Context) {
+	// 	c.HTML(http.StatusOK, "blog.html", gin.H{"ActivePage": "blog"})
+	// })
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Servidor corriendo en http://localhost:%s\n", port)
+	router.Run(":" + port)
 }

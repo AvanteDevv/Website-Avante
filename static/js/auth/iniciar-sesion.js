@@ -39,7 +39,9 @@ function clearInvalid(field){ field.classList.remove('invalid'); }
 
 
 const loginForm = document.getElementById('loginForm');
-loginForm.addEventListener('submit', (e) => {
+const loginSubmitBtn = loginForm.querySelector('.auth-submit');
+
+loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const emailField = document.getElementById('loginEmail').closest('.field');
   const pwField = document.getElementById('loginPassword').closest('.field');
@@ -49,9 +51,31 @@ loginForm.addEventListener('submit', (e) => {
   if(!email.checkValidity()){ markInvalid(emailField); ok = false; } else { clearInvalid(emailField); }
   if(!pw.checkValidity()){ markInvalid(pwField); ok = false; } else { clearInvalid(pwField); }
   if(!ok) return;
-  showToast('Bienvenido de vuelta a Avante Optics');
-  loginForm.reset();
-  setTimeout(() => { window.location.href = '/mis-favoritos'; }, 900);
+
+  loginSubmitBtn.disabled = true;
+
+  try{
+    const res = await fetch('/api/iniciar-sesion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.value.trim(), password: pw.value })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if(!res.ok){
+      showToast(data.error || 'Correo o contraseña incorrectos.');
+      loginSubmitBtn.disabled = false;
+      return;
+    }
+
+    showToast(data.message || 'Bienvenido de vuelta a Avante Optics');
+    loginForm.reset();
+    setTimeout(() => { window.location.href = data.redirect || '/mis-favoritos'; }, 900);
+  } catch(err){
+    showToast('No se pudo conectar con el servidor. Intenta de nuevo.');
+    loginSubmitBtn.disabled = false;
+  }
 });
+
 document.getElementById('googleBtn').addEventListener('click', () => showToast('Conecta tu cuenta de Google para continuar'));
 document.getElementById('facebookBtn').addEventListener('click', () => showToast('Conecta tu cuenta de Facebook para continuar'));
