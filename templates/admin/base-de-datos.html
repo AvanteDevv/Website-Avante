@@ -27,25 +27,32 @@
       <button type="button" class="btn solid small"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo usuario</button>
     </div>
 
+    {{if .DBError}}
+    <p style="color:#c0392b; margin-bottom:20px;">{{.DBError}}</p>
+    {{end}}
+
     <div class="admin-stats">
-      <div class="admin-stat-card"><div class="num">128</div><div class="label">Usuarios totales</div></div>
-      <div class="admin-stat-card"><div class="num">14</div><div class="label">Nuevos este mes</div></div>
-      <div class="admin-stat-card"><div class="num">121</div><div class="label">Clientes activos</div></div>
-      <div class="admin-stat-card"><div class="num">3</div><div class="label">Administradores</div></div>
+      <div class="admin-stat-card"><div class="num">{{.TotalUsuarios}}</div><div class="label">Usuarios totales</div></div>
+      <div class="admin-stat-card"><div class="num">{{.NuevosEsteMes}}</div><div class="label">Nuevos este mes</div></div>
+      <div class="admin-stat-card"><div class="num">{{.TotalClientes}}</div><div class="label">Clientes</div></div>
+      <div class="admin-stat-card"><div class="num">{{.TotalAdmins}}</div><div class="label">Administradores</div></div>
     </div>
 
     <section class="panel">
       <div class="panel-head">
         <div>
           <h2>Todos los usuarios</h2>
-          <p>128 cuentas registradas</p>
+          <p>{{.TotalUsuarios}} cuentas registradas</p>
         </div>
       </div>
 
       <div class="panel-toolbar">
-        <div class="search-box">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input type="text" id="userSearch" placeholder="Buscar por nombre o correo…">
+      <div class="search-box">
+          <div class="search-box-glow"></div>
+          <div class="search-box-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="userSearch" placeholder="Buscar por nombre o correo…">
+          </div>
         </div>
         <div class="filter-pills" id="roleFilters">
           <button type="button" class="filter-pill active" data-role="todos">Todos</button>
@@ -67,123 +74,54 @@
             </tr>
           </thead>
           <tbody>
-            <tr data-role="cliente">
+            {{range .Usuarios}}
+            <tr data-role="{{.Role}}">
               <td>
                 <div class="user-cell">
-                  <span class="userbar-avatar">MG</span>
+                  <span class="userbar-avatar">{{.Initials}}</span>
                   <div>
-                    <div class="u-name">María González</div>
-                    <div class="u-email">maria.gonzalez@gmail.com</div>
+                    <div class="u-name">{{.Name}}</div>
+                    <div class="u-email">{{.Email}}</div>
                   </div>
                 </div>
               </td>
-              <td>(662) 214 5581</td>
-              <td>4 de agosto de 2026</td>
-              <td><span class="role-badge cliente">Cliente</span></td>
+              <td>{{if .Phone}}{{.Phone}}{{else}}—{{end}}</td>
+              <td>{{fechaEs .CreatedAt}}</td>
+              <td><span class="role-badge {{.Role}}">{{if eq .Role "admin"}}Admin{{else}}Cliente{{end}}</span></td>
               <td><span class="status-dot activo">Activo</span></td>
               <td>
-                <div class="row-actions">
-                  <button type="button" class="row-action-btn" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                  <button type="button" class="row-action-btn delete" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>
-                </div>
-              </td>
-            </tr>
-            <tr data-role="cliente">
-              <td>
-                <div class="user-cell">
-                  <span class="userbar-avatar">RC</span>
-                  <div>
-                    <div class="u-name">Roberto Camacho</div>
-                    <div class="u-email">r.camacho@hotmail.com</div>
+                <div class="row-menu">
+                  <button type="button" class="row-menu-btn" aria-label="Más acciones" aria-haspopup="true" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                  </button>
+                  <div class="row-menu-dropdown">
+                    <button type="button" class="row-menu-item" data-action="ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg> Ver</button>
+                    <button type="button" class="row-menu-item delete" data-action="eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg> Eliminar</button>
                   </div>
                 </div>
               </td>
-              <td>(662) 308 9012</td>
-              <td>2 de agosto de 2026</td>
-              <td><span class="role-badge cliente">Cliente</span></td>
-              <td><span class="status-dot activo">Activo</span></td>
-              <td>
-                <div class="row-actions">
-                  <button type="button" class="row-action-btn" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                  <button type="button" class="row-action-btn delete" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>
-                </div>
-              </td>
             </tr>
-            <tr data-role="admin">
-              <td>
-                <div class="user-cell">
-                  <span class="userbar-avatar">AD</span>
-                  <div>
-                    <div class="u-name">Administrador</div>
-                    <div class="u-email">admin@avanteoptics.mx</div>
-                  </div>
-                </div>
-              </td>
-              <td>(662) 213 1792</td>
-              <td>10 de enero de 2026</td>
-              <td><span class="role-badge admin">Admin</span></td>
-              <td><span class="status-dot activo">Activo</span></td>
-              <td>
-                <div class="row-actions">
-                  <button type="button" class="row-action-btn" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                  <button type="button" class="row-action-btn delete" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>
-                </div>
-              </td>
+            {{else}}
+            <tr>
+              <td colspan="6" style="text-align:center; padding:40px; color:var(--grey);">Todavía no hay usuarios registrados.</td>
             </tr>
-            <tr data-role="cliente">
-              <td>
-                <div class="user-cell">
-                  <span class="userbar-avatar">LF</span>
-                  <div>
-                    <div class="u-name">Luisa Fernanda Ruiz</div>
-                    <div class="u-email">luisa.ruiz@outlook.com</div>
-                  </div>
-                </div>
-              </td>
-              <td>(662) 145 7723</td>
-              <td>29 de julio de 2026</td>
-              <td><span class="role-badge cliente">Cliente</span></td>
-              <td><span class="status-dot inactivo">Inactivo</span></td>
-              <td>
-                <div class="row-actions">
-                  <button type="button" class="row-action-btn" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                  <button type="button" class="row-action-btn delete" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>
-                </div>
-              </td>
-            </tr>
-            <tr data-role="cliente">
-              <td>
-                <div class="user-cell">
-                  <span class="userbar-avatar">JP</span>
-                  <div>
-                    <div class="u-name">Javier Peralta</div>
-                    <div class="u-email">javier.peralta99@gmail.com</div>
-                  </div>
-                </div>
-              </td>
-              <td>(662) 990 3345</td>
-              <td>26 de julio de 2026</td>
-              <td><span class="role-badge cliente">Cliente</span></td>
-              <td><span class="status-dot activo">Activo</span></td>
-              <td>
-                <div class="row-actions">
-                  <button type="button" class="row-action-btn" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                  <button type="button" class="row-action-btn delete" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>
-                </div>
-              </td>
-            </tr>
+            {{end}}
           </tbody>
         </table>
       </div>
 
       <div class="panel-foot">
-        <span>Mostrando 5 de 128 usuarios</span>
+        <span class="panel-foot-count">Mostrando {{.TotalUsuarios}} de {{.TotalUsuarios}} usuarios</span>
         <div class="pagination">
-          <button type="button" class="page-btn active">1</button>
-          <button type="button" class="page-btn">2</button>
-          <button type="button" class="page-btn">3</button>
-          <button type="button" class="page-btn">…</button>
+          <button type="button" class="page-arrow" id="pagPrev" aria-label="Página anterior" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="page-current">Página 1</span>
+          <button type="button" class="page-arrow" id="pagNext" aria-label="Página siguiente" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
         </div>
+        <span class="panel-foot-spacer"></span>
       </div>
     </section>
   </main>

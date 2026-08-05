@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -12,13 +14,27 @@ import (
 	"avante-optics/auth"
 	"avante-optics/db"
 	"avante-optics/handlers"
+	adminHandlers "avante-optics/handlers/admin"
 )
 
-// ⚠️ Ajusta "avante-optics" en los imports de arriba para que coincida con
-// el nombre del módulo en tu go.mod (primera línea: "module xxxxx").
+// ⚠️ Adjust "avante-optics" in the imports above to match the module name
+// declared in your go.mod (first line: "module xxxxx").
 
+// spanishMonths maps month number (1-12) to its Spanish name, so we don't
+// need an external localization package just for this.
+var spanishMonths = [...]string{
+	"enero", "febrero", "marzo", "abril", "mayo", "junio",
+	"julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+}
+
+// spanishDate formats a date as "4 de agosto de 2026", used in templates
+// via {{fechaEs .CreatedAt}}.
+func spanishDate(t time.Time) string {
+	return fmt.Sprintf("%d de %s de %d", t.Day(), spanishMonths[t.Month()-1], t.Year())
+}
 func loadTemplates() *template.Template {
-	tmpl := template.Must(template.ParseGlob("templates/*.html"))
+	funcs := template.FuncMap{"fechaEs": spanishDate}
+	tmpl := template.Must(template.New("base").Funcs(funcs).ParseGlob("templates/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/partials/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/client/*.html"))
@@ -30,9 +46,9 @@ func loadTemplates() *template.Template {
 }
 
 func main() {
-	// .env es opcional: en local lo usas para tus credenciales de Railway;
-	// en producción (Railway/otro host) las variables ya vienen inyectadas
-	// directo al entorno, así que si no hay .env no pasa nada.
+	// .env is optional: locally you use it for your Railway credentials;
+	// in production (Railway/another host) the variables are already injected
+	// directly into the environment, so if there is no .env, nothing happens.
 	if err := godotenv.Load(); err != nil {
 		log.Println("No se encontró .env — usando variables de entorno del sistema.")
 	}
@@ -67,7 +83,7 @@ func main() {
 		})
 	})
 
-	// Vistas del panel de cliente (templates/client/*.html)
+	// Client panel views (templates/client/*.html)
 	router.GET("/dashboard", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "dashboard.html", gin.H{
 			"ActivePage": "dashboard",
@@ -99,8 +115,8 @@ func main() {
 		})
 	})
 
-	// Vistas del panel de administrador (templates/admin/*.html) — todas
-	// protegidas por RequireAdminAuth, salvo el login mismo.
+	// Admin panel views (templates/admin/*.html) — all of them
+	// protected by RequireAdminAuth, except the login itself.
 	router.GET("/admin/iniciar-sesion", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "admin-login.html", gin.H{
 			"ActivePage": "admin-iniciar-sesion",
@@ -109,14 +125,10 @@ func main() {
 
 	adminGroup := router.Group("/admin", handlers.RequireAdminAuth())
 	{
-		adminGroup.GET("/base-de-datos", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "base-de-datos.html", gin.H{
-				"ActivePage": "admin-base-de-datos",
-			})
-		})
+		adminGroup.GET("/base-de-datos", adminHandlers.Database)
 	}
 
-	// API de autenticación — llamadas desde iniciar-sesion.js / registro.js
+	// Auth API — called from iniciar-sesion.js / registro.js
 	api := router.Group("/api")
 	{
 		api.POST("/registro", handlers.Register)
@@ -126,7 +138,7 @@ func main() {
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
 
-	// Tienda en línea (templates/ecommerce/*.html)
+	// Online store (templates/ecommerce/*.html)
 	router.GET("/eccomerce", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "ecommerce.html", gin.H{
 			"ActivePage": "tienda",
@@ -139,7 +151,7 @@ func main() {
 		})
 	})
 
-	// Páginas sueltas (templates/pages/*.html)
+	// Standalone pages (templates/pages/*.html)
 	router.GET("/blog", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "blog.html", gin.H{
 			"ActivePage": "blog",
