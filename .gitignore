@@ -1,0 +1,31 @@
+# Variables de entorno / credenciales — NUNCA subir a git
+.env
+.env.local
+.env.*.local
+
+# Binarios compilados de Go
+/main
+/avante-optics
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Carpeta de dependencias vendorizadas (si algún día usas vendor/)
+/vendor/
+
+# Archivos y carpetas del editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
