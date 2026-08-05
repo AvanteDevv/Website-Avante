@@ -23,6 +23,7 @@ func loadTemplates() *template.Template {
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/client/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/admin/*.html"))
+	tmpl = template.Must(tmpl.ParseGlob("templates/auth-admin/*.html"))
 	return tmpl
 }
 
@@ -96,20 +97,32 @@ func main() {
 		})
 	})
 
-	// Vistas del panel de administrador (templates/admin/*.html)
-	router.GET("/admin/base-de-datos", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "base-de-datos.html", gin.H{
-			"ActivePage": "admin-base-de-datos",
+	// Vistas del panel de administrador (templates/admin/*.html) — todas
+	// protegidas por RequireAdminAuth, salvo el login mismo.
+	router.GET("/admin/iniciar-sesion", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "admin-login.html", gin.H{
+			"ActivePage": "admin-iniciar-sesion",
 		})
 	})
+
+	adminGroup := router.Group("/admin", handlers.RequireAdminAuth())
+	{
+		adminGroup.GET("/base-de-datos", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "base-de-datos.html", gin.H{
+				"ActivePage": "admin-base-de-datos",
+			})
+		})
+	}
 
 	// API de autenticación — llamadas desde iniciar-sesion.js / registro.js
 	api := router.Group("/api")
 	{
 		api.POST("/registro", handlers.Register)
 		api.POST("/iniciar-sesion", handlers.Login)
+		api.POST("/admin/iniciar-sesion", handlers.AdminLogin)
 	}
 	router.GET("/logout", handlers.Logout)
+	router.GET("/admin/logout", handlers.AdminLogout)
 
 	// Cuando existan tienda.html / blog.html directo en templates/, se
 	// agregan aquí de la misma forma:

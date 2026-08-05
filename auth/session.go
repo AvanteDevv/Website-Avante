@@ -13,6 +13,13 @@ var Store *sessions.CookieStore
 
 const SessionName = "avante_session"
 
+// AdminSessionName es el nombre de la cookie de sesión del panel de
+// administrador — deliberadamente distinta de SessionName. Usan el
+// mismo Store (gorilla/sessions permite varias sesiones nombradas desde
+// un mismo store), pero al ser cookies separadas, iniciar sesión como
+// cliente nunca da acceso al panel de admin, y viceversa.
+const AdminSessionName = "avante_admin_session"
+
 // InitStore prepara el store de sesiones. La clave de firma sale de
 // SESSION_SECRET (variable de entorno) — en producción SIEMPRE debe venir
 // del entorno, nunca hardcodeada.

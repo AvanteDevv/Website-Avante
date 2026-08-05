@@ -1,32 +1,35 @@
 /* ===========================================================
-   Avante Optics — Panel de administración
+   Avante Optics — Panel de administración (Login)
    Hoja de estilos independiente: no depende de index.css.
+   Recoloreada a la paleta roja del panel admin — misma
+   estructura que el resto de admin, solo cambian los tokens
+   de acento (antes azul institucional del cliente).
    =========================================================== */
 
 :root{
   --ink:#15161a;
   --muted:#767b8a;
-  --line:#E1E5FA;
+  --line:#F0DEDE;
   --bg:#ffffff;
   --pill:#111111;
-  --accent:#041cff;
-  --accent-hover:#0015E0;
-  --accent-soft:#eef0ff;
-  --accent-border:#c7cffa;
+  --accent:#E22E2E;
+  --accent-hover:#A61B1B;
+  --accent-soft:#FFF0F0;
+  --accent-border:#FFB8B8;
   --radius-lg:26px;
   --radius-md:18px;
   --radius-sm:14px;
   --ease:cubic-bezier(.22,1,.36,1);
-  --shadow-sm: 0 1px 3px rgba(4,28,255,.06);
-  --shadow-md: 0 14px 30px -16px rgba(4,28,255,.20);
-  --shadow-lg: 0 26px 48px -18px rgba(4,28,255,.30);
+  --shadow-sm: 0 1px 3px rgba(226,46,46,.06);
+  --shadow-md: 0 14px 30px -16px rgba(226,46,46,.20);
+  --shadow-lg: 0 26px 48px -18px rgba(226,46,46,.30);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 
 body.admin-body{
   background:#ffffff;
-  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.06), transparent 45%);
+  background-image:radial-gradient(circle at 100% 0%, rgba(226,46,46,.06), transparent 45%);
   min-height:100vh;
   font-family:'Bricolage Grotesque',sans-serif;
   font-optical-sizing:auto;
@@ -73,9 +76,10 @@ body.admin-body{
   background:var(--accent);
   border-color:var(--accent);
   color:#fff;
-  box-shadow:0 10px 24px rgba(4,28,255,.25);
+  box-shadow:0 10px 24px rgba(226,46,46,.25);
 }
-.btn.solid:hover{background:var(--accent-hover);border-color:var(--accent-hover);box-shadow:0 14px 30px rgba(4,28,255,.32);}
+.btn.solid:hover{background:var(--accent-hover);border-color:var(--accent-hover);box-shadow:0 14px 30px rgba(226,46,46,.32);}
+.btn.solid:disabled{opacity:.6; cursor:not-allowed; transform:none;}
 
 
 /* ===========================================================
@@ -95,7 +99,7 @@ body.admin-body{
   background:
     radial-gradient(circle at 20% 20%, rgba(255,255,255,.14), transparent 45%),
     radial-gradient(circle at 80% 80%, rgba(255,255,255,.10), transparent 50%),
-    linear-gradient(155deg, var(--accent), #0015E0 60%, #000850);
+    linear-gradient(155deg, var(--accent), #A61B1B 60%, #3D0000);
   color:#fff;
   display:flex;
   flex-direction:column;
@@ -241,13 +245,3 @@ body.admin-body{
 }
 .admin-login-error.show{opacity:1;}
 .admin-login-card .btn{width:100%;padding:15px 34px;}
-.admin-login-hint{
-  margin-top:24px;
-  font-size:11.5px;
-  color:var(--muted);
-  line-height:1.6;
-  background:var(--accent-soft);
-  border-radius:var(--radius-sm);
-  padding:14px 16px;
-}
-.admin-login-hint strong{color:var(--ink);}
