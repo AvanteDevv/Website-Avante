@@ -22,7 +22,7 @@ body.dark .cuenta-sidebar{ transition:background-color .3s var(--ease), border-c
   position:absolute; top:22px; right:-13px; z-index:6;
   width:26px; height:26px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
-  background:var(--blue-600); color:var(--white); border:none;
+  background:var(--blue-600); color:var(--on-accent, #fff); border:none;
   box-shadow:0 6px 16px -4px rgba(226,46,46,.5);
   transition:transform .3s var(--ease), background .2s var(--ease);
 }
@@ -81,7 +81,7 @@ body.dark .cuenta-sidebar{ transition:background-color .3s var(--ease), border-c
     mask-image:linear-gradient(90deg, #000 calc(100% - 30px), transparent);
   }
   .cuenta-nav-blob{ display:none; }
-  .cuenta-nav-group .cuenta-nav-link.active{ background:var(--blue-600); color:var(--white); }
+  .cuenta-nav-group .cuenta-nav-link.active{ background:var(--blue-600); color:var(--on-accent, #fff); }
 }
 
 .cuenta-nav-group{
@@ -111,7 +111,7 @@ body.dark .cuenta-sidebar{ transition:background-color .3s var(--ease), border-c
 .cuenta-nav-divider{ height:1px; background:var(--line); margin:10px 6px; }
 
 .cuenta-nav-group .cuenta-nav-link:hover,
-.cuenta-nav-group .cuenta-nav-link.active{ color:var(--white); }
+.cuenta-nav-group .cuenta-nav-link.active{ color:var(--on-accent, #fff); }
 
 .cuenta-nav-group--plain .cuenta-nav-link:hover{ background:var(--blue-50); color:var(--ink); }
 .cuenta-nav-link.logout{ color:#c0392b; }

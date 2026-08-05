@@ -14,6 +14,7 @@
   --ink:#0A0E38;
   --grey:#6670A6;
   --line:#DDE3FA;
+  --on-accent:#FFFFFF;
   --serif:'Fraunces', serif;
   --sans:'Public Sans', sans-serif;
   --ease:cubic-bezier(.16,.84,.44,1);
@@ -29,7 +30,7 @@
 /* ---------- Modo oscuro ---------- */
 body.dark{
   --white:#161616;
-  --ink:#F2F2F2;
+  --ink:#FFFFFF;
   --grey:#9A9A9A;
   --line:#2B2B2B;
   --blue-50:rgba(226,46,46,.14);
@@ -54,7 +55,7 @@ a{color:inherit; text-decoration:none;}
 button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
 ul{list-style:none;}
 input,select,textarea{font-family:inherit;}
-::selection{background:var(--blue-600); color:var(--white);}
+::selection{background:var(--blue-600); color:var(--on-accent);}
 
 body.cuenta-body{
   background:#ffffff;
@@ -71,12 +72,12 @@ body.cuenta-body{
   transition:background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease), transform .2s var(--ease);
 }
 .btn:hover{ transform:translateY(-2px); }
-.btn.solid{ background:var(--blue-600); border-color:var(--blue-600); color:var(--white); }
+.btn.solid{ background:var(--blue-600); border-color:var(--blue-600); color:var(--on-accent); }
 .btn.solid:hover{ background:var(--blue-700); border-color:var(--blue-700); }
 .btn:not(.solid):hover{ background:var(--ink); color:var(--white); }
-.btn.small{ padding:10px 22px; font-size:11px; letter-spacing:1px; }
+.btn.small{ padding:8px 20px; font-size:10.5px; letter-spacing:.8px; font-weight:600; }
 .btn.danger{ border-color:#e2554a; color:#e2554a; }
-.btn.danger:hover{ background:#e2554a; color:var(--white); }
+.btn.danger:hover{ background:#e2554a; color:var(--on-accent); }
 
 /* =========================================================
    CUENTA SHELL — sidebar + contenido
@@ -189,6 +190,7 @@ table.users-table{ width:100%; border-collapse:collapse; min-width:820px; }
 }
 .role-badge.cliente{ background:var(--line); color:var(--ink); }
 .role-badge.admin{ background:var(--blue-100); color:var(--blue-700); }
+body.dark .role-badge.admin{ background:var(--blue-600); color:var(--on-accent); }
 
 .status-dot{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; }
 .status-dot:before{ content:''; width:7px; height:7px; border-radius:50%; }
