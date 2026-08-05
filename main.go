@@ -126,6 +126,14 @@ func main() {
 	adminGroup := router.Group("/admin", handlers.RequireAdminAuth())
 	{
 		adminGroup.GET("/base-de-datos", adminHandlers.Database)
+		adminGroup.GET("/citas", adminHandlers.Appointments)
+		adminGroup.PATCH("/citas/:id/estado", adminHandlers.UpdateAppointmentStatus)
+		adminGroup.DELETE("/citas/:id", adminHandlers.DeleteAppointment)
+		adminGroup.GET("/pedidos", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "pedidos.html", gin.H{
+				"ActivePage": "admin-pedidos",
+			})
+		})
 	}
 
 	// Auth API — called from iniciar-sesion.js / registro.js
@@ -134,6 +142,7 @@ func main() {
 		api.POST("/registro", handlers.Register)
 		api.POST("/iniciar-sesion", handlers.Login)
 		api.POST("/admin/iniciar-sesion", handlers.AdminLogin)
+		api.POST("/agendar", handlers.CreateAppointment)
 	}
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)

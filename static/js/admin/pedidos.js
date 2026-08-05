@@ -1,30 +1,9 @@
 /* ===========================================================
    Avante Optics — Panel de administración (Pedidos)
-   IMPORTANTE: esto es una demo de frontend. Las credenciales
-   están escritas aquí mismo, visibles en el código fuente, y
-   la "sesión" es solo una bandera en localStorage. NO es
-   seguridad real — cualquiera que vea el código puede entrar.
-   Para producción, esto necesita un backend real que verifique
-   el usuario y contraseña del lado del servidor.
+   La autenticación real la hace el servidor (RequireAdminAuth
+   en Gin, con sesión de cookie) — este archivo ya no maneja
+   login ni sesión por su cuenta.
    =========================================================== */
-
-const ADMIN_CREDENTIALS = { email: 'admin@avanteoptics.mx', password: 'admin123' };
-const ADMIN_AUTH_KEY = 'avante_admin_session';
-
-function adminIsLoggedIn(){
-  return localStorage.getItem(ADMIN_AUTH_KEY) === '1';
-}
-
-function adminRequireAuth(){
-  if(!adminIsLoggedIn()){
-    window.location.href = 'admin-login.html';
-  }
-}
-
-function adminLogout(){
-  localStorage.removeItem(ADMIN_AUTH_KEY);
-  window.location.href = 'admin-login.html';
-}
 
 /* ---------- Datos: Pedidos ----------
    El sitio público no tiene todavía un flujo real de compra/checkout
@@ -65,7 +44,5 @@ function renderOrdersTable(){
   `).join('');
 }
 
-adminRequireAuth();
-initAdminShell();
 renderOrdersTable();
 if (window.feather) feather.replace();

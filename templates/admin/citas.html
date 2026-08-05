@@ -3,54 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Citas — Avante Optics Admin</title>
+<title>Citas — Admin · Avante Optics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin-citas.css">
-<link rel="stylesheet" href="sidebar.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/citas.css">
 </head>
-<body class="admin-body">
+<body class="cuenta-body admin-body">
 
-<div class="admin-sidebar-backdrop" id="adminSidebarBackdrop" style="display:none"></div>
-<button class="admin-hamburger" id="adminHamburger" aria-hidden="true" style="display:none"></button>
+{{template "admin-userbar" .}}
 
-<nav class="navbar" id="adminSidebar">
-  <ul class="navbar__menu">
-    <li class="navbar__item">
-      <a href="admin-citas.html" class="navbar__link active">
-        <i data-feather="calendar"></i>
-        <span>Citas</span>
-      </a>
-    </li>
-    <li class="navbar__item">
-      <a href="admin-pedidos.html" class="navbar__link">
-        <i data-feather="shopping-bag"></i>
-        <span>Pedidos</span>
-      </a>
-    </li>
-    <li class="navbar__item">
-      <a href="admin-login.html" class="navbar__link" id="adminLogoutBtn">
-        <i data-feather="log-out"></i>
-        <span>Cerrar sesión</span>
-      </a>
-    </li>
-  </ul>
-</nav>
+<div class="cuenta-shell">
+  {{template "admin-sidebar" .}}
 
-<div class="admin-shell">
-  <main class="admin-main">
-    <header class="page-topbar">
-      <div class="logo">AVANTE<span class="dot"></span></div>
-      <div class="page-topbar-user">
-        <div class="admin-user-avatar">A</div>
-        <div class="admin-user-info">
-          <div class="name">Administrador</div>
-          <div class="email" id="adminUserEmail">admin@avanteoptics.mx</div>
-        </div>
-      </div>
-    </header>
-
+  <main class="cuenta-main admin-main">
     <div class="admin-header">
       <div>
         <h1>Citas</h1>
@@ -60,7 +28,7 @@
 
     <div class="admin-stats">
       <div class="admin-stat-card">
-        <div class="num" id="citasCount">0</div>
+        <div class="num">{{len .Citas}}</div>
         <div class="label">Citas registradas</div>
       </div>
     </div>
@@ -81,20 +49,44 @@
               <th>Acciones</th>
             </tr>
           </thead>
-          <tbody id="citasTableBody"></tbody>
+          <tbody id="citasTableBody">
+            {{range .Citas}}
+            <tr data-id="{{.ID}}">
+              <td>{{.ID}}</td>
+              <td>{{fechaEs .Date}}</td>
+              <td>{{.Time}}</td>
+              <td><span class="admin-badge {{.Status}}">{{.Status}}</span></td>
+              <td>{{fechaEs .CreatedAt}}</td>
+              <td>
+                <div class="admin-row-actions">
+                  <button class="admin-icon-btn" data-action="confirm" data-id="{{.ID}}" title="Confirmar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </button>
+                  <button class="admin-icon-btn" data-action="delete" data-id="{{.ID}}" title="Eliminar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
         </table>
-        <div class="admin-empty" id="citasEmpty">
+        {{if .DBError}}
+        <div class="admin-empty" style="display:block;">{{.DBError}}</div>
+        {{else if not .Citas}}
+        <div class="admin-empty" id="citasEmpty" style="display:block;">
           Todavía no hay citas registradas.<br>
           Agenda una desde la sección "Agenda tu cita" del sitio público y aparecerá aquí automáticamente.
         </div>
+        {{end}}
       </div>
     </div>
   </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-<script src="sidebar.js"></script>
-<script src="admin-citas.js"></script>
-
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/admin/citas.js"></script>
 </body>
 </html>

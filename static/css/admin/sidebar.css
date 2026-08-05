@@ -5,6 +5,18 @@
    ========================================================= */
 body.dark .cuenta-sidebar{ transition:background-color .3s var(--ease), border-color .3s var(--ease); }
 
+/* ---------- Shell compartido: sidebar + contenido ----------
+   Vive aquí (no en cada página) porque cualquier vista que use
+   {{template "admin-sidebar"}} necesita este layout, sin
+   importar qué otro CSS cargue. */
+.cuenta-shell{
+  max-width:1180px; margin:0 auto;
+  padding:36px 24px 90px;
+  display:flex; align-items:flex-start; gap:32px;
+}
+@media (max-width:900px){ .cuenta-shell{ flex-direction:column; padding:28px 18px 70px; gap:22px; } }
+.cuenta-main{ flex:1; min-width:0; }
+
 .cuenta-sidebar{
   width:236px; flex-shrink:0;
   position:sticky; top:112px; z-index:10;

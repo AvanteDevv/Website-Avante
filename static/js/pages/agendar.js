@@ -124,18 +124,33 @@ apptModalOk.addEventListener('click', closeApptModal);
 apptModalOverlay.addEventListener('click', (e) => { if(e.target === apptModalOverlay) closeApptModal(); });
 
 
-function saveAppointmentRecord(dateObj, time){
-  try{
-    const key = 'avante_appointments';
-    const list = JSON.parse(localStorage.getItem(key) || '[]');
-    list.push({ id:'C-'+Date.now(), date:dateObj.toISOString(), time, createdAt:new Date().toISOString(), status:'pendiente' });
-    localStorage.setItem(key, JSON.stringify(list));
-  } catch(e){ /* localStorage no disponible: se ignora silenciosamente */ }
+function toDateOnly(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
-apptSubmit.addEventListener('click', () => {
+
+async function bookAppointment(dateObj, time){
+  try{
+    const res = await fetch('/api/agendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: toDateOnly(dateObj), time })
+    });
+    return res.ok;
+  } catch(e){
+    return false;
+  }
+}
+apptSubmit.addEventListener('click', async () => {
   if(selectedDate && selectedTime){
-    saveAppointmentRecord(selectedDate, selectedTime);
-    openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
+    const ok = await bookAppointment(selectedDate, selectedTime);
+    if(ok){
+      openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
+    } else {
+      openApptModal('No pudimos agendar tu cita. Intenta de nuevo en unos minutos.');
+    }
   } else {
     openApptModal('Por favor selecciona un día y una hora antes de confirmar.');
   }

@@ -20,12 +20,39 @@
   --shadow-sm: 0 1px 3px rgba(226,46,46,.06);
   --shadow-md: 0 14px 30px -16px rgba(226,46,46,.20);
   --shadow-lg: 0 26px 48px -18px rgba(226,46,46,.30);
+
+  /* Alias para el sidebar/userbar compartidos (sidebar.css, userbar.css) */
+  --white:#ffffff;
+  --grey:#767b8a;
+  --blue-600:#E22E2E;
+  --blue-700:#A61B1B;
+  --blue-300:#FFA8A8;
+  --blue-100:#FFE3E3;
+  --blue-50:#FFF4F4;
+  --on-accent:#FFFFFF;
+  --sans:'Bricolage Grotesque', sans-serif;
+}
+
+/* ---------- Modo oscuro (sidebar/userbar compartidos) ---------- */
+body.dark{
+  --white:#161616;
+  --ink:#FFFFFF;
+  --grey:#9A9A9A;
+  --muted:#9A9A9A;
+  --line:#2B2B2B;
+  --blue-50:rgba(226,46,46,.14);
+  --accent-soft:rgba(226,46,46,.14);
+  --blue-100:rgba(255,168,168,.24);
+}
+body.dark.admin-body{
+  background:#0A0A0A;
+  background-image:radial-gradient(circle at 100% 0%, rgba(226,46,46,.10), transparent 45%);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 
 body.admin-body{
-  background:#ffffff;
+  background:var(--white);
   background-image:radial-gradient(circle at 100% 0%, rgba(226,46,46,.06), transparent 45%);
   min-height:100vh;
   font-family:'Bricolage Grotesque',sans-serif;
@@ -102,7 +129,7 @@ body.admin-body{
   display:flex;
   align-items:center;
   gap:12px;
-  background:#fff;
+  background:var(--white);
   border-radius:100px;
   padding:6px 18px 6px 6px;
   box-shadow:var(--shadow-md);
@@ -151,7 +178,7 @@ body.admin-body{
 }
 .admin-stat-card{
   position:relative;
-  background:#fff;
+  background:var(--white);
   border-radius:var(--radius-md);
   border:1.5px solid var(--line);
   padding:22px 24px;
@@ -190,7 +217,7 @@ body.admin-body{
 
 /* ---------- Panel + tabla ---------- */
 .admin-panel{
-  background:#fff;
+  background:var(--white);
   border-radius:var(--radius-lg);
   border:1.5px solid var(--line);
   overflow:hidden;
@@ -236,13 +263,13 @@ table.admin-table{
   color:var(--muted);
   font-weight:600;
   padding:14px 24px;
-  background:#ffffff;
+  background:var(--white);
   border-bottom:1.5px solid var(--line);
   white-space:nowrap;
 }
 .admin-table td{
   padding:16px 24px;
-  border-bottom:1px solid #EEF0FC;
+  border-bottom:1px solid var(--line);
   white-space:nowrap;
   transition:background .2s var(--ease);
 }
@@ -272,7 +299,7 @@ table.admin-table{
   width:34px;height:34px;
   border-radius:50%;
   border:1px solid var(--line);
-  background:#fff;
+  background:var(--white);
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   color:var(--muted);
