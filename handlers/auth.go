@@ -56,7 +56,7 @@ func Register(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message":  "Cuenta creada correctamente.",
-		"redirect": "/mis-favoritos",
+		"redirect": "/dashboard",
 	})
 }
 
@@ -90,7 +90,7 @@ func Login(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Bienvenido de vuelta a Avante Optics.",
-		"redirect": "/mis-favoritos",
+		"redirect": "/dashboard",
 	})
 }
 
