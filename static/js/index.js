@@ -588,7 +588,29 @@ let selectedTime = null;
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const WEEKDAYS_FULL = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
-const HOURS = ['10:00','10:30','11:00','11:30','12:00','16:00','16:30','17:00'];
+let HOURS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30'];
+
+function generateHourSlots(open, close, stepMinutes){
+  const toMinutes = (t) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  const toTimeStr = (mins) => `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+  const slots = [];
+  for(let m = toMinutes(open); m <= toMinutes(close); m += stepMinutes){
+    slots.push(toTimeStr(m));
+  }
+  return slots;
+}
+
+async function loadAgendaHours(){
+  try{
+    const res = await fetch('/api/horarios');
+    if(res.ok){
+      const data = await res.json();
+      if(data.open && data.close){
+        HOURS = generateHourSlots(data.open, data.close, 30);
+      }
+    }
+  } catch(e){ /* si falla, se usa el horario por defecto de arriba */ }
+}
 
 const sameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 const formatSelectedDate = (d) => `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
@@ -757,8 +779,11 @@ apptSubmit.addEventListener('click', async () => {
     openApptModal('Por favor selecciona un día y una hora antes de confirmar.');
   }
 });
-apptSideMonthYear.textContent = formatMonthYear(today);
-renderCalendar();
+(async function initAgenda(){
+  await loadAgendaHours();
+  apptSideMonthYear.textContent = formatMonthYear(today);
+  renderCalendar();
+})();
 
 /* =========================================================
    TRACKING (demo visual, sin backend real)

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuración — Admin · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+<link rel="stylesheet" href="/static/css/admin/configuracion.css">
+</head>
+<body class="cuenta-body">
+
+{{template "admin-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "admin-sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header">
+      <h1>Configuración</h1>
+      <p>Horario en que los clientes pueden agendar una cita desde el sitio público.</p>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Horario de citas</h2>
+          <p>Se aplica tanto en la sección "Agenda tu cita" del inicio como en la página /agendar.</p>
+        </div>
+      </div>
+
+      <form class="settings-form" id="horariosForm">
+        <div class="settings-row">
+          <label class="settings-field">
+            <span>Abre</span>
+            <div class="time-picker" id="agendaOpenPicker">
+              <button type="button" class="time-picker-trigger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                <span class="time-picker-value">—</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="time-picker-menu"></div>
+            </div>
+            <input type="hidden" id="agendaOpen" name="open" value="{{.AgendaOpen}}" required>
+          </label>
+          <label class="settings-field">
+            <span>Cierra</span>
+            <div class="time-picker" id="agendaClosePicker">
+              <button type="button" class="time-picker-trigger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                <span class="time-picker-value">—</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="time-picker-menu"></div>
+            </div>
+            <input type="hidden" id="agendaClose" name="close" value="{{.AgendaClose}}" required>
+          </label>
+        </div>
+        <p class="settings-hint">Los horarios se dividen en citas cada 30 minutos, desde la hora de apertura hasta la de cierre.</p>
+        <div class="settings-actions">
+          <button type="submit" class="btn solid" id="horariosSubmit">Guardar horario</button>
+          <span class="settings-status" id="horariosStatus"></span>
+        </div>
+      </form>
+    </section>
+  </main>
+</div>
+
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/admin/configuracion.js"></script>
+</body>
+</html>

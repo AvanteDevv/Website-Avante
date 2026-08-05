@@ -129,6 +129,8 @@ func main() {
 		adminGroup.GET("/citas", adminHandlers.Appointments)
 		adminGroup.PATCH("/citas/:id/estado", adminHandlers.UpdateAppointmentStatus)
 		adminGroup.DELETE("/citas/:id", adminHandlers.DeleteAppointment)
+		adminGroup.GET("/configuracion", adminHandlers.Settings)
+		adminGroup.POST("/configuracion/horarios", adminHandlers.UpdateAgendaHours)
 		adminGroup.GET("/pedidos", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "pedidos.html", gin.H{
 				"ActivePage": "admin-pedidos",
@@ -143,6 +145,7 @@ func main() {
 		api.POST("/iniciar-sesion", handlers.Login)
 		api.POST("/admin/iniciar-sesion", handlers.AdminLogin)
 		api.POST("/agendar", handlers.CreateAppointment)
+		api.GET("/horarios", handlers.GetAgendaHours)
 	}
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
