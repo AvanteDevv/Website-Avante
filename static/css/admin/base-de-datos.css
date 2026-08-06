@@ -103,26 +103,30 @@ body.cuenta-body{
 }
 
 /* ---------- Stat cards ---------- */
-.admin-stats{
-  display:grid; grid-template-columns:repeat(4, 1fr);
-  gap:14px; margin-bottom:24px;
+.admin-stats{ display:flex; flex-wrap:wrap; gap:16px; margin-bottom:24px; }
+
+@property --stat-angle{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+@keyframes statBorderSpin{ to{ --stat-angle:360deg; } }
+
+.stat-card-wrap{
+  position:relative; width:112px; aspect-ratio:1/1; flex-shrink:0;
+  border-radius:50%; overflow:hidden;
 }
-@media (max-width:900px){ .admin-stats{ grid-template-columns:repeat(2, 1fr); } }
-@media (max-width:520px){ .admin-stats{ grid-template-columns:1fr; } }
+.stat-card-glow{
+  position:absolute; inset:0; border-radius:50%;
+  background:conic-gradient(from var(--stat-angle,0deg), var(--blue-600), var(--blue-300), #ffffff, var(--blue-500), var(--blue-600));
+  animation:statBorderSpin 3.2s linear infinite;
+}
 .admin-stat-card{
-  position:relative; background:var(--white);
-  border-radius:var(--radius-md); border:1.5px solid var(--line);
-  padding:20px 22px; overflow:hidden;
-  box-shadow:var(--shadow-sm);
-  transition:box-shadow .3s var(--ease), transform .3s var(--ease), border-color .3s var(--ease);
+  position:absolute; inset:2.5px; z-index:1; border-radius:50%; overflow:hidden;
+  background:var(--white);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+  padding:8px; box-shadow:var(--shadow-sm);
+  transition:box-shadow .3s var(--ease), transform .3s var(--ease);
 }
-.admin-stat-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-3px); border-color:var(--blue-300); }
-.admin-stat-card:before{
-  content:''; position:absolute; top:-30%; right:-20%; width:110px; height:110px;
-  border-radius:50%; background:var(--blue-50); z-index:0;
-}
-.admin-stat-card .num{ position:relative; font-family:var(--serif); font-weight:500; font-size:26px; color:var(--blue-600); }
-.admin-stat-card .label{ position:relative; font-size:12px; color:var(--grey); margin-top:4px; font-weight:500; }
+.admin-stat-card:hover{ box-shadow:var(--shadow-md); transform:scale(1.04); }
+.admin-stat-card .num{ font-family:var(--serif); font-weight:600; font-size:19px; line-height:1; color:var(--stat-color, var(--blue-600)); }
+.admin-stat-card .label{ font-size:9px; color:var(--grey); margin-top:4px; font-weight:600; line-height:1.2; max-width:80px; }
 
 /* ---------- Panel de tabla ---------- */
 .panel{
@@ -141,6 +145,7 @@ body.cuenta-body{
   padding:16px 24px; border-bottom:1px solid var(--line); background:transparent;
 }
 .search-box{ position:relative; flex:1; min-width:200px; max-width:340px; border-radius:16px; }
+@property --search-angle{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
 .search-box-glow{
   position:absolute; inset:0; border-radius:16px;
   background:conic-gradient(from var(--search-angle,0deg), var(--blue-600), var(--blue-300), #ffffff, var(--blue-500), var(--blue-600));
@@ -262,3 +267,71 @@ body.dark .role-badge.admin{ background:var(--blue-600); color:var(--on-accent);
 .page-arrow:hover:not(:disabled){ background:var(--blue-50); color:var(--blue-700); }
 .page-arrow:disabled{ opacity:.35; cursor:default; }
 .page-current{ font-size:12.5px; font-weight:600; color:var(--ink); white-space:nowrap; }
+/* ===========================================================
+   Botón delgado + rol optometrista + modal "Nuevo usuario"
+   =========================================================== */
+.btn.thin{ padding:9px 22px; font-size:10.5px; letter-spacing:.7px; }
+
+.role-badge.optometrista{ background:#E3F3FF; color:#0f6fa8; }
+body.dark .role-badge.optometrista{ background:#0f6fa8; color:var(--on-accent); }
+
+.admin-modal-overlay{
+  position:fixed; inset:0;
+  background:rgba(10,14,56,.45);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; visibility:hidden;
+  transition:opacity .28s var(--ease), visibility 0s linear .28s;
+  z-index:100; padding:20px;
+}
+.admin-modal-overlay.open{
+  opacity:1; visibility:visible;
+  transition:opacity .28s var(--ease), visibility 0s linear;
+}
+.admin-modal-card{
+  background:var(--white);
+  border:1.5px solid var(--line);
+  border-radius:var(--radius-lg);
+  width:100%; max-width:420px; max-height:85vh;
+  display:flex; flex-direction:column;
+  box-shadow:var(--shadow-lg);
+  transform:translateY(18px) scale(.97);
+  transition:transform .32s var(--ease);
+}
+.admin-modal-overlay.open .admin-modal-card{ transform:translateY(0) scale(1); }
+.admin-modal-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 22px; border-bottom:1px solid var(--line);
+}
+.admin-modal-head h3{ font-family:var(--sans); font-weight:700; font-size:15.5px; color:var(--ink); }
+.admin-modal-close{
+  width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; color:var(--grey);
+  background:var(--white);
+  transition:background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease), transform .3s var(--ease);
+}
+.admin-modal-close svg{ width:15px; height:15px; }
+.admin-modal-close:hover{ background:var(--blue-50); color:var(--blue-700); border-color:var(--blue-300); transform:rotate(90deg) scale(1.08); }
+.admin-modal-body{
+  flex:1; min-height:0;
+  padding:18px 22px 22px; overflow-y:auto;
+  scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+}
+.admin-modal-body::-webkit-scrollbar{ width:6px; }
+.admin-modal-body::-webkit-scrollbar-track{ background:transparent; }
+.admin-modal-body::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+
+.admin-user-form{ display:flex; flex-direction:column; gap:14px; }
+.admin-user-form label{
+  display:flex; flex-direction:column; gap:6px;
+  font-size:12px; font-weight:600; color:var(--ink);
+}
+.admin-user-form-optional{ font-weight:400; color:var(--grey); }
+.admin-user-form input, .admin-user-form select{
+  border:1.5px solid var(--line); border-radius:12px;
+  padding:10px 13px; font-family:var(--sans); font-size:13px; color:var(--ink);
+  background:var(--white);
+}
+.admin-user-form input:focus, .admin-user-form select:focus{ outline:none; border-color:var(--blue-300); }
+.admin-user-form select{ cursor:pointer; }
+.admin-user-form-error{ font-size:12px; color:#c0392b; min-height:14px; }
+.admin-user-form .btn{ margin-top:4px; width:100%; }

@@ -146,6 +146,24 @@ func main() {
 		api.POST("/admin/iniciar-sesion", handlers.AdminLogin)
 		api.POST("/agendar", handlers.CreateAppointment)
 		api.GET("/horarios", handlers.GetAgendaHours)
+		api.POST("/pedidos", handlers.CreatePedido)
+	}
+
+	// Admin JSON API — called from pedidos.js to fill the Pedidos table
+	apiAdmin := router.Group("/api/admin", handlers.RequireAdminAuth())
+	{
+		apiAdmin.GET("/pedidos", adminHandlers.ListOrders)
+		apiAdmin.PATCH("/pedidos/:id/estado", adminHandlers.UpdateOrderStatus)
+		apiAdmin.DELETE("/pedidos/:id", adminHandlers.DeleteOrder)
+		apiAdmin.GET("/estados", adminHandlers.ListStatusOptions)
+		apiAdmin.POST("/estados", adminHandlers.CreateStatusOption)
+		apiAdmin.PUT("/estados/:id", adminHandlers.UpdateStatusOption)
+		apiAdmin.DELETE("/estados/:id", adminHandlers.DeleteStatusOption)
+		apiAdmin.GET("/pedidos/configuracion", adminHandlers.GetOrderSettings)
+		apiAdmin.PUT("/pedidos/configuracion", adminHandlers.UpdateOrderSettingsHandler)
+		apiAdmin.POST("/usuarios", adminHandlers.CreateUser)
+		apiAdmin.PUT("/usuarios/:id", adminHandlers.UpdateUser)
+		apiAdmin.DELETE("/usuarios/:id", adminHandlers.DeleteUser)
 	}
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)

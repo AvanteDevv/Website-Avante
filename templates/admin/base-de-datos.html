@@ -24,7 +24,7 @@
         <h1>Base de datos</h1>
         <p>Todos los usuarios registrados en Avante Optics — clientes y administradores.</p>
       </div>
-      <button type="button" class="btn solid small"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo usuario</button>
+      <button type="button" class="btn solid thin" id="newUserBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo usuario</button>
     </div>
 
     {{if .DBError}}
@@ -32,10 +32,10 @@
     {{end}}
 
     <div class="admin-stats">
-      <div class="admin-stat-card"><div class="num">{{.TotalUsuarios}}</div><div class="label">Usuarios totales</div></div>
-      <div class="admin-stat-card"><div class="num">{{.NuevosEsteMes}}</div><div class="label">Nuevos este mes</div></div>
-      <div class="admin-stat-card"><div class="num">{{.TotalClientes}}</div><div class="label">Clientes</div></div>
-      <div class="admin-stat-card"><div class="num">{{.TotalAdmins}}</div><div class="label">Administradores</div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.TotalUsuarios}}</div><div class="label">Usuarios totales</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.NuevosEsteMes}}</div><div class="label">Nuevos este mes</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.TotalClientes}}</div><div class="label">Clientes</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.TotalAdmins}}</div><div class="label">Administradores</div></div></div>
     </div>
 
     <section class="panel">
@@ -75,7 +75,7 @@
           </thead>
           <tbody>
             {{range .Usuarios}}
-            <tr data-role="{{.Role}}">
+            <tr data-role="{{.Role}}" data-user-id="{{.ID}}">
               <td>
                 <div class="user-cell">
                   <span class="userbar-avatar">{{.Initials}}</span>
@@ -95,8 +95,9 @@
                     <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
                   </button>
                   <div class="row-menu-dropdown">
-                    <button type="button" class="row-menu-item" data-action="ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg> Ver</button>
-                    <button type="button" class="row-menu-item delete" data-action="eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg> Eliminar</button>
+                    <button type="button" class="row-menu-item" data-action="ver" data-id="{{.ID}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg> Ver</button>
+                    <button type="button" class="row-menu-item" data-action="editar" data-id="{{.ID}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar</button>
+                    <button type="button" class="row-menu-item delete" data-action="eliminar" data-id="{{.ID}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg> Eliminar</button>
                   </div>
                 </div>
               </td>
@@ -124,7 +125,42 @@
         <span class="panel-foot-spacer"></span>
       </div>
     </section>
-  </main>
+<div class="admin-modal-overlay" id="newUserModalOverlay">
+  <div class="admin-modal-card">
+    <div class="admin-modal-head">
+      <h3>Nuevo usuario</h3>
+      <button type="button" class="admin-modal-close" id="newUserModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="admin-user-form" id="newUserForm">
+        <label>Nombre completo
+          <input type="text" id="newUserName" name="name" required placeholder="Ej. Ana Ramírez">
+        </label>
+        <label>Correo electrónico
+          <input type="email" id="newUserEmail" name="email" required placeholder="correo@ejemplo.com">
+        </label>
+        <label>Teléfono <span class="admin-user-form-optional">(opcional)</span>
+          <input type="tel" id="newUserPhone" name="phone" placeholder="(662) 000 0000">
+        </label>
+        <label>Contraseña
+          <input type="password" id="newUserPassword" name="password" required minlength="8" placeholder="Mínimo 8 caracteres">
+        </label>
+        <label>Rol
+          <select id="newUserRole" name="role">
+            <option value="cliente">Cliente</option>
+            <option value="admin">Administrador (próximamente)</option>
+          </select>
+        </label>
+        <p class="admin-user-form-error" id="newUserError"></p>
+        <button type="submit" class="btn solid" id="newUserSubmit">Crear usuario</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+</main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>

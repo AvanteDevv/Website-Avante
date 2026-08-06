@@ -11,6 +11,23 @@ import (
 
 // ⚠️ Ajusta "avante-optics" en el import de arriba para que coincida con
 // el nombre del módulo en tu go.mod (primera línea: "module xxxxx").
+//
+// Este archivo ahora asume una columna "role" en la tabla `users`. Si
+// todavía no la tienes, corre esto una vez contra tu base:
+//
+//	ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'cliente';
+//	UPDATE users SET role = 'cliente' WHERE role IS NULL OR role = '';
+//
+// Valores usados: 'cliente', 'optometrista', 'admin' — los mismos que
+// ofrece el <select> del modal "Nuevo usuario" en base-de-datos.html.
+//
+// ⚠️ IMPORTANTE sobre el rol "admin": este archivo solo toca la tabla
+// `users`. Como ya tienes AdminLogin/RequireAdminAuth como un sistema
+// aparte, no sé si tus cuentas admin viven en `users` o en una tabla
+// separada (p. ej. `admins`) que tu handler "Database" ya combina para
+// pintar la tabla. Si es una tabla separada, crear aquí un usuario con
+// role="admin" NO le va a dar acceso real al panel admin — avísame y
+// te ajusto CreateUserByAdmin para que inserte también ahí.
 
 // User representa una fila de la tabla `users`.
 // El campo PasswordHash nunca se serializa a JSON (json:"-") para que jamás
@@ -21,13 +38,14 @@ type User struct {
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
 	Phone        string    `json:"phone,omitempty"`
+	Role         string    `json:"role"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
 // ErrEmailTaken se devuelve cuando ya existe una cuenta con ese correo.
 var ErrEmailTaken = errors.New("ya existe una cuenta con ese correo")
 
-// ErrUserNotFound se devuelve cuando no hay ningún usuario con ese correo.
+// ErrUserNotFound se devuelve cuando no hay ningún usuario con ese correo/id.
 var ErrUserNotFound = errors.New("usuario no encontrado")
 
 // EmailExists indica si ya hay una cuenta registrada con ese correo.
@@ -41,9 +59,24 @@ func EmailExists(email string) (bool, error) {
 	return count > 0, nil
 }
 
-// CreateUser inserta un nuevo usuario ya con la contraseña previamente
-// hasheada (el hasheo con bcrypt se hace en el handler, no aquí).
+// CreateUser inserta un nuevo usuario con rol "cliente" — es la que ya
+// usa el registro público (Register en auth.go). El hasheo con bcrypt
+// se hace en el handler, no aquí. Firma sin cambios respecto a la que
+// ya tenías.
 func CreateUser(name, email, passwordHash string) (*User, error) {
+	return createUser(name, email, "", passwordHash, "cliente")
+}
+
+// CreateUserByAdmin inserta un usuario con teléfono y rol elegidos
+// desde el panel de administración (modal "Nuevo usuario").
+func CreateUserByAdmin(name, email, phone, passwordHash, role string) (*User, error) {
+	if role == "" {
+		role = "cliente"
+	}
+	return createUser(name, email, phone, passwordHash, role)
+}
+
+func createUser(name, email, phone, passwordHash, role string) (*User, error) {
 	email = normalizeEmail(email)
 	name = strings.TrimSpace(name)
 
@@ -56,8 +89,8 @@ func CreateUser(name, email, passwordHash string) (*User, error) {
 	}
 
 	result, err := db.DB.Exec(
-		"INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-		name, email, passwordHash,
+		"INSERT INTO users (name, email, password_hash, phone, role) VALUES (?, ?, ?, ?, ?)",
+		name, email, passwordHash, phone, role,
 	)
 	if err != nil {
 		return nil, err
@@ -68,7 +101,7 @@ func CreateUser(name, email, passwordHash string) (*User, error) {
 		return nil, err
 	}
 
-	return &User{ID: id, Name: name, Email: email, PasswordHash: passwordHash}, nil
+	return &User{ID: id, Name: name, Email: email, PasswordHash: passwordHash, Phone: phone, Role: role}, nil
 }
 
 // GetUserByEmail busca un usuario por correo. Devuelve ErrUserNotFound si
@@ -78,9 +111,9 @@ func GetUserByEmail(email string) (*User, error) {
 
 	var u User
 	err := db.DB.QueryRow(
-		"SELECT id, name, email, password_hash, phone, created_at FROM users WHERE email = ?",
+		"SELECT id, name, email, password_hash, phone, role, created_at FROM users WHERE email = ?",
 		email,
-	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.CreatedAt)
+	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.CreatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
@@ -97,9 +130,9 @@ func GetUserByEmail(email string) (*User, error) {
 func GetUserByID(id int64) (*User, error) {
 	var u User
 	err := db.DB.QueryRow(
-		"SELECT id, name, email, password_hash, phone, created_at FROM users WHERE id = ?",
+		"SELECT id, name, email, password_hash, phone, role, created_at FROM users WHERE id = ?",
 		id,
-	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.CreatedAt)
+	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.CreatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
@@ -109,6 +142,54 @@ func GetUserByID(id int64) (*User, error) {
 	}
 
 	return &u, nil
+}
+
+// UpdateUser edita nombre, correo, teléfono y rol — usado por
+// PUT /api/admin/usuarios/:id. No toca la contraseña (ver
+// UpdateUserPassword).
+func UpdateUser(id int64, name, email, phone, role string) error {
+	email = normalizeEmail(email)
+	name = strings.TrimSpace(name)
+
+	result, err := db.DB.Exec(
+		"UPDATE users SET name = ?, email = ?, phone = ?, role = ? WHERE id = ?",
+		name, email, phone, role, id,
+	)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+// UpdateUserPassword cambia la contraseña de un usuario (hash ya
+// generado con bcrypt en el handler, igual que en Register).
+func UpdateUserPassword(id int64, passwordHash string) error {
+	_, err := db.DB.Exec("UPDATE users SET password_hash = ? WHERE id = ?", passwordHash, id)
+	return err
+}
+
+// DeleteUser elimina un usuario — usado por el botón "Eliminar" del
+// panel de Base de datos.
+func DeleteUser(id int64) error {
+	result, err := db.DB.Exec("DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
 }
 
 func normalizeEmail(email string) string {

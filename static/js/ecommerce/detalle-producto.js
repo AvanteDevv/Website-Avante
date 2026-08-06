@@ -129,14 +129,45 @@ shareMenu.addEventListener('click', (e) => {
 });
 document.addEventListener('click', () => shareMenu.classList.remove('is-open'));
 
-/* agregar al carrito */
+/* comprar — crea el pedido en el backend (por ahora no redirige a ninguna parte) */
 const buyBtn = document.getElementById('pdBuy');
+const buyBtnLabel = buyBtn.querySelector('span');
+const buyBtnOriginalLabel = buyBtnLabel.textContent;
+
 buyBtn.addEventListener('click', () => {
-  buyBtn.classList.add('is-added');
-  const label = buyBtn.querySelector('span');
-  const original = label.textContent;
-  label.textContent = 'Agregado';
-  setTimeout(() => { buyBtn.classList.remove('is-added'); label.textContent = original; }, 1400);
+  if(buyBtn.disabled) return;
+
+  const manualActive = rxManual.style.display !== 'none';
+  const rxOption = manualActive ? '' : (rxOptionsEl.querySelector('.pd-size-btn.active')?.textContent || '');
+  const rxOD = manualActive ? document.getElementById('pdRxOD').value.trim() : '';
+  const rxOI = manualActive ? document.getElementById('pdRxOI').value.trim() : '';
+  const priceNumber = parseFloat(String(product.price).replace(/[^0-9.]/g, '')) || 0;
+
+  buyBtn.disabled = true;
+  buyBtnLabel.textContent = 'Procesando...';
+
+  fetch('/api/pedidos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      productName: product.name,
+      productBrand: product.brand,
+      quantity: qty,
+      unitPrice: priceNumber,
+      rxOption, rxOD, rxOI
+    })
+  })
+    .then(res => { if(!res.ok) throw new Error('request failed'); return res.json(); })
+    .then(() => {
+      buyBtn.disabled = false;
+      buyBtnLabel.textContent = 'Pedido creado ✓';
+      setTimeout(() => { buyBtnLabel.textContent = buyBtnOriginalLabel; }, 1800);
+    })
+    .catch(() => {
+      buyBtn.disabled = false;
+      buyBtnLabel.textContent = 'No se pudo comprar, intenta de nuevo';
+      setTimeout(() => { buyBtnLabel.textContent = buyBtnOriginalLabel; }, 2200);
+    });
 });
 
 /* productos relacionados */

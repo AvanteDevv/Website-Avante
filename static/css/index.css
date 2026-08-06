@@ -1309,3 +1309,39 @@ form#contactForm .cf-field:last-of-type{ margin-bottom:0; }
   .whatsapp-float-tip{ display:none; }
 }
 @media (prefers-reduced-motion: reduce){ .whatsapp-float-ring{ animation:none; opacity:0; } }
+/* =========================================================
+   PAGE BLINK — transición de página tipo parpadeo:
+   dos "párpados" se cierran al salir y se abren al llegar.
+   El overlay lo crea page-blink.js, aquí solo se estila.
+   ========================================================= */
+.page-blink{
+  position:fixed; inset:0; z-index:9999;
+  pointer-events:none;
+  overflow:hidden;
+}
+/* Párpados con curva invertida (forma de ojo/almendra): a cada
+   párpado se le "muerde" una elipse transparente en el borde donde
+   se encuentran, así la abertura es amplia al centro y se cierra en
+   punta hacia los lados, como un ojo real. La elipse mide 50vw de
+   radio para que la punta caiga justo en los bordes de la pantalla.
+   Los párpados miden 75% de alto para que, cerrados, se traslapen y
+   el mordisco de uno quede cubierto por el otro (sin huecos). */
+.page-blink::before,
+.page-blink::after{
+  content:''; position:absolute; left:0; width:100%; height:75%;
+  transition:transform .42s cubic-bezier(.65,0,.35,1);
+}
+.page-blink::before{
+  top:0;
+  background:radial-gradient(ellipse 55vw 28vh at 50% 100%, transparent 55%, rgba(0,0,0,.55) 78%, var(--ink) 100%);
+}
+.page-blink::after{
+  bottom:0;
+  background:radial-gradient(ellipse 55vw 28vh at 50% 0%, transparent 55%, rgba(0,0,0,.55) 78%, var(--ink) 100%);
+}
+/* Estado inicial: cerrado (párpados traslapados cubriendo todo) */
+.page-blink::before{ transform:translateY(0); }
+.page-blink::after{ transform:translateY(0); }
+/* Abierto: cada párpado se retrae fuera de la pantalla */
+.page-blink.open::before{ transform:translateY(-110%); }
+.page-blink.open::after{ transform:translateY(110%); }

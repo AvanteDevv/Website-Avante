@@ -6,39 +6,62 @@
 <title>Pedidos — Admin · Avante Optics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/admin/userbar.css">
 <link rel="stylesheet" href="/static/css/admin/sidebar.css">
 <link rel="stylesheet" href="/static/css/admin/pedidos.css">
 </head>
-<body class="cuenta-body admin-body">
+<body class="cuenta-body">
 
 {{template "admin-userbar" .}}
 
 <div class="cuenta-shell">
   {{template "admin-sidebar" .}}
 
-  <main class="cuenta-main admin-main">
-    <div class="admin-header">
+  <main class="cuenta-main">
+    <div class="cuenta-header admin-header-row">
       <div>
         <h1>Pedidos</h1>
-        <p>Datos de ejemplo — el sitio público aún no tiene un carrito de compras real. Conecta tu tienda/backend para ver pedidos verdaderos aquí.</p>
+        <p>Pedidos reales, creados cuando alguien compra desde la tienda en línea.</p>
       </div>
     </div>
 
-    <div class="admin-stats">
-      <div class="admin-stat-card">
-        <div class="num" id="pedidosCount">0</div>
-        <div class="label">Pedidos (ejemplo)</div>
+    <div class="admin-stats" id="pedidosStats">
+      <div class="stat-card-wrap">
+        <div class="stat-card-glow"></div>
+        <div class="admin-stat-card">
+          <div class="num" id="pedidosCount">0</div>
+          <div class="label">Pedidos totales</div>
+        </div>
       </div>
     </div>
 
-    <div class="admin-panel">
-      <div class="admin-panel-head">
-        <h2>Todos los pedidos</h2>
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Todos los pedidos</h2>
+          <p id="pedidosSubcount">0 pedidos registrados</p>
+        </div>
+        <button type="button" class="admin-icon-btn" id="estadosBtn" aria-label="Configurar estados" title="Configurar estados">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+        </button>
       </div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+
+      <div class="panel-toolbar">
+        <div class="search-box">
+          <div class="search-box-glow"></div>
+          <div class="search-box-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="pedidosSearch" placeholder="Buscar por pedido, cliente o producto…">
+          </div>
+        </div>
+        <div class="filter-pills" id="estadoFilters">
+          <button type="button" class="filter-pill active" data-estado="todos">Todos</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="users-table" id="pedidosTable">
           <thead>
             <tr>
               <th>Pedido</th>
@@ -46,13 +69,60 @@
               <th>Total</th>
               <th>Estado</th>
               <th>Fecha</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="pedidosTableBody"></tbody>
         </table>
       </div>
-    </div>
+
+      <div class="panel-foot">
+        <span class="panel-foot-count" id="pedidosFootCount">Mostrando 0 de 0 pedidos</span>
+        <div class="pagination">
+          <button type="button" class="page-arrow" id="pagPrev" aria-label="Página anterior" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="page-current" id="pagCurrent">Página 1</span>
+          <button type="button" class="page-arrow" id="pagNext" aria-label="Página siguiente" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+        <span class="panel-foot-spacer"></span>
+      </div>
+    </section>
   </main>
+</div>
+
+<div class="admin-modal-overlay" id="estadosModalOverlay">
+  <div class="admin-modal-card">
+    <div class="admin-modal-head">
+      <h3>Configurar estados</h3>
+      <button type="button" class="admin-modal-close" id="estadosModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="admin-config-section">
+        <h4>Identificador de pedido</h4>
+        <p class="admin-config-hint">Prefijo y número desde el que empiezan a contar los pedidos nuevos (ej. AVT-10489, AVT-10490…).</p>
+        <div class="admin-config-row">
+          <input type="text" id="pedidoPrefixInput" maxlength="10" placeholder="AVT">
+          <input type="number" id="pedidoNextNumberInput" min="0" placeholder="10489">
+          <button type="button" class="admin-config-save" id="pedidoConfigSave">Guardar</button>
+        </div>
+      </div>
+
+      <div class="admin-modal-sep"></div>
+
+      <div class="admin-estado-list" id="estadoList"></div>
+      <button type="button" class="admin-estado-save-all" id="estadosSaveAll">Guardar cambios</button>
+      <form class="admin-estado-form" id="estadoForm">
+        <input type="text" id="estadoLabelInput" placeholder="Nombre del nuevo estado" maxlength="60" required>
+        <input type="color" id="estadoColorInput" value="#767b8a" title="Color del estado">
+        <button type="submit" class="btn solid">Agregar</button>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>

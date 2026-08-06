@@ -16,7 +16,13 @@ import (
 
 // userRow represents one row in the "Base de datos" admin panel, whether
 // it comes from the `users` table (clients) or the `admins` table.
+//
+// ID is the row's id WITHIN ITS OWN TABLE — a cliente with ID 3 and an
+// admin with ID 3 are two different people. The template uses Role
+// alongside ID (data-role + data-user-id) so any action wired from the
+// row menu can route to the right endpoint/table.
 type userRow struct {
+	ID        int64
 	Name      string
 	Email     string
 	Phone     string
@@ -31,10 +37,10 @@ type userRow struct {
 // between, it reads straight from the DB on every request.
 func Database(c *gin.Context) {
 	rows, err := db.DB.Query(`
-		SELECT name, email, COALESCE(phone, ''), created_at, 'cliente' AS role
+		SELECT id, name, email, COALESCE(phone, ''), created_at, 'cliente' AS role
 		FROM users
 		UNION ALL
-		SELECT name, email, '' AS phone, created_at, 'admin' AS role
+		SELECT id, name, email, '' AS phone, created_at, 'admin' AS role
 		FROM admins
 		ORDER BY created_at DESC
 	`)
@@ -54,7 +60,7 @@ func Database(c *gin.Context) {
 
 	for rows.Next() {
 		var u userRow
-		if err := rows.Scan(&u.Name, &u.Email, &u.Phone, &u.CreatedAt, &u.Role); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Phone, &u.CreatedAt, &u.Role); err != nil {
 			log.Printf("admin.Database: error scanning row: %v", err)
 			continue
 		}
