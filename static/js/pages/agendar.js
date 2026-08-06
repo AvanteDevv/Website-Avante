@@ -91,6 +91,14 @@ function renderCalendar(){
   }
 }
 
+function triggerSideAnim(){
+  [apptDayNum, apptWeekday, apptSideMonthYear].forEach(el => {
+    el.classList.remove('is-animating');
+    void el.offsetWidth; // fuerza reflow para poder reiniciar la animación
+    el.classList.add('is-animating');
+  });
+}
+
 function selectDay(cellDate){
   selectedDate = cellDate;
   selectedTime = null;
@@ -98,6 +106,7 @@ function selectDay(cellDate){
   apptWeekday.textContent = WEEKDAYS_FULL[cellDate.getDay()];
   apptSideMonthYear.textContent = formatMonthYear(cellDate);
   apptDetailTime.textContent = 'Por definir';
+  triggerSideAnim();
   showHourView();
 }
 
@@ -123,6 +132,9 @@ function renderHours(){
     btn.addEventListener('click', () => {
       selectedTime = t;
       apptDetailTime.textContent = to12h(t);
+      apptDetailTime.classList.remove('is-animating');
+      void apptDetailTime.offsetWidth; // fuerza reflow para poder reiniciar la animación
+      apptDetailTime.classList.add('is-animating');
       apptHourGrid.querySelectorAll('.appt-hour').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
