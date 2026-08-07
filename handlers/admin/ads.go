@@ -19,6 +19,12 @@ import (
 // rellenarlo de vuelta al editar.
 const dtLayout = "2006-01-02T15:04"
 
+// hermosilloLoc fija Hermosillo (UTC-7, sin horario de verano) sin depender
+// del huso horario del sistema operativo del servidor — así "15:30" escrito
+// por el admin significa lo mismo si el código corre en tu máquina local o
+// en el contenedor de Railway (que normalmente usa UTC).
+var hermosilloLoc = time.FixedZone("America/Hermosillo", -7*60*60)
+
 // Ad representa un banner de la sección #ads del sitio.
 type Ad struct {
 	ID           int
@@ -72,7 +78,7 @@ func Ads(c *gin.Context) {
 			continue
 		}
 		a.LinkURL = link.String
-		a.ImageURL = "/media/ads/" + a.ImageKey
+		a.ImageURL = "/media/promos/" + a.ImageKey
 		a.Status = computeStatus(a.StartAt, a.EndAt)
 		a.StartAtValue = a.StartAt.Format(dtLayout)
 		a.EndAtValue = a.EndAt.Format(dtLayout)
@@ -115,8 +121,8 @@ func parseAdForm(c *gin.Context) (title, position, link string, startAt, endAt t
 		return
 	}
 
-	startAt, e1 := time.ParseInLocation(dtLayout, c.PostForm("start_at"), time.Local)
-	endAt, e2 := time.ParseInLocation(dtLayout, c.PostForm("end_at"), time.Local)
+	startAt, e1 := time.ParseInLocation(dtLayout, c.PostForm("start_at"), hermosilloLoc)
+	endAt, e2 := time.ParseInLocation(dtLayout, c.PostForm("end_at"), hermosilloLoc)
 	if e1 != nil || e2 != nil {
 		err = fmt.Errorf("fechas inválidas")
 		return

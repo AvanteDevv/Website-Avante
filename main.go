@@ -191,7 +191,7 @@ func main() {
 		apiAdmin.PUT("/anuncios/:id", adminHandlers.UpdateAd)
 		apiAdmin.DELETE("/anuncios/:id", adminHandlers.DeleteAd)
 	}
-	router.GET("/media/ads/:key", handlers.ServeAdImage)
+	router.GET("/media/promos/:key", handlers.ServeAdImage)
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
 
