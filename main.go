@@ -145,6 +145,9 @@ func main() {
 		api.POST("/iniciar-sesion", handlers.Login)
 		api.POST("/admin/iniciar-sesion", handlers.AdminLogin)
 		api.POST("/agendar", handlers.CreateAppointment)
+		api.POST("/agendar/codigo", handlers.SendVerificationCode)
+		api.POST("/agendar/verificar", handlers.VerifyCode)
+		api.GET("/horarios/ocupadas", handlers.GetOccupiedHours)
 		api.GET("/horarios", handlers.GetAgendaHours)
 		api.POST("/pedidos", handlers.CreatePedido)
 	}

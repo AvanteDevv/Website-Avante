@@ -54,6 +54,7 @@
 
 {{template "footer" .}}
 
+<!-- Modal final: cita confirmada -->
 <div class="modal-overlay" id="apptModalOverlay">
   <div class="modal-card">
     <button class="modal-close" id="apptModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -61,6 +62,52 @@
     <h3>¡Cita confirmada!</h3>
     <p id="apptModalText">Te esperamos en Avante Optics.</p>
     <button class="btn solid modal-ok" id="apptModalOk">Listo</button>
+  </div>
+</div>
+
+<!-- Modal 1: datos de contacto -->
+<div class="modal-overlay" id="apptContactModalOverlay">
+  <div class="modal-card modal-form-card">
+    <button class="modal-close" id="apptContactModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <h3>Tus datos</h3>
+    <p>Los necesitamos para confirmar tu cita.</p>
+    <form id="apptContactForm" class="modal-form" novalidate>
+      <div class="modal-field">
+        <label for="apptNombre">Nombre</label>
+        <input type="text" id="apptNombre" name="nombre" autocomplete="given-name" required>
+      </div>
+      <div class="modal-field">
+        <label for="apptApellido">Apellido</label>
+        <input type="text" id="apptApellido" name="apellido" autocomplete="family-name" required>
+      </div>
+      <div class="modal-field">
+        <label for="apptCelular">Celular (WhatsApp)</label>
+        <div class="modal-phone-row">
+          <span class="modal-phone-lada">+52</span>
+          <input type="tel" id="apptCelular" name="celular" inputmode="numeric" maxlength="10" placeholder="6621234567" autocomplete="tel-national" required>
+        </div>
+      </div>
+      <p class="modal-form-error" id="apptContactError"></p>
+      <button type="submit" class="btn solid modal-ok" id="apptContactSubmit">Enviar código por WhatsApp</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal 2: código de verificación -->
+<div class="modal-overlay" id="apptCodeModalOverlay">
+  <div class="modal-card modal-form-card">
+    <button class="modal-close" id="apptCodeModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <h3>Verifica tu WhatsApp</h3>
+    <p>Enviamos un código de 4 dígitos a <strong id="apptCodePhoneLabel"></strong>.</p>
+    <div class="modal-code-row">
+      <input type="text" inputmode="numeric" maxlength="1" class="modal-code-digit" data-idx="0">
+      <input type="text" inputmode="numeric" maxlength="1" class="modal-code-digit" data-idx="1">
+      <input type="text" inputmode="numeric" maxlength="1" class="modal-code-digit" data-idx="2">
+      <input type="text" inputmode="numeric" maxlength="1" class="modal-code-digit" data-idx="3">
+    </div>
+    <p class="modal-form-error" id="apptCodeError"></p>
+    <button type="button" class="btn solid modal-ok" id="apptCodeSubmit">Verificar y agendar</button>
+    <button type="button" class="modal-resend" id="apptCodeResend">¿No te llegó? Reenviar código</button>
   </div>
 </div>
 

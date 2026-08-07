@@ -14,11 +14,32 @@ const apptModalClose = document.getElementById('apptModalClose');
 const apptModalOk = document.getElementById('apptModalOk');
 const apptModalText = document.getElementById('apptModalText');
 
+// --- Modal de datos de contacto ---
+const apptContactModalOverlay = document.getElementById('apptContactModalOverlay');
+const apptContactModalClose = document.getElementById('apptContactModalClose');
+const apptContactForm = document.getElementById('apptContactForm');
+const apptNombre = document.getElementById('apptNombre');
+const apptApellido = document.getElementById('apptApellido');
+const apptCelular = document.getElementById('apptCelular');
+const apptContactError = document.getElementById('apptContactError');
+const apptContactSubmit = document.getElementById('apptContactSubmit');
+
+// --- Modal de código de verificación ---
+const apptCodeModalOverlay = document.getElementById('apptCodeModalOverlay');
+const apptCodeModalClose = document.getElementById('apptCodeModalClose');
+const apptCodePhoneLabel = document.getElementById('apptCodePhoneLabel');
+const apptCodeDigits = Array.from(document.querySelectorAll('.modal-code-digit'));
+const apptCodeError = document.getElementById('apptCodeError');
+const apptCodeSubmit = document.getElementById('apptCodeSubmit');
+const apptCodeResend = document.getElementById('apptCodeResend');
+
 const today = new Date(); today.setHours(0,0,0,0);
 let viewYear = today.getFullYear();
 let viewMonth = today.getMonth();
 let selectedDate = null;
 let selectedTime = null;
+let contactData = { nombre: '', apellido: '', celular: '' };
+let occupiedHours = [];
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const WEEKDAYS_FULL = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
@@ -110,8 +131,27 @@ function selectDay(cellDate){
   showHourView();
 }
 
-function showHourView(){
+// Consulta al backend qué horas de ese día ya están ocupadas (citas de
+// otras personas), para pintarlas de "Ocupado" y que no se puedan elegir.
+async function loadOccupiedHours(dateObj){
+  try{
+    const res = await fetch('/api/horarios/ocupadas?fecha=' + toDateOnly(dateObj));
+    if(res.ok){
+      const data = await res.json();
+      occupiedHours = data.ocupadas || [];
+    } else {
+      occupiedHours = [];
+    }
+  } catch(e){
+    occupiedHours = [];
+  }
+}
+
+async function showHourView(){
   apptHourDateLabel.textContent = formatSelectedDate(selectedDate);
+  apptHourGrid.classList.add('loading');
+  await loadOccupiedHours(selectedDate);
+  apptHourGrid.classList.remove('loading');
   renderHours();
   apptDayView.classList.remove('active');
   apptHourView.classList.add('active');
@@ -127,23 +167,32 @@ function renderHours(){
   HOURS.forEach(t => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'appt-hour' + (selectedTime === t ? ' active' : '');
+    const isOccupied = occupiedHours.includes(t);
+    btn.className = 'appt-hour' + (selectedTime === t ? ' active' : '') + (isOccupied ? ' occupied' : '');
     btn.textContent = to12h(t);
-    btn.addEventListener('click', () => {
-      selectedTime = t;
-      apptDetailTime.textContent = to12h(t);
-      apptDetailTime.classList.remove('is-animating');
-      void apptDetailTime.offsetWidth; // fuerza reflow para poder reiniciar la animación
-      apptDetailTime.classList.add('is-animating');
-      apptHourGrid.querySelectorAll('.appt-hour').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
+    if(isOccupied){
+      btn.disabled = true;
+      btn.title = 'Esta hora ya está ocupada';
+    } else {
+      btn.addEventListener('click', () => {
+        selectedTime = t;
+        apptDetailTime.textContent = to12h(t);
+        apptDetailTime.classList.remove('is-animating');
+        void apptDetailTime.offsetWidth; // fuerza reflow para poder reiniciar la animación
+        apptDetailTime.classList.add('is-animating');
+        apptHourGrid.querySelectorAll('.appt-hour').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    }
     apptHourGrid.appendChild(btn);
   });
 }
 
 apptBack.addEventListener('click', showDayView);
 
+/* =========================================================
+   MODAL DE CONFIRMACIÓN FINAL (el que ya existía)
+   ========================================================= */
 function openApptModal(text){
   apptModalText.textContent = text;
   apptModalOverlay.classList.add('open');
@@ -157,7 +206,61 @@ apptModalClose.addEventListener('click', closeApptModal);
 apptModalOk.addEventListener('click', closeApptModal);
 apptModalOverlay.addEventListener('click', (e) => { if(e.target === apptModalOverlay) closeApptModal(); });
 
+/* =========================================================
+   MODAL 1: DATOS DE CONTACTO (nombre, apellido, celular)
+   ========================================================= */
+function openApptContactModal(){
+  apptContactModalOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeApptContactModal(){
+  apptContactModalOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+apptContactModalClose.addEventListener('click', closeApptContactModal);
+apptContactModalOverlay.addEventListener('click', (e) => { if(e.target === apptContactModalOverlay) closeApptContactModal(); });
 
+/* =========================================================
+   MODAL 2: CÓDIGO DE VERIFICACIÓN (4 dígitos)
+   ========================================================= */
+function openCodeModal(){
+  apptCodeModalOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeCodeModal(){
+  apptCodeModalOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+apptCodeModalClose.addEventListener('click', closeCodeModal);
+apptCodeModalOverlay.addEventListener('click', (e) => { if(e.target === apptCodeModalOverlay) closeCodeModal(); });
+
+// Auto-avance entre las 4 casillas del código
+apptCodeDigits.forEach((input, idx) => {
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/\D/g, '').slice(0, 1);
+    if(input.value && idx < apptCodeDigits.length - 1){
+      apptCodeDigits[idx + 1].focus();
+    }
+  });
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Backspace' && !input.value && idx > 0){
+      apptCodeDigits[idx - 1].focus();
+    }
+  });
+  input.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    const digits = pasted.replace(/\D/g, '').slice(0, apptCodeDigits.length);
+    if(!digits) return;
+    digits.split('').forEach((d, i) => { apptCodeDigits[i].value = d; });
+    const lastIdx = Math.min(digits.length, apptCodeDigits.length) - 1;
+    apptCodeDigits[lastIdx].focus();
+  });
+});
+
+/* =========================================================
+   LLAMADAS AL BACKEND
+   ========================================================= */
 function toDateOnly(d){
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -165,30 +268,151 @@ function toDateOnly(d){
   return `${y}-${m}-${day}`;
 }
 
-async function bookAppointment(dateObj, time){
+// Pide al backend generar y "enviar" (por ahora simulado) el código de
+// 4 dígitos por WhatsApp al celular dado.
+async function sendVerificationCode(data){
   try{
-    const res = await fetch('/api/agendar', {
+    const res = await fetch('/api/agendar/codigo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: toDateOnly(dateObj), time })
+      body: JSON.stringify({ nombre: data.nombre, apellido: data.apellido, celular: data.celular })
     });
     return res.ok;
   } catch(e){
     return false;
   }
 }
-apptSubmit.addEventListener('click', async () => {
+
+async function verifyCode(celular, codigo){
+  try{
+    const res = await fetch('/api/agendar/verificar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ celular, codigo })
+    });
+    return res.ok;
+  } catch(e){
+    return false;
+  }
+}
+
+// Regresa { ok, conflict } — conflict=true significa que alguien más
+// alcanzó a agendar esa misma hora justo antes (409 del backend).
+async function bookAppointment(dateObj, time, contact){
+  try{
+    const res = await fetch('/api/agendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: toDateOnly(dateObj),
+        time,
+        nombre: contact.nombre,
+        apellido: contact.apellido,
+        celular: contact.celular
+      })
+    });
+    return { ok: res.ok, conflict: res.status === 409 };
+  } catch(e){
+    return { ok: false, conflict: false };
+  }
+}
+
+/* =========================================================
+   FLUJO COMPLETO: día/hora -> datos de contacto -> código -> agendar
+   ========================================================= */
+apptSubmit.addEventListener('click', () => {
   if(selectedDate && selectedTime){
-    const ok = await bookAppointment(selectedDate, selectedTime);
-    if(ok){
-      openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
-    } else {
-      openApptModal('No pudimos agendar tu cita. Intenta de nuevo en unos minutos.');
-    }
+    apptContactError.textContent = '';
+    apptContactForm.reset();
+    openApptContactModal();
   } else {
     openApptModal('Por favor selecciona un día y una hora antes de confirmar.');
   }
 });
+
+apptContactForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const nombre = apptNombre.value.trim();
+  const apellido = apptApellido.value.trim();
+  const celularDigits = apptCelular.value.trim();
+
+  if(!nombre || !apellido){
+    apptContactError.textContent = 'Completa tu nombre y apellido.';
+    return;
+  }
+  if(!/^\d{10}$/.test(celularDigits)){
+    apptContactError.textContent = 'Ingresa un celular a 10 dígitos.';
+    return;
+  }
+
+  apptContactError.textContent = '';
+  apptContactSubmit.disabled = true;
+  apptContactSubmit.textContent = 'Enviando...';
+
+  contactData = { nombre, apellido, celular: '+52' + celularDigits };
+  const sent = await sendVerificationCode(contactData);
+
+  apptContactSubmit.disabled = false;
+  apptContactSubmit.textContent = 'Enviar código por WhatsApp';
+
+  if(sent){
+    closeApptContactModal();
+    apptCodePhoneLabel.textContent = '+52 ' + celularDigits;
+    apptCodeError.textContent = '';
+    apptCodeDigits.forEach(i => i.value = '');
+    openCodeModal();
+    apptCodeDigits[0].focus();
+  } else {
+    apptContactError.textContent = 'No pudimos enviar el código. Intenta de nuevo.';
+  }
+});
+
+apptCodeSubmit.addEventListener('click', async () => {
+  const codigo = apptCodeDigits.map(i => i.value).join('');
+  if(codigo.length < 4){
+    apptCodeError.textContent = 'Ingresa los 4 dígitos.';
+    return;
+  }
+
+  apptCodeError.textContent = '';
+  apptCodeSubmit.disabled = true;
+  apptCodeSubmit.textContent = 'Verificando...';
+
+  const okCode = await verifyCode(contactData.celular, codigo);
+  if(!okCode){
+    apptCodeSubmit.disabled = false;
+    apptCodeSubmit.textContent = 'Verificar y agendar';
+    apptCodeError.textContent = 'El código no es correcto o ya expiró.';
+    return;
+  }
+
+  const result = await bookAppointment(selectedDate, selectedTime, contactData);
+  apptCodeSubmit.disabled = false;
+  apptCodeSubmit.textContent = 'Verificar y agendar';
+
+  if(result.ok){
+    closeCodeModal();
+    openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
+  } else if(result.conflict){
+    closeCodeModal();
+    selectedTime = null;
+    apptDetailTime.textContent = 'Por definir';
+    await loadOccupiedHours(selectedDate);
+    renderHours();
+    openApptModal('Justo se agendó esa hora — elige otra disponible.');
+  } else {
+    apptCodeError.textContent = 'No pudimos agendar tu cita. Intenta de nuevo.';
+  }
+});
+
+apptCodeResend.addEventListener('click', async () => {
+  apptCodeResend.disabled = true;
+  const sent = await sendVerificationCode(contactData);
+  apptCodeResend.disabled = false;
+  apptCodeError.textContent = sent ? 'Te reenviamos el código.' : 'No pudimos reenviar el código.';
+});
+
 (async function initAgenda(){
   await loadAgendaHours();
   apptSideMonthYear.textContent = formatMonthYear(today);
