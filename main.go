@@ -84,6 +84,9 @@ func main() {
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"ActivePage": "inicio",
+			"AdMainURL":  handlers.ActiveAdImage("main"),
+			"AdSide1URL": handlers.ActiveAdImage("side1"),
+			"AdSide2URL": handlers.ActiveAdImage("side2"),
 		})
 	})
 

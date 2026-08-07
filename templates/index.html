@@ -131,16 +131,22 @@
     <p>Promociones destacadas de temporada.</p>
   </div>
   <div class="ads-grid reveal-rise">
+    {{if .AdMainURL}}
     <a href="#" class="ads-banner ads-main">
-      <img src="assets/ads/ad-main.jpg" alt="Anuncio destacado">
+      <img src="{{.AdMainURL}}" alt="Anuncio destacado">
     </a>
+    {{end}}
     <div class="ads-side">
+      {{if .AdSide1URL}}
       <a href="#" class="ads-banner ads-small">
-        <img src="assets/ads/ad-side-1.jpg" alt="Anuncio">
+        <img src="{{.AdSide1URL}}" alt="Anuncio">
       </a>
+      {{end}}
+      {{if .AdSide2URL}}
       <a href="#" class="ads-banner ads-small">
-        <img src="assets/ads/ad-side-2.jpg" alt="Anuncio">
+        <img src="{{.AdSide2URL}}" alt="Anuncio">
       </a>
+      {{end}}
     </div>
   </div>
 </section>
