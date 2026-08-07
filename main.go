@@ -15,6 +15,7 @@ import (
 	"avante-optics/db"
 	"avante-optics/handlers"
 	adminHandlers "avante-optics/handlers/admin"
+	"avante-optics/storage"
 )
 
 // ⚠️ Adjust "avante-optics" in the imports above to match the module name
@@ -68,6 +69,8 @@ func main() {
 
 	db.Connect()
 	defer db.DB.Close()
+
+	storage.Connect()
 
 	auth.InitStore()
 
@@ -139,16 +142,7 @@ func main() {
 	adminGroup := router.Group("/admin", handlers.RequireAdminAuth())
 	{
 		adminGroup.GET("/base-de-datos", adminHandlers.Database)
-		adminGroup.GET("/anuncios", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "anuncios.html", gin.H{
-				"ActivePage":    "admin-anuncios",
-				"Anuncios":      nil,
-				"TotalAnuncios": 0,
-				"ActivosAhora":  0,
-				"Programados":   0,
-				"Vencidos":      0,
-			})
-		})
+		adminGroup.GET("/anuncios", adminHandlers.Ads)
 		adminGroup.GET("/citas", adminHandlers.Appointments)
 		adminGroup.PATCH("/citas/:id/estado", adminHandlers.UpdateAppointmentStatus)
 		adminGroup.DELETE("/citas/:id", adminHandlers.DeleteAppointment)
@@ -190,7 +184,11 @@ func main() {
 		apiAdmin.POST("/usuarios", adminHandlers.CreateUser)
 		apiAdmin.PUT("/usuarios/:id", adminHandlers.UpdateUser)
 		apiAdmin.DELETE("/usuarios/:id", adminHandlers.DeleteUser)
+		apiAdmin.POST("/anuncios", adminHandlers.CreateAd)
+		apiAdmin.PUT("/anuncios/:id", adminHandlers.UpdateAd)
+		apiAdmin.DELETE("/anuncios/:id", adminHandlers.DeleteAd)
 	}
+	router.GET("/media/ads/:key", handlers.ServeAdImage)
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
 
