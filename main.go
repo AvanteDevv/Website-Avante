@@ -82,12 +82,12 @@ func main() {
 	router.Static("/js", "./static/js")
 
 	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{
+		c.HTML(http.StatusOK, "index.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "inicio",
 			"AdMainURL":  handlers.ActiveAdImage("main"),
 			"AdSide1URL": handlers.ActiveAdImage("side1"),
 			"AdSide2URL": handlers.ActiveAdImage("side2"),
-		})
+		}))
 	})
 
 	router.GET("/iniciar-sesion", func(c *gin.Context) {
@@ -197,27 +197,27 @@ func main() {
 
 	// Online store (templates/ecommerce/*.html)
 	router.GET("/eccomerce", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "ecommerce.html", gin.H{
+		c.HTML(http.StatusOK, "ecommerce.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "tienda",
-		})
+		}))
 	})
 	router.GET("/eccomerce/:producto", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "detalle-producto.html", gin.H{
+		c.HTML(http.StatusOK, "detalle-producto.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "tienda",
 			"Producto":   c.Param("producto"),
-		})
+		}))
 	})
 
 	// Standalone pages (templates/pages/*.html)
 	router.GET("/blog", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "blog.html", gin.H{
+		c.HTML(http.StatusOK, "blog.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "blog",
-		})
+		}))
 	})
 	router.GET("/agendar", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "agendar.html", gin.H{
+		c.HTML(http.StatusOK, "agendar.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "agendar",
-		})
+		}))
 	})
 
 	port := os.Getenv("PORT")

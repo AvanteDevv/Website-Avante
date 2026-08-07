@@ -26,4 +26,32 @@
   if (cartBtn) {
     cartBtn.addEventListener('click', () => alert('Tu carrito está vacío.'));
   }
+
+  const userbar = document.getElementById('userbar');
+  if (userbar) {
+    const trigger = userbar.querySelector('.userbar-trigger');
+    if (trigger) {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userbar.classList.toggle('is-open');
+      });
+      document.addEventListener('click', (e) => {
+        if (!userbar.contains(e.target)) userbar.classList.remove('is-open');
+      });
+    }
+  }
+
+  const adminBadge = document.getElementById('adminNavBadge');
+  if (adminBadge) {
+    const trigger = adminBadge.querySelector('.admin-nav-badge-trigger');
+    if (trigger) {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        adminBadge.classList.toggle('is-open');
+      });
+      document.addEventListener('click', (e) => {
+        if (!adminBadge.contains(e.target)) adminBadge.classList.remove('is-open');
+      });
+    }
+  }
 })();

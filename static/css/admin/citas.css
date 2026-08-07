@@ -302,7 +302,18 @@ table.admin-table{
 /* ===========================================================
    Buscador animado con borde RGB girando
    =========================================================== */
-.admin-panel-head{ gap:14px; }
+.admin-panel-head--stacked{
+  flex-direction:column; align-items:stretch; gap:14px;
+}
+.admin-panel-head-row{
+  display:flex; align-items:center; gap:14px;
+}
+.admin-panel-head-row:first-child{ justify-content:space-between; }
+.admin-panel-head-row:last-child .search-box{ flex:1; max-width:none; }
+@media (max-width:560px){
+  .admin-panel-head-row:last-child{ flex-direction:column; align-items:stretch; }
+  .view-switch{ justify-content:center; }
+}
 @property --search-angle{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
 @keyframes searchBorderSpin{ to{ --search-angle:360deg; } }
 .search-box{ position:relative; flex:1; min-width:200px; max-width:320px; border-radius:16px; }
