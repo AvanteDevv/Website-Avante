@@ -53,6 +53,17 @@
     <div class="admin-panel">
       <div class="admin-panel-head">
         <h2>Todas las citas</h2>
+        <div class="view-switch" id="citasViewSwitch">
+          <span class="view-switch-glow" id="citasViewGlow"></span>
+          <button type="button" class="view-switch-btn active" data-view="tabla">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            Tabla
+          </button>
+          <button type="button" class="view-switch-btn" data-view="calendario">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Calendario
+          </button>
+        </div>
         <div class="search-box">
           <div class="search-box-glow"></div>
           <div class="search-box-inner">
@@ -64,6 +75,8 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
         </button>
       </div>
+
+      <div id="citasTableView">
       <div class="admin-table-wrap">
         <table class="admin-table">
           <thead>
@@ -78,7 +91,7 @@
           </thead>
           <tbody id="citasTableBody">
             {{range .Citas}}
-            <tr data-id="{{.ID}}" data-status="{{.Status}}">
+            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}">
               <td>{{.ID}}</td>
               <td>{{fechaEs .Date}}</td>
               <td>{{.Time}}</td>
@@ -130,8 +143,66 @@
         </div>
         <span class="admin-panel-foot-spacer"></span>
       </div>
+      </div><!-- /citasTableView -->
+
+      <div id="citasCalendarView" class="cal-view" hidden>
+        <div class="cal-toolbar">
+          <div class="cal-toolbar-nav">
+            <button type="button" class="page-arrow" id="calPrev" aria-label="Mes anterior">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button type="button" class="page-arrow" id="calNext" aria-label="Mes siguiente">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+            <h3 class="cal-month-label" id="calMonthLabel">—</h3>
+          </div>
+          <button type="button" class="btn thin" id="calTodayBtn">Hoy</button>
+        </div>
+        <div class="cal-weekdays">
+          <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-legend">
+          <span><i class="cal-dot pendiente"></i> Pendiente</span>
+          <span><i class="cal-dot confirmada"></i> Confirmada</span>
+          <span><i class="cal-dot cancelada"></i> Cancelada</span>
+        </div>
+      </div>
     </div>
   </main>
+</div>
+
+<div class="admin-modal-overlay" id="calEventModalOverlay">
+  <div class="admin-modal-card cal-event-modal">
+    <div class="admin-modal-head">
+      <h3>Cita <span id="calEventId"></span></h3>
+      <button type="button" class="admin-modal-close" id="calEventModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="cal-event-when">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span id="calEventWhen"></span>
+      </div>
+      <span class="admin-badge" id="calEventStatus"></span>
+
+      <div class="cal-event-actions">
+        <button type="button" class="cal-action cal-action-confirm" data-action="confirm" id="calEventConfirm">
+          <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+          Confirmar cita
+        </button>
+        <button type="button" class="cal-action cal-action-cancel" data-action="cancel" id="calEventCancel">
+          <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></span>
+          Cancelar cita
+        </button>
+        <button type="button" class="cal-action cal-action-delete" data-action="delete" id="calEventDelete">
+          <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></span>
+          Eliminar cita
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="admin-modal-overlay" id="horarioModalOverlay">

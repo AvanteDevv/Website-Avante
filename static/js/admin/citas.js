@@ -138,6 +138,168 @@
 
   renderStats();
   renderView();
+
+  /* =======================================================
+     VISTA DE CALENDARIO (mes, tipo Google Calendar)
+     Reutiliza las mismas filas del DOM (allRows) como fuente
+     de datos — no pide nada nuevo al servidor.
+     ======================================================= */
+  var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  function eventsFromRows(){
+    return allRows.map(function(row){
+      return {
+        id: row.dataset.id,
+        status: row.dataset.status,
+        date: row.dataset.date,   // "YYYY-MM-DD"
+        time: row.dataset.time || ''
+      };
+    }).filter(function(ev){ return !!ev.date; });
+  }
+
+  var calGrid = document.getElementById('calGrid');
+  var calMonthLabel = document.getElementById('calMonthLabel');
+  if (calGrid) {
+    var today = new Date();
+    var viewYear = today.getFullYear();
+    var viewMonth = today.getMonth(); // 0-11
+
+    function pad(n){ return String(n).padStart(2, '0'); }
+    function isoDate(y, m, d){ return y + '-' + pad(m + 1) + '-' + pad(d); }
+    function todayISO(){ var t = new Date(); return isoDate(t.getFullYear(), t.getMonth(), t.getDate()); }
+
+    var expandedDate = null;
+
+    function renderCalendar(){
+      var events = eventsFromRows();
+      var byDate = {};
+      events.forEach(function(ev){
+        (byDate[ev.date] = byDate[ev.date] || []).push(ev);
+      });
+      Object.keys(byDate).forEach(function(d){
+        byDate[d].sort(function(a, b){ return (a.time || '').localeCompare(b.time || ''); });
+      });
+
+      calMonthLabel.textContent = MESES[viewMonth] + ' ' + viewYear;
+
+      var firstOfMonth = new Date(viewYear, viewMonth, 1);
+      // Lunes = 0 ... Domingo = 6
+      var startOffset = (firstOfMonth.getDay() + 6) % 7;
+      var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      var daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+      var totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+      var todayStr = todayISO();
+
+      var html = '';
+      for (var i = 0; i < totalCells; i++) {
+        var dayNum, cellYear = viewYear, cellMonth = viewMonth, outside = false;
+        if (i < startOffset) {
+          dayNum = daysInPrevMonth - (startOffset - 1 - i);
+          cellMonth = viewMonth - 1; outside = true;
+        } else if (i >= startOffset + daysInMonth) {
+          dayNum = i - (startOffset + daysInMonth) + 1;
+          cellMonth = viewMonth + 1; outside = true;
+        } else {
+          dayNum = i - startOffset + 1;
+        }
+        if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
+        if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
+        var cellISO = isoDate(cellYear, cellMonth, dayNum);
+        var dayEvents = byDate[cellISO] || [];
+        var isToday = cellISO === todayStr;
+
+        html += '<div class="cal-day' + (outside ? ' is-outside' : '') + (isToday ? ' is-today' : '') + '">';
+        html += '<span class="cal-day-num">' + dayNum + '</span>';
+        html += '<div class="cal-day-events">';
+        var shown = (cellISO === expandedDate) ? dayEvents : dayEvents.slice(0, 3);
+        shown.forEach(function(ev){
+          html += '<button type="button" class="cal-event-chip" data-event-id="' + ev.id + '">' +
+                  '<i class="cal-dot ' + ev.status + '"></i><span class="chip-label">' + (ev.time || '') + '</span></button>';
+        });
+        if (dayEvents.length > 3 && cellISO !== expandedDate) {
+          html += '<button type="button" class="cal-day-more" data-more-date="' + cellISO + '">+' + (dayEvents.length - 3) + ' más</button>';
+        }
+        html += '</div></div>';
+      }
+      calGrid.innerHTML = html;
+    }
+
+    document.getElementById('calPrev').addEventListener('click', function(){
+      viewMonth -= 1;
+      if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; }
+      renderCalendar();
+    });
+    document.getElementById('calNext').addEventListener('click', function(){
+      viewMonth += 1;
+      if (viewMonth > 11) { viewMonth = 0; viewYear += 1; }
+      renderCalendar();
+    });
+    document.getElementById('calTodayBtn').addEventListener('click', function(){
+      var t = new Date();
+      viewYear = t.getFullYear(); viewMonth = t.getMonth();
+      renderCalendar();
+    });
+
+    /* ---------- modal de detalle al hacer click en un evento ---------- */
+    var eventModal = document.getElementById('calEventModalOverlay');
+    var eventModalClose = document.getElementById('calEventModalClose');
+    function openEventModal(id){
+      var row = tbody.querySelector('tr[data-id="' + id + '"]');
+      if (!row) return;
+      var dia = row.children[1] ? row.children[1].textContent : '';
+      var hora = row.dataset.time || '';
+      var status = row.dataset.status;
+
+      document.getElementById('calEventId').textContent = '#' + id;
+      document.getElementById('calEventWhen').textContent = dia + ' — ' + hora;
+      var statusEl = document.getElementById('calEventStatus');
+      statusEl.textContent = status;
+      statusEl.className = 'admin-badge ' + status;
+
+      document.getElementById('calEventConfirm').onclick = function(){ updateStatus(id, 'confirmada'); };
+      document.getElementById('calEventCancel').onclick = function(){ updateStatus(id, 'cancelada'); };
+      document.getElementById('calEventDelete').onclick = function(){ deleteCita(id); };
+
+      eventModal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeEventModal(){
+      eventModal.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    eventModalClose && eventModalClose.addEventListener('click', closeEventModal);
+    eventModal && eventModal.addEventListener('click', function(e){ if (e.target === eventModal) closeEventModal(); });
+
+    calGrid.addEventListener('click', function(e){
+      var chip = e.target.closest('[data-event-id]');
+      if (chip) { openEventModal(chip.dataset.eventId); return; }
+      var more = e.target.closest('[data-more-date]');
+      if (more) {
+        expandedDate = more.dataset.moreDate;
+        renderCalendar();
+      }
+    });
+
+    renderCalendar();
+  }
+
+  /* ---------- switch Tabla / Calendario ---------- */
+  var viewSwitch = document.getElementById('citasViewSwitch');
+  var tableView = document.getElementById('citasTableView');
+  var calendarView = document.getElementById('citasCalendarView');
+  if (viewSwitch && tableView && calendarView) {
+    viewSwitch.addEventListener('click', function(e){
+      var btn = e.target.closest('.view-switch-btn');
+      if (!btn) return;
+      viewSwitch.querySelectorAll('.view-switch-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var isCal = btn.dataset.view === 'calendario';
+      viewSwitch.classList.toggle('on-calendario', isCal);
+      tableView.hidden = isCal;
+      calendarView.hidden = !isCal;
+      if (isCal && calGrid) renderCalendar();
+    });
+  }
 })();
 
 /* ---------- modal: horario de citas (portado de configuracion.js) ---------- */
