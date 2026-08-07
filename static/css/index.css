@@ -764,6 +764,30 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
 .shop-cta{ text-align:center; margin-top:52px; }
 
 /* =========================================================
+   ANUNCIOS (banners)
+   ========================================================= */
+.ads-grid{ max-width:1160px; margin:0 auto; display:flex; gap:20px; }
+.ads-banner{
+  display:block; position:relative; overflow:hidden; border-radius:26px;
+  border:1.5px solid var(--blue-100); background:var(--blue-50);
+  box-shadow:0 14px 30px -18px rgba(20,40,120,.20);
+  transition:box-shadow .4s var(--ease), transform .4s var(--ease), border-color .4s var(--ease);
+}
+.ads-banner:hover{ box-shadow:0 26px 48px -18px rgba(20,40,120,.30); transform:translateY(-4px); border-color:var(--blue-300); }
+.ads-banner img{ width:100%; height:100%; object-fit:cover; display:block; }
+.ads-main{ flex:1.4; aspect-ratio:4/3; }
+.ads-side{ flex:1; display:flex; flex-direction:column; gap:20px; }
+.ads-small{ flex:1; }
+@media (max-width:760px){
+  .ads-grid{ flex-direction:column; }
+  .ads-side{ flex-direction:row; }
+  .ads-small{ aspect-ratio:1.4/1; }
+}
+@media (max-width:480px){
+  .ads-side{ flex-direction:column; }
+}
+
+/* =========================================================
    PROMOTIONS
    ========================================================= */
 .promo-badge{

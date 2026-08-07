@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anuncios — Admin · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+<link rel="stylesheet" href="/static/css/admin/anuncios.css">
+</head>
+<body class="cuenta-body">
+
+{{template "admin-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "admin-sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Anuncios</h1>
+        <p>Banners que se muestran en la sección "Anuncios" de la tienda en línea. Cada uno ocupa una posición fija y se muestra automáticamente dentro de su rango de fechas.</p>
+      </div>
+      <button type="button" class="btn solid thin" id="newAdBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo anuncio</button>
+    </div>
+
+    {{if .AdsError}}
+    <p style="color:#c0392b; margin-bottom:20px;">{{.AdsError}}</p>
+    {{end}}
+
+    <div class="admin-stats">
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.TotalAnuncios}}</div><div class="label">Anuncios totales</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.ActivosAhora}}</div><div class="label">Activos ahora</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.Programados}}</div><div class="label">Programados</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.Vencidos}}</div><div class="label">Vencidos</div></div></div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Todos los anuncios</h2>
+          <p>{{.TotalAnuncios}} banners cargados</p>
+        </div>
+      </div>
+
+      <div class="panel-toolbar">
+        <div class="search-box">
+          <div class="search-box-glow"></div>
+          <div class="search-box-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="adSearch" placeholder="Buscar por título…">
+          </div>
+        </div>
+        <div class="filter-pills" id="positionFilters">
+          <button type="button" class="filter-pill active" data-position="todos">Todos</button>
+          <button type="button" class="filter-pill" data-position="principal">Principal</button>
+          <button type="button" class="filter-pill" data-position="lateral1">Lateral 1</button>
+          <button type="button" class="filter-pill" data-position="lateral2">Lateral 2</button>
+        </div>
+      </div>
+
+      <div class="ads-admin-grid" id="adsGrid">
+        {{range .Anuncios}}
+        <div class="ad-card" data-position="{{.Position}}" data-ad-id="{{.ID}}"
+             data-titulo="{{.Titulo}}" data-link="{{.LinkURL}}" data-image-url="{{.ImageURL}}"
+             data-start="{{.StartAtValue}}" data-end="{{.EndAtValue}}">
+          <div class="ad-card-media">
+            <img src="{{.ImageURL}}" alt="{{.Titulo}}">
+            <span class="ad-status-badge {{.Status}}">{{if eq .Status "activo"}}Activo{{else if eq .Status "programado"}}Programado{{else}}Vencido{{end}}</span>
+            <div class="row-menu ad-card-menu">
+              <button type="button" class="row-menu-btn" aria-label="Más acciones" aria-haspopup="true" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+              </button>
+              <div class="row-menu-dropdown">
+                <button type="button" class="row-menu-item" data-action="editar" data-id="{{.ID}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar</button>
+                <button type="button" class="row-menu-item delete" data-action="eliminar" data-id="{{.ID}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg> Eliminar</button>
+              </div>
+            </div>
+          </div>
+          <div class="ad-card-body">
+            <div class="ad-card-top">
+              <span class="ad-position-badge {{.Position}}">{{if eq .Position "principal"}}Principal{{else if eq .Position "lateral1"}}Lateral 1{{else}}Lateral 2{{end}}</span>
+            </div>
+            <div class="ad-card-title">{{.Titulo}}</div>
+            <div class="ad-card-dates">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              {{fechaHoraEs .StartAt}} — {{fechaHoraEs .EndAt}}
+            </div>
+          </div>
+        </div>
+        {{else}}
+        <div class="ads-empty">Todavía no has subido ningún anuncio.</div>
+        {{end}}
+      </div>
+    </section>
+
+<div class="admin-modal-overlay" id="newAdModalOverlay">
+  <div class="admin-modal-card ad-modal-card">
+    <div class="admin-modal-head">
+      <h3 id="adModalTitle">Nuevo anuncio</h3>
+      <button type="button" class="admin-modal-close" id="newAdModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="admin-user-form" id="newAdForm">
+        <label>Título interno
+          <input type="text" id="adTitulo" name="titulo" required placeholder="Ej. Micas fotocromáticas — Agosto">
+        </label>
+
+        <label>Imagen del banner
+          <div class="ad-upload-drop" id="adUploadDrop">
+            <img class="ad-upload-preview" id="adUploadPreview" alt="" style="display:none;">
+            <div class="ad-upload-placeholder" id="adUploadPlaceholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+              <span>Arrastra una imagen o haz clic para subirla</span>
+            </div>
+            <input type="file" id="adImageInput" name="image" accept="image/png,image/jpeg,image/webp" hidden>
+          </div>
+          <span class="ad-upload-hint" id="adUploadHint">Recomendado: 660×500px (principal) o 470×240px (lateral).</span>
+        </label>
+
+        <label>Posición
+          <select id="adPosition" name="position" required>
+            <option value="principal">Principal (banner grande)</option>
+            <option value="lateral1">Lateral 1 (arriba)</option>
+            <option value="lateral2">Lateral 2 (abajo)</option>
+          </select>
+        </label>
+
+        <label>Enlace de destino <span class="admin-user-form-optional">(opcional)</span>
+          <input type="url" id="adLink" name="link" placeholder="https://avanteoptics.com/eccomerce">
+        </label>
+
+        <div class="ad-date-row">
+          <label>Desde
+            <input type="datetime-local" id="adStartAt" name="start_at" required>
+          </label>
+          <label>Hasta
+            <input type="datetime-local" id="adEndAt" name="end_at" required>
+          </label>
+        </div>
+
+        <p class="admin-user-form-error" id="newAdError"></p>
+        <button type="submit" class="btn solid" id="newAdSubmit">Publicar anuncio</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/admin/anuncios.js"></script>
+</body>
+</html>

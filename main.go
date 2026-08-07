@@ -32,8 +32,21 @@ var spanishMonths = [...]string{
 func spanishDate(t time.Time) string {
 	return fmt.Sprintf("%d de %s de %d", t.Day(), spanishMonths[t.Month()-1], t.Year())
 }
+
+// spanishDateTime formats a date+time as "4 ago 2026, 14:30", used in
+// templates via {{fechaHoraEs .StartAt}}.
+func spanishDateTime(t time.Time) string {
+	if t.IsZero() {
+		return "—"
+	}
+	mesCorto := spanishMonths[t.Month()-1][:3]
+	return fmt.Sprintf("%d %s %d, %02d:%02d", t.Day(), mesCorto, t.Year(), t.Hour(), t.Minute())
+}
 func loadTemplates() *template.Template {
-	funcs := template.FuncMap{"fechaEs": spanishDate}
+	funcs := template.FuncMap{
+		"fechaEs":     spanishDate,
+		"fechaHoraEs": spanishDateTime,
+	}
 	tmpl := template.Must(template.New("base").Funcs(funcs).ParseGlob("templates/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/partials/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth/*.html"))
@@ -126,6 +139,16 @@ func main() {
 	adminGroup := router.Group("/admin", handlers.RequireAdminAuth())
 	{
 		adminGroup.GET("/base-de-datos", adminHandlers.Database)
+		adminGroup.GET("/anuncios", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "anuncios.html", gin.H{
+				"ActivePage":    "admin-anuncios",
+				"Anuncios":      nil,
+				"TotalAnuncios": 0,
+				"ActivosAhora":  0,
+				"Programados":   0,
+				"Vencidos":      0,
+			})
+		})
 		adminGroup.GET("/citas", adminHandlers.Appointments)
 		adminGroup.PATCH("/citas/:id/estado", adminHandlers.UpdateAppointmentStatus)
 		adminGroup.DELETE("/citas/:id", adminHandlers.DeleteAppointment)

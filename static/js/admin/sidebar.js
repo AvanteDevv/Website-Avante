@@ -36,27 +36,42 @@
     blob.classList.add('is-visible');
   }
 
+  // El texto solo debe verse blanco en el link que en este momento
+  // tiene la burbuja roja detrás (el activo, o el que se está
+  // hoverando). Si solo dependiera de ".active", al mover el cursor
+  // a otro link el texto activo se queda blanco sin fondo detrás
+  // y se vuelve invisible.
+  function setHighlighted(link) {
+    links.forEach(function (l) { l.classList.remove('is-current'); });
+    if (link && isDesktop()) link.classList.add('is-current');
+  }
+
+  function highlight(link) {
+    positionBlob(link);
+    setHighlighted(link);
+  }
+
   links.forEach(function (link) {
-    link.addEventListener('mouseenter', function () { positionBlob(link); });
+    link.addEventListener('mouseenter', function () { highlight(link); });
   });
   if (navGroup) {
-    navGroup.addEventListener('mouseleave', function () { positionBlob(activeLink()); });
+    navGroup.addEventListener('mouseleave', function () { highlight(activeLink()); });
   }
 
   var resizeTimer;
   window.addEventListener('resize', function () {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function () { positionBlob(activeLink()); }, 120);
+    resizeTimer = setTimeout(function () { highlight(activeLink()); }, 120);
   });
 
   if (toggleBtn) {
     toggleBtn.addEventListener('click', function () {
       sidebar.classList.toggle('shrink');
-      setTimeout(function () { positionBlob(activeLink()); }, 320);
+      setTimeout(function () { highlight(activeLink()); }, 320);
     });
   }
 
-  positionBlob(activeLink());
+  highlight(activeLink());
 })();
 
 /* ---------- Toggle de tema claro/oscuro ---------- */
