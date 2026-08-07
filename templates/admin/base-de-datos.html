@@ -112,12 +112,12 @@
       </div>
 
       <div class="panel-foot">
-        <span class="panel-foot-count">Mostrando {{.TotalUsuarios}} de {{.TotalUsuarios}} usuarios</span>
+        <span class="panel-foot-count" id="usersFootCount">Mostrando {{.TotalUsuarios}} de {{.TotalUsuarios}} usuarios</span>
         <div class="pagination">
           <button type="button" class="page-arrow" id="pagPrev" aria-label="Página anterior" disabled>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
-          <span class="page-current">Página 1</span>
+          <span class="page-current" id="usersPagCurrent">Página 1</span>
           <button type="button" class="page-arrow" id="pagNext" aria-label="Página siguiente" disabled>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
@@ -148,10 +148,18 @@
           <input type="password" id="newUserPassword" name="password" required minlength="8" placeholder="Mínimo 8 caracteres">
         </label>
         <label>Rol
-          <select id="newUserRole" name="role">
-            <option value="cliente">Cliente</option>
-            <option value="admin">Administrador (próximamente)</option>
-          </select>
+          <div class="admin-role-select" id="newUserRoleSelect">
+            <button type="button" class="admin-role-select-btn" id="newUserRoleBtn" aria-haspopup="true" aria-expanded="false">
+              <span id="newUserRoleLabel">Cliente</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="admin-role-select-menu" id="newUserRoleMenu">
+              <button type="button" class="admin-role-option active" data-value="cliente">Cliente</button>
+              <button type="button" class="admin-role-option" data-value="optometrista" data-disabled="true">Optometrista <span class="admin-role-soon">Próximamente</span></button>
+              <button type="button" class="admin-role-option" data-value="admin" data-disabled="true">Administrador <span class="admin-role-soon">Próximamente</span></button>
+            </div>
+          </div>
+          <input type="hidden" id="newUserRole" name="role" value="cliente">
         </label>
         <p class="admin-user-form-error" id="newUserError"></p>
         <button type="submit" class="btn solid" id="newUserSubmit">Crear usuario</button>

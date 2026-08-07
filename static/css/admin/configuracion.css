@@ -85,3 +85,5 @@
 .settings-status.show{ opacity:1; }
 .settings-status.ok{ color:#1f9d55; }
 .settings-status.error{ color:#c0392b; }
+/* ---------- Dropdown de "Elementos por página" (reutiliza .admin-role-select de base-de-datos.css) ---------- */
+#pageSizeSelect{ width:160px; }

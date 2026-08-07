@@ -335,3 +335,41 @@ body.dark .role-badge.optometrista{ background:#0f6fa8; color:var(--on-accent); 
 .admin-user-form select{ cursor:pointer; }
 .admin-user-form-error{ font-size:12px; color:#c0392b; min-height:14px; }
 .admin-user-form .btn{ margin-top:4px; width:100%; }
+
+/* ---------- dropdown personalizado del campo Rol ---------- */
+.admin-role-select{ position:relative; }
+.admin-role-select-btn{
+  width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px;
+  border:1.5px solid var(--line); border-radius:12px;
+  padding:10px 13px; font-family:var(--sans); font-size:13px; color:var(--ink);
+  background:var(--white); text-align:left; cursor:pointer;
+  transition:border-color .2s var(--ease);
+}
+.admin-role-select-btn:hover{ border-color:var(--blue-300); }
+.admin-role-select-btn svg{ width:14px; height:14px; color:var(--grey); flex-shrink:0; transition:transform .3s var(--ease); }
+.admin-role-select.is-open .admin-role-select-btn{ border-color:var(--blue-300); }
+.admin-role-select.is-open .admin-role-select-btn svg{ transform:rotate(180deg); }
+
+.admin-role-select-menu{
+  position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:20;
+  background:var(--white); border:1px solid var(--line); border-radius:14px; padding:6px;
+  box-shadow:0 20px 40px -18px rgba(20,40,120,.28);
+  opacity:0; transform:translateY(-8px) scale(.98); pointer-events:none;
+  transition:opacity .22s var(--ease), transform .22s var(--ease);
+}
+.admin-role-select.is-open .admin-role-select-menu{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+
+.admin-role-option{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  width:100%; text-align:left; padding:9px 11px; border-radius:9px; border:none; background:none;
+  font-family:var(--sans); font-size:13px; color:var(--ink); cursor:pointer;
+  transition:background .18s var(--ease);
+}
+.admin-role-option:hover{ background:var(--blue-50); }
+.admin-role-option.active{ color:var(--blue-600); font-weight:700; }
+.admin-role-option[data-disabled="true"]{ color:var(--grey); cursor:default; }
+.admin-role-option[data-disabled="true"]:hover{ background:none; }
+.admin-role-soon{
+  font-size:9.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+  color:var(--blue-600); background:var(--blue-50); padding:3px 8px; border-radius:100px;
+}

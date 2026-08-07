@@ -1,22 +1,49 @@
 /* =========================================================
-   BASE DE DATOS — buscador y filtro por rol de la tabla
+   BASE DE DATOS — buscador, filtro por rol y paginación
    ========================================================= */
 (function(){
   var rows = Array.prototype.slice.call(document.querySelectorAll('#usersTable tbody tr'));
   var searchInput = document.getElementById('userSearch');
   var pills = document.querySelectorAll('#roleFilters .filter-pill');
   var activeRole = 'todos';
+  var PAGE_SIZE = parseInt(localStorage.getItem('avanteAdminPageSize'), 10) || 8;
+  var currentPage = 1;
 
   if (!searchInput || rows.length === 0) return;
 
-  function applyFilters(){
+  function getFiltered(){
     var term = (searchInput.value || '').toLowerCase().trim();
-    rows.forEach(function(row){
+    return rows.filter(function(row){
       var matchesRole = activeRole === 'todos' || row.dataset.role === activeRole;
       var text = row.textContent.toLowerCase();
       var matchesSearch = term === '' || text.indexOf(term) !== -1;
-      row.style.display = (matchesRole && matchesSearch) ? '' : 'none';
+      return matchesRole && matchesSearch;
     });
+  }
+
+  function applyFilters(){
+    var filtered = getFiltered();
+    var total = filtered.length;
+    var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    var start = (currentPage - 1) * PAGE_SIZE;
+    var pageRows = filtered.slice(start, start + PAGE_SIZE);
+
+    rows.forEach(function(row){ row.style.display = 'none'; });
+    pageRows.forEach(function(row){ row.style.display = ''; });
+
+    var footCount = document.getElementById('usersFootCount');
+    if (footCount) {
+      footCount.textContent = total === 0
+        ? 'Mostrando 0 de 0 usuarios'
+        : 'Mostrando ' + (start + 1) + '–' + Math.min(start + PAGE_SIZE, total) + ' de ' + total + ' usuarios';
+    }
+    var pagCurrent = document.getElementById('usersPagCurrent');
+    if (pagCurrent) pagCurrent.textContent = 'Página ' + currentPage + ' de ' + totalPages;
+    var pagPrev = document.getElementById('pagPrev');
+    var pagNext = document.getElementById('pagNext');
+    if (pagPrev) pagPrev.disabled = currentPage <= 1;
+    if (pagNext) pagNext.disabled = currentPage >= totalPages;
   }
 
   pills.forEach(function(pill){
@@ -24,11 +51,26 @@
       pills.forEach(function(p){ p.classList.remove('active'); });
       pill.classList.add('active');
       activeRole = pill.dataset.role;
+      currentPage = 1;
       applyFilters();
     });
   });
 
-  searchInput.addEventListener('input', applyFilters);
+  searchInput.addEventListener('input', function(){
+    currentPage = 1;
+    applyFilters();
+  });
+
+  var pagPrevBtn = document.getElementById('pagPrev');
+  var pagNextBtn = document.getElementById('pagNext');
+  pagPrevBtn && pagPrevBtn.addEventListener('click', function(){
+    if (currentPage > 1) { currentPage -= 1; applyFilters(); }
+  });
+  pagNextBtn && pagNextBtn.addEventListener('click', function(){
+    currentPage += 1; applyFilters();
+  });
+
+  applyFilters();
 })();
 
 /* ---------- Menú de acciones (3 puntos) por fila ---------- */
@@ -188,5 +230,53 @@ if (window.feather) feather.replace();
 
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
+  });
+})();
+
+/* ---------- dropdown personalizado del campo Rol ---------- */
+(function(){
+  var wrap = document.getElementById('newUserRoleSelect');
+  var btn = document.getElementById('newUserRoleBtn');
+  var menu = document.getElementById('newUserRoleMenu');
+  var label = document.getElementById('newUserRoleLabel');
+  var hiddenInput = document.getElementById('newUserRole');
+  if (!wrap || !btn || !menu || !hiddenInput) return;
+
+  function closeMenu(){
+    wrap.classList.remove('is-open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+  function openMenu(){
+    wrap.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    wrap.classList.contains('is-open') ? closeMenu() : openMenu();
+  });
+
+  menu.querySelectorAll('.admin-role-option').forEach(function(opt){
+    opt.addEventListener('click', function(){
+      if (opt.dataset.disabled === 'true') return;
+      menu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.remove('active'); });
+      opt.classList.add('active');
+      hiddenInput.value = opt.dataset.value;
+      label.textContent = opt.dataset.value === 'admin' ? 'Administrador' : (opt.dataset.value === 'optometrista' ? 'Optometrista' : 'Cliente');
+      closeMenu();
+    });
+  });
+
+  document.addEventListener('click', function(e){
+    if (!wrap.contains(e.target)) closeMenu();
+  });
+
+  // Al reabrir el modal en modo "crear", regresar el dropdown a Cliente.
+  var openBtn = document.getElementById('newUserBtn');
+  openBtn && openBtn.addEventListener('click', function(){
+    menu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.remove('active'); });
+    menu.querySelector('[data-value="cliente"]').classList.add('active');
+    hiddenInput.value = 'cliente';
+    label.textContent = 'Cliente';
   });
 })();

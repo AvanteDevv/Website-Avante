@@ -22,48 +22,41 @@
   <main class="cuenta-main">
     <div class="cuenta-header">
       <h1>Configuración</h1>
-      <p>Horario en que los clientes pueden agendar una cita desde el sitio público.</p>
+      <p>Preferencias generales del panel de administración.</p>
     </div>
 
     <section class="panel">
       <div class="panel-head">
         <div>
-          <h2>Horario de citas</h2>
-          <p>Se aplica tanto en la sección "Agenda tu cita" del inicio como en la página /agendar.</p>
+          <h2>Paginación</h2>
+          <p>Cantidad de filas por página en las tablas de Pedidos, Citas y Base de datos.</p>
         </div>
       </div>
 
-      <form class="settings-form" id="horariosForm">
+      <form class="settings-form" id="paginacionForm">
         <div class="settings-row">
           <label class="settings-field">
-            <span>Abre</span>
-            <div class="time-picker" id="agendaOpenPicker">
-              <button type="button" class="time-picker-trigger">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-                <span class="time-picker-value">—</span>
-                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span>Elementos por página</span>
+            <div class="admin-role-select" id="pageSizeSelect">
+              <button type="button" class="admin-role-select-btn" id="pageSizeBtn" aria-haspopup="true" aria-expanded="false">
+                <span id="pageSizeLabel">8</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
-              <div class="time-picker-menu"></div>
+              <div class="admin-role-select-menu" id="pageSizeMenu">
+                <button type="button" class="admin-role-option" data-value="5">5</button>
+                <button type="button" class="admin-role-option active" data-value="8">8</button>
+                <button type="button" class="admin-role-option" data-value="10">10</button>
+                <button type="button" class="admin-role-option" data-value="15">15</button>
+                <button type="button" class="admin-role-option" data-value="20">20</button>
+              </div>
             </div>
-            <input type="hidden" id="agendaOpen" name="open" value="{{.AgendaOpen}}" required>
-          </label>
-          <label class="settings-field">
-            <span>Cierra</span>
-            <div class="time-picker" id="agendaClosePicker">
-              <button type="button" class="time-picker-trigger">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-                <span class="time-picker-value">—</span>
-                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              </button>
-              <div class="time-picker-menu"></div>
-            </div>
-            <input type="hidden" id="agendaClose" name="close" value="{{.AgendaClose}}" required>
+            <input type="hidden" id="pageSizeInput" value="8">
           </label>
         </div>
-        <p class="settings-hint">Los horarios se dividen en citas cada 30 minutos, desde la hora de apertura hasta la de cierre.</p>
+        <p class="settings-hint">Se aplica de inmediato en este navegador — cada administrador puede tener su propia preferencia.</p>
         <div class="settings-actions">
-          <button type="submit" class="btn solid" id="horariosSubmit">Guardar horario</button>
-          <span class="settings-status" id="horariosStatus"></span>
+          <button type="submit" class="btn solid" id="paginacionSubmit">Guardar</button>
+          <span class="settings-status" id="paginacionStatus"></span>
         </div>
       </form>
     </section>

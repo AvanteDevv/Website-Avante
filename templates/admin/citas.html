@@ -27,15 +27,42 @@
     </div>
 
     <div class="admin-stats">
-      <div class="admin-stat-card">
-        <div class="num">{{len .Citas}}</div>
-        <div class="label">Citas registradas</div>
+      <div class="stat-card-wrap">
+        <div class="stat-card-glow"></div>
+        <div class="admin-stat-card">
+          <div class="num" id="citasStatTotal">{{len .Citas}}</div>
+          <div class="label">Citas totales</div>
+        </div>
+      </div>
+      <div class="stat-card-wrap">
+        <div class="stat-card-glow"></div>
+        <div class="admin-stat-card">
+          <div class="num" id="citasStatConfirmadas">0</div>
+          <div class="label">Confirmadas</div>
+        </div>
+      </div>
+      <div class="stat-card-wrap">
+        <div class="stat-card-glow"></div>
+        <div class="admin-stat-card">
+          <div class="num" id="citasStatCanceladas">0</div>
+          <div class="label">Canceladas</div>
+        </div>
       </div>
     </div>
 
     <div class="admin-panel">
       <div class="admin-panel-head">
         <h2>Todas las citas</h2>
+        <div class="search-box">
+          <div class="search-box-glow"></div>
+          <div class="search-box-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="citasSearch" placeholder="Buscar por día, hora o estado...">
+          </div>
+        </div>
+        <button type="button" class="admin-icon-btn" id="horarioBtn" aria-label="Configurar horario de citas" title="Configurar horario de citas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+        </button>
       </div>
       <div class="admin-table-wrap">
         <table class="admin-table">
@@ -51,20 +78,29 @@
           </thead>
           <tbody id="citasTableBody">
             {{range .Citas}}
-            <tr data-id="{{.ID}}">
+            <tr data-id="{{.ID}}" data-status="{{.Status}}">
               <td>{{.ID}}</td>
               <td>{{fechaEs .Date}}</td>
               <td>{{.Time}}</td>
               <td><span class="admin-badge {{.Status}}">{{.Status}}</span></td>
               <td>{{fechaEs .CreatedAt}}</td>
               <td>
-                <div class="admin-row-actions">
-                  <button class="admin-icon-btn" data-action="confirm" data-id="{{.ID}}" title="Confirmar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                <div class="row-menu" data-menu-id="{{.ID}}">
+                  <button type="button" class="row-menu-btn" data-action="toggle-menu" data-id="{{.ID}}" aria-label="Más acciones" aria-haspopup="true" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
                   </button>
-                  <button class="admin-icon-btn" data-action="delete" data-id="{{.ID}}" title="Eliminar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                  </button>
+                  <div class="row-menu-dropdown">
+                    <button type="button" class="row-menu-item" data-action="confirm" data-id="{{.ID}}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Confirmar
+                    </button>
+                    <button type="button" class="row-menu-item" data-action="cancel" data-id="{{.ID}}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg> Cancelar
+                    </button>
+                    <div class="row-menu-sep"></div>
+                    <button type="button" class="row-menu-item delete" data-action="delete" data-id="{{.ID}}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg> Eliminar
+                    </button>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -80,8 +116,69 @@
         </div>
         {{end}}
       </div>
+
+      <div class="admin-panel-foot">
+        <span class="admin-panel-foot-count" id="citasFootCount">Mostrando 0 de 0 citas</span>
+        <div class="pagination">
+          <button type="button" class="page-arrow" id="citasPagPrev" aria-label="Página anterior" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="page-current" id="citasPagCurrent">Página 1</span>
+          <button type="button" class="page-arrow" id="citasPagNext" aria-label="Página siguiente" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+        <span class="admin-panel-foot-spacer"></span>
+      </div>
     </div>
   </main>
+</div>
+
+<div class="admin-modal-overlay" id="horarioModalOverlay">
+  <div class="admin-modal-card">
+    <div class="admin-modal-head">
+      <h3>Horario de citas</h3>
+      <button type="button" class="admin-modal-close" id="horarioModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="settings-hint" style="margin-top:0;">Se aplica tanto en la sección "Agenda tu cita" del inicio como en la página /agendar.</p>
+      <form class="settings-form" id="horariosForm">
+        <div class="settings-row">
+          <label class="settings-field">
+            <span>Abre</span>
+            <div class="time-picker" id="agendaOpenPicker">
+              <button type="button" class="time-picker-trigger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                <span class="time-picker-value">—</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="time-picker-menu"></div>
+            </div>
+            <input type="hidden" id="agendaOpen" name="open" value="{{.AgendaOpen}}" required>
+          </label>
+          <label class="settings-field">
+            <span>Cierra</span>
+            <div class="time-picker" id="agendaClosePicker">
+              <button type="button" class="time-picker-trigger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                <span class="time-picker-value">—</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="time-picker-menu"></div>
+            </div>
+            <input type="hidden" id="agendaClose" name="close" value="{{.AgendaClose}}" required>
+          </label>
+        </div>
+        <p class="settings-hint">Los horarios se dividen en citas cada 30 minutos, desde la hora de apertura hasta la de cierre.</p>
+        <div class="settings-actions">
+          <button type="submit" class="btn solid" id="horariosSubmit">Guardar horario</button>
+          <span class="settings-status" id="horariosStatus"></span>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>

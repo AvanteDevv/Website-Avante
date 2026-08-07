@@ -10,7 +10,7 @@ let statuses = [];
 let searchTerm = '';
 let activeEstado = 'todos';
 let currentPage = 1;
-const PAGE_SIZE = 8;
+const PAGE_SIZE = parseInt(localStorage.getItem('avanteAdminPageSize'), 10) || 8;
 
 /* ---------- helpers ---------- */
 function statusByKey(key){
