@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{if .Post}}{{.Post.Title}}{{else}}Entrada no encontrada{{end}} — Blog Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/partials/navbar.css">
+<link rel="stylesheet" href="/static/css/partials/footer.css">
+<link rel="stylesheet" href="/static/css/pages/blog.css">
+<link rel="stylesheet" href="/static/css/pages/blog-detalle.css">
+</head>
+<body>
+
+<div class="read-progress"><div class="read-progress-fill" id="readProgress"></div></div>
+
+{{template "navbar" .}}
+
+{{if .NotFound}}
+<section class="bd-notfound">
+  <div class="bd-notfound-ring" aria-hidden="true"></div>
+  <h1>No encontramos esta entrada</h1>
+  <p>Puede que ya no esté disponible o el enlace esté mal escrito.</p>
+  <a href="/blog" class="btn">Volver al blog</a>
+</section>
+{{else}}
+
+<nav class="crumb" aria-label="Ruta de navegación">
+  <a href="/">Inicio</a>
+  <span class="sep">/</span>
+  <a href="/blog">Blog</a>
+  <span class="sep">/</span>
+  <span class="current">{{.Post.Title}}</span>
+</nav>
+
+<div class="bd-layout">
+
+  <article class="bd-wrap">
+    <header class="bd-head">
+      <span class="bd-category">{{.Post.CategoryName}}</span>
+      <h1>{{.Post.Title}}</h1>
+      <div class="bd-meta">
+        <span class="bd-avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20c1.2-3.6 4-5.4 7.2-5.4s6 1.8 7.2 5.4"/></svg>
+        </span>
+        <span class="bd-meta-text">Por {{.Post.Author}} <span class="dot">·</span> {{fechaEs .Post.PublishedAt}} <span class="dot">·</span> <span id="readTime">3 min</span> de lectura</span>
+      </div>
+    </header>
+
+    <div class="bd-cover">
+      <img src="{{.Post.ImageURL}}" alt="{{.Post.Title}}">
+      <svg class="bd-cover-ring" viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="46" fill="none" stroke="white" stroke-opacity=".55" stroke-width="1"/>
+        <circle cx="60" cy="60" r="34" fill="none" stroke="white" stroke-opacity=".85" stroke-width="1.5"/>
+        <circle cx="60" cy="60" r="4" fill="white"/>
+      </svg>
+    </div>
+
+    <div class="bd-toolbar">
+      <button class="bd-copy" type="button" id="copyLinkBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L12.5 19.5"/></svg>
+        <span>Copiar enlace</span>
+      </button>
+      <div class="bd-social">
+        <a target="_blank" rel="noopener" href="https://api.whatsapp.com/send?text={{.Post.Title}}" aria-label="Compartir por WhatsApp">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.33 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2Zm0 18.13a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.36c0-4.53 3.69-8.22 8.24-8.22 4.55 0 8.24 3.69 8.24 8.22 0 4.53-3.69 8.22-8.24 8.22Z"/></svg>
+        </a>
+        <a target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u={{.Post.ID}}" aria-label="Compartir en Facebook">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-7.5h2.52l.38-2.93H13.5V8.7c0-.85.24-1.43 1.46-1.43h1.55V4.65c-.27-.04-1.2-.12-2.27-.12-2.25 0-3.79 1.37-3.79 3.89v2.15H8.13v2.93h2.32V21h3.05Z"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="bd-content" id="bdContent">
+      {{.Post.Content | safeHTML}}
+    </div>
+
+    <div class="bd-cta">
+      <div class="bd-cta-text">
+        <span class="bd-cta-eyebrow">Ver bien no es opcional</span>
+        <h3>Agenda tu examen visual y encuentra tus lentes ideales</h3>
+      </div>
+      <a href="/agendar" class="bd-cta-btn">Agendar cita</a>
+    </div>
+  </article>
+
+</div>
+
+{{if .Related}}
+<section class="strip" id="related-posts">
+  <div class="section-head reveal-blur">
+    <div class="eyebrow">También te puede interesar</div>
+    <h2>Sigue leyendo</h2>
+  </div>
+  <div class="blog-grid bd-related-grid">
+    {{range .Related}}
+    <article class="blog-card reveal-rise">
+      <a href="/blog/{{.ID}}" class="blog-photo">
+        <img src="{{.ImageURL}}" alt="{{.Title}}">
+        <span class="blog-date-pill">{{fechaEs .PublishedAt}}</span>
+      </a>
+      <div class="blog-body">
+        <h3><a href="/blog/{{.ID}}">{{.Title}}</a></h3>
+        <p>{{.Excerpt}}</p>
+        <div class="blog-meta">Por {{.Author}} · {{fechaEs .PublishedAt}}</div>
+        <a href="/blog/{{.ID}}" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
+      </div>
+    </article>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{end}}
+
+{{template "footer" .}}
+
+<script src="/static/js/partials/footer.js"></script>
+<script src="/static/js/partials/navbar.js"></script>
+<script>
+(function(){
+  var fill = document.getElementById('readProgress');
+  var article = document.querySelector('.bd-wrap');
+  if (fill && article) {
+    window.addEventListener('scroll', function(){
+      var rect = article.getBoundingClientRect();
+      var total = article.offsetHeight - window.innerHeight;
+      var scrolled = Math.min(Math.max(-rect.top, 0), total);
+      var pct = total > 0 ? (scrolled / total) * 100 : 0;
+      fill.style.width = pct + '%';
+    }, { passive: true });
+  }
+
+  var content = document.getElementById('bdContent');
+  var readTimeEl = document.getElementById('readTime');
+  if (content && readTimeEl) {
+    var words = content.innerText.trim().split(/\s+/).filter(Boolean).length;
+    var minutes = Math.max(1, Math.round(words / 200));
+    readTimeEl.textContent = minutes + ' min';
+  }
+
+  var copyBtn = document.getElementById('copyLinkBtn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function(){
+      navigator.clipboard.writeText(window.location.href).then(function(){
+        var label = copyBtn.querySelector('span');
+        var original = label ? label.textContent : '';
+        copyBtn.classList.add('copied');
+        if (label) label.textContent = 'Enlace copiado';
+        setTimeout(function(){
+          copyBtn.classList.remove('copied');
+          if (label) label.textContent = original;
+        }, 1600);
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>
