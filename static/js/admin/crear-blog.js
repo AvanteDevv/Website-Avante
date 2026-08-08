@@ -19,8 +19,8 @@
   // decodificado de forma segura por el propio navegador al leer .value.
   if (hiddenTextarea.value.trim()) {
     surface.innerHTML = hiddenTextarea.value;
-    stripEmptyFormatTags(surface);
   }
+  stripEmptyFormatTags(surface);
 
   var ALIGN_CMDS = ['justifyLeft', 'justifyCenter', 'justifyRight'];
 
@@ -201,7 +201,10 @@
   surface.addEventListener('keyup', refreshToolbarState);
   surface.addEventListener('mouseup', refreshToolbarState);
   surface.addEventListener('input', refreshToolbarState);
-  surface.addEventListener('focus', refreshToolbarState);
+  surface.addEventListener('focus', function(){
+    stripEmptyFormatTags(surface);
+    refreshToolbarState();
+  });
   surface.addEventListener('blur', function(){
     stripEmptyFormatTags(surface);
     refreshToolbarState();

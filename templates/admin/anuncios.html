@@ -25,7 +25,7 @@
         <h1>Anuncios</h1>
         <p>Banners que se muestran en la sección "Anuncios" de la tienda en línea. Cada uno ocupa una posición fija y se muestra automáticamente dentro de su rango de fechas.</p>
       </div>
-      <button type="button" class="btn solid thin" id="newAdBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo anuncio</button>
+      <button type="button" class="btn thin" id="newAdBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo anuncio</button>
     </div>
 
     {{if .AdsError}}
@@ -125,11 +125,18 @@
         </label>
 
         <label>Posición
-          <select id="adPosition" name="position" required>
-            <option value="main">Principal (banner grande)</option>
-            <option value="side1">Lateral 1 (arriba)</option>
-            <option value="side2">Lateral 2 (abajo)</option>
-          </select>
+          <div class="admin-role-select" id="adPositionWrap">
+            <button type="button" class="admin-role-select-btn" id="adPositionBtn" aria-haspopup="true" aria-expanded="false">
+              <span id="adPositionLabel">Principal (banner grande)</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="admin-role-select-menu" id="adPositionMenu">
+              <button type="button" class="admin-role-option active" data-value="main">Principal (banner grande)</button>
+              <button type="button" class="admin-role-option" data-value="side1">Lateral 1 (arriba)</button>
+              <button type="button" class="admin-role-option" data-value="side2">Lateral 2 (abajo)</button>
+            </div>
+          </div>
+          <input type="hidden" id="adPosition" name="position" value="main">
         </label>
 
         <label>Enlace de destino <span class="admin-user-form-optional">(opcional)</span>
@@ -138,10 +145,66 @@
 
         <div class="ad-date-row">
           <label>Desde
-            <input type="datetime-local" id="adStartAt" name="start_at" required>
+            <div class="ad-datepicker" id="adStartDateWrap">
+              <button type="button" class="ad-datepicker-trigger" id="adStartDateBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <span class="ad-datepicker-value" id="adStartDateLabel">dd/mm/aaaa</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="ad-datepicker-menu" id="adStartDateMenu">
+                <div class="ad-datepicker-nav">
+                  <button type="button" class="adp-prev" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                  <span class="adp-month-label">—</span>
+                  <button type="button" class="adp-next" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                </div>
+                <div class="ad-datepicker-weekdays"><span>do</span><span>lu</span><span>ma</span><span>mi</span><span>ju</span><span>vi</span><span>sá</span></div>
+                <div class="ad-datepicker-grid adp-grid"></div>
+                <div class="ad-datepicker-actions">
+                  <button type="button" class="adp-clear">Borrar</button>
+                  <button type="button" class="adp-today">Hoy</button>
+                </div>
+              </div>
+            </div>
+            <div class="time-picker" id="adStartTimeWrap">
+              <button type="button" class="time-picker-trigger" id="adStartTimeBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                <span class="time-picker-value" id="adStartTimeLabel">—</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="time-picker-menu" id="adStartTimeMenu"></div>
+            </div>
+            <input type="hidden" id="adStartAt" name="start_at" required>
           </label>
           <label>Hasta
-            <input type="datetime-local" id="adEndAt" name="end_at" required>
+            <div class="ad-datepicker" id="adEndDateWrap">
+              <button type="button" class="ad-datepicker-trigger" id="adEndDateBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <span class="ad-datepicker-value" id="adEndDateLabel">dd/mm/aaaa</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="ad-datepicker-menu" id="adEndDateMenu">
+                <div class="ad-datepicker-nav">
+                  <button type="button" class="adp-prev" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                  <span class="adp-month-label">—</span>
+                  <button type="button" class="adp-next" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                </div>
+                <div class="ad-datepicker-weekdays"><span>do</span><span>lu</span><span>ma</span><span>mi</span><span>ju</span><span>vi</span><span>sá</span></div>
+                <div class="ad-datepicker-grid adp-grid"></div>
+                <div class="ad-datepicker-actions">
+                  <button type="button" class="adp-clear">Borrar</button>
+                  <button type="button" class="adp-today">Hoy</button>
+                </div>
+              </div>
+            </div>
+            <div class="time-picker" id="adEndTimeWrap">
+              <button type="button" class="time-picker-trigger" id="adEndTimeBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                <span class="time-picker-value" id="adEndTimeLabel">—</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="time-picker-menu" id="adEndTimeMenu"></div>
+            </div>
+            <input type="hidden" id="adEndAt" name="end_at" required>
           </label>
         </div>
 

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{if .Post}}{{.Post.Title}}{{else}}Entrada no encontrada{{end}} — Blog Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/partials/navbar.css">
+<link rel="stylesheet" href="/static/css/partials/footer.css">
+<link rel="stylesheet" href="/static/css/pages/blog.css">
+<link rel="stylesheet" href="/static/css/pages/blog-detalle.css">
+</head>
+<body>
+
+{{template "navbar" .}}
+
+{{if .NotFound}}
+<section class="bd-notfound">
+  <h1>No encontramos esta entrada</h1>
+  <p>Puede que ya no esté disponible o el enlace esté mal escrito.</p>
+  <a href="/blog" class="btn">Volver al blog</a>
+</section>
+{{else}}
+
+<nav class="crumb" aria-label="Ruta de navegación">
+  <a href="/">Inicio</a>
+  <span class="sep">/</span>
+  <a href="/blog">Blog</a>
+  <span class="sep">/</span>
+  <span class="current">{{.Post.Title}}</span>
+</nav>
+
+<article class="bd-wrap">
+  <header class="bd-head">
+    <span class="bd-category">{{.Post.CategoryName}}</span>
+    <h1>{{.Post.Title}}</h1>
+    <div class="bd-meta">Por {{.Post.Author}} · {{fechaEs .Post.PublishedAt}}</div>
+  </header>
+
+  <div class="bd-cover">
+    <img src="{{.Post.ImageURL}}" alt="{{.Post.Title}}">
+  </div>
+
+  <div class="bd-content">
+    {{.Post.Content | safeHTML}}
+  </div>
+</article>
+
+{{if .Related}}
+<section class="strip" id="related-posts">
+  <div class="section-head reveal-blur">
+    <div class="eyebrow">También te puede interesar</div>
+    <h2>Sigue leyendo</h2>
+  </div>
+  <div class="blog-grid bd-related-grid">
+    {{range .Related}}
+    <article class="blog-card reveal-rise">
+      <a href="/blog/{{.ID}}" class="blog-photo">
+        <img src="{{.ImageURL}}" alt="{{.Title}}">
+        <span class="blog-date-pill">{{fechaEs .PublishedAt}}</span>
+      </a>
+      <div class="blog-body">
+        <h3><a href="/blog/{{.ID}}">{{.Title}}</a></h3>
+        <p>{{.Excerpt}}</p>
+        <div class="blog-meta">Por {{.Author}} · {{fechaEs .PublishedAt}}</div>
+        <a href="/blog/{{.ID}}" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
+      </div>
+    </article>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{end}}
+
+{{template "footer" .}}
+
+<script src="/static/js/partials/footer.js"></script>
+<script src="/static/js/partials/navbar.js"></script>
+</body>
+</html>

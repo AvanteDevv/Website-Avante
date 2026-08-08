@@ -59,7 +59,7 @@
   transition:border-color .2s var(--ease), background .2s var(--ease);
 }
 .ad-upload-drop:hover, .ad-upload-drop.is-dragover{ border-color:var(--blue-500); background:var(--blue-100); }
-.ad-upload-preview{ width:100%; height:100%; object-fit:cover; display:block; position:absolute; inset:0; }
+.ad-upload-preview{ width:100%; height:100%; object-fit:contain; display:block; position:absolute; inset:0; background:var(--blue-50); }
 .ad-upload-placeholder{
   display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;
   padding:20px; color:var(--grey); font-size:12px; font-weight:600;
@@ -69,3 +69,121 @@
 
 .ad-date-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 @media (max-width:420px){ .ad-date-row{ grid-template-columns:1fr; } }
+/* ---------- time-picker (Hora) — mismo patrón que Configuración/Blog ---------- */
+.time-picker{ position:relative; width:100%; }
+.time-picker-trigger{
+  width:100%; display:flex; align-items:center; gap:10px;
+  font-family:var(--sans); font-size:13.5px; font-weight:600; color:var(--ink);
+  padding:11px 14px; border:1.5px solid var(--line); border-radius:12px;
+  background:var(--white);
+  transition:border-color .3s var(--ease), box-shadow .3s var(--ease), transform .3s var(--ease);
+}
+.time-picker-trigger:hover{ border-color:var(--blue-300); }
+.time-picker-trigger svg{ flex-shrink:0; }
+.time-picker-trigger svg:first-child{ width:16px; height:16px; color:var(--grey); }
+.time-picker-value{ flex:1; text-align:left; }
+.time-picker-caret{ width:14px; height:14px; color:var(--grey); transition:transform .3s var(--ease); }
+.time-picker.is-open .time-picker-trigger{ border-color:var(--blue-600); box-shadow:0 0 0 5px var(--blue-100); transform:translateY(-1px); }
+.time-picker.is-open .time-picker-caret{ transform:rotate(180deg); }
+
+.time-picker-menu{
+  position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:30;
+  max-height:200px; overflow-y:auto;
+  background:var(--white); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow-lg);
+  padding:6px;
+  opacity:0; transform:translateY(-10px) scale(.95); transform-origin:top;
+  pointer-events:none;
+  transition:opacity .3s cubic-bezier(.22,1.4,.36,1), transform .3s cubic-bezier(.22,1.4,.36,1);
+  scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+}
+.time-picker-menu.is-open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+.time-picker-menu::-webkit-scrollbar{ width:6px; }
+.time-picker-menu::-webkit-scrollbar-track{ background:transparent; }
+.time-picker-menu::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+.time-picker-option{
+  display:block; width:100%; text-align:left;
+  padding:9px 12px; border-radius:9px;
+  font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink);
+  transition:background .16s var(--ease), color .16s var(--ease);
+}
+.time-picker-option:hover{ background:var(--blue-50); color:var(--blue-700); }
+.time-picker-option.active{ background:var(--blue-600); color:var(--white); }
+
+/* ---------- date-picker propio (Desde / Hasta) ---------- */
+.ad-datepicker{ position:relative; width:100%; margin-bottom:8px; }
+.ad-datepicker-trigger{
+  width:100%; display:flex; align-items:center; gap:10px;
+  font-family:var(--sans); font-size:13.5px; font-weight:600; color:var(--ink);
+  padding:11px 14px; border:1.5px solid var(--line); border-radius:12px;
+  background:var(--white);
+  transition:border-color .3s var(--ease), box-shadow .3s var(--ease), transform .3s var(--ease);
+}
+.ad-datepicker-trigger:hover{ border-color:var(--blue-300); }
+.ad-datepicker-trigger svg:first-child{ width:16px; height:16px; color:var(--grey); flex-shrink:0; }
+.ad-datepicker-value{ flex:1; text-align:left; }
+.ad-datepicker.is-open .ad-datepicker-trigger{ border-color:var(--blue-600); box-shadow:0 0 0 5px var(--blue-100); transform:translateY(-1px); }
+.ad-datepicker.is-open .time-picker-caret{ transform:rotate(180deg); }
+
+.ad-datepicker-menu{
+  position:absolute; top:calc(100% + 8px); left:0; z-index:30; width:260px;
+  max-height:calc(100vh - 24px); overflow-y:auto;
+  background:var(--white); border:1px solid var(--line); border-radius:16px;
+  box-shadow:var(--shadow-lg);
+  padding:14px;
+  opacity:0; transform:translateY(-10px) scale(.95); transform-origin:top left;
+  pointer-events:none;
+  transition:opacity .3s cubic-bezier(.22,1.4,.36,1), transform .3s cubic-bezier(.22,1.4,.36,1);
+  scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+}
+.ad-datepicker-menu::-webkit-scrollbar{ width:6px; }
+.ad-datepicker-menu::-webkit-scrollbar-track{ background:transparent; }
+.ad-datepicker-menu::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+.ad-datepicker-menu.is-open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+
+.ad-datepicker-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.ad-datepicker-nav span{ font-size:12.5px; font-weight:700; color:var(--ink); text-transform:capitalize; }
+.ad-datepicker-nav button{
+  width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  color:var(--grey); transition:background .2s var(--ease), color .2s var(--ease);
+}
+.ad-datepicker-nav button svg{ width:14px; height:14px; }
+.ad-datepicker-nav button:hover{ background:var(--blue-50); color:var(--blue-600); }
+
+.ad-datepicker-weekdays{ display:grid; grid-template-columns:repeat(7, 1fr); margin-bottom:4px; }
+.ad-datepicker-weekdays span{
+  text-align:center; font-size:9.5px; font-weight:700; letter-spacing:.03em;
+  text-transform:uppercase; color:var(--grey);
+}
+
+.ad-datepicker-grid{ display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; }
+.ad-datepicker-day{
+  width:100%; aspect-ratio:1; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:600; color:var(--ink);
+  transition:background .16s var(--ease), color .16s var(--ease);
+}
+.ad-datepicker-day:hover{ background:var(--blue-50); }
+.ad-datepicker-day.is-outside{ color:var(--line); }
+.ad-datepicker-day.is-today{ color:var(--blue-600); }
+.ad-datepicker-day.is-selected{ background:var(--blue-600); color:var(--white); }
+
+.ad-datepicker-actions{
+  display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid var(--line);
+}
+.ad-datepicker-actions button{ font-size:12px; font-weight:700; color:var(--blue-600); transition:color .2s var(--ease); }
+.ad-datepicker-actions button:hover{ color:var(--blue-700); }
+
+/* el modal recupera su scroll interno normal (el de base-de-datos.css);
+   los popups de fecha/hora se sacan del modal con JS y flotan sobre toda
+   la pantalla (position:fixed calculado desde el botón), así nunca se
+   recortan sin importar cuánto scrollees dentro del modal */
+
+/* ---------- botón "Nuevo anuncio" — mismo estilo que Blog ---------- */
+#newAdBtn{
+  padding:9px 16px !important; font-size:11px !important; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--white) !important; color:var(--blue-700) !important; border:1.5px solid var(--blue-600) !important;
+}
+#newAdBtn svg{ width:14px !important; height:14px !important; color:var(--blue-600); flex-shrink:0; }
+#newAdBtn:hover{ background:var(--blue-50) !important; }

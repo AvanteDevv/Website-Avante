@@ -47,6 +47,9 @@ func loadTemplates() *template.Template {
 	funcs := template.FuncMap{
 		"fechaEs":     spanishDate,
 		"fechaHoraEs": spanishDateTime,
+		"safeHTML": func(s string) template.HTML {
+			return template.HTML(s)
+		},
 	}
 	tmpl := template.Must(template.New("base").Funcs(funcs).ParseGlob("templates/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/partials/*.html"))
@@ -220,11 +223,8 @@ func main() {
 	})
 
 	// Standalone pages (templates/pages/*.html)
-	router.GET("/blog", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "blog.html", handlers.WithUser(c, gin.H{
-			"ActivePage": "blog",
-		}))
-	})
+	router.GET("/blog", handlers.BlogList)
+	router.GET("/blog/:id", handlers.BlogDetail)
 	router.GET("/agendar", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "agendar.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "agendar",
