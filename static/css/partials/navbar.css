@@ -74,6 +74,13 @@ nav a.active::after, nav a:hover::after{ width:100%; }
   font-size:10px; font-weight:700; line-height:17px; text-align:center;
   box-shadow:0 0 0 2px var(--white);
 }
+.cart-badge-bump{ animation:cartBadgeBump .45s var(--ease); }
+@keyframes cartBadgeBump{
+  0%{ transform:scale(1); }
+  35%{ transform:scale(1.5); }
+  60%{ transform:scale(0.85); }
+  100%{ transform:scale(1); }
+}
 .head-icon-btn svg{ width:17px; height:17px; }
 .head-icon-btn:hover{ background:var(--blue-600); border-color:var(--blue-600); color:var(--white); transform:translateY(-2px); }
 .head-icon-btn:active{ transform:translateY(0) scale(0.94); }

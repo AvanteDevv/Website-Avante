@@ -224,6 +224,11 @@ func main() {
 			"ActivePage": "carrito",
 		}))
 	})
+	router.GET("/pasarela-de-pagos", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "pasarela-de-pagos.html", handlers.WithUser(c, gin.H{
+			"ActivePage": "pasarela-de-pagos",
+		}))
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {

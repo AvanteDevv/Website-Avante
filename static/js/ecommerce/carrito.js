@@ -103,51 +103,11 @@ itemsEl.addEventListener('click', (e) => {
   render();
 });
 
-/* ---------- finalizar compra: un POST /api/pedidos por línea ---------- */
-const modalOverlay = document.getElementById('cartModalOverlay');
-const modalText = document.getElementById('cartModalText');
-
+/* ---------- finalizar compra: manda a la pasarela de pago ---------- */
 checkoutBtn.addEventListener('click', () => {
   const cart = readCart();
   if (cart.length === 0 || checkoutBtn.disabled) return;
-
-  checkoutBtn.disabled = true;
-  const originalLabel = checkoutBtn.textContent;
-  checkoutBtn.textContent = 'Procesando...';
-
-  const requests = cart.map(item => fetch('/api/pedidos', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      productName: item.name,
-      productBrand: item.brand,
-      quantity: item.qty,
-      unitPrice: item.unitPrice,
-      rxOption: item.rxOption || '',
-      rxOD: item.rxOD || '',
-      rxOI: item.rxOI || ''
-    })
-  }));
-
-  Promise.all(requests)
-    .then(results => {
-      const allOk = results.every(res => res.ok);
-      if (!allOk) throw new Error('some failed');
-
-      writeCart([]);
-      updateNavBadge([]);
-      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-      modalText.textContent = `Creamos ${cart.length === 1 ? 'tu pedido' : cart.length + ' pedidos'} (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'}). Les daremos seguimiento en breve.`;
-      modalOverlay.classList.add('open');
-      render();
-    })
-    .catch(() => {
-      checkoutBtn.textContent = 'Algo falló, intenta de nuevo';
-      setTimeout(() => { checkoutBtn.textContent = originalLabel; }, 2400);
-    })
-    .finally(() => {
-      checkoutBtn.disabled = false;
-    });
+  window.location.href = '/pasarela-de-pagos';
 });
 
 render();

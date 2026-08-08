@@ -174,11 +174,14 @@ buyBtn.addEventListener('click', () => {
     });
   }
   writeCart(cart);
+  if(window.AvanteCart) window.AvanteCart.bump();
 
-  buyBtnLabel.textContent = 'Agregado ✓';
   buyBtn.disabled = true;
-  setTimeout(() => { window.location.href = '/carrito'; }, 500);
+  buyBtnLabel.textContent = 'Agregado ✓';
+  setTimeout(() => { buyBtnLabel.textContent = buyBtnOriginalLabel; buyBtn.disabled = false; }, 1400);
 });
+
+
 
 /* productos relacionados */
 const relGrid = document.getElementById('relGrid');
