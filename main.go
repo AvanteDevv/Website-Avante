@@ -146,6 +146,9 @@ func main() {
 	{
 		adminGroup.GET("/base-de-datos", adminHandlers.Database)
 		adminGroup.GET("/anuncios", adminHandlers.Ads)
+		adminGroup.GET("/blogs", adminHandlers.Blogs)
+		adminGroup.GET("/blogs/nuevo", adminHandlers.NewBlogForm)
+		adminGroup.GET("/blogs/:id/editar", adminHandlers.EditBlogForm)
 		adminGroup.GET("/citas", adminHandlers.Appointments)
 		adminGroup.PATCH("/citas/:id/estado", adminHandlers.UpdateAppointmentStatus)
 		adminGroup.DELETE("/citas/:id", adminHandlers.DeleteAppointment)
@@ -190,7 +193,11 @@ func main() {
 		apiAdmin.POST("/anuncios", adminHandlers.CreateAd)
 		apiAdmin.PUT("/anuncios/:id", adminHandlers.UpdateAd)
 		apiAdmin.DELETE("/anuncios/:id", adminHandlers.DeleteAd)
+		apiAdmin.POST("/blogs", adminHandlers.CreateBlog)
+		apiAdmin.PUT("/blogs/:id", adminHandlers.UpdateBlog)
+		apiAdmin.DELETE("/blogs/:id", adminHandlers.DeleteBlog)
 	}
+	router.GET("/media/blog/:key", handlers.ServeBlogImage)
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
