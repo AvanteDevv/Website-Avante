@@ -129,10 +129,21 @@ shareMenu.addEventListener('click', (e) => {
 });
 document.addEventListener('click', () => shareMenu.classList.remove('is-open'));
 
-/* comprar — crea el pedido en el backend (por ahora no redirige a ninguna parte) */
+/* agregar al carrito — guarda el producto en localStorage y lleva a /carrito.
+   La compra real (POST /api/pedidos) se dispara desde carrito.js al dar
+   "Finalizar compra", una vez por cada línea del carrito. */
 const buyBtn = document.getElementById('pdBuy');
 const buyBtnLabel = buyBtn.querySelector('span');
 const buyBtnOriginalLabel = buyBtnLabel.textContent;
+
+const CART_KEY = 'avante_cart';
+function readCart(){
+  try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+function writeCart(cart){
+  try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch(e){ /* ignorado */ }
+}
 
 buyBtn.addEventListener('click', () => {
   if(buyBtn.disabled) return;
@@ -143,31 +154,30 @@ buyBtn.addEventListener('click', () => {
   const rxOI = manualActive ? document.getElementById('pdRxOI').value.trim() : '';
   const priceNumber = parseFloat(String(product.price).replace(/[^0-9.]/g, '')) || 0;
 
-  buyBtn.disabled = true;
-  buyBtnLabel.textContent = 'Procesando...';
+  const cart = readCart();
+  const lineKey = `${pid}|${rxOption}|${rxOD}|${rxOI}`;
+  const existing = cart.find(item => item.lineKey === lineKey);
 
-  fetch('/api/pedidos', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      productName: product.name,
-      productBrand: product.brand,
-      quantity: qty,
+  if(existing){
+    existing.qty += qty;
+  } else {
+    cart.push({
+      lineKey,
+      pid,
+      name: product.name,
+      brand: product.brand,
+      image: imgs[0],
       unitPrice: priceNumber,
+      priceLabel: product.price,
+      qty,
       rxOption, rxOD, rxOI
-    })
-  })
-    .then(res => { if(!res.ok) throw new Error('request failed'); return res.json(); })
-    .then(() => {
-      buyBtn.disabled = false;
-      buyBtnLabel.textContent = 'Pedido creado ✓';
-      setTimeout(() => { buyBtnLabel.textContent = buyBtnOriginalLabel; }, 1800);
-    })
-    .catch(() => {
-      buyBtn.disabled = false;
-      buyBtnLabel.textContent = 'No se pudo comprar, intenta de nuevo';
-      setTimeout(() => { buyBtnLabel.textContent = buyBtnOriginalLabel; }, 2200);
     });
+  }
+  writeCart(cart);
+
+  buyBtnLabel.textContent = 'Agregado ✓';
+  buyBtn.disabled = true;
+  setTimeout(() => { window.location.href = '/carrito'; }, 500);
 });
 
 /* productos relacionados */

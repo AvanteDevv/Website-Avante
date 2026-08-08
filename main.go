@@ -219,6 +219,11 @@ func main() {
 			"ActivePage": "agendar",
 		}))
 	})
+	router.GET("/carrito", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "carrito.html", handlers.WithUser(c, gin.H{
+			"ActivePage": "carrito",
+		}))
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {

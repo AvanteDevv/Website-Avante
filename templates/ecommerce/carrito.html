@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tu carrito — Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/partials/navbar.css">
+<link rel="stylesheet" href="/static/css/partials/footer.css">
+<link rel="stylesheet" href="/static/css/ecommerce/carrito.css">
+</head>
+<body>
+
+{{template "navbar" .}}
+
+<nav class="crumb" aria-label="Ruta de navegación">
+  <a href="/">Inicio</a>
+  <span class="sep">/</span>
+  <a href="/eccomerce">Tienda</a>
+  <span class="sep">/</span>
+  <span class="current">Carrito</span>
+</nav>
+
+<section class="cart-wrap">
+  <div class="cart-head">
+    <h1>Tu carrito</h1>
+    <p id="cartCountLabel"></p>
+  </div>
+
+  <div class="cart-layout" id="cartLayout">
+    <div class="cart-items" id="cartItems"></div>
+
+    <aside class="cart-summary">
+      <h2>Resumen</h2>
+      <div class="cart-summary-row">
+        <span>Subtotal</span>
+        <strong id="cartSubtotal">$0.00</strong>
+      </div>
+      <div class="cart-summary-row">
+        <span>Envío</span>
+        <strong id="cartShipping">Gratis</strong>
+      </div>
+      <div class="cart-summary-divider"></div>
+      <div class="cart-summary-row cart-summary-total">
+        <span>Total</span>
+        <strong id="cartTotal">$0.00</strong>
+      </div>
+      <button type="button" class="btn solid cart-checkout-btn" id="cartCheckoutBtn">
+        Finalizar compra
+      </button>
+      <p class="cart-summary-hint">Al finalizar, cada producto se registra como un pedido — podrás darle seguimiento desde "Mis pedidos".</p>
+    </aside>
+  </div>
+
+  <div class="cart-empty" id="cartEmpty" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+    <h2>Tu carrito está vacío</h2>
+    <p>Explora el directorio y agrega tus monturas favoritas.</p>
+    <a href="/eccomerce" class="btn solid">Ir a la tienda</a>
+  </div>
+</section>
+
+<div class="modal-overlay" id="cartModalOverlay">
+  <div class="modal-card">
+    <div class="modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+    <h3>¡Pedido creado!</h3>
+    <p id="cartModalText">Tus productos ya están en camino a producción.</p>
+    <div class="cart-modal-actions">
+      <a href="/mis-pedidos" class="btn solid">Ver mis pedidos</a>
+      <a href="/eccomerce" class="cart-modal-secondary">Seguir comprando</a>
+    </div>
+  </div>
+</div>
+
+{{template "footer" .}}
+
+<script src="/static/js/ecommerce/carrito.js"></script>
+<script src="/static/js/partials/footer.js"></script>
+<script src="/static/js/partials/navbar.js"></script>
+</body>
+</html>
