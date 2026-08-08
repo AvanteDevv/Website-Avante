@@ -196,6 +196,10 @@ func main() {
 		apiAdmin.POST("/blogs", adminHandlers.CreateBlog)
 		apiAdmin.PUT("/blogs/:id", adminHandlers.UpdateBlog)
 		apiAdmin.DELETE("/blogs/:id", adminHandlers.DeleteBlog)
+		apiAdmin.POST("/blog-categorias", adminHandlers.CreateBlogCategory)
+		apiAdmin.DELETE("/blog-categorias/:id", adminHandlers.DeleteBlogCategory)
+		apiAdmin.POST("/blog-etiquetas", adminHandlers.CreateBlogTag)
+		apiAdmin.DELETE("/blog-etiquetas/:id", adminHandlers.DeleteBlogTag)
 	}
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
 	router.GET("/media/promos/:key", handlers.ServeAdImage)

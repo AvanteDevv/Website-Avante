@@ -25,7 +25,10 @@
         <h1>Blog</h1>
         <p>Entradas que se muestran en la sección "Blog" del sitio público.</p>
       </div>
-      <a href="/admin/blogs/nuevo" class="btn solid thin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nueva entrada</a>
+      <div class="admin-header-actions">
+        <button type="button" class="btn thin" id="taxonomyBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 12 22l-9-9 8.59-8.59A2 2 0 0 1 13 4h7v7a2 2 0 0 1-.41 1.41Z"/><circle cx="16.5" cy="7.5" r="1"/></svg> Categorías y etiquetas</button>
+        <a href="/admin/blogs/nuevo" class="btn thin" id="newBlogBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nueva entrada</a>
+      </div>
     </div>
 
     {{if .BlogsError}}
@@ -35,6 +38,7 @@
     <div class="admin-stats">
       <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.TotalBlogs}}</div><div class="label">Entradas totales</div></div></div>
       <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.Publicadas}}</div><div class="label">Publicadas</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.Programadas}}</div><div class="label">Programadas</div></div></div>
       <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.Borradores}}</div><div class="label">Borradores</div></div></div>
     </div>
 
@@ -56,10 +60,9 @@
         </div>
         <div class="filter-pills" id="categoryFilters">
           <button type="button" class="filter-pill active" data-category="todos">Todos</button>
-          <button type="button" class="filter-pill" data-category="guias">Guías</button>
-          <button type="button" class="filter-pill" data-category="novedades">Novedades</button>
-          <button type="button" class="filter-pill" data-category="marca">Marca</button>
-          <button type="button" class="filter-pill" data-category="tendencias">Tendencias</button>
+          {{range .Categories}}
+          <button type="button" class="filter-pill" data-category="{{.Slug}}">{{.Name}}</button>
+          {{end}}
         </div>
       </div>
 
@@ -68,7 +71,7 @@
         <div class="blog-admin-card" data-category="{{.Category}}" data-titulo="{{.Title}}">
           <div class="blog-admin-media">
             <img src="{{.ImageURL}}" alt="{{.Title}}">
-            <span class="blog-status-badge {{.Status}}">{{if eq .Status "publicado"}}Publicado{{else}}Borrador{{end}}</span>
+            <span class="blog-status-badge {{.DisplayStatus}}">{{if eq .DisplayStatus "publicado"}}Publicado{{else if eq .DisplayStatus "programado"}}Programado{{else}}Borrador{{end}}</span>
             <div class="row-menu blog-admin-menu">
               <button type="button" class="row-menu-btn" aria-label="Más acciones" aria-haspopup="true" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
@@ -81,13 +84,13 @@
           </div>
           <div class="blog-admin-body">
             <div class="blog-admin-top">
-              <span class="blog-category-badge {{.Category}}">{{if eq .Category "guias"}}Guías{{else if eq .Category "novedades"}}Novedades{{else if eq .Category "marca"}}Marca{{else}}Tendencias{{end}}</span>
+              <span class="blog-category-badge">{{.Category}}</span>
             </div>
             <div class="blog-admin-title">{{.Title}}</div>
             <div class="blog-admin-excerpt">{{.Excerpt}}</div>
             <div class="blog-admin-meta">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              {{fechaEs .PublishedAt}} · {{.Author}}
+              {{fechaHoraEs .PublishedAt}} · {{.Author}}
             </div>
           </div>
         </div>
@@ -97,6 +100,44 @@
       </div>
     </section>
   </main>
+</div>
+
+<div class="admin-modal-overlay" id="taxonomyModalOverlay">
+  <div class="admin-modal-card taxonomy-modal-card">
+    <div class="admin-modal-head">
+      <h3>Categorías y etiquetas</h3>
+      <button type="button" class="admin-modal-close" id="taxonomyModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="taxonomy-col">
+        <h4>Categorías</h4>
+        <div class="taxonomy-chips" id="categoryChips">
+          {{range .Categories}}
+          <span class="taxonomy-chip" data-id="{{.ID}}">{{.Name}}<button type="button" class="taxonomy-chip-x" data-action="del-category" data-id="{{.ID}}" aria-label="Eliminar">×</button></span>
+          {{end}}
+        </div>
+        <form class="taxonomy-add-form" id="categoryAddForm">
+          <input type="text" placeholder="Nueva categoría…" id="categoryAddInput" required>
+          <button type="submit" class="btn solid thin">Agregar</button>
+        </form>
+      </div>
+      <div class="taxonomy-col">
+        <h4>Etiquetas</h4>
+        <div class="taxonomy-chips" id="tagChips">
+          {{range .Tags}}
+          <span class="taxonomy-chip" data-id="{{.ID}}">{{.Name}}<button type="button" class="taxonomy-chip-x" data-action="del-tag" data-id="{{.ID}}" aria-label="Eliminar">×</button></span>
+          {{end}}
+        </div>
+        <form class="taxonomy-add-form" id="tagAddForm">
+          <input type="text" placeholder="Nueva etiqueta…" id="tagAddInput" required>
+          <button type="submit" class="btn solid thin">Agregar</button>
+        </form>
+      </div>
+      <p class="taxonomy-hint">Los cambios se reflejan al crear o editar una entrada. Eliminar una categoría o etiqueta no borra las entradas que ya la tenían asignada.</p>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>

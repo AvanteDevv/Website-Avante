@@ -28,6 +28,7 @@
   box-shadow:0 4px 10px -2px rgba(10,14,56,.25);
 }
 .blog-status-badge.publicado{ background:#1f9d55; }
+.blog-status-badge.programado{ background:#0f6fa8; }
 .blog-status-badge.borrador{ background:var(--grey); }
 
 .blog-admin-menu{ position:absolute; top:8px; right:8px; z-index:3; }
@@ -38,19 +39,58 @@
 .blog-admin-top{ display:flex; }
 .blog-category-badge{
   font-size:10px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
-  padding:4px 10px; border-radius:100px; background:var(--line); color:var(--ink);
+  padding:4px 10px; border-radius:100px; background:var(--blue-100); color:var(--blue-700);
 }
-.blog-category-badge.guias{ background:var(--blue-100); color:var(--blue-700); }
-.blog-category-badge.novedades{ background:#e6f4ea; color:#1f7a3d; }
-.blog-category-badge.marca{ background:#fdf1d6; color:#8a6a12; }
-.blog-category-badge.tendencias{ background:#f3e6fb; color:#7b2fa0; }
 
 .blog-admin-title{ font-weight:700; font-size:14.5px; color:var(--ink); line-height:1.35; }
 .blog-admin-excerpt{
   font-size:12.5px; color:var(--grey); line-height:1.5;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
 }
 .blog-admin-meta{
   display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--grey); margin-top:auto; padding-top:4px;
 }
 .blog-admin-meta svg{ width:13px; height:13px; flex-shrink:0; }
+
+/* ---------- header con dos botones ---------- */
+.admin-header-actions{ display:flex; gap:8px; flex-wrap:nowrap; align-items:center; }
+#taxonomyBtn, .admin-header-actions a.btn{
+  display:inline-flex !important; flex-direction:row !important;
+  align-items:center !important; justify-content:center !important;
+  gap:6px !important; white-space:nowrap !important;
+  padding:9px 16px !important; font-size:11px !important; line-height:1.2 !important;
+  width:auto !important; height:auto !important;
+}
+#taxonomyBtn svg, .admin-header-actions a.btn svg{
+  width:14px !important; height:14px !important; flex-shrink:0 !important;
+}
+#taxonomyBtn, #newBlogBtn{
+  background:var(--white) !important; color:var(--blue-700) !important; border:1.5px solid var(--blue-600) !important;
+}
+#taxonomyBtn svg, #newBlogBtn svg{ color:var(--blue-600) !important; }
+#taxonomyBtn:hover, #newBlogBtn:hover{ background:var(--blue-50) !important; }
+
+/* ---------- modal de categorías y etiquetas ---------- */
+.taxonomy-modal-card{ max-width:520px; }
+.taxonomy-col{ margin-bottom:20px; }
+.taxonomy-col:last-of-type{ margin-bottom:14px; }
+.taxonomy-col h4{ font-size:12px; font-weight:700; color:var(--ink); margin-bottom:10px; }
+.taxonomy-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; min-height:20px; }
+.taxonomy-chip{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 8px 6px 12px; border-radius:100px; background:var(--blue-50);
+  border:1px solid var(--blue-100); font-size:12px; font-weight:600; color:var(--ink);
+}
+.taxonomy-chip-x{
+  width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:var(--white); color:var(--grey); font-size:13px; line-height:1;
+  transition:background .2s var(--ease), color .2s var(--ease);
+}
+.taxonomy-chip-x:hover{ background:#fdecea; color:#c0392b; }
+.taxonomy-add-form{ display:flex; gap:8px; }
+.taxonomy-add-form input{
+  flex:1; padding:10px 13px; border-radius:100px; border:1.5px solid var(--line);
+  font-family:var(--sans); font-size:12.5px;
+}
+.taxonomy-add-form input:focus{ outline:none; border-color:var(--blue-500); }
+.taxonomy-hint{ font-size:11px; color:var(--grey); line-height:1.6; padding-top:8px; border-top:1px solid var(--line); }
