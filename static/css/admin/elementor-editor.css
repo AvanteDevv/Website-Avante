@@ -1,0 +1,158 @@
+/* ===========================================================
+   Avante Optics — Editor visual (navbar/footer)
+   Estilo tipo Elementor: botón flotante, barra superior,
+   panel lateral de propiedades. Solo visible para admins,
+   activado desde el botón flotante en index.
+   Prototipo: los cambios se guardan en localStorage.
+   =========================================================== */
+
+#editorFab, .editor-toolbar, .editor-panel{
+  font-family:var(--sans, 'Public Sans', sans-serif);
+  box-sizing:border-box;
+}
+#editorFab *, .editor-toolbar *, .editor-panel *{ box-sizing:border-box; }
+
+/* ---------- Botón flotante ---------- */
+.editor-fab{
+  position:fixed; right:24px; bottom:24px; z-index:10000;
+  display:flex; align-items:center; gap:9px;
+  padding:14px 22px 14px 18px; border-radius:100px;
+  background:var(--blue-600, #041cff); color:#fff;
+  box-shadow:0 16px 34px -12px rgba(4,28,255,.45);
+  font-size:13.5px; font-weight:700;
+  border:none; cursor:pointer;
+  transition:transform .25s cubic-bezier(.16,.84,.44,1), box-shadow .25s ease, background .25s ease;
+}
+.editor-fab svg{ width:18px; height:18px; flex-shrink:0; }
+.editor-fab:hover{ transform:translateY(-3px); box-shadow:0 20px 40px -12px rgba(4,28,255,.55); }
+.editor-fab.is-active{ background:var(--ink, #0A0E38); }
+@media (max-width:640px){
+  .editor-fab span{ display:none; }
+  .editor-fab{ padding:14px; }
+}
+
+/* ---------- Franja superior "modo edición" ---------- */
+body.avante-editor-mode{ padding-top:52px; }
+.editor-toolbar{
+  position:fixed; top:0; left:0; right:0; z-index:9998;
+  height:52px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px;
+  background:var(--ink, #0A0E38); color:#fff;
+  box-shadow:0 6px 20px -6px rgba(0,0,0,.35);
+}
+.editor-toolbar-brand{
+  display:flex; align-items:center; gap:9px; font-size:13px; font-weight:700; letter-spacing:.02em;
+}
+.editor-toolbar-brand svg{ width:16px; height:16px; color:var(--blue-300, #8992FF); }
+.editor-toolbar-actions{ display:flex; align-items:center; gap:8px; }
+.editor-tbtn{
+  padding:8px 15px; border-radius:100px; font-size:12px; font-weight:600;
+  border:1px solid rgba(255,255,255,.22); background:transparent; color:#fff;
+  cursor:pointer; transition:background .2s ease, border-color .2s ease;
+  white-space:nowrap;
+}
+.editor-tbtn:hover{ background:rgba(255,255,255,.1); }
+.editor-tbtn.primary{ background:var(--blue-600, #041cff); border-color:var(--blue-600, #041cff); }
+.editor-tbtn.primary:hover{ background:var(--blue-700, #0015E0); }
+.editor-tbtn.danger{ border-color:rgba(255,90,90,.5); color:#ff9a9a; }
+.editor-tbtn.danger:hover{ background:rgba(255,90,90,.14); }
+@media (max-width:640px){
+  .editor-toolbar-brand span{ display:none; }
+  .editor-tbtn{ padding:8px 10px; }
+}
+
+/* ---------- Estados de elementos editables ---------- */
+body.avante-editor-mode [data-edit-id]{
+  cursor:pointer;
+  outline:1.5px dashed transparent;
+  outline-offset:3px;
+  transition:outline-color .15s ease;
+  border-radius:6px;
+}
+body.avante-editor-mode [data-edit-id]:hover{
+  outline-color:var(--blue-300, #8992FF);
+}
+.avante-edit-selected{
+  outline:2px solid var(--blue-600, #041cff) !important;
+  outline-offset:3px;
+}
+[contenteditable="true"]{
+  outline:2px solid var(--blue-600, #041cff) !important;
+  outline-offset:3px;
+  cursor:text;
+}
+
+/* ---------- Panel lateral de propiedades ---------- */
+.editor-panel{
+  position:fixed; top:52px; right:0; bottom:0; z-index:9997;
+  width:340px; max-width:88vw;
+  background:#fff; color:var(--ink, #0A0E38);
+  box-shadow:-14px 0 40px -18px rgba(4,28,255,.28);
+  border-left:1px solid var(--line, #DDE3FA);
+  overflow-y:auto;
+  transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.16,.84,.44,1);
+}
+.editor-panel.is-open{ transform:translateX(0); }
+
+.editor-panel-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 20px; border-bottom:1px solid var(--line, #DDE3FA);
+  font-size:14px; font-weight:700; position:sticky; top:0; background:#fff; z-index:2;
+}
+.editor-panel-close{
+  width:28px; height:28px; border-radius:50%; border:none; background:var(--blue-50, #F5F7FF);
+  color:var(--ink, #0A0E38); font-size:16px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .2s ease;
+}
+.editor-panel-close:hover{ background:var(--blue-100, #EAEFFF); }
+
+.editor-panel-body{ padding:18px 20px 28px; display:flex; flex-direction:column; gap:18px; }
+
+.editor-hint{ font-size:12px; color:var(--grey, #6670A6); line-height:1.55; margin:0; padding:10px 12px; background:var(--blue-50, #F5F7FF); border-radius:10px; }
+
+.editor-field-group{ display:flex; flex-direction:column; gap:7px; }
+.editor-field-group > label{ font-size:11.5px; font-weight:700; color:var(--grey, #6670A6); text-transform:uppercase; letter-spacing:.04em; }
+
+.editor-input{
+  width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid var(--line, #DDE3FA);
+  font-family:inherit; font-size:13px; color:var(--ink, #0A0E38);
+  transition:border-color .2s ease, box-shadow .2s ease;
+}
+.editor-input:focus{ outline:none; border-color:var(--blue-500, #3E50FF); box-shadow:0 0 0 3px var(--blue-100, #EAEFFF); }
+
+.editor-image-preview{
+  width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden;
+  background:var(--blue-50, #F5F7FF); border:1.5px solid var(--line, #DDE3FA);
+  display:flex; align-items:center; justify-content:center; margin-bottom:8px;
+}
+.editor-image-preview img{ max-width:100%; max-height:100%; object-fit:contain; }
+.editor-upload-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:10px 16px; border-radius:100px; border:1.5px solid var(--blue-600, #041cff);
+  color:var(--blue-700, #0015E0); font-size:12px; font-weight:700; cursor:pointer;
+  transition:background .2s ease;
+}
+.editor-upload-btn:hover{ background:var(--blue-50, #F5F7FF); }
+
+.editor-spacing-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.editor-spacing-label{ display:flex; flex-direction:column; gap:5px; font-size:11px; color:var(--grey, #6670A6); font-weight:600; }
+.editor-spacing-input{
+  padding:9px 10px; border-radius:9px; border:1.5px solid var(--line, #DDE3FA);
+  font-size:13px; color:var(--ink, #0A0E38); font-family:inherit;
+}
+.editor-spacing-input:focus{ outline:none; border-color:var(--blue-500, #3E50FF); }
+
+.editor-color-input, .editor-global-color{
+  width:100%; height:40px; border-radius:10px; border:1.5px solid var(--line, #DDE3FA);
+  padding:3px; cursor:pointer; background:#fff;
+}
+
+.editor-reset-el{
+  margin-top:4px; align-self:flex-start;
+  padding:9px 15px; border-radius:100px; border:1.5px solid #f3b9b3;
+  background:#fdecea; color:#c0392b; font-size:11.5px; font-weight:700; cursor:pointer;
+  transition:background .2s ease;
+}
+.editor-reset-el:hover{ background:#fbdbd8; }

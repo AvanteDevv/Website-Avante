@@ -1,21 +1,21 @@
 {{define "navbar"}}
 <div class="header-outer">
-<header>
+<header data-edit-id="navbar-container" data-edit-spacing="true" data-edit-color="bg,border" data-edit-label="Contenedor del navbar">
   <div class="nav-side nav-left">
     <nav>
-      <a href="/" class="{{if eq .ActivePage "inicio"}}active{{end}}">Inicio</a>
-      <a href="/eccomerce" class="{{if eq .ActivePage "tienda"}}active{{end}}">Tienda</a>
-      <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}">Blog</a>
+      <a href="/" class="{{if eq .ActivePage "inicio"}}active{{end}}" data-edit-id="navbar-link-inicio" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Inicio">Inicio</a>
+      <a href="/eccomerce" class="{{if eq .ActivePage "tienda"}}active{{end}}" data-edit-id="navbar-link-tienda" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Tienda">Tienda</a>
+      <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}" data-edit-id="navbar-link-blog" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Blog">Blog</a>
     </nav>
   </div>
 
   <a href="/" class="mark" aria-label="Avante Optics">
-    <img class="mark-logo" src="/static/images/avante-logo.png" alt="Avante Optics">
+    <img class="mark-logo" src="/static/images/avante-logo.png" alt="Avante Optics" data-edit-id="navbar-logo" data-edit-image="true" data-edit-label="Logo del navbar">
   </a>
 
   <div class="nav-side nav-right">
     <nav>
-      <a href="/agendar">Agendar</a>
+      <a href="/agendar" data-edit-id="navbar-link-agendar" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Agendar">Agendar</a>
     </nav>
 
     {{if not .IsAdmin}}
@@ -96,8 +96,8 @@
     </div>
     {{else if not .IsAdmin}}
     <div class="head-auth">
-      <a href="/iniciar-sesion" class="head-auth-login">Iniciar sesión</a>
-      <a href="/registro" class="head-auth-register">Registro</a>
+      <a href="/iniciar-sesion" class="head-auth-login" data-edit-id="navbar-btn-login" data-edit-text="true" data-edit-href="true" data-edit-label="Botón: Iniciar sesión">Iniciar sesión</a>
+      <a href="/registro" class="head-auth-register" data-edit-id="navbar-btn-register" data-edit-text="true" data-edit-href="true" data-edit-label="Botón: Registro">Registro</a>
     </div>
     {{end}}
 
@@ -106,10 +106,10 @@
 
   <!-- menu completo, solo visible en movil (el desplegable) -->
   <nav id="mainNav">
-    <a href="/" class="{{if eq .ActivePage "inicio"}}active{{end}}">Inicio</a>
-    <a href="/eccomerce" class="{{if eq .ActivePage "tienda"}}active{{end}}">Tienda</a>
-    <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}">Blog</a>
-    <a href="/agendar">Agendar</a>
+    <a href="/" class="{{if eq .ActivePage "inicio"}}active{{end}}" data-edit-id="navbar-link-inicio" data-edit-text="true" data-edit-href="true">Inicio</a>
+    <a href="/eccomerce" class="{{if eq .ActivePage "tienda"}}active{{end}}" data-edit-id="navbar-link-tienda" data-edit-text="true" data-edit-href="true">Tienda</a>
+    <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}" data-edit-id="navbar-link-blog" data-edit-text="true" data-edit-href="true">Blog</a>
+    <a href="/agendar" data-edit-id="navbar-link-agendar" data-edit-text="true" data-edit-href="true">Agendar</a>
     <a href="#tracking">Rastreo</a>
     {{if .LoggedIn}}
     <a href="/dashboard">Mi cuenta</a>
@@ -117,8 +117,8 @@
     <a href="/mis-citas">Mis citas</a>
     <a href="/logout">Cerrar sesión</a>
     {{else}}
-    <a href="/iniciar-sesion">Iniciar sesión</a>
-    <a href="/registro">Registro</a>
+    <a href="/iniciar-sesion" data-edit-id="navbar-btn-login" data-edit-text="true" data-edit-href="true">Iniciar sesión</a>
+    <a href="/registro" data-edit-id="navbar-btn-register" data-edit-text="true" data-edit-href="true">Registro</a>
     {{end}}
   </nav>
 </header>
