@@ -9,26 +9,26 @@
   --line:#DDE3FA;
   --bg:#ffffff;
   --pill:#111111;
-  --accent:#E22E2E;
-  --accent-hover:#A61B1B;
-  --accent-soft:#FFF4F4;
-  --accent-border:#FFA8A8;
+  --accent:#041cff;
+  --accent-hover:#0015E0;
+  --accent-soft:#F5F7FF;
+  --accent-border:#8992FF;
   --radius-lg:26px;
   --radius-md:18px;
   --radius-sm:14px;
   --ease:cubic-bezier(.22,1,.36,1);
-  --shadow-sm: 0 1px 3px rgba(226,46,46,.06);
-  --shadow-md: 0 14px 30px -16px rgba(226,46,46,.20);
-  --shadow-lg: 0 26px 48px -18px rgba(226,46,46,.30);
+  --shadow-sm: 0 1px 3px rgba(4,28,255,.06);
+  --shadow-md: 0 14px 30px -16px rgba(4,28,255,.20);
+  --shadow-lg: 0 26px 48px -18px rgba(4,28,255,.30);
 
   /* Alias para el sidebar/userbar compartidos (sidebar.css, userbar.css) */
   --white:#ffffff;
   --grey:#767b8a;
-  --blue-600:#E22E2E;
-  --blue-700:#A61B1B;
-  --blue-300:#FFA8A8;
-  --blue-100:#FFE3E3;
-  --blue-50:#FFF4F4;
+  --blue-600:#041cff;
+  --blue-700:#0015E0;
+  --blue-300:#8992FF;
+  --blue-100:#EAEFFF;
+  --blue-50:#F5F7FF;
   --on-accent:#FFFFFF;
   --sans:'Bricolage Grotesque', sans-serif;
 }
@@ -40,20 +40,20 @@ body.dark{
   --grey:#9A9A9A;
   --muted:#9A9A9A;
   --line:#2B2B2B;
-  --blue-50:rgba(226,46,46,.14);
-  --accent-soft:rgba(226,46,46,.14);
-  --blue-100:rgba(255,168,168,.24);
+  --blue-50:rgba(4,28,255,.14);
+  --accent-soft:rgba(4,28,255,.14);
+  --blue-100:rgba(137,146,255,.24);
 }
 body.dark.admin-body{
   background:#0A0A0A;
-  background-image:radial-gradient(circle at 100% 0%, rgba(226,46,46,.10), transparent 45%);
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.10), transparent 45%);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 
 body.admin-body{
   background:var(--white);
-  background-image:radial-gradient(circle at 100% 0%, rgba(226,46,46,.06), transparent 45%);
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.06), transparent 45%);
   min-height:100vh;
   font-family:'Bricolage Grotesque',sans-serif;
   font-optical-sizing:auto;
@@ -100,9 +100,9 @@ body.admin-body{
   background:var(--accent);
   border-color:var(--accent);
   color:#fff;
-  box-shadow:0 10px 24px rgba(226,46,46,.25);
+  box-shadow:0 10px 24px rgba(4,28,255,.25);
 }
-.btn.solid:hover{background:var(--accent-hover);border-color:var(--accent-hover);box-shadow:0 14px 30px rgba(226,46,46,.32);}
+.btn.solid:hover{background:var(--accent-hover);border-color:var(--accent-hover);box-shadow:0 14px 30px rgba(4,28,255,.32);}
 
 
 /* ===========================================================
@@ -520,7 +520,7 @@ table.admin-table{
 .view-switch-glow{
   position:absolute; top:3px; bottom:3px; left:3px;
   width:calc(50% - 3px); border-radius:100px;
-  background:var(--accent); box-shadow:0 6px 16px -4px rgba(226,46,46,.4);
+  background:var(--accent); box-shadow:0 6px 16px -4px rgba(4,28,255,.4);
   transition:transform .3s var(--ease);
   z-index:0;
 }

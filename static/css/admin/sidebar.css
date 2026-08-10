@@ -35,7 +35,7 @@ body.dark .cuenta-sidebar{ transition:background-color .3s var(--ease), border-c
   width:26px; height:26px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   background:var(--blue-600); color:var(--on-accent, #fff); border:none;
-  box-shadow:0 6px 16px -4px rgba(226,46,46,.5);
+  box-shadow:0 6px 16px -4px rgba(4,28,255,.5);
   transition:transform .3s var(--ease), background .2s var(--ease);
 }
 .cuenta-sidebar-toggle:hover{ background:var(--blue-700); }
@@ -103,7 +103,7 @@ body.dark .cuenta-sidebar{ transition:background-color .3s var(--ease), border-c
 .cuenta-nav-blob{
   position:absolute; left:0; right:0; top:0; height:0;
   background:var(--blue-600); border-radius:14px;
-  box-shadow:0 10px 20px -10px rgba(226,46,46,.45);
+  box-shadow:0 10px 20px -10px rgba(4,28,255,.45);
   opacity:0;
   transition:top .28s cubic-bezier(1,.2,.1,1.2), height .28s cubic-bezier(1,.2,.1,1.2), opacity .18s ease, left .28s var(--ease), right .28s var(--ease);
   pointer-events:none;

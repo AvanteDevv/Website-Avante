@@ -3,13 +3,13 @@
    =========================================================== */
 
 :root{
-  --blue-900:#3D0000;
-  --blue-700:#A61B1B;
-  --blue-600:#E22E2E;
-  --blue-500:#FF5C5C;
-  --blue-300:#FFA8A8;
-  --blue-100:#FFE3E3;
-  --blue-50:#FFF4F4;
+  --blue-900:#000850;
+  --blue-700:#0015E0;
+  --blue-600:#041cff;
+  --blue-500:#3E50FF;
+  --blue-300:#8992FF;
+  --blue-100:#EAEFFF;
+  --blue-50:#F5F7FF;
   --white:#FFFFFF;
   --ink:#0A0E38;
   --grey:#6670A6;
@@ -22,9 +22,9 @@
   --radius-lg:26px;
   --radius-md:18px;
   --radius-sm:14px;
-  --shadow-sm: 0 1px 3px rgba(226,46,46,.06);
-  --shadow-md: 0 14px 30px -16px rgba(226,46,46,.18);
-  --shadow-lg: 0 26px 48px -18px rgba(226,46,46,.28);
+  --shadow-sm: 0 1px 3px rgba(4,28,255,.06);
+  --shadow-md: 0 14px 30px -16px rgba(4,28,255,.18);
+  --shadow-lg: 0 26px 48px -18px rgba(4,28,255,.28);
 }
 
 /* ---------- Modo oscuro ---------- */
@@ -33,12 +33,12 @@ body.dark{
   --ink:#FFFFFF;
   --grey:#9A9A9A;
   --line:#2B2B2B;
-  --blue-50:rgba(226,46,46,.14);
-  --blue-100:rgba(255,168,168,.24);
+  --blue-50:rgba(4,28,255,.14);
+  --blue-100:rgba(137,146,255,.24);
 }
 body.dark.cuenta-body{
   background:#0A0A0A;
-  background-image:radial-gradient(circle at 100% 0%, rgba(226,46,46,.10), transparent 45%);
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.10), transparent 45%);
 }
 body.dark{ transition:background-color .3s var(--ease); }
 
@@ -59,7 +59,7 @@ input,select,textarea{font-family:inherit;}
 
 body.cuenta-body{
   background:#ffffff;
-  background-image:radial-gradient(circle at 100% 0%, rgba(226,46,46,.05), transparent 45%);
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.05), transparent 45%);
   min-height:100vh;
 }
 

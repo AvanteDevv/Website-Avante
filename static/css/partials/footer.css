@@ -15,6 +15,7 @@ footer{
 @media (max-width:900px){ .footer-top{ grid-template-columns:1fr 1fr; } }
 @media (max-width:560px){ .footer-top{ grid-template-columns:1fr; } }
 
+.footer-brand .mark{ justify-self:start; }
 .footer-brand .mark-word{ color:var(--ink); }
 .footer-brand .mark-word span{ color:var(--blue-600); }
 .footer-brand p{ margin-top:16px; font-size:13.5px; color:var(--grey); line-height:1.6; max-width:280px; }
