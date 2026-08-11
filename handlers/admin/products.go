@@ -97,6 +97,61 @@ func CreateProduct(c *gin.Context) {
 	})
 }
 
+// UpdateProduct — PUT /api/admin/productos/:id (multipart/form-data; "image" es opcional)
+func UpdateProduct(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID de producto inválido."})
+		return
+	}
+
+	title := strings.TrimSpace(c.PostForm("title"))
+	brand := strings.TrimSpace(c.PostForm("brand"))
+	year := strings.TrimSpace(c.PostForm("year"))
+	model := strings.TrimSpace(c.PostForm("model"))
+
+	if title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "El título es obligatorio."})
+		return
+	}
+	if brand == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "La marca es obligatoria."})
+		return
+	}
+
+	// La imagen es opcional al editar: si mandaron una nueva, la
+	// subimos y luego borramos la anterior del bucket; si no, el
+	// modelo conserva el image_key que ya tenía.
+	var newImageKey string
+	if _, _, ferr := c.Request.FormFile("image"); ferr == nil {
+		newImageKey, err = uploadProductImage(c)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	var oldImageKey string
+	if newImageKey != "" {
+		oldImageKey, _ = models.GetProductImageKey(id)
+	}
+
+	if err := models.UpdateProduct(id, title, brand, year, model, newImageKey); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar el producto."})
+		return
+	}
+
+	if newImageKey != "" && oldImageKey != "" {
+		storage.DeleteObject(c.Request.Context(), "productos/"+oldImageKey)
+	}
+
+	imageURL := ""
+	if newImageKey != "" {
+		imageURL = "/media/productos/" + newImageKey
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "imageUrl": imageURL})
+}
+
 // DeleteProduct — DELETE /api/admin/productos/:id
 func DeleteProduct(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)

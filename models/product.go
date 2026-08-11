@@ -60,6 +60,32 @@ func CreateProduct(title, brand, year, model, imageKey string) (int64, error) {
 	return res.LastInsertId()
 }
 
+// GetProductImageKey regresa el image_key actual de un producto (se usa
+// al editar sin subir imagen nueva, y para borrar la vieja del bucket
+// cuando sí se sube una).
+func GetProductImageKey(id int64) (string, error) {
+	var imageKey string
+	err := db.DB.QueryRow(`SELECT image_key FROM products WHERE id = ?`, id).Scan(&imageKey)
+	return imageKey, err
+}
+
+// UpdateProduct edita un producto existente. Si newImageKey viene vacío,
+// conserva el image_key que ya tenía (edición sin cambiar la imagen).
+func UpdateProduct(id int64, title, brand, year, model, newImageKey string) error {
+	if newImageKey != "" {
+		_, err := db.DB.Exec(`
+			UPDATE products SET title=?, brand=?, year=?, model=?, image_key=?
+			WHERE id=?
+		`, title, brand, year, model, newImageKey, id)
+		return err
+	}
+	_, err := db.DB.Exec(`
+		UPDATE products SET title=?, brand=?, year=?, model=?
+		WHERE id=?
+	`, title, brand, year, model, id)
+	return err
+}
+
 // DeleteProduct borra el producto y regresa su image_key, para que el
 // handler pueda limpiar también el archivo en el bucket.
 func DeleteProduct(id int64) (string, error) {

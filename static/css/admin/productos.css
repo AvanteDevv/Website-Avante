@@ -1,155 +1,72 @@
 /* ===========================================================
    Avante Optics — Admin — Productos
-   Solo lo específico de esta vista; el resto (colores, .btn,
-   .panel, .cuenta-header, .cuenta-stats, modo oscuro) ya viene
-   de base-de-datos.css.
+   Complementa base-de-datos.css (mismos tokens --blue-*, --ink, etc.)
+   Estructura calcada de anuncios.css: grid de tarjetas, menú de
+   3 puntos, botón "thin", y modal con dropzone de imagen.
    =========================================================== */
 
-.inv-header{
-  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
-  flex-wrap:wrap;
+.products-admin-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+  gap:20px; padding:22px 24px 26px;
+}
+.products-empty{
+  grid-column:1/-1; text-align:center; padding:50px 20px; color:var(--grey); font-size:13.5px;
 }
 
-.inv-error{
-  background:#fdecea; border:1px solid #f3c2bd; color:#c0392b;
-  font-size:13px; font-weight:600;
-  padding:12px 16px; border-radius:12px; margin-bottom:18px;
-}
-
-/* ---------- Grid de productos ---------- */
-.inv-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
-  gap:18px;
-}
-
-.inv-card{
-  position:relative;
-  border:1.5px solid var(--line); border-radius:var(--radius-md);
+.product-card{
+  border:1.5px solid var(--line); border-radius:var(--radius-md); overflow:hidden;
   background:var(--white);
-  padding:14px;
-  transition:border-color .2s var(--ease), box-shadow .2s var(--ease), transform .2s var(--ease);
+  transition:box-shadow .3s var(--ease), transform .3s var(--ease), border-color .3s var(--ease);
 }
-.inv-card:hover{
-  border-color:var(--blue-300, var(--red-300));
-  box-shadow:var(--shadow-md);
-  transform:translateY(-2px);
-}
+.product-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-3px); border-color:var(--blue-300); }
 
-.inv-card-remove{
-  position:absolute; top:10px; right:10px; z-index:2;
-  width:28px; height:28px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--white); border:1px solid var(--line); color:#c0392b;
-  opacity:0; transition:opacity .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease);
-}
-.inv-card:hover .inv-card-remove{ opacity:1; }
-.inv-card-remove:hover{ background:#fdecea; border-color:#f3c2bd; }
-.inv-card-remove svg{ width:14px; height:14px; }
+.product-card-media{ position:relative; width:100%; aspect-ratio:1/1; background:var(--blue-50); }
+.product-card-media img{ width:100%; height:100%; object-fit:cover; display:block; }
 
-.inv-photo{
-  width:100%; aspect-ratio:1/1;
-  border-radius:12px; overflow:hidden;
-  background:var(--blue-50, #f4f5fb);
-  margin-bottom:12px;
-  display:flex; align-items:center; justify-content:center;
-}
-.inv-photo img{ width:100%; height:100%; object-fit:cover; }
+.product-card-menu{ position:absolute; top:8px; right:8px; z-index:3; }
+.product-card-menu .row-menu-btn{ background:rgba(255,255,255,.92); border-color:rgba(255,255,255,.6); backdrop-filter:blur(4px); }
+.product-card-menu .row-menu-btn:hover{ background:var(--white); }
 
-.inv-title{
-  font-size:14px; font-weight:700; color:var(--ink);
-  line-height:1.35; margin-bottom:4px;
+.product-card-body{ padding:14px 16px 16px; }
+.product-brand-badge{
+  display:inline-block;
+  font-size:10px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  padding:4px 10px; border-radius:100px; background:var(--blue-100); color:var(--blue-700);
+  margin-bottom:8px;
 }
-.inv-meta{
-  font-size:12px; color:var(--grey); font-weight:600;
-  display:flex; flex-wrap:wrap; gap:5px; align-items:center;
+.product-card-title{ font-weight:700; font-size:13.5px; color:var(--ink); margin-bottom:6px; line-height:1.3; }
+.product-card-meta{
+  display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--grey); font-weight:600;
 }
-.inv-dot{ opacity:.6; }
+.product-dot{ opacity:.6; }
 
-.inv-empty{
-  padding:50px 20px; text-align:center; color:var(--grey);
-}
-.inv-empty svg{ width:38px; height:38px; margin:0 auto 14px; opacity:.5; }
-.inv-empty p{ font-size:13px; max-width:340px; margin:0 auto; line-height:1.6; }
+/* ---------- Modal: crear/editar producto ---------- */
+.product-modal-card{ max-width:440px; }
 
-/* ---------- Modal: agregar producto ---------- */
-.inv-modal-overlay{
-  position:fixed; inset:0; z-index:200;
-  background:rgba(10,14,56,.45);
-  display:flex; align-items:center; justify-content:center;
-  padding:20px;
-  opacity:0; pointer-events:none;
-  transition:opacity .22s var(--ease);
-}
-.inv-modal-overlay.is-open{ opacity:1; pointer-events:auto; }
+.product-field-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:420px){ .product-field-row{ grid-template-columns:1fr; } }
 
-.inv-modal{
-  width:100%; max-width:460px;
-  background:var(--white); border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-lg);
-  padding:6px;
-  transform:translateY(14px) scale(.97);
-  transition:transform .25s var(--ease);
-  max-height:90vh; overflow-y:auto;
-}
-.inv-modal-overlay.is-open .inv-modal{ transform:translateY(0) scale(1); }
-
-.inv-modal-head{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:16px 18px 10px;
-}
-.inv-modal-head h2{ font-family:var(--sans); font-size:16px; font-weight:700; color:var(--ink); }
-.inv-modal-close{
-  width:30px; height:30px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  color:var(--grey);
-  transition:background .18s var(--ease), color .18s var(--ease);
-}
-.inv-modal-close:hover{ background:var(--blue-50, #f4f5fb); color:var(--ink); }
-.inv-modal-close svg{ width:16px; height:16px; }
-
-.inv-form{ padding:6px 18px 18px; display:flex; flex-direction:column; gap:14px; }
-
-.inv-form .field{ display:flex; flex-direction:column; gap:6px; }
-.inv-form .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-.inv-form label{ font-size:12px; font-weight:700; color:var(--grey); }
-.inv-form input[type="text"]{
-  font-family:var(--sans); font-size:14px; color:var(--ink);
-  padding:11px 14px; border:1.5px solid var(--line); border-radius:12px;
-  background:var(--white);
-  transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
-}
-.inv-form input[type="text"]:focus{
-  outline:none; border-color:var(--blue-600); box-shadow:0 0 0 5px var(--blue-100, rgba(4,28,255,.1));
-}
-
-.inv-file-drop{
-  position:relative;
-  border:1.5px dashed var(--line); border-radius:14px;
-  min-height:120px;
-  display:flex; align-items:center; justify-content:center;
-  padding:16px; cursor:pointer; text-align:center;
+/* ---------- dropzone de imagen — mismo patrón que anuncios ---------- */
+.ad-upload-drop{
+  position:relative; border:1.5px dashed var(--line); border-radius:16px;
+  min-height:150px; display:flex; align-items:center; justify-content:center;
+  overflow:hidden; cursor:pointer; background:var(--blue-50);
   transition:border-color .2s var(--ease), background .2s var(--ease);
 }
-.inv-file-drop:hover{ border-color:var(--blue-300, var(--blue-600)); background:var(--blue-50, #f4f5fb); }
-.inv-file-placeholder{
-  display:flex; flex-direction:column; align-items:center; gap:8px;
-  font-size:12px; font-weight:600; color:var(--grey); line-height:1.5;
+.ad-upload-drop:hover, .ad-upload-drop.is-dragover{ border-color:var(--blue-500); background:var(--blue-100); }
+.ad-upload-preview{ width:100%; height:100%; object-fit:contain; display:block; position:absolute; inset:0; background:var(--blue-50); }
+.ad-upload-placeholder{
+  display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;
+  padding:20px; color:var(--grey); font-size:12px; font-weight:600;
 }
-.inv-file-placeholder svg{ width:22px; height:22px; opacity:.6; }
-.inv-file-preview{
-  max-height:150px; max-width:100%; border-radius:10px; object-fit:contain;
-}
+.ad-upload-placeholder svg{ width:26px; height:26px; color:var(--blue-500); }
+.ad-upload-hint{ font-size:11px; color:var(--grey); font-weight:400; margin-top:2px; }
 
-.inv-form-error{
-  font-size:12.5px; font-weight:600; color:#c0392b;
-  min-height:1px;
+/* ---------- botón "Agregar producto" — mismo estilo que "Nuevo anuncio" ---------- */
+#newProductBtn{
+  padding:9px 16px !important; font-size:11px !important; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--white) !important; color:var(--blue-700) !important; border:1.5px solid var(--blue-600) !important;
 }
-
-.inv-form-actions{
-  display:flex; justify-content:flex-end; gap:10px; margin-top:4px;
-}
-
-@media (max-width:520px){
-  .inv-form .field-grid{ grid-template-columns:1fr; }
-}
+#newProductBtn svg{ width:14px !important; height:14px !important; color:var(--blue-600); flex-shrink:0; }
+#newProductBtn:hover{ background:var(--blue-50) !important; }

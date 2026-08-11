@@ -202,6 +202,7 @@ func main() {
 		apiAdmin.PUT("/anuncios/:id", adminHandlers.UpdateAd)
 		apiAdmin.DELETE("/anuncios/:id", adminHandlers.DeleteAd)
 		apiAdmin.POST("/productos", adminHandlers.CreateProduct)
+		apiAdmin.PUT("/productos/:id", adminHandlers.UpdateProduct)
 		apiAdmin.DELETE("/productos/:id", adminHandlers.DeleteProduct)
 		apiAdmin.POST("/blogs", adminHandlers.CreateBlog)
 		apiAdmin.PUT("/blogs/:id", adminHandlers.UpdateBlog)
