@@ -152,6 +152,7 @@ func main() {
 	adminGroup := router.Group("/admin", handlers.RequireAdminAuth())
 	{
 		adminGroup.GET("/base-de-datos", adminHandlers.Database)
+		adminGroup.GET("/productos", adminHandlers.Products)
 		adminGroup.GET("/anuncios", adminHandlers.Ads)
 		adminGroup.GET("/blogs", adminHandlers.Blogs)
 		adminGroup.GET("/blogs/nuevo", adminHandlers.NewBlogForm)
@@ -200,6 +201,8 @@ func main() {
 		apiAdmin.POST("/anuncios", adminHandlers.CreateAd)
 		apiAdmin.PUT("/anuncios/:id", adminHandlers.UpdateAd)
 		apiAdmin.DELETE("/anuncios/:id", adminHandlers.DeleteAd)
+		apiAdmin.POST("/productos", adminHandlers.CreateProduct)
+		apiAdmin.DELETE("/productos/:id", adminHandlers.DeleteProduct)
 		apiAdmin.POST("/blogs", adminHandlers.CreateBlog)
 		apiAdmin.PUT("/blogs/:id", adminHandlers.UpdateBlog)
 		apiAdmin.DELETE("/blogs/:id", adminHandlers.DeleteBlog)
@@ -222,6 +225,7 @@ func main() {
 
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
+	router.GET("/media/productos/:key", handlers.ServeProductImage)
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
 
