@@ -105,37 +105,41 @@ func main() {
 		})
 	})
 
-	// Client panel views (templates/client/*.html)
-	router.GET("/dashboard", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "dashboard.html", gin.H{
-			"ActivePage": "dashboard",
+	// Client panel views (templates/client/*.html) — protegidas: sin
+	// sesión de cliente, RequireAuth() manda a /iniciar-sesion.
+	clientGroup := router.Group("/", handlers.RequireAuth())
+	{
+		clientGroup.GET("/dashboard", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "dashboard.html", handlers.WithUser(c, gin.H{
+				"ActivePage": "dashboard",
+			}))
 		})
-	})
-	router.GET("/mis-favoritos", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "mis-favoritos.html", gin.H{
-			"ActivePage": "mis-favoritos",
+		clientGroup.GET("/mis-favoritos", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "mis-favoritos.html", handlers.WithUser(c, gin.H{
+				"ActivePage": "mis-favoritos",
+			}))
 		})
-	})
-	router.GET("/mis-pedidos", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "mis-pedidos.html", gin.H{
-			"ActivePage": "mis-pedidos",
+		clientGroup.GET("/mis-pedidos", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "mis-pedidos.html", handlers.WithUser(c, gin.H{
+				"ActivePage": "mis-pedidos",
+			}))
 		})
-	})
-	router.GET("/mi-perfil", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "mi-perfil.html", gin.H{
-			"ActivePage": "mi-perfil",
+		clientGroup.GET("/mi-perfil", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "mi-perfil.html", handlers.WithUser(c, gin.H{
+				"ActivePage": "mi-perfil",
+			}))
 		})
-	})
-	router.GET("/mis-citas", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "mis-citas.html", gin.H{
-			"ActivePage": "mis-citas",
+		clientGroup.GET("/mis-citas", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "mis-citas.html", handlers.WithUser(c, gin.H{
+				"ActivePage": "mis-citas",
+			}))
 		})
-	})
-	router.GET("/configuracion", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "configuracion.html", gin.H{
-			"ActivePage": "configuracion",
+		clientGroup.GET("/configuracion", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "ajustes.html", handlers.WithUser(c, gin.H{
+				"ActivePage": "configuracion",
+			}))
 		})
-	})
+	}
 
 	// Admin panel views (templates/admin/*.html) — all of them
 	// protected by RequireAdminAuth, except the login itself.
@@ -204,6 +208,18 @@ func main() {
 		apiAdmin.POST("/blog-etiquetas", adminHandlers.CreateBlogTag)
 		apiAdmin.DELETE("/blog-etiquetas/:id", adminHandlers.DeleteBlogTag)
 	}
+
+	// Client JSON API — llamada desde index.js / ecommerce.js (el corazón
+	// de favoritos) y mis-favoritos.js. Necesita sesión de cliente
+	// (cookie), por eso RequireAuthAPI() y no RequireAuth(): un fetch()
+	// necesita un 401 en JSON, no un redirect 302.
+	apiClient := router.Group("/api", handlers.RequireAuthAPI())
+	{
+		apiClient.GET("/favorites", handlers.GetFavorites)
+		apiClient.POST("/favorites", handlers.AddFavorite)
+		apiClient.DELETE("/favorites/:productId", handlers.DeleteFavorite)
+	}
+
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
 	router.GET("/logout", handlers.Logout)

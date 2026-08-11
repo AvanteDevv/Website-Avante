@@ -27,10 +27,12 @@ func PublicUserContext(c *gin.Context) gin.H {
 		return gin.H{"LoggedIn": false, "IsAdmin": isAdmin}
 	}
 	name, _ := session.Values["name"].(string)
+	email, _ := session.Values["email"].(string)
 	return gin.H{
 		"LoggedIn":     true,
 		"UserName":     name,
 		"UserInitials": initialsOf(name),
+		"UserEmail":    email,
 		"IsAdmin":      isAdmin,
 	}
 }

@@ -38,6 +38,54 @@ const ICONS = {
   round: '<circle cx="8" cy="12" r="4.3"/><circle cx="16" cy="12" r="4.3"/><path d="M12.3 12h-.6"/>'
 };
 
+/* =========================================================
+   FAVORITOS — conexión directa con /api/favorites
+   ========================================================= */
+async function favRequest(path, options){
+  let res;
+  try{
+    res = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, options));
+  }catch(e){
+    throw new Error('No se pudo conectar con el servidor.');
+  }
+  if(res.status === 401) throw new Error('AUTH_REQUERIDA');
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error(data.error || 'No se pudo completar la operación.');
+  return data;
+}
+// Lectura al cargar la página: si no hay sesión, simplemente no hay
+// favoritos que marcar — no manda a nadie al login solo por visitar.
+async function getFavorites(){
+  try{
+    const data = await favRequest('/api/favorites', { method: 'GET' });
+    return data.favorites || [];
+  }catch(e){
+    return [];
+  }
+}
+// Clic en el corazón: sí necesita sesión — si el servidor responde 401,
+// manda al login.
+async function toggleFavorite(product, wasActive){
+  try{
+    if(wasActive){
+      await favRequest('/api/favorites/' + encodeURIComponent(product.id), { method: 'DELETE' });
+      return false;
+    }
+    await favRequest('/api/favorites', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_id: product.id, name: product.name, brand: product.brand || '',
+        price: product.price, old_price: product.oldPrice || '',
+        icon: product.icon || '', badge: product.badge || '', url: product.url || ''
+      })
+    });
+    return true;
+  }catch(e){
+    if(e.message === 'AUTH_REQUERIDA') window.location.href = '/iniciar-sesion';
+    throw e;
+  }
+}
+
 const SHOP_CLIP = {
   FULL:      'M400,400H0V0H400Z',
   HIDDEN_R:  'M401,400H400V0H401Z',
@@ -446,11 +494,35 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
   if(prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); step(-1); restart(); });
 
   const favBtn = card.querySelector('.shop-fav');
-  if(favBtn) favBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const active = favBtn.classList.toggle('is-active');
-    favBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
-  });
+  if(favBtn){
+    const favId = 'eccomerce-' + cardIndex;
+    const p = PRODUCTS[cardIndex];
+    const favProduct = {
+      id: favId,
+      name: p.name,
+      brand: p.brand,
+      price: p.price,
+      oldPrice: p.oldPrice || '',
+      icon: p.icon,
+      badge: p.badge || '',
+      url: `/eccomerce/detalle?id=${cardIndex}`
+    };
+    favBtn.dataset.favId = favId;
+    favBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if(favBtn.dataset.favBusy === '1') return;
+      favBtn.dataset.favBusy = '1';
+      const estabaMarcado = favBtn.classList.contains('is-active');
+      favBtn.classList.toggle('is-active', !estabaMarcado);
+      favBtn.setAttribute('aria-pressed', (!estabaMarcado) ? 'true' : 'false');
+      toggleFavorite(favProduct, estabaMarcado)
+        .catch(() => {
+          favBtn.classList.toggle('is-active', estabaMarcado);
+          favBtn.setAttribute('aria-pressed', estabaMarcado ? 'true' : 'false');
+        })
+        .finally(() => { favBtn.dataset.favBusy = ''; });
+    });
+  }
 
   const shareBtn = card.querySelector('.shop-share');
   const shareMenu = card.querySelector('.shop-share-menu');
@@ -522,6 +594,17 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
 
 document.addEventListener('click', () => {
   document.querySelectorAll('.shop-share-menu.is-open').forEach(m => m.classList.remove('is-open'));
+});
+
+/* ---------- marca de entrada los corazones que ya son favoritos ---------- */
+getFavorites().then((favorites) => {
+  const ids = new Set(favorites.map(f => f.product_id));
+  document.querySelectorAll('.shop-fav[data-fav-id]').forEach((btn) => {
+    if(ids.has(btn.dataset.favId)){
+      btn.classList.add('is-active');
+      btn.setAttribute('aria-pressed', 'true');
+    }
+  });
 });
 
 /* reveal al hacer scroll */

@@ -3,16 +3,16 @@
 <header class="userbar-row">
   <div class="userbar" id="userbar">
     <button type="button" class="userbar-trigger">
-      <span class="userbar-avatar">CA</span>
-      <span class="userbar-name">Cliente</span>
+      <span class="userbar-avatar">{{.UserInitials}}</span>
+      <span class="userbar-name">{{.UserName}}</span>
       <svg class="userbar-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
     </button>
     <div class="userbar-menu">
       <div class="userbar-menu-head">
-        <span class="userbar-avatar">CA</span>
+        <span class="userbar-avatar">{{.UserInitials}}</span>
         <div>
-          <div class="name">Cliente Avante</div>
-          <div class="email">cliente@avanteoptics.mx</div>
+          <div class="name">{{.UserName}}</div>
+          <div class="email">{{.UserEmail}}</div>
         </div>
       </div>
         <a href="/mi-perfil" class="userbar-menu-link{{if eq .ActivePage "mi-perfil"}} active{{end}}"><i data-feather="user"></i>Mi perfil</a>
