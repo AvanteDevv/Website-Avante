@@ -207,6 +207,28 @@
   </main>
 </div>
 
+<div class="admin-modal-overlay" id="cbLinkModalOverlay">
+  <div class="admin-modal-card cb-link-modal-card">
+    <div class="admin-modal-head">
+      <h3>Insertar enlace</h3>
+      <button type="button" class="admin-modal-close" id="cbLinkModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="cb-link-modal-hint">Pega la URL a la que quieres dirigir el texto seleccionado.</p>
+      <div class="cb-link-modal-field">
+        <input type="url" id="cbLinkInput" placeholder="https://...">
+        <p class="cb-link-modal-error" id="cbLinkModalError"></p>
+      </div>
+      <div class="cb-link-modal-actions">
+        <button type="button" class="btn thin" id="cbLinkModalCancel">Cancelar</button>
+        <button type="button" class="btn solid thin" id="cbLinkModalConfirm">Insertar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/admin/userbar.js"></script>

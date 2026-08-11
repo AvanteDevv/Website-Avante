@@ -635,6 +635,14 @@ body {
 .shop-share-menu a.ig{ background:linear-gradient(135deg,#f58529,#dd2a7b,#8134af,#515bd4); }
 .shop-share-menu a.wa{ background:#25D366; }
 .shop-share-menu a.link{ background:var(--ink); }
+.shop-share-menu a{ position:relative; }
+.shop-share-toast{
+  position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%) translateY(4px);
+  background:var(--ink); color:var(--white); font-size:11px; font-weight:600; white-space:nowrap;
+  padding:5px 9px; border-radius:8px; opacity:0; pointer-events:none;
+  transition:opacity .2s var(--ease), transform .2s var(--ease); z-index:20;
+}
+.shop-share-toast.is-visible{ opacity:1; transform:translateX(-50%) translateY(0); }
 
 .shop-photo-wrap{ position:relative; width:100%; aspect-ratio:1/1; margin-bottom:8px; }
 .shop-ellipse{

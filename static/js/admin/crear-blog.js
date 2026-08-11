@@ -9,10 +9,25 @@
   // toggleInlineTag para "abrir" el formato) — si el admin activó negrita
   // pero nunca llegó a escribir nada ahí, no debe quedar guardado ni debe
   // verse el botón activo por default al volver a abrir la entrada.
+  //
+  // Importante: se salta la etiqueta donde el cursor está posicionado
+  // ahora mismo (el formato "recién activado", esperando a que se
+  // escriba algo adentro) — si no, se borraría apenas se activa. Todo
+  // lo demás que haya quedado vacío y "abandonado" sí se limpia, para
+  // que no se quede flotando en medio del texto real: si un tag vacío
+  // así se queda ahí mientras sigues escribiendo o haciendo doble/triple
+  // clic para seleccionar palabras, el navegador puede terminar
+  // metiendo texto real dentro de él y se ve negrita/cursiva sin que
+  // el admin lo haya pedido.
   function stripEmptyFormatTags(root){
+    var sel = window.getSelection();
+    var caretNode = (sel && sel.rangeCount) ? sel.anchorNode : null;
     root.querySelectorAll('b, i, u').forEach(function(el){
-      if (el.textContent.replace(/\u200B/g, '') === '') el.remove();
+      if (el.textContent.replace(/\u200B/g, '') !== '') return;
+      if (caretNode && el.contains(caretNode)) return;
+      el.remove();
     });
+    root.normalize();
   }
 
   // Precarga: el textarea oculto ya trae el HTML guardado (si es edición),
@@ -137,6 +152,66 @@
     if (highlightWrap && !highlightWrap.contains(e.target)) closeHighlightPalette();
   });
 
+  /* ---------- modal "Insertar enlace" (reemplaza al prompt() nativo) ---------- */
+  var linkModalOverlay = document.getElementById('cbLinkModalOverlay');
+  var linkInput = document.getElementById('cbLinkInput');
+  var linkModalError = document.getElementById('cbLinkModalError');
+  var linkModalClose = document.getElementById('cbLinkModalClose');
+  var linkModalCancel = document.getElementById('cbLinkModalCancel');
+  var linkModalConfirm = document.getElementById('cbLinkModalConfirm');
+  var savedRange = null;
+
+  function openLinkModal(){
+    var sel = window.getSelection();
+    savedRange = (sel && sel.rangeCount) ? sel.getRangeAt(0).cloneRange() : null;
+    if (linkModalError) { linkModalError.textContent = ''; linkModalError.classList.remove('show'); }
+    if (linkInput) linkInput.value = '';
+    if (!linkModalOverlay) return;
+    linkModalOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function(){ linkInput && linkInput.focus(); }, 10);
+  }
+
+  function closeLinkModal(){
+    linkModalOverlay && linkModalOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+    savedRange = null;
+  }
+
+  function confirmLinkModal(){
+    var url = (linkInput && linkInput.value || '').trim();
+    if (!url) {
+      if (linkModalError) { linkModalError.textContent = 'Escribe una URL.'; linkModalError.classList.add('show'); }
+      linkInput && linkInput.focus();
+      return;
+    }
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+    surface.focus();
+    var sel = window.getSelection();
+    if (savedRange) {
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }
+    document.execCommand('createLink', false, url);
+    refreshToolbarState();
+    closeLinkModal();
+  }
+
+  linkModalConfirm && linkModalConfirm.addEventListener('click', confirmLinkModal);
+  linkModalCancel && linkModalCancel.addEventListener('click', closeLinkModal);
+  linkModalClose && linkModalClose.addEventListener('click', closeLinkModal);
+  linkModalOverlay && linkModalOverlay.addEventListener('click', function(e){
+    if (e.target === linkModalOverlay) closeLinkModal();
+  });
+  linkInput && linkInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') { e.preventDefault(); confirmLinkModal(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeLinkModal(); }
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && linkModalOverlay && linkModalOverlay.classList.contains('open')) closeLinkModal();
+  });
+
   toolbar.addEventListener('click', function(e){
     var btn = e.target.closest('button[data-cmd]');
     if (!btn) return;
@@ -145,10 +220,7 @@
 
     var cmd = btn.dataset.cmd;
     if (cmd === 'createLink') {
-      var url = prompt('Pega el enlace (https://...)');
-      if (!url) return;
-      document.execCommand('createLink', false, url);
-      refreshToolbarState();
+      openLinkModal();
       return;
     }
     if (cmd === 'formatBlock') {
@@ -187,6 +259,7 @@
 
   // Resalta los botones activos (negrita/cursiva/etc.) según dónde esté el cursor.
   function refreshToolbarState(){
+    stripEmptyFormatTags(surface);
     Array.prototype.forEach.call(toolbar.querySelectorAll('button[data-cmd]'), function(btn){
       var cmd = btn.dataset.cmd;
       if (TAG_BY_CMD[cmd]) {
@@ -198,6 +271,10 @@
       catch(e) { /* ignorado */ }
     });
   }
+  // mousedown limpia ANTES de que el navegador calcule a qué "palabra"
+  // corresponde un doble/triple clic — así ningún tag vacío abandonado
+  // sigue ahí para que el navegador lo confunda con texto real.
+  surface.addEventListener('mousedown', function(){ stripEmptyFormatTags(surface); });
   surface.addEventListener('keyup', refreshToolbarState);
   surface.addEventListener('mouseup', refreshToolbarState);
   surface.addEventListener('input', refreshToolbarState);
