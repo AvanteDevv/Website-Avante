@@ -84,6 +84,20 @@ var setProductIcon = (function(){
   document.addEventListener('click', function(){ closeAll(); });
 })();
 
+/* ---------- Contadores (stat card + "N productos cargados") ---------- */
+function updateProductCount(){
+  var grid = document.getElementById('productsGrid');
+  var total = grid ? grid.querySelectorAll('.product-card').length : 0;
+  var statEl = document.getElementById('totalProductsStat');
+  var countEl = document.getElementById('totalProductsCount');
+  if (statEl) statEl.textContent = total;
+  if (countEl) countEl.textContent = total + (total === 1 ? ' producto cargado' : ' productos cargados');
+
+  if (grid && total === 0 && !grid.querySelector('.products-empty')) {
+    grid.insertAdjacentHTML('beforeend', '<div class="products-empty">Todavía no has agregado ningún producto.</div>');
+  }
+}
+
 /* ---------- Eliminar producto ---------- */
 (function(){
   document.addEventListener('click', function(e){
@@ -96,7 +110,10 @@ var setProductIcon = (function(){
     if (!confirm('¿Eliminar "' + titulo + '"? Esta acción no se puede deshacer.')) return;
     fetch('/api/admin/productos/' + id, { method: 'DELETE' })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); })
-      .then(function(){ card && card.remove(); })
+      .then(function(){
+        card && card.remove();
+        updateProductCount();
+      })
       .catch(function(){ alert('No se pudo eliminar el producto. Intenta de nuevo.'); });
   });
 })();
@@ -193,7 +210,12 @@ var productPhotos = (function(){
 
   drop.addEventListener('click', function(){ input.click(); });
   input.addEventListener('change', function(){
-    newFiles = Array.prototype.slice.call(input.files || []);
+    var picked = Array.prototype.slice.call(input.files || []);
+    if (!picked.length) return;
+    newFiles = newFiles.concat(picked);
+    var dt = new DataTransfer();
+    newFiles.forEach(function(f){ dt.items.add(f); });
+    input.files = dt.files;
     render();
   });
 
@@ -212,10 +234,10 @@ var productPhotos = (function(){
   drop.addEventListener('drop', function(e){
     var files = Array.prototype.slice.call(e.dataTransfer.files || []);
     if (!files.length) return;
-    newFiles = files;
+    newFiles = newFiles.concat(files);
     // reflejar en el <input> para que el submit lo tome también si hiciera falta
     var dt = new DataTransfer();
-    files.forEach(function(f){ dt.items.add(f); });
+    newFiles.forEach(function(f){ dt.items.add(f); });
     input.files = dt.files;
     render();
   });

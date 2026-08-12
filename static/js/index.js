@@ -134,13 +134,32 @@ const AVANTE_PRODUCTS = readInjectedProducts();
 // Si el catálogo está vacío, se muestran los de ejemplo para que la
 // página no se vea en blanco.
 const PRODUCTS = AVANTE_PRODUCTS.length ? AVANTE_PRODUCTS : DEMO_PRODUCTS;
-const PROMOS = [
+const DEMO_PROMOS = [
   {img:PRODUCT_IMAGES[0], icon:"sun", badge:"-20%", title:"Colección aviador", old:"$89.00", price:"$71.20", expires:"2026-07-25T23:59:59"},
   {img:PRODUCT_IMAGES[1], icon:"square", badge:"3X2", title:"Lectura premium", price:"Desde $54.00", expires:"2026-07-31T23:59:59"},
   {img:PRODUCT_IMAGES[2], icon:"round", badge:"Envío gratis", title:"Edición redonda vintage", price:"$64.00", expires:"2026-08-05T23:59:59"},
   {img:PRODUCT_IMAGES[3], icon:"sun", badge:"Nuevo", title:"Montura cat-eye", price:"$78.00", expires:"2026-08-10T23:59:59"},
   {img:PRODUCT_IMAGES[4], icon:"square", badge:"Combo", title:"Combo familiar", old:"$180.00", price:"$150.00", expires:"2026-08-15T23:59:59"}
 ];
+// Promociones reales: cualquier producto del catálogo que tenga precio
+// anterior (el mismo campo que ya hace que la tarjeta de tienda muestre
+// la etiqueta "Promoción" sola). Estas no traen fecha de vencimiento —
+// esa parte del diseño solo aplica a las de ejemplo. Si no hay ninguna
+// promoción real todavía, se muestran las de ejemplo para no dejar la
+// sección vacía.
+const REAL_PROMOS = AVANTE_PRODUCTS
+  .map((p, i) => Object.assign({}, p, { __productIndex: i }))
+  .filter(p => p.oldPrice)
+  .map(p => ({
+    img: (p.images && p.images.length) ? p.images[0] : undefined,
+    icon: p.icon,
+    badge: p.badge || 'Promoción',
+    title: p.name,
+    old: p.oldPrice,
+    price: p.price,
+    link: `/eccomerce/detalle?id=${p.__productIndex}`
+  }));
+const PROMOS = REAL_PROMOS.length ? REAL_PROMOS : DEMO_PROMOS;
 
 /* =========================================================
    RENDER: shop grid
@@ -625,8 +644,8 @@ cfStage.innerHTML = PROMOS.map((p,i) => `
       <span class="promo-badge">${p.badge}</span>
       <h3>${p.title}</h3>
       <div class="promo-price">${p.old ? `<span class="old">${p.old}</span>`:''}<span class="new">${p.price}</span></div>
-      <div class="promo-expiry" data-expires="${p.expires}"></div>
-      <a href="eccomerce.html" class="promo-link">Ver más</a>
+      ${p.expires ? `<div class="promo-expiry" data-expires="${p.expires}"></div>` : ''}
+      <a href="${p.link || 'eccomerce.html'}" class="promo-link">Ver más</a>
     </div>
   </div>
 `).join('');
@@ -1332,4 +1351,53 @@ document.getElementById('dirBtn').addEventListener('click', () => document.getEl
     }, delay);
   }
   if(!reduced) scheduleBlink();
+})();
+/* =========================================================
+   UBICACIÓN — pestañas para cambiar de sucursal en el mapa
+   ========================================================= */
+(function(){
+  var tabsWrap = document.getElementById('locationTabs');
+  var mapEl = document.getElementById('locationMap');
+  var nameEl = document.getElementById('locationChipName');
+  var addressEl = document.getElementById('locationChipAddress');
+  var linkEl = document.getElementById('locationChipLink');
+  if(!tabsWrap || !mapEl) return;
+
+  var BRANCHES = {
+    hermosillo: {
+      name: 'Avante Optics — Hermosillo',
+      address: 'Luis Donaldo Colosio #69, Col. Centro, Hermosillo, Son.',
+      query: 'Luis Donaldo Colosio 69, Centro, Hermosillo, Sonora, 83000'
+    },
+    nogales: {
+      name: 'Avante Optics — Nogales',
+      address: 'Carretera Internacional Km 5.5, Plaza Kino, Local 36, Nogales, Son.',
+      query: 'Plaza Kino, Carretera Internacional Km 5.5, Nogales, Sonora'
+    },
+    empalme: {
+      name: 'Avante Optics — Empalme',
+      address: 'Calle 9, Manzana 39, Col. Oriente, Empalme, Son.',
+      query: 'Calle 9, Colonia Oriente, Empalme, Sonora'
+    }
+  };
+
+  function setBranch(key){
+    var b = BRANCHES[key];
+    if(!b) return;
+    var q = encodeURIComponent(b.query);
+    mapEl.src = 'https://www.google.com/maps?q=' + q + '&output=embed';
+    nameEl.textContent = b.name;
+    addressEl.textContent = b.address;
+    linkEl.href = 'https://www.google.com/maps/dir/?api=1&destination=' + q;
+
+    Array.from(tabsWrap.children).forEach(function(tab){
+      tab.classList.toggle('active', tab.dataset.branch === key);
+    });
+  }
+
+  tabsWrap.addEventListener('click', function(e){
+    var tab = e.target.closest('.location-tab');
+    if(!tab) return;
+    setBranch(tab.dataset.branch);
+  });
 })();

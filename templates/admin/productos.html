@@ -33,14 +33,14 @@
     {{end}}
 
     <div class="admin-stats">
-      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.Total}}</div><div class="label">Productos totales</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num" id="totalProductsStat">{{.Total}}</div><div class="label">Productos totales</div></div></div>
     </div>
 
     <section class="panel">
       <div class="panel-head">
         <div>
           <h2>Todos los productos</h2>
-          <p>{{.Total}} productos cargados</p>
+          <p id="totalProductsCount">{{.Total}} productos cargados</p>
         </div>
       </div>
 

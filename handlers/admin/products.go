@@ -17,6 +17,10 @@ import (
 
 // ⚠️ Ajusta "avante-optics" en el import de arriba para que coincida con
 // el nombre del módulo en tu go.mod.
+//
+// ⚠️ Este archivo usa slugify(), que YA está definida en
+// blog_taxonomy.go (mismo paquete admin) — no la vuelvas a declarar
+// aquí o el compilador se va a quejar de "slugify redeclared".
 
 // Products — GET /admin/productos
 func Products(c *gin.Context) {
@@ -43,9 +47,36 @@ var allowedProductImageExt = map[string]bool{".jpg": true, ".jpeg": true, ".png"
 // tarjeta — no se puede guardar cualquier valor aquí.
 var allowedProductIcons = map[string]bool{"sun": true, "square": true, "round": true}
 
+// productFolder arma el nombre de la subcarpeta del bucket para UN
+// producto, a partir de su título (ej. "Lentes Plex" -> "lentes-plex"),
+// con un sufijo corto para que dos productos con el mismo nombre no
+// terminen compartiendo la misma carpeta. Todo lo de ese producto —
+// logo y fotos — se sube bajo productos/<esta-carpeta>/.
+func productFolder(title string) string {
+	slug := slugify(title)
+	if slug == "" {
+		slug = "producto"
+	}
+	suffix := strconv.FormatInt(time.Now().UnixNano()%0xFFFFFF, 36)
+	return slug + "-" + suffix
+}
+
+// folderOf regresa la subcarpeta de una key ya guardada (todo lo que
+// va antes de la última "/"), o "" si la key es "plana" — de un
+// producto creado antes de que existieran las subcarpetas.
+func folderOf(key string) string {
+	i := strings.LastIndex(key, "/")
+	if i == -1 {
+		return ""
+	}
+	return key[:i]
+}
+
 // uploadOneImage sube un solo archivo (ya recibido como *multipart.FileHeader)
-// al bucket bajo productos/ y regresa el nombre de archivo generado.
-func uploadOneImage(c *gin.Context, fh *multipart.FileHeader) (string, error) {
+// al bucket bajo productos/<folder>/ (o productos/ a secas si folder
+// viene vacío) y regresa la key relativa generada (ej.
+// "lentes-plex-a3f9k2/1786563665512066600.jpg").
+func uploadOneImage(c *gin.Context, fh *multipart.FileHeader, folder string) (string, error) {
 	ext := strings.ToLower(filepath.Ext(fh.Filename))
 	if !allowedProductImageExt[ext] {
 		return "", fmt.Errorf("formato de imagen no soportado (usa JPG, PNG o WEBP)")
@@ -63,25 +94,29 @@ func uploadOneImage(c *gin.Context, fh *multipart.FileHeader) (string, error) {
 	}
 
 	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-	if err := storage.UploadObject(c.Request.Context(), "productos/"+filename, file, fh.Size, contentType); err != nil {
+	key := filename
+	if folder != "" {
+		key = folder + "/" + filename
+	}
+	if err := storage.UploadObject(c.Request.Context(), "productos/"+key, file, fh.Size, contentType); err != nil {
 		return "", fmt.Errorf("no se pudo subir la imagen al bucket")
 	}
-	return filename, nil
+	return key, nil
 }
 
 // uploadProductLogo sube el archivo del campo "logo" (uno solo).
-func uploadProductLogo(c *gin.Context) (string, error) {
+func uploadProductLogo(c *gin.Context, folder string) (string, error) {
 	_, fh, err := c.Request.FormFile("logo")
 	if err != nil {
 		return "", fmt.Errorf("selecciona el logo de la marca")
 	}
-	return uploadOneImage(c, fh)
+	return uploadOneImage(c, fh, folder)
 }
 
 // uploadProductPhotos sube todos los archivos del campo "images" (uno o
-// varios) y regresa sus nombres de archivo generados, en el mismo
-// orden en que se seleccionaron.
-func uploadProductPhotos(c *gin.Context) ([]string, error) {
+// varios) y regresa sus keys generadas, en el mismo orden en que se
+// seleccionaron.
+func uploadProductPhotos(c *gin.Context, folder string) ([]string, error) {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return nil, fmt.Errorf("no se pudieron leer las fotos del producto")
@@ -93,7 +128,7 @@ func uploadProductPhotos(c *gin.Context) ([]string, error) {
 
 	keys := make([]string, 0, len(files))
 	for _, fh := range files {
-		key, err := uploadOneImage(c, fh)
+		key, err := uploadOneImage(c, fh, folder)
 		if err != nil {
 			return nil, err
 		}
@@ -154,13 +189,17 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
-	logoKey, err := uploadProductLogo(c)
+	// Todo lo de este producto (logo + fotos) se sube bajo la misma
+	// subcarpeta, para que quede organizado en el bucket.
+	folder := productFolder(title)
+
+	logoKey, err := uploadProductLogo(c, folder)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	imageKeys, err := uploadProductPhotos(c)
+	imageKeys, err := uploadProductPhotos(c, folder)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -204,10 +243,26 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	// Si lo que ya subió antes vive en una subcarpeta, lo nuevo se sube
+	// a ESA MISMA carpeta (para que quede junto con lo demás del
+	// producto). Si no hay ninguna pista de carpeta previa (producto
+	// creado antes de este cambio, con keys "planas"), se arma una
+	// carpeta nueva a partir del título.
+	existingLogoKey, _ := models.GetProductLogoKey(id)
+	folder := folderOf(existingLogoKey)
+	if folder == "" {
+		if keys, _ := models.GetProductImageKeys(id); len(keys) > 0 {
+			folder = folderOf(keys[0])
+		}
+	}
+	if folder == "" {
+		folder = productFolder(title)
+	}
+
 	// Logo opcional al editar.
 	var newLogoKey string
 	if _, _, ferr := c.Request.FormFile("logo"); ferr == nil {
-		newLogoKey, err = uploadProductLogo(c)
+		newLogoKey, err = uploadProductLogo(c, folder)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -216,7 +271,7 @@ func UpdateProduct(c *gin.Context) {
 
 	// Fotos opcionales al editar: si mandan alguna, se reemplazan TODAS
 	// las anteriores por las nuevas (mismo criterio simple que el logo).
-	newImageKeys, err := uploadProductPhotos(c)
+	newImageKeys, err := uploadProductPhotos(c, folder)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -224,7 +279,7 @@ func UpdateProduct(c *gin.Context) {
 
 	var oldLogoKey string
 	if newLogoKey != "" {
-		oldLogoKey, _ = models.GetProductLogoKey(id)
+		oldLogoKey = existingLogoKey
 	}
 	var oldImageKeys []string
 	if len(newImageKeys) > 0 {

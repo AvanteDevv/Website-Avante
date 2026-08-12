@@ -303,7 +303,7 @@ func main() {
 
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
-	router.GET("/media/productos/:key", handlers.ServeProductImage)
+	router.GET("/media/productos/*key", handlers.ServeProductImage)
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
 
