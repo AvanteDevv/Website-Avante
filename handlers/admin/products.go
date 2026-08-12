@@ -2,6 +2,7 @@ package admin
 
 import (
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -42,30 +43,63 @@ var allowedProductImageExt = map[string]bool{".jpg": true, ".jpeg": true, ".png"
 // tarjeta — no se puede guardar cualquier valor aquí.
 var allowedProductIcons = map[string]bool{"sun": true, "square": true, "round": true}
 
-// uploadProductImage sube la imagen del form (campo "image") al bucket
-// bajo productos/ y regresa el nombre de archivo generado.
-func uploadProductImage(c *gin.Context) (string, error) {
-	file, header, err := c.Request.FormFile("image")
-	if err != nil {
-		return "", fmt.Errorf("selecciona la imagen de la marca")
-	}
-	defer file.Close()
-
-	ext := strings.ToLower(filepath.Ext(header.Filename))
+// uploadOneImage sube un solo archivo (ya recibido como *multipart.FileHeader)
+// al bucket bajo productos/ y regresa el nombre de archivo generado.
+func uploadOneImage(c *gin.Context, fh *multipart.FileHeader) (string, error) {
+	ext := strings.ToLower(filepath.Ext(fh.Filename))
 	if !allowedProductImageExt[ext] {
 		return "", fmt.Errorf("formato de imagen no soportado (usa JPG, PNG o WEBP)")
 	}
 
-	contentType := header.Header.Get("Content-Type")
+	file, err := fh.Open()
+	if err != nil {
+		return "", fmt.Errorf("no se pudo leer la imagen")
+	}
+	defer file.Close()
+
+	contentType := fh.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 
 	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-	if err := storage.UploadObject(c.Request.Context(), "productos/"+filename, file, header.Size, contentType); err != nil {
+	if err := storage.UploadObject(c.Request.Context(), "productos/"+filename, file, fh.Size, contentType); err != nil {
 		return "", fmt.Errorf("no se pudo subir la imagen al bucket")
 	}
 	return filename, nil
+}
+
+// uploadProductLogo sube el archivo del campo "logo" (uno solo).
+func uploadProductLogo(c *gin.Context) (string, error) {
+	_, fh, err := c.Request.FormFile("logo")
+	if err != nil {
+		return "", fmt.Errorf("selecciona el logo de la marca")
+	}
+	return uploadOneImage(c, fh)
+}
+
+// uploadProductPhotos sube todos los archivos del campo "images" (uno o
+// varios) y regresa sus nombres de archivo generados, en el mismo
+// orden en que se seleccionaron.
+func uploadProductPhotos(c *gin.Context) ([]string, error) {
+	form, err := c.MultipartForm()
+	if err != nil {
+		return nil, fmt.Errorf("no se pudieron leer las fotos del producto")
+	}
+	files := form.File["images"]
+	if len(files) == 0 {
+		return nil, nil
+	}
+
+	keys := make([]string, 0, len(files))
+	for _, fh := range files {
+		key, err := uploadOneImage(c, fh)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, key)
+	}
+	return keys, nil
 }
 
 // parseProductForm lee y valida los campos comunes a crear/editar.
@@ -111,6 +145,8 @@ func parseProductForm(c *gin.Context) (title, brand, year, model, icon, badge, d
 }
 
 // CreateProduct — POST /api/admin/productos (multipart/form-data)
+// Campos: title, brand, year, model, price, old_price, icon, badge,
+// description, logo (1 archivo), images (1 o varios archivos).
 func CreateProduct(c *gin.Context) {
 	title, brand, year, model, icon, badge, description, price, oldPrice, err := parseProductForm(c)
 	if err != nil {
@@ -118,25 +154,43 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
-	imageKey, err := uploadProductImage(c)
+	logoKey, err := uploadProductLogo(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	id, err := models.CreateProduct(title, brand, year, model, price, oldPrice, icon, badge, description, imageKey)
+	imageKeys, err := uploadProductPhotos(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if len(imageKeys) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Sube al menos una foto del producto."})
+		return
+	}
+
+	id, err := models.CreateProduct(title, brand, year, model, price, oldPrice, icon, badge, description, logoKey, imageKeys)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el producto."})
 		return
 	}
 
+	imageURLs := make([]string, len(imageKeys))
+	for i, k := range imageKeys {
+		imageURLs[i] = "/media/productos/" + k
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
-		"id":       id,
-		"imageUrl": "/media/productos/" + imageKey,
+		"id":        id,
+		"logoUrl":   "/media/productos/" + logoKey,
+		"imageUrls": imageURLs,
 	})
 }
 
-// UpdateProduct — PUT /api/admin/productos/:id (multipart/form-data; "image" es opcional)
+// UpdateProduct — PUT /api/admin/productos/:id (multipart/form-data)
+// "logo" e "images" son opcionales: si no mandas archivos nuevos, se
+// conserva lo que ya tenía el producto.
 func UpdateProduct(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -150,37 +204,57 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	// La imagen es opcional al editar: si mandaron una nueva, la
-	// subimos y luego borramos la anterior del bucket; si no, el
-	// modelo conserva el image_key que ya tenía.
-	var newImageKey string
-	if _, _, ferr := c.Request.FormFile("image"); ferr == nil {
-		newImageKey, err = uploadProductImage(c)
+	// Logo opcional al editar.
+	var newLogoKey string
+	if _, _, ferr := c.Request.FormFile("logo"); ferr == nil {
+		newLogoKey, err = uploadProductLogo(c)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 	}
 
-	var oldImageKey string
-	if newImageKey != "" {
-		oldImageKey, _ = models.GetProductImageKey(id)
+	// Fotos opcionales al editar: si mandan alguna, se reemplazan TODAS
+	// las anteriores por las nuevas (mismo criterio simple que el logo).
+	newImageKeys, err := uploadProductPhotos(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	if err := models.UpdateProduct(id, title, brand, year, model, price, oldPrice, icon, badge, description, newImageKey); err != nil {
+	var oldLogoKey string
+	if newLogoKey != "" {
+		oldLogoKey, _ = models.GetProductLogoKey(id)
+	}
+	var oldImageKeys []string
+	if len(newImageKeys) > 0 {
+		oldImageKeys, _ = models.GetProductImageKeys(id)
+	}
+
+	if err := models.UpdateProduct(id, title, brand, year, model, price, oldPrice, icon, badge, description, newLogoKey, newImageKeys); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar el producto."})
 		return
 	}
 
-	if newImageKey != "" && oldImageKey != "" {
-		storage.DeleteObject(c.Request.Context(), "productos/"+oldImageKey)
+	if newLogoKey != "" && oldLogoKey != "" {
+		storage.DeleteObject(c.Request.Context(), "productos/"+oldLogoKey)
+	}
+	for _, k := range oldImageKeys {
+		storage.DeleteObject(c.Request.Context(), "productos/"+k)
 	}
 
-	imageURL := ""
-	if newImageKey != "" {
-		imageURL = "/media/productos/" + newImageKey
+	resp := gin.H{"ok": true}
+	if newLogoKey != "" {
+		resp["logoUrl"] = "/media/productos/" + newLogoKey
 	}
-	c.JSON(http.StatusOK, gin.H{"ok": true, "imageUrl": imageURL})
+	if len(newImageKeys) > 0 {
+		imageURLs := make([]string, len(newImageKeys))
+		for i, k := range newImageKeys {
+			imageURLs[i] = "/media/productos/" + k
+		}
+		resp["imageUrls"] = imageURLs
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // DeleteProduct — DELETE /api/admin/productos/:id
@@ -191,7 +265,7 @@ func DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	imageKey, err := models.DeleteProduct(id)
+	imageKeys, err := models.DeleteProduct(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Producto no encontrado."})
 		return
@@ -199,8 +273,10 @@ func DeleteProduct(c *gin.Context) {
 
 	// Borrado del bucket best-effort: si falla, no tumbamos la
 	// respuesta — el registro en BD ya se fue.
-	if imageKey != "" {
-		storage.DeleteObject(c.Request.Context(), "productos/"+imageKey)
+	for _, k := range imageKeys {
+		if k != "" {
+			storage.DeleteObject(c.Request.Context(), "productos/"+k)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": true})

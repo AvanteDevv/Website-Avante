@@ -148,7 +148,7 @@ const PROMOS = [
 const shopGrid = document.getElementById('shopGrid');
 shopGrid.innerHTML = PRODUCTS.map((p,i) => {
   const imgs = (p.images && p.images.length)
-    ? [0,1,2].map(k => p.images[k % p.images.length])
+    ? p.images
     : [0,1,2].map(k => PRODUCT_IMAGES[(i + k) % PRODUCT_IMAGES.length]);
   const svgImages = imgs.map((src,k) => `
       <clipPath id="clip-${i}-${k}"><path id="path-${i}-${k}" d="${k===0 ? SHOP_CLIP.FULL : SHOP_CLIP.HIDDEN_R}"/></clipPath>`).join('');
@@ -185,11 +185,11 @@ shopGrid.innerHTML = PRODUCTS.map((p,i) => {
         <div class="shop-fallback" style="display:none;">${lensIcon(ICONS[p.icon])}</div>
         <canvas class="shop-scan" aria-hidden="true"></canvas>
       </div>
-      <div class="shop-dots">${imgs.map((_,k) => `<span${k===0 ? ' class="active"' : ''}></span>`).join('')}</div>
-      <div class="shop-carousel-pill">
+      ${imgs.length > 1 ? `<div class="shop-dots">${imgs.map((_,k) => `<span${k===0 ? ' class="active"' : ''}></span>`).join('')}</div>` : ''}
+      ${imgs.length > 1 ? `<div class="shop-carousel-pill">
         <button type="button" class="shop-nav-btn prev" aria-label="Imagen anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
         <button type="button" class="shop-nav-btn next" aria-label="Imagen siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
-      </div>
+      </div>` : ''}
     </div>
     <div class="shop-tag-row">
       ${p.badge ? `<span class="shop-badge-pill">${p.badge}</span>` : '<span></span>'}
@@ -197,7 +197,7 @@ shopGrid.innerHTML = PRODUCTS.map((p,i) => {
     </div>
     <h3 class="shop-name">${p.name}</h3>
     <div class="shop-brand-row">
-      <div class="shop-brand"><span class="shop-brand-badge">${p.brand.charAt(0)}</span>${p.brand}</div>
+      <div class="shop-brand"><span class="shop-brand-badge">${p.logoUrl ? `<img src="${p.logoUrl}" alt="">` : p.brand.charAt(0)}</span>${p.brand}</div>
       <div class="shop-price-block">
         ${p.oldPrice ? `<span class="shop-old-price">${p.oldPrice}</span>` : ''}
         <span class="shop-new-price">${p.price}</span>
@@ -413,96 +413,99 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
   const prevBtn = card.querySelector('.shop-nav-btn.prev');
   const nextBtn = card.querySelector('.shop-nav-btn.next');
   const scanCanvas = card.querySelector('.shop-scan');
-  if(paths.length < 2 || !photo || !svgEl) return;
+  // El carrusel (auto-play + flechas) solo tiene sentido con 2+ fotos.
+  // Con 1 sola foto se salta este bloque, pero el resto de la tarjeta
+  // (favoritos, compartir, comprar, click al detalle) sigue de largo.
+  if(paths.length >= 2 && photo && svgEl){
+    const scanBar = scanCanvas ? new ScanBar(scanCanvas, { maxParticles: 90, lightBarWidth: 2.5, fadeZone: 16 }) : null;
 
-  const scanBar = scanCanvas ? new ScanBar(scanCanvas, { maxParticles: 90, lightBarWidth: 2.5, fadeZone: 16 }) : null;
-
-  // Barre la tarjeta una sola vez, en la dirección del cambio, y se apaga
-  let scanFrame = null;
-  const runScan = (dir) => {
-    if(!scanBar) return;
-    if(scanFrame) cancelAnimationFrame(scanFrame);
-    const total = SHOP_WIPE_DURATION * 2;
-    const startX = dir === 1 ? -10 : scanBar.w + 10;
-    const endX   = dir === 1 ? scanBar.w + 10 : -10;
-    const t0 = performance.now();
-    const tick = (now) => {
-      const t = Math.min(1, (now - t0) / total);
-      scanBar.render(startX + (endX - startX) * t);
-      if(t < 1){
-        scanFrame = requestAnimationFrame(tick);
-      } else {
-        scanBar.clear();
-        scanFrame = null;
-      }
+    // Barre la tarjeta una sola vez, en la dirección del cambio, y se apaga
+    let scanFrame = null;
+    const runScan = (dir) => {
+      if(!scanBar) return;
+      if(scanFrame) cancelAnimationFrame(scanFrame);
+      const total = SHOP_WIPE_DURATION * 2;
+      const startX = dir === 1 ? -10 : scanBar.w + 10;
+      const endX   = dir === 1 ? scanBar.w + 10 : -10;
+      const t0 = performance.now();
+      const tick = (now) => {
+        const t = Math.min(1, (now - t0) / total);
+        scanBar.render(startX + (endX - startX) * t);
+        if(t < 1){
+          scanFrame = requestAnimationFrame(tick);
+        } else {
+          scanBar.clear();
+          scanFrame = null;
+        }
+      };
+      scanFrame = requestAnimationFrame(tick);
     };
-    scanFrame = requestAnimationFrame(tick);
-  };
 
-  let current = 0;
-  let timer = null;
-  let animating = false;
+    let current = 0;
+    let timer = null;
+    let animating = false;
 
-  const step = (dir) => {
-    if(animating) return;
-    animating = true;
-    const next = (current + dir + paths.length) % paths.length;
-    const curPath = paths[current];
-    const nextPath = paths[next];
-    const nextImage = svgImages[next];
-    const hidden = dir === 1 ? SHOP_CLIP.HIDDEN_R : SHOP_CLIP.HIDDEN_L;
-    const mid = dir === 1 ? SHOP_CLIP.MID_R : SHOP_CLIP.MID_L;
+    const step = (dir) => {
+      if(animating) return;
+      animating = true;
+      const next = (current + dir + paths.length) % paths.length;
+      const curPath = paths[current];
+      const nextPath = paths[next];
+      const nextImage = svgImages[next];
+      const hidden = dir === 1 ? SHOP_CLIP.HIDDEN_R : SHOP_CLIP.HIDDEN_L;
+      const mid = dir === 1 ? SHOP_CLIP.MID_R : SHOP_CLIP.MID_L;
 
-    // trae la imagen entrante al frente (el orden en el DOM define qué se pinta encima en SVG)
-    svgEl.appendChild(nextImage);
+      // trae la imagen entrante al frente (el orden en el DOM define qué se pinta encima en SVG)
+      svgEl.appendChild(nextImage);
 
-    dots[current] && dots[current].classList.remove('active');
-    dots[next] && dots[next].classList.add('active');
-    runScan(dir);
+      dots[current] && dots[current].classList.remove('active');
+      dots[next] && dots[next].classList.add('active');
+      runScan(dir);
 
-    if(useSnap){
-      const snapPath = Snap(nextPath);
-      snapPath.attr({ d: hidden });
-      // misma coreografía de 2 etapas y el mismo easing bezier personalizado que el original
-      snapPath.animate({ d: mid }, SHOP_WIPE_DURATION, shopEase1, () => {
-        snapPath.animate({ d: SHOP_CLIP.FULL }, SHOP_WIPE_DURATION, shopEase2, () => {
-          Snap(curPath).attr({ d: hidden });
+      if(useSnap){
+        const snapPath = Snap(nextPath);
+        snapPath.attr({ d: hidden });
+        // misma coreografía de 2 etapas y el mismo easing bezier personalizado que el original
+        snapPath.animate({ d: mid }, SHOP_WIPE_DURATION, shopEase1, () => {
+          snapPath.animate({ d: SHOP_CLIP.FULL }, SHOP_WIPE_DURATION, shopEase2, () => {
+            Snap(curPath).attr({ d: hidden });
+            current = next;
+            animating = false;
+          });
+        });
+      } else {
+        // respaldo si Snap.svg no cargó: transición CSS simple sobre el mismo path
+        nextPath.style.transition = 'none';
+        nextPath.setAttribute('d', hidden);
+        void nextPath.getBoundingClientRect();
+        nextPath.style.transition = `d ${SHOP_WIPE_DURATION*2}ms ease`;
+        nextPath.setAttribute('d', SHOP_CLIP.FULL);
+        setTimeout(() => {
+          curPath.style.transition = 'none';
+          curPath.setAttribute('d', hidden);
           current = next;
           animating = false;
-        });
-      });
-    } else {
-      // respaldo si Snap.svg no cargó: transición CSS simple sobre el mismo path
-      nextPath.style.transition = 'none';
-      nextPath.setAttribute('d', hidden);
-      void nextPath.getBoundingClientRect();
-      nextPath.style.transition = `d ${SHOP_WIPE_DURATION*2}ms ease`;
-      nextPath.setAttribute('d', SHOP_CLIP.FULL);
-      setTimeout(() => {
-        curPath.style.transition = 'none';
-        curPath.setAttribute('d', hidden);
-        current = next;
-        animating = false;
-      }, SHOP_WIPE_DURATION*2 + 40);
-    }
-  };
+        }, SHOP_WIPE_DURATION*2 + 40);
+      }
+    };
 
-  const start = () => {
-    if(timer) return;
-    timer = setInterval(() => step(1), SHOP_WIPE_DURATION*2 + SHOP_HOLD_MS);
-  };
-  const stop = () => {
-    clearInterval(timer);
-    timer = null;
-  };
-  const restart = () => { stop(); start(); };
+    const start = () => {
+      if(timer) return;
+      timer = setInterval(() => step(1), SHOP_WIPE_DURATION*2 + SHOP_HOLD_MS);
+    };
+    const stop = () => {
+      clearInterval(timer);
+      timer = null;
+    };
+    const restart = () => { stop(); start(); };
 
-  photo.addEventListener('mouseenter', start);
-  photo.addEventListener('mouseleave', stop);
-  photo.addEventListener('touchstart', start, {passive:true});
+    photo.addEventListener('mouseenter', start);
+    photo.addEventListener('mouseleave', stop);
+    photo.addEventListener('touchstart', start, {passive:true});
 
-  if(nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); step(1); restart(); });
-  if(prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); step(-1); restart(); });
+    if(nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); step(1); restart(); });
+    if(prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); step(-1); restart(); });
+  }
 
   const favBtn = card.querySelector('.shop-fav');
   if(favBtn){

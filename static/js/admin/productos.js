@@ -101,12 +101,12 @@ var setProductIcon = (function(){
   });
 })();
 
-/* ---------- Modal: subir imagen (dropzone + preview) ---------- */
+/* ---------- Modal: logo de la marca (dropzone + preview, 1 sola imagen) ---------- */
 (function(){
-  var drop = document.getElementById('prodUploadDrop');
-  var input = document.getElementById('prodImageInput');
-  var preview = document.getElementById('prodUploadPreview');
-  var placeholder = document.getElementById('prodUploadPlaceholder');
+  var drop = document.getElementById('prodLogoDrop');
+  var input = document.getElementById('prodLogoInput');
+  var preview = document.getElementById('prodLogoPreview');
+  var placeholder = document.getElementById('prodLogoPlaceholder');
   if (!drop || !input) return;
 
   function showFile(file){
@@ -142,7 +142,112 @@ var setProductIcon = (function(){
     showFile(file);
   });
 
-  window.showProductPreview = showFile;
+  window.resetProductLogo = function(){
+    preview.src = '';
+    preview.style.display = 'none';
+    placeholder.style.display = 'flex';
+    input.value = '';
+  };
+  window.setProductLogoPreview = function(url){
+    preview.src = url;
+    preview.style.display = 'block';
+    placeholder.style.display = 'none';
+  };
+})();
+
+/* ---------- Modal: fotos del producto (dropzone + grilla, 1 o varias) ----------
+   Al CREAR: los archivos elegidos se muestran como miniaturas quitables.
+   Al EDITAR: primero se muestran las fotos actuales (sin poder quitarlas
+   una por una); en cuanto el admin elige fotos nuevas, esas reemplazan
+   por completo a las actuales al guardar (mismo criterio que el logo). */
+var productPhotos = (function(){
+  var drop = document.getElementById('prodPhotosDrop');
+  var input = document.getElementById('prodPhotosInput');
+  var grid = document.getElementById('prodPhotosGrid');
+  var hint = document.getElementById('prodPhotosHint');
+  if (!drop || !input || !grid) return { reset: function(){}, showExisting: function(){}, hasNewFiles: function(){ return false; } };
+
+  var newFiles = [];   // File[] recién elegidos por el admin
+  var showingExisting = false;
+
+  function removeSvg(){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  }
+
+  function render(){
+    if (newFiles.length){
+      showingExisting = false;
+      grid.innerHTML = newFiles.map(function(file, i){
+        var url = URL.createObjectURL(file);
+        return '<div class="prod-photo-tile" data-i="' + i + '"><img src="' + url + '" alt="">' +
+          '<button type="button" class="prod-photo-remove" data-i="' + i + '" aria-label="Quitar">' + removeSvg() + '</button></div>';
+      }).join('') + '<p class="prod-photos-note">Se guardarán estas fotos (reemplazan a las anteriores si estás editando).</p>';
+    } else if (showingExisting && window.__prodExistingImages && window.__prodExistingImages.length) {
+      grid.innerHTML = window.__prodExistingImages.map(function(url){
+        return '<div class="prod-photo-tile is-current"><img src="' + url + '" alt=""></div>';
+      }).join('') + '<p class="prod-photos-note">Fotos actuales — elige nuevas arriba para reemplazarlas.</p>';
+    } else {
+      grid.innerHTML = '';
+    }
+  }
+
+  drop.addEventListener('click', function(){ input.click(); });
+  input.addEventListener('change', function(){
+    newFiles = Array.prototype.slice.call(input.files || []);
+    render();
+  });
+
+  ['dragenter', 'dragover'].forEach(function(evt){
+    drop.addEventListener(evt, function(e){
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.add('is-dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach(function(evt){
+    drop.addEventListener(evt, function(e){
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.remove('is-dragover');
+    });
+  });
+  drop.addEventListener('drop', function(e){
+    var files = Array.prototype.slice.call(e.dataTransfer.files || []);
+    if (!files.length) return;
+    newFiles = files;
+    // reflejar en el <input> para que el submit lo tome también si hiciera falta
+    var dt = new DataTransfer();
+    files.forEach(function(f){ dt.items.add(f); });
+    input.files = dt.files;
+    render();
+  });
+
+  grid.addEventListener('click', function(e){
+    var btn = e.target.closest('.prod-photo-remove');
+    if (!btn) return;
+    var i = parseInt(btn.dataset.i, 10);
+    newFiles.splice(i, 1);
+    var dt = new DataTransfer();
+    newFiles.forEach(function(f){ dt.items.add(f); });
+    input.files = dt.files;
+    render();
+  });
+
+  return {
+    reset: function(){
+      newFiles = [];
+      showingExisting = false;
+      input.value = '';
+      window.__prodExistingImages = [];
+      grid.innerHTML = '';
+    },
+    showExisting: function(urls){
+      newFiles = [];
+      showingExisting = true;
+      input.value = '';
+      window.__prodExistingImages = urls || [];
+      render();
+    },
+    hasNewFiles: function(){ return newFiles.length > 0; }
+  };
 })();
 
 /* ---------- Modal: crear / editar producto ---------- */
@@ -154,27 +259,18 @@ var setProductIcon = (function(){
   var errorEl = document.getElementById('newProductError');
   var submitBtn = document.getElementById('newProductSubmit');
   var titleEl = document.getElementById('productModalTitle');
-  var preview = document.getElementById('prodUploadPreview');
-  var placeholder = document.getElementById('prodUploadPlaceholder');
-  var imageInput = document.getElementById('prodImageInput');
-  var grid = document.getElementById('productsGrid');
+  var logoInput = document.getElementById('prodLogoInput');
   if (!openBtn || !overlay || !form) return;
-
-  function resetUpload(){
-    preview.src = '';
-    preview.style.display = 'none';
-    placeholder.style.display = 'flex';
-    imageInput.value = '';
-  }
 
   function openCreateModal(){
     errorEl.textContent = '';
     form.reset();
     delete form.dataset.editingId;
-    resetUpload();
+    window.resetProductLogo();
+    productPhotos.reset();
     setProductIcon('round');
     titleEl.textContent = 'Agregar producto';
-    imageInput.setAttribute('required', 'required');
+    logoInput.setAttribute('required', 'required');
     submitBtn.textContent = 'Guardar producto';
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -184,9 +280,9 @@ var setProductIcon = (function(){
     errorEl.textContent = '';
     form.reset();
     form.dataset.editingId = card.dataset.productId;
-    resetUpload();
+    window.resetProductLogo();
     titleEl.textContent = 'Editar producto';
-    imageInput.removeAttribute('required'); // al editar, la imagen es opcional
+    logoInput.removeAttribute('required'); // al editar, el logo es opcional
     submitBtn.textContent = 'Guardar cambios';
 
     document.getElementById('prodTitulo').value = card.dataset.titulo || '';
@@ -199,11 +295,11 @@ var setProductIcon = (function(){
     document.getElementById('prodDescripcion').value = card.dataset.descripcion || '';
     setProductIcon(card.dataset.icon || 'round');
 
-    if (card.dataset.imageUrl) {
-      preview.src = card.dataset.imageUrl;
-      preview.style.display = 'block';
-      placeholder.style.display = 'none';
-    }
+    if (card.dataset.logoUrl) window.setProductLogoPreview(card.dataset.logoUrl);
+
+    var existingImages = [];
+    try { existingImages = JSON.parse(card.dataset.images || '[]'); } catch (e) { existingImages = []; }
+    productPhotos.showExisting(existingImages);
 
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -230,6 +326,12 @@ var setProductIcon = (function(){
     errorEl.textContent = '';
 
     var editingId = form.dataset.editingId;
+
+    if (!editingId && !productPhotos.hasNewFiles()) {
+      errorEl.textContent = 'Sube al menos una foto del producto.';
+      return;
+    }
+
     var formData = new FormData();
     formData.append('title', document.getElementById('prodTitulo').value.trim());
     formData.append('brand', document.getElementById('prodMarca').value.trim());
@@ -240,13 +342,16 @@ var setProductIcon = (function(){
     formData.append('icon', document.getElementById('prodIcon').value);
     formData.append('badge', document.getElementById('prodBadge').value.trim());
     formData.append('description', document.getElementById('prodDescripcion').value.trim());
-    if (imageInput.files[0]) formData.append('image', imageInput.files[0]);
+    if (logoInput.files[0]) formData.append('logo', logoInput.files[0]);
+    Array.prototype.forEach.call(document.getElementById('prodPhotosInput').files || [], function(file){
+      formData.append('images', file);
+    });
 
     var url = editingId ? ('/api/admin/productos/' + editingId) : '/api/admin/productos';
     var method = editingId ? 'PUT' : 'POST';
 
     submitBtn.disabled = true;
-    submitBtn.textContent = editingId ? 'Guardando...' : 'Guardando...';
+    submitBtn.textContent = 'Guardando...';
 
     fetch(url, { method: method, body: formData })
       .then(function(res){

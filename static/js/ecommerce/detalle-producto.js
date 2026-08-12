@@ -37,10 +37,11 @@ const params = new URLSearchParams(window.location.search);
 let pid = parseInt(params.get('id'), 10);
 if(isNaN(pid) || pid < 0 || pid >= PRODUCTS.length) pid = 0;
 const product = PRODUCTS[pid];
-// Si el producto viene de la BD trae su propia foto real (product.images);
-// si no, se arma el carrusel con las 3 fotos de stock como antes.
+// Si el producto viene de la BD trae sus propias fotos reales
+// (product.images, 1 o varias); si no, se arma el carrusel con las 3
+// fotos de stock como antes.
 const imgs = (product.images && product.images.length)
-  ? [0,1,2].map(k => product.images[k % product.images.length])
+  ? product.images
   : [0,1,2].map(k => PRODUCT_IMAGES[(pid + k) % PRODUCT_IMAGES.length]);
 
 document.title = `${product.name} — Avante Optics`;
@@ -48,7 +49,11 @@ document.getElementById('crumbName').textContent = product.name;
 document.getElementById('pdMainImg').src = imgs[0];
 document.getElementById('pdMainImg').alt = product.name;
 document.getElementById('pdBrand').textContent = product.brand;
-document.getElementById('pdBrandBadge').textContent = product.brand.charAt(0);
+if(product.logoUrl){
+  document.getElementById('pdBrandBadge').innerHTML = `<img src="${product.logoUrl}" alt="">`;
+} else {
+  document.getElementById('pdBrandBadge').textContent = product.brand.charAt(0);
+}
 document.getElementById('pdTitle').textContent = product.name;
 document.getElementById('pdNewPrice').textContent = product.price;
 document.getElementById('pdDesc').textContent = product.desc || '';
@@ -65,7 +70,20 @@ if(product.badge){
 
 /* miniaturas + navegación con animación */
 const thumbsEl = document.getElementById('pdThumbs');
-thumbsEl.innerHTML = imgs.map((src,k) => `<div class="pd-thumb${k===0 ? ' active' : ''}" data-i="${k}"><img src="${src}" alt="${product.name} vista ${k+1}"></div>`).join('');
+const pdPrevBtn = document.getElementById('pdPrevImg');
+const pdNextBtn = document.getElementById('pdNextImg');
+
+if (imgs.length > 1) {
+  thumbsEl.innerHTML = imgs.map((src,k) => `<div class="pd-thumb${k===0 ? ' active' : ''}" data-i="${k}"><img src="${src}" alt="${product.name} vista ${k+1}"></div>`).join('');
+  thumbsEl.style.display = '';
+  pdPrevBtn.style.display = '';
+  pdNextBtn.style.display = '';
+} else {
+  thumbsEl.innerHTML = '';
+  thumbsEl.style.display = 'none';
+  pdPrevBtn.style.display = 'none';
+  pdNextBtn.style.display = 'none';
+}
 
 const mainImg = document.getElementById('pdMainImg');
 let activeImg = 0;

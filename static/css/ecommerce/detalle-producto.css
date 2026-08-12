@@ -174,7 +174,8 @@ nav a.active::after, nav a:hover::after{ width:100%; }
 
 /* info */
 .pd-brand-row{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--grey); margin-bottom:10px; }
-.pd-brand-badge{ width:21px; height:21px; border-radius:50%; background:var(--blue-600); color:var(--white); font-size:10.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pd-brand-badge{ width:21px; height:21px; border-radius:50%; background:var(--blue-600); color:var(--white); font-size:10.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
+.pd-brand-badge img{ width:100%; height:100%; object-fit:cover; }
 .pd-title{ font-size:clamp(28px,3.6vw,40px); color:var(--ink); margin-bottom:14px; }
 .pd-price-row{ display:flex; align-items:baseline; gap:12px; margin-bottom:20px; }
 .pd-old-price{ font-size:16px; color:var(--grey); text-decoration:line-through; }

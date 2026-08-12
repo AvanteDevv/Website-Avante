@@ -60,6 +60,7 @@ type storeProduct struct {
 	Badge    string   `json:"badge,omitempty"`
 	Desc     string   `json:"desc,omitempty"`
 	Images   []string `json:"images"`
+	LogoURL  string   `json:"logoUrl,omitempty"`
 }
 
 // productNewBadgeWindow es cuánto tiempo después de agregado un producto
@@ -81,13 +82,14 @@ func buildStoreProductsJSON() template.JS {
 	out := make([]storeProduct, 0, len(products))
 	for _, p := range products {
 		sp := storeProduct{
-			Name:   p.Title,
-			Brand:  p.Brand,
-			Price:  fmt.Sprintf("$%.2f", p.Price),
-			Icon:   p.Icon,
-			Badge:  p.Badge,
-			Desc:   p.Description,
-			Images: []string{p.ImageURL},
+			Name:    p.Title,
+			Brand:   p.Brand,
+			Price:   fmt.Sprintf("$%.2f", p.Price),
+			Icon:    p.Icon,
+			Badge:   p.Badge,
+			Desc:    p.Description,
+			Images:  p.Images,
+			LogoURL: p.LogoURL,
 		}
 		if p.OldPrice > 0 {
 			sp.OldPrice = fmt.Sprintf("$%.2f", p.OldPrice)
