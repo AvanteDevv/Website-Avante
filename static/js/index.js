@@ -157,6 +157,7 @@ const REAL_PROMOS = AVANTE_PRODUCTS
     title: p.name,
     old: p.oldPrice,
     price: p.price,
+    expires: p.expires,
     link: `/eccomerce/detalle?id=${p.__productIndex}`
   }));
 const PROMOS = REAL_PROMOS.length ? REAL_PROMOS : DEMO_PROMOS;
@@ -644,27 +645,55 @@ cfStage.innerHTML = PROMOS.map((p,i) => `
       <span class="promo-badge">${p.badge}</span>
       <h3>${p.title}</h3>
       <div class="promo-price">${p.old ? `<span class="old">${p.old}</span>`:''}<span class="new">${p.price}</span></div>
-      ${p.expires ? `<div class="promo-expiry" data-expires="${p.expires}"></div>` : ''}
+      ${p.expires ? `
+      <div class="promo-expiry" data-expires="${p.expires}">
+        <span class="promo-expiry-label">Termina en</span>
+        <div class="promo-countdown">
+          <div class="promo-cd-unit"><span class="promo-cd-num" data-unit="d">00</span><span class="promo-cd-lbl">d</span></div>
+          <div class="promo-cd-unit"><span class="promo-cd-num" data-unit="h">00</span><span class="promo-cd-lbl">h</span></div>
+          <div class="promo-cd-unit"><span class="promo-cd-num" data-unit="m">00</span><span class="promo-cd-lbl">m</span></div>
+          <div class="promo-cd-unit"><span class="promo-cd-num" data-unit="s">00</span><span class="promo-cd-lbl">s</span></div>
+        </div>
+      </div>` : ''}
       <a href="${p.link || 'eccomerce.html'}" class="promo-link">Ver más</a>
     </div>
   </div>
 `).join('');
 
-function formatExpiry(dateStr){
+function pad2(n){ return String(n).padStart(2, '0'); }
+function formatExpiryParts(dateStr){
   const end = new Date(dateStr);
   const diff = end - new Date();
-  if(diff <= 0) return 'Oferta finalizada';
-  const days = Math.floor(diff / 86400000);
-  const hours = Math.floor((diff % 86400000) / 3600000);
-  return days > 0 ? `Termina en ${days} día${days===1?'':'s'}` : `Termina en ${hours} h`;
+  if(diff <= 0) return null;
+  return {
+    days: Math.floor(diff / 86400000),
+    hours: Math.floor((diff % 86400000) / 3600000),
+    minutes: Math.floor((diff % 3600000) / 60000),
+    seconds: Math.floor((diff % 60000) / 1000)
+  };
 }
 function refreshExpiries(){
   document.querySelectorAll('.promo-expiry').forEach(el => {
-    el.textContent = formatExpiry(el.dataset.expires);
+    const parts = formatExpiryParts(el.dataset.expires);
+    if(!parts){
+      if(!el.classList.contains('is-ended')){
+        el.classList.add('is-ended');
+        el.innerHTML = '<span class="promo-expiry-ended">Oferta finalizada</span>';
+      }
+      return;
+    }
+    const d = el.querySelector('[data-unit="d"]');
+    const h = el.querySelector('[data-unit="h"]');
+    const m = el.querySelector('[data-unit="m"]');
+    const s = el.querySelector('[data-unit="s"]');
+    if(d) d.textContent = pad2(parts.days);
+    if(h) h.textContent = pad2(parts.hours);
+    if(m) m.textContent = pad2(parts.minutes);
+    if(s) s.textContent = pad2(parts.seconds);
   });
 }
 refreshExpiries();
-setInterval(refreshExpiries, 60000);
+setInterval(refreshExpiries, 1000);
 
 const cfSlides = Array.from(cfStage.querySelectorAll('.coverflow-slide'));
 const cfTotal = cfSlides.length;

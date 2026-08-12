@@ -809,7 +809,20 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
 .promo-price{ margin-top:8px; font-size:14.5px; display:flex; align-items:baseline; justify-content:center; gap:8px; }
 .promo-price .old{ text-decoration:line-through; color:var(--grey); }
 .promo-price .new{ color:var(--blue-600); font-weight:700; }
-.promo-expiry{ margin-top:8px; font-size:12px; color:var(--grey); }
+.promo-expiry{ margin-top:10px; }
+.promo-expiry-label{ display:block; font-size:11px; color:var(--grey); margin-bottom:5px; }
+.promo-expiry-ended{ font-size:12px; font-weight:600; color:var(--grey); }
+.promo-countdown{ display:flex; gap:6px; }
+.promo-cd-unit{
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+  min-width:34px; padding:5px 4px; border-radius:9px;
+  background:var(--blue-50); border:1px solid var(--blue-100);
+}
+.promo-cd-num{
+  font-family:var(--sans); font-variant-numeric:tabular-nums;
+  font-size:13.5px; font-weight:700; color:var(--blue-700); line-height:1.1;
+}
+.promo-cd-lbl{ font-size:8.5px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:.03em; }
 .promo-link{ display:inline-block; margin-top:14px; font-size:12.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink); border-bottom:1.5px solid var(--blue-600); padding-bottom:2px; }
 
 /* Promociones — carrusel giratorio de tarjetas redondeadas */

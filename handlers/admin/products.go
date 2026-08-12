@@ -138,7 +138,10 @@ func uploadProductPhotos(c *gin.Context, folder string) ([]string, error) {
 }
 
 // parseProductForm lee y valida los campos comunes a crear/editar.
-func parseProductForm(c *gin.Context) (title, brand, year, model, icon, badge, description string, price, oldPrice float64, err error) {
+// promoEndsAt puede venir con su zero value si el campo se dejó vacío
+// (promoción sin fecha de fin) — usa dtLayout/hermosilloLoc, ya
+// definidos en ads.go (mismo paquete admin).
+func parseProductForm(c *gin.Context) (title, brand, year, model, icon, badge, description string, price, oldPrice float64, promoEndsAt time.Time, err error) {
 	title = strings.TrimSpace(c.PostForm("title"))
 	brand = strings.TrimSpace(c.PostForm("brand"))
 	year = strings.TrimSpace(c.PostForm("year"))
@@ -175,15 +178,25 @@ func parseProductForm(c *gin.Context) (title, brand, year, model, icon, badge, d
 			return
 		}
 	}
+
+	promoEndsAtStr := strings.TrimSpace(c.PostForm("promo_ends_at"))
+	if promoEndsAtStr != "" {
+		promoEndsAt, err = time.ParseInLocation(dtLayout, promoEndsAtStr, hermosilloLoc)
+		if err != nil {
+			err = fmt.Errorf("la fecha de fin de la promoción no es válida")
+			return
+		}
+	}
 	err = nil
 	return
 }
 
 // CreateProduct — POST /api/admin/productos (multipart/form-data)
-// Campos: title, brand, year, model, price, old_price, icon, badge,
-// description, logo (1 archivo), images (1 o varios archivos).
+// Campos: title, brand, year, model, price, old_price, promo_ends_at
+// (opcional), icon, badge, description, logo (1 archivo), images (1 o
+// varios archivos).
 func CreateProduct(c *gin.Context) {
-	title, brand, year, model, icon, badge, description, price, oldPrice, err := parseProductForm(c)
+	title, brand, year, model, icon, badge, description, price, oldPrice, promoEndsAt, err := parseProductForm(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -209,7 +222,7 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
-	id, err := models.CreateProduct(title, brand, year, model, price, oldPrice, icon, badge, description, logoKey, imageKeys)
+	id, err := models.CreateProduct(title, brand, year, model, price, oldPrice, promoEndsAt, icon, badge, description, logoKey, imageKeys)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el producto."})
 		return
@@ -237,7 +250,7 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	title, brand, year, model, icon, badge, description, price, oldPrice, err := parseProductForm(c)
+	title, brand, year, model, icon, badge, description, price, oldPrice, promoEndsAt, err := parseProductForm(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -286,7 +299,7 @@ func UpdateProduct(c *gin.Context) {
 		oldImageKeys, _ = models.GetProductImageKeys(id)
 	}
 
-	if err := models.UpdateProduct(id, title, brand, year, model, price, oldPrice, icon, badge, description, newLogoKey, newImageKeys); err != nil {
+	if err := models.UpdateProduct(id, title, brand, year, model, price, oldPrice, promoEndsAt, icon, badge, description, newLogoKey, newImageKeys); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar el producto."})
 		return
 	}

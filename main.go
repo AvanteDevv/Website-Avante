@@ -56,6 +56,7 @@ type storeProduct struct {
 	Brand    string   `json:"brand"`
 	Price    string   `json:"price"`
 	OldPrice string   `json:"oldPrice,omitempty"`
+	Expires  string   `json:"expires,omitempty"`
 	Icon     string   `json:"icon"`
 	Badge    string   `json:"badge,omitempty"`
 	Desc     string   `json:"desc,omitempty"`
@@ -93,6 +94,9 @@ func buildStoreProductsJSON() template.JS {
 		}
 		if p.OldPrice > 0 {
 			sp.OldPrice = fmt.Sprintf("$%.2f", p.OldPrice)
+		}
+		if !p.PromoEndsAt.IsZero() {
+			sp.Expires = p.PromoEndsAt.Format(time.RFC3339)
 		}
 
 		// Si el admin no escribió una etiqueta a mano, se autocompleta:

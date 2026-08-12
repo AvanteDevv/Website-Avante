@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -16,15 +17,16 @@ import (
 // las fotos son las que se muestran en el carrusel de la tienda
 // pública; el logo solo se usa dentro del panel de admin.
 type Product struct {
-	ID       int64
-	Title    string
-	Brand    string
-	Year     string
-	Model    string
-	Price    float64
-	OldPrice float64 // 0 = sin precio anterior
-	Icon     string  // "sun" | "square" | "round"
-	Badge    string  // opcional, ej. "Nuevo" — si va vacío, la tienda
+	ID          int64
+	Title       string
+	Brand       string
+	Year        string
+	Model       string
+	Price       float64
+	OldPrice    float64   // 0 = sin precio anterior
+	PromoEndsAt time.Time // zero value = sin fecha de fin (promoción sin vencimiento)
+	Icon        string    // "sun" | "square" | "round"
+	Badge       string    // opcional, ej. "Nuevo" — si va vacío, la tienda
 	// pública puede autocompletarlo (ver buildStoreProductsJSON en main.go)
 	Description string
 	LogoKey     string
@@ -44,12 +46,22 @@ func (p Product) ImagesJSON() string {
 	return string(b)
 }
 
+// PromoEndsAtValue regresa la fecha de fin formateada para precargar un
+// <input type="datetime-local"> al editar (formato "2006-01-02T15:04"),
+// o "" si el producto no tiene fecha de fin configurada.
+func (p Product) PromoEndsAtValue() string {
+	if p.PromoEndsAt.IsZero() {
+		return ""
+	}
+	return p.PromoEndsAt.Format("2006-01-02T15:04")
+}
+
 // GetAllProducts regresa todo el catálogo, más recientes primero, con
 // sus fotos ya cargadas (evita N+1: una query para productos, otra
 // para TODAS las fotos, y se juntan en memoria).
 func GetAllProducts() ([]Product, error) {
 	rows, err := db.DB.Query(`
-		SELECT id, title, brand, year, model, price, old_price, icon, badge, description, logo_key, created_at
+		SELECT id, title, brand, year, model, price, old_price, promo_ends_at, icon, badge, description, logo_key, created_at
 		FROM products
 		ORDER BY created_at DESC
 	`)
@@ -59,16 +71,18 @@ func GetAllProducts() ([]Product, error) {
 	defer rows.Close()
 
 	var products []Product
-	order := make([]int64, 0)
 	byID := make(map[int64]*Product)
 	for rows.Next() {
 		var p Product
-		if err := rows.Scan(&p.ID, &p.Title, &p.Brand, &p.Year, &p.Model, &p.Price, &p.OldPrice, &p.Icon, &p.Badge, &p.Description, &p.LogoKey, &p.CreatedAt); err != nil {
+		var promoEndsAt sql.NullTime
+		if err := rows.Scan(&p.ID, &p.Title, &p.Brand, &p.Year, &p.Model, &p.Price, &p.OldPrice, &promoEndsAt, &p.Icon, &p.Badge, &p.Description, &p.LogoKey, &p.CreatedAt); err != nil {
 			continue
+		}
+		if promoEndsAt.Valid {
+			p.PromoEndsAt = promoEndsAt.Time
 		}
 		p.LogoURL = "/media/productos/" + p.LogoKey
 		products = append(products, p)
-		order = append(order, p.ID)
 	}
 	for i := range products {
 		byID[products[i].ID] = &products[i]
@@ -101,12 +115,18 @@ func GetAllProducts() ([]Product, error) {
 }
 
 // CreateProduct guarda un producto nuevo (con su logo y sus fotos) y
-// regresa su ID. imageKeys debe traer al menos una foto.
-func CreateProduct(title, brand, year, model string, price, oldPrice float64, icon, badge, description, logoKey string, imageKeys []string) (int64, error) {
+// regresa su ID. imageKeys debe traer al menos una foto. promoEndsAt
+// puede venir con su zero value (time.Time{}) si no aplica.
+func CreateProduct(title, brand, year, model string, price, oldPrice float64, promoEndsAt time.Time, icon, badge, description, logoKey string, imageKeys []string) (int64, error) {
+	var promoEndsAtParam interface{}
+	if !promoEndsAt.IsZero() {
+		promoEndsAtParam = promoEndsAt
+	}
+
 	res, err := db.DB.Exec(`
-		INSERT INTO products (title, brand, year, model, price, old_price, icon, badge, description, logo_key, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-	`, title, brand, year, model, price, oldPrice, icon, badge, description, logoKey)
+		INSERT INTO products (title, brand, year, model, price, old_price, promo_ends_at, icon, badge, description, logo_key, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+	`, title, brand, year, model, price, oldPrice, promoEndsAtParam, icon, badge, description, logoKey)
 	if err != nil {
 		return 0, err
 	}
@@ -160,19 +180,26 @@ func GetProductImageKeys(id int64) ([]string, error) {
 //     viene con contenido, REEMPLAZA todas las fotos anteriores por
 //     esas (mismo criterio simple que ya usa el logo: "si subes algo
 //     nuevo, sustituye a lo anterior").
-func UpdateProduct(id int64, title, brand, year, model string, price, oldPrice float64, icon, badge, description, newLogoKey string, newImageKeys []string) error {
+//   - promoEndsAt con su zero value borra la fecha de fin (la
+//     promoción se queda sin vencimiento); con un valor la actualiza.
+func UpdateProduct(id int64, title, brand, year, model string, price, oldPrice float64, promoEndsAt time.Time, icon, badge, description, newLogoKey string, newImageKeys []string) error {
+	var promoEndsAtParam interface{}
+	if !promoEndsAt.IsZero() {
+		promoEndsAtParam = promoEndsAt
+	}
+
 	if newLogoKey != "" {
 		if _, err := db.DB.Exec(`
-			UPDATE products SET title=?, brand=?, year=?, model=?, price=?, old_price=?, icon=?, badge=?, description=?, logo_key=?
+			UPDATE products SET title=?, brand=?, year=?, model=?, price=?, old_price=?, promo_ends_at=?, icon=?, badge=?, description=?, logo_key=?
 			WHERE id=?
-		`, title, brand, year, model, price, oldPrice, icon, badge, description, newLogoKey, id); err != nil {
+		`, title, brand, year, model, price, oldPrice, promoEndsAtParam, icon, badge, description, newLogoKey, id); err != nil {
 			return err
 		}
 	} else {
 		if _, err := db.DB.Exec(`
-			UPDATE products SET title=?, brand=?, year=?, model=?, price=?, old_price=?, icon=?, badge=?, description=?
+			UPDATE products SET title=?, brand=?, year=?, model=?, price=?, old_price=?, promo_ends_at=?, icon=?, badge=?, description=?
 			WHERE id=?
-		`, title, brand, year, model, price, oldPrice, icon, badge, description, id); err != nil {
+		`, title, brand, year, model, price, oldPrice, promoEndsAtParam, icon, badge, description, id); err != nil {
 			return err
 		}
 	}

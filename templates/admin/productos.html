@@ -59,6 +59,7 @@
         <div class="product-card" data-product-id="{{.ID}}"
              data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
              data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
+             data-promo-ends="{{.PromoEndsAtValue}}"
              data-descripcion="{{.Description}}"
              data-logo-url="{{.LogoURL}}"
              data-images='{{.ImagesJSON}}'>
@@ -131,6 +132,40 @@
             <input type="number" id="prodPrecioAnterior" name="old_price" min="0" step="0.01" placeholder="Ej. 850.00">
           </label>
         </div>
+
+        <label>Fin de la promoción <span class="admin-user-form-optional">(opcional — solo si tiene precio anterior)</span>
+          <div class="promo-end-widgets">
+            <div class="ad-datepicker" id="prodPromoEndsDateWrap">
+              <button type="button" class="ad-datepicker-trigger" id="prodPromoEndsDateBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <span class="ad-datepicker-value" id="prodPromoEndsDateLabel">dd/mm/aaaa</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="ad-datepicker-menu" id="prodPromoEndsDateMenu">
+                <div class="ad-datepicker-nav">
+                  <button type="button" class="adp-prev" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                  <span class="adp-month-label">—</span>
+                  <button type="button" class="adp-next" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                </div>
+                <div class="ad-datepicker-weekdays"><span>do</span><span>lu</span><span>ma</span><span>mi</span><span>ju</span><span>vi</span><span>sá</span></div>
+                <div class="ad-datepicker-grid adp-grid"></div>
+                <div class="ad-datepicker-actions">
+                  <button type="button" class="adp-clear">Borrar</button>
+                  <button type="button" class="adp-today">Hoy</button>
+                </div>
+              </div>
+            </div>
+            <div class="time-picker" id="prodPromoEndsTimeWrap">
+              <button type="button" class="time-picker-trigger" id="prodPromoEndsTimeBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                <span class="time-picker-value" id="prodPromoEndsTimeLabel">—</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="time-picker-menu" id="prodPromoEndsTimeMenu"></div>
+            </div>
+          </div>
+          <input type="hidden" id="prodPromoEndsAt" name="promo_ends_at">
+        </label>
 
         <div class="product-field-row">
           <label>Forma de lente
