@@ -110,7 +110,7 @@ const PRODUCT_IMAGES = [
   "https://images.unsplash.com/photo-1509695507497-903c140c43b0?q=80&w=500&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1614715838608-42b8c1e8e1f5?q=80&w=500&auto=format&fit=crop"
 ];
-const PRODUCTS = [
+const DEMO_PRODUCTS = [
   {name:"Sydney", price:"$699.00", icon:"sun", badge:"Nuevo", brand:"Ray-Ban"},
   {name:"Aurora", price:"$540.00", icon:"square", brand:"Persol"},
   {name:"Nomad", price:"$610.00", oldPrice:"$750.00", icon:"round", brand:"Oakley"},
@@ -120,6 +120,20 @@ const PRODUCTS = [
   {name:"Milano", price:"$650.00", icon:"sun", brand:"Versace"},
   {name:"Sol", price:"$430.00", icon:"square", badge:"Nuevo", brand:"Tom Ford"}
 ];
+// Si el admin ya agregó productos reales, vienen como JSON dentro de un
+// <script type="application/json"> inyectado por el servidor en
+// index.html (así el editor no intenta lintear ese bloque como JS, y el
+// navegador nunca lo ejecuta — solo lo lee como texto).
+function readInjectedProducts(){
+  const el = document.getElementById('avante-products-data');
+  if (!el) return [];
+  try { return JSON.parse(el.textContent) || []; }
+  catch (e) { return []; }
+}
+const AVANTE_PRODUCTS = readInjectedProducts();
+// Si el catálogo está vacío, se muestran los de ejemplo para que la
+// página no se vea en blanco.
+const PRODUCTS = AVANTE_PRODUCTS.length ? AVANTE_PRODUCTS : DEMO_PRODUCTS;
 const PROMOS = [
   {img:PRODUCT_IMAGES[0], icon:"sun", badge:"-20%", title:"Colección aviador", old:"$89.00", price:"$71.20", expires:"2026-07-25T23:59:59"},
   {img:PRODUCT_IMAGES[1], icon:"square", badge:"3X2", title:"Lectura premium", price:"Desde $54.00", expires:"2026-07-31T23:59:59"},
@@ -133,7 +147,9 @@ const PROMOS = [
    ========================================================= */
 const shopGrid = document.getElementById('shopGrid');
 shopGrid.innerHTML = PRODUCTS.map((p,i) => {
-  const imgs = [0,1,2].map(k => PRODUCT_IMAGES[(i + k) % PRODUCT_IMAGES.length]);
+  const imgs = (p.images && p.images.length)
+    ? [0,1,2].map(k => p.images[k % p.images.length])
+    : [0,1,2].map(k => PRODUCT_IMAGES[(i + k) % PRODUCT_IMAGES.length]);
   const svgImages = imgs.map((src,k) => `
       <clipPath id="clip-${i}-${k}"><path id="path-${i}-${k}" d="${k===0 ? SHOP_CLIP.FULL : SHOP_CLIP.HIDDEN_R}"/></clipPath>`).join('');
   const svgUses = imgs.map((src,k) => `<image clip-path="url(#clip-${i}-${k})" href="${src}" x="0" y="0" width="400" height="400" preserveAspectRatio="xMidYMid slice" onerror="this.style.opacity='0';"/>`).join('');

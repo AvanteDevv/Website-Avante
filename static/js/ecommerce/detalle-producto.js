@@ -1,5 +1,5 @@
 /* =========================================================
-   DATOS (misma fuente que index.html)
+   DATOS (misma fuente que index.html / ecommerce.html)
    ========================================================= */
 const PRODUCT_IMAGES = [
   "https://images.unsplash.com/photo-1508296695146-257a814070b4?q=80&w=700&auto=format&fit=crop",
@@ -11,7 +11,7 @@ const PRODUCT_IMAGES = [
   "https://images.unsplash.com/photo-1509695507497-903c140c43b0?q=80&w=700&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1614715838608-42b8c1e8e1f5?q=80&w=700&auto=format&fit=crop"
 ];
-const PRODUCTS = [
+const DEMO_PRODUCTS = [
   {name:"Sydney", price:"$699.00", icon:"sun", badge:"Nuevo", brand:"Ray-Ban", desc:"Un clásico aviador reinterpretado: puente delgado, lentes con protección UV400 y un acabado que envejece bien con el uso diario."},
   {name:"Aurora", price:"$540.00", icon:"square", brand:"Persol", desc:"Silueta cuadrada de acetato italiano, pensada para rostros ovalados y un uso de oficina a fin de semana sin perder el enfoque."},
   {name:"Nomad", price:"$610.00", oldPrice:"$750.00", icon:"round", brand:"Oakley", desc:"Montura redonda ligera en titanio, con bisagras de resorte para un ajuste cómodo durante todo el día."},
@@ -21,12 +21,27 @@ const PRODUCTS = [
   {name:"Milano", price:"$650.00", icon:"sun", brand:"Versace", desc:"Elegancia europea con varillas texturizadas y lentes polarizados de alta definición."},
   {name:"Sol", price:"$430.00", icon:"square", badge:"Nuevo", brand:"Tom Ford", desc:"Un modelo versátil de acetato translúcido, con protección UV400 y estuche rígido incluido."}
 ];
+// Si el admin ya agregó productos reales, vienen como JSON dentro de un
+// <script type="application/json"> inyectado por el servidor. Si el
+// catálogo está vacío, se muestran los de ejemplo.
+function readInjectedProducts(){
+  const el = document.getElementById('avante-products-data');
+  if (!el) return [];
+  try { return JSON.parse(el.textContent) || []; }
+  catch (e) { return []; }
+}
+const AVANTE_PRODUCTS = readInjectedProducts();
+const PRODUCTS = AVANTE_PRODUCTS.length ? AVANTE_PRODUCTS : DEMO_PRODUCTS;
 
 const params = new URLSearchParams(window.location.search);
 let pid = parseInt(params.get('id'), 10);
 if(isNaN(pid) || pid < 0 || pid >= PRODUCTS.length) pid = 0;
 const product = PRODUCTS[pid];
-const imgs = [0,1,2].map(k => PRODUCT_IMAGES[(pid + k) % PRODUCT_IMAGES.length]);
+// Si el producto viene de la BD trae su propia foto real (product.images);
+// si no, se arma el carrusel con las 3 fotos de stock como antes.
+const imgs = (product.images && product.images.length)
+  ? [0,1,2].map(k => product.images[k % product.images.length])
+  : [0,1,2].map(k => PRODUCT_IMAGES[(pid + k) % PRODUCT_IMAGES.length]);
 
 document.title = `${product.name} — Avante Optics`;
 document.getElementById('crumbName').textContent = product.name;
@@ -188,7 +203,7 @@ const relGrid = document.getElementById('relGrid');
 const related = PRODUCTS.map((p,i) => ({...p, i})).filter(p => p.i !== pid).slice(0, 4);
 relGrid.innerHTML = related.map(p => `
   <a class="rel-card" href="/eccomerce/detalle?id=${p.i}">
-    <div class="rel-photo"><img src="${PRODUCT_IMAGES[p.i % PRODUCT_IMAGES.length]}" alt="${p.name}"></div>
+    <div class="rel-photo"><img src="${(p.images && p.images.length) ? p.images[0] : PRODUCT_IMAGES[p.i % PRODUCT_IMAGES.length]}" alt="${p.name}"></div>
     <div class="rel-name">${p.name}</div>
     <div class="rel-price-row">
       ${p.oldPrice ? `<span class="rel-old">${p.oldPrice}</span>` : ''}

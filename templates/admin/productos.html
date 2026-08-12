@@ -58,9 +58,12 @@
         {{range .Productos}}
         <div class="product-card" data-product-id="{{.ID}}"
              data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
+             data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
+             data-descripcion="{{.Description}}"
              data-image-url="{{.ImageURL}}">
           <div class="product-card-media">
             <img src="{{.ImageURL}}" alt="{{.Brand}}">
+            {{if .Badge}}<span class="product-badge-pill">{{.Badge}}</span>{{end}}
             <div class="row-menu product-card-menu">
               <button type="button" class="row-menu-btn" aria-label="Más acciones" aria-haspopup="true" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
@@ -78,6 +81,10 @@
               {{if .Model}}<span>{{.Model}}</span>{{end}}
               {{if and .Model .Year}}<span class="product-dot">·</span>{{end}}
               {{if .Year}}<span>{{.Year}}</span>{{end}}
+            </div>
+            <div class="product-card-price">
+              {{if .OldPrice}}<span class="product-old-price">${{printf "%.2f" .OldPrice}}</span>{{end}}
+              <span class="product-new-price">${{printf "%.2f" .Price}}</span>
             </div>
           </div>
         </div>
@@ -113,6 +120,39 @@
             <input type="text" id="prodModelo" name="model" placeholder="Ej. MRD-102">
           </label>
         </div>
+
+        <div class="product-field-row">
+          <label>Precio
+            <input type="number" id="prodPrecio" name="price" required min="0" step="0.01" placeholder="Ej. 699.00">
+          </label>
+          <label>Precio anterior <span class="admin-user-form-optional">(opcional)</span>
+            <input type="number" id="prodPrecioAnterior" name="old_price" min="0" step="0.01" placeholder="Ej. 850.00">
+          </label>
+        </div>
+
+        <div class="product-field-row">
+          <label>Forma de lente
+            <div class="admin-role-select" id="prodIconWrap">
+              <button type="button" class="admin-role-select-btn" id="prodIconBtn" aria-haspopup="true" aria-expanded="false">
+                <span id="prodIconLabel">Redonda</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="admin-role-select-menu" id="prodIconMenu">
+                <button type="button" class="admin-role-option" data-value="sun">Aviador</button>
+                <button type="button" class="admin-role-option" data-value="square">Cuadrada</button>
+                <button type="button" class="admin-role-option active" data-value="round">Redonda</button>
+              </div>
+            </div>
+            <input type="hidden" id="prodIcon" name="icon" value="round">
+          </label>
+          <label>Etiqueta <span class="admin-user-form-optional">(opcional)</span>
+            <input type="text" id="prodBadge" name="badge" placeholder="Ej. Nuevo, Bestseller">
+          </label>
+        </div>
+
+        <label>Descripción <span class="admin-user-form-optional">(opcional)</span>
+          <textarea id="prodDescripcion" name="description" rows="3" placeholder="Se muestra en el detalle del producto — materiales, ajuste, protección UV, etc."></textarea>
+        </label>
 
         <label>Imagen de la marca
           <div class="ad-upload-drop" id="prodUploadDrop">

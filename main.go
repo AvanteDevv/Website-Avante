@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -15,6 +16,7 @@ import (
 	"avante-optics/db"
 	"avante-optics/handlers"
 	adminHandlers "avante-optics/handlers/admin"
+	"avante-optics/models"
 	"avante-optics/storage"
 )
 
@@ -43,6 +45,78 @@ func spanishDateTime(t time.Time) string {
 	mesCorto := spanishMonths[t.Month()-1][:3]
 	return fmt.Sprintf("%d %s %d, %02d:%02d", t.Day(), mesCorto, t.Year(), t.Hour(), t.Minute())
 }
+
+// storeProduct es la forma que espera el JS de la tienda pública
+// (index.js / ecommerce.js / detalle-producto.js) para cada tarjeta —
+// name/brand/price/icon/desc tal cual ya usaban con los datos de
+// ejemplo, más "images" con la imagen real subida en el panel de admin
+// (se repite en las 3 posiciones del carrusel si solo hay una).
+type storeProduct struct {
+	Name     string   `json:"name"`
+	Brand    string   `json:"brand"`
+	Price    string   `json:"price"`
+	OldPrice string   `json:"oldPrice,omitempty"`
+	Icon     string   `json:"icon"`
+	Badge    string   `json:"badge,omitempty"`
+	Desc     string   `json:"desc,omitempty"`
+	Images   []string `json:"images"`
+}
+
+// productNewBadgeWindow es cuánto tiempo después de agregado un producto
+// sigue mostrándose como "Nuevo" automáticamente (si el admin no le puso
+// una etiqueta manual). Ajusta este valor si quieres que dure más o menos.
+const productNewBadgeWindow = 30 * 24 * time.Hour
+
+// buildStoreProductsJSON arma window.AVANTE_PRODUCTS para inyectarlo en
+// el <script> de index.html/ecommerce.html/detalle-producto.html ANTES
+// de que carguen sus respectivos JS — así el render de esos archivos
+// (que asume que PRODUCTS ya existe de forma síncrona) no tiene que
+// cambiar de estructura, solo leer esta variable si viene con datos.
+func buildStoreProductsJSON() template.JS {
+	products, err := models.GetAllProducts()
+	if err != nil {
+		return template.JS("[]")
+	}
+
+	out := make([]storeProduct, 0, len(products))
+	for _, p := range products {
+		sp := storeProduct{
+			Name:   p.Title,
+			Brand:  p.Brand,
+			Price:  fmt.Sprintf("$%.2f", p.Price),
+			Icon:   p.Icon,
+			Badge:  p.Badge,
+			Desc:   p.Description,
+			Images: []string{p.ImageURL},
+		}
+		if p.OldPrice > 0 {
+			sp.OldPrice = fmt.Sprintf("$%.2f", p.OldPrice)
+		}
+
+		// Si el admin no escribió una etiqueta a mano, se autocompleta:
+		// primero "Promoción" si tiene precio anterior (ya es la señal de
+		// que está en descuento — no hace falta un campo aparte para
+		// marcarlo), y si no, "Nuevo" mientras esté dentro de la ventana
+		// de días recién agregado.
+		if sp.Badge == "" {
+			switch {
+			case p.OldPrice > 0:
+				sp.Badge = "Promoción"
+			case time.Since(p.CreatedAt) <= productNewBadgeWindow:
+				sp.Badge = "Nuevo"
+			}
+		}
+
+		out = append(out, sp)
+	}
+
+	b, err := json.Marshal(out)
+	if err != nil {
+		return template.JS("[]")
+	}
+	return template.JS(b)
+}
+
 func loadTemplates() *template.Template {
 	funcs := template.FuncMap{
 		"fechaEs":     spanishDate,
@@ -86,10 +160,11 @@ func main() {
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", handlers.WithUser(c, gin.H{
-			"ActivePage": "inicio",
-			"AdMainURL":  handlers.ActiveAdImage("main"),
-			"AdSide1URL": handlers.ActiveAdImage("side1"),
-			"AdSide2URL": handlers.ActiveAdImage("side2"),
+			"ActivePage":   "inicio",
+			"AdMainURL":    handlers.ActiveAdImage("main"),
+			"AdSide1URL":   handlers.ActiveAdImage("side1"),
+			"AdSide2URL":   handlers.ActiveAdImage("side2"),
+			"ProductsJSON": buildStoreProductsJSON(),
 		}))
 	})
 
@@ -233,13 +308,15 @@ func main() {
 	// Online store (templates/ecommerce/*.html)
 	router.GET("/eccomerce", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "ecommerce.html", handlers.WithUser(c, gin.H{
-			"ActivePage": "tienda",
+			"ActivePage":   "tienda",
+			"ProductsJSON": buildStoreProductsJSON(),
 		}))
 	})
 	router.GET("/eccomerce/:producto", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "detalle-producto.html", handlers.WithUser(c, gin.H{
-			"ActivePage": "tienda",
-			"Producto":   c.Param("producto"),
+			"ActivePage":   "tienda",
+			"Producto":     c.Param("producto"),
+			"ProductsJSON": buildStoreProductsJSON(),
 		}))
 	})
 

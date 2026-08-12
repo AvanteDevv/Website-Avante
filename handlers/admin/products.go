@@ -37,6 +37,11 @@ func Products(c *gin.Context) {
 
 var allowedProductImageExt = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
 
+// allowedProductIcons son las mismas 3 formas de lente que ya usa la
+// tienda pública (index/eccomerce) para el ícono de respaldo de cada
+// tarjeta — no se puede guardar cualquier valor aquí.
+var allowedProductIcons = map[string]bool{"sun": true, "square": true, "round": true}
+
 // uploadProductImage sube la imagen del form (campo "image") al bucket
 // bajo productos/ y regresa el nombre de archivo generado.
 func uploadProductImage(c *gin.Context) (string, error) {
@@ -63,19 +68,53 @@ func uploadProductImage(c *gin.Context) (string, error) {
 	return filename, nil
 }
 
-// CreateProduct — POST /api/admin/productos (multipart/form-data)
-func CreateProduct(c *gin.Context) {
-	title := strings.TrimSpace(c.PostForm("title"))
-	brand := strings.TrimSpace(c.PostForm("brand"))
-	year := strings.TrimSpace(c.PostForm("year"))
-	model := strings.TrimSpace(c.PostForm("model"))
+// parseProductForm lee y valida los campos comunes a crear/editar.
+func parseProductForm(c *gin.Context) (title, brand, year, model, icon, badge, description string, price, oldPrice float64, err error) {
+	title = strings.TrimSpace(c.PostForm("title"))
+	brand = strings.TrimSpace(c.PostForm("brand"))
+	year = strings.TrimSpace(c.PostForm("year"))
+	model = strings.TrimSpace(c.PostForm("model"))
+	icon = c.PostForm("icon")
+	badge = strings.TrimSpace(c.PostForm("badge"))
+	description = strings.TrimSpace(c.PostForm("description"))
 
 	if title == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "El título es obligatorio."})
+		err = fmt.Errorf("el título es obligatorio")
 		return
 	}
 	if brand == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "La marca es obligatoria."})
+		err = fmt.Errorf("la marca es obligatoria")
+		return
+	}
+	if !allowedProductIcons[icon] {
+		err = fmt.Errorf("elige una forma de lente válida")
+		return
+	}
+
+	priceStr := strings.TrimSpace(c.PostForm("price"))
+	price, perr := strconv.ParseFloat(priceStr, 64)
+	if perr != nil || price < 0 {
+		err = fmt.Errorf("ingresa un precio válido")
+		return
+	}
+
+	oldPriceStr := strings.TrimSpace(c.PostForm("old_price"))
+	if oldPriceStr != "" {
+		oldPrice, err = strconv.ParseFloat(oldPriceStr, 64)
+		if err != nil || oldPrice < 0 {
+			err = fmt.Errorf("el precio anterior no es válido")
+			return
+		}
+	}
+	err = nil
+	return
+}
+
+// CreateProduct — POST /api/admin/productos (multipart/form-data)
+func CreateProduct(c *gin.Context) {
+	title, brand, year, model, icon, badge, description, price, oldPrice, err := parseProductForm(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -85,7 +124,7 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
-	id, err := models.CreateProduct(title, brand, year, model, imageKey)
+	id, err := models.CreateProduct(title, brand, year, model, price, oldPrice, icon, badge, description, imageKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el producto."})
 		return
@@ -105,17 +144,9 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	title := strings.TrimSpace(c.PostForm("title"))
-	brand := strings.TrimSpace(c.PostForm("brand"))
-	year := strings.TrimSpace(c.PostForm("year"))
-	model := strings.TrimSpace(c.PostForm("model"))
-
-	if title == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "El título es obligatorio."})
-		return
-	}
-	if brand == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "La marca es obligatoria."})
+	title, brand, year, model, icon, badge, description, price, oldPrice, err := parseProductForm(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -136,7 +167,7 @@ func UpdateProduct(c *gin.Context) {
 		oldImageKey, _ = models.GetProductImageKey(id)
 	}
 
-	if err := models.UpdateProduct(id, title, brand, year, model, newImageKey); err != nil {
+	if err := models.UpdateProduct(id, title, brand, year, model, price, oldPrice, icon, badge, description, newImageKey); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar el producto."})
 		return
 	}
