@@ -1,22 +1,51 @@
 /* =========================================================
-   PRODUCTOS — buscador por título/marca
+   PRODUCTOS — buscador por título/marca (aplica a ambas vistas)
    ========================================================= */
 (function(){
-  var cards = Array.prototype.slice.call(document.querySelectorAll('#productsGrid .product-card'));
   var searchInput = document.getElementById('prodSearch');
-  if (!searchInput || cards.length === 0) return;
+  if (!searchInput) return;
 
   function applyFilter(){
     var term = (searchInput.value || '').toLowerCase().trim();
-    cards.forEach(function(card){
+    document.querySelectorAll('.product-item').forEach(function(item){
       var matches = term === '' ||
-        card.dataset.titulo.toLowerCase().indexOf(term) !== -1 ||
-        card.dataset.marca.toLowerCase().indexOf(term) !== -1;
-      card.style.display = matches ? '' : 'none';
+        item.dataset.titulo.toLowerCase().indexOf(term) !== -1 ||
+        item.dataset.marca.toLowerCase().indexOf(term) !== -1;
+      item.style.display = matches ? '' : 'none';
     });
   }
 
   searchInput.addEventListener('input', applyFilter);
+})();
+
+/* ---------- Toggle de vista: cuadrícula / tabla ---------- */
+(function(){
+  var toggle = document.getElementById('productViewToggle');
+  var gridView = document.getElementById('productsGrid');
+  var tableView = document.getElementById('productsTableView');
+  if (!toggle || !gridView || !tableView) return;
+
+  var STORAGE_KEY = 'avanteAdminProductsView';
+
+  function setView(view){
+    var isTable = view === 'table';
+    gridView.style.display = isTable ? 'none' : '';
+    tableView.style.display = isTable ? '' : 'none';
+    toggle.querySelectorAll('.view-toggle-btn').forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.view === view);
+    });
+    try { localStorage.setItem(STORAGE_KEY, view); } catch (e) { /* ignorado */ }
+  }
+
+  toggle.addEventListener('click', function(e){
+    var btn = e.target.closest('.view-toggle-btn');
+    if (!btn) return;
+    setView(btn.dataset.view);
+  });
+
+  var saved = null;
+  try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) { /* ignorado */ }
+  if (saved === 'table') setView('table');
 })();
 
 /* ---------- Dropdown: forma de lente ---------- */
@@ -87,14 +116,20 @@ var setProductIcon = (function(){
 /* ---------- Contadores (stat card + "N productos cargados") ---------- */
 function updateProductCount(){
   var grid = document.getElementById('productsGrid');
-  var total = grid ? grid.querySelectorAll('.product-card').length : 0;
+  var tableBody = document.getElementById('productsTableBody');
+  var total = grid ? grid.querySelectorAll('.product-item').length : 0;
   var statEl = document.getElementById('totalProductsStat');
   var countEl = document.getElementById('totalProductsCount');
   if (statEl) statEl.textContent = total;
   if (countEl) countEl.textContent = total + (total === 1 ? ' producto cargado' : ' productos cargados');
 
-  if (grid && total === 0 && !grid.querySelector('.products-empty')) {
-    grid.insertAdjacentHTML('beforeend', '<div class="products-empty">Todavía no has agregado ningún producto.</div>');
+  if (total === 0) {
+    if (grid && !grid.querySelector('.products-empty')) {
+      grid.insertAdjacentHTML('beforeend', '<div class="products-empty">Todavía no has agregado ningún producto.</div>');
+    }
+    if (tableBody && !tableBody.querySelector('.products-table-empty-row')) {
+      tableBody.insertAdjacentHTML('beforeend', '<tr class="products-table-empty-row"><td colspan="12">Todavía no has agregado ningún producto.</td></tr>');
+    }
   }
 }
 
@@ -103,7 +138,7 @@ function updateProductCount(){
   document.addEventListener('click', function(e){
     var delBtn = e.target.closest('[data-action="eliminar"]');
     if (!delBtn) return;
-    var card = delBtn.closest('.product-card');
+    var card = delBtn.closest('.product-item');
     var id = delBtn.dataset.id;
     if (!id) return;
     var titulo = card ? card.dataset.titulo : 'este producto';
@@ -111,7 +146,9 @@ function updateProductCount(){
     fetch('/api/admin/productos/' + id, { method: 'DELETE' })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); })
       .then(function(){
-        card && card.remove();
+        // quita el producto de las DOS vistas (cuadrícula y tabla), no
+        // solo de la que se usó para borrarlo
+        document.querySelectorAll('.product-item[data-product-id="' + id + '"]').forEach(function(el){ el.remove(); });
         updateProductCount();
       })
       .catch(function(){ alert('No se pudo eliminar el producto. Intenta de nuevo.'); });
@@ -342,7 +379,7 @@ var productPhotos = (function(){
   document.addEventListener('click', function(e){
     var editBtn = e.target.closest('[data-action="editar"]');
     if (!editBtn) return;
-    var card = editBtn.closest('.product-card');
+    var card = editBtn.closest('.product-item');
     if (card) openEditModal(card);
   });
 

@@ -56,6 +56,20 @@ func (p Product) PromoEndsAtValue() string {
 	return p.PromoEndsAt.Format("2006-01-02T15:04")
 }
 
+// HasPromo indica si el producto tiene precio anterior configurado
+// (esa es la señal de que está "en promoción", igual que en la
+// tienda pública).
+func (p Product) HasPromo() bool {
+	return p.OldPrice > 0
+}
+
+// PromoExpired indica si la promoción ya venció (tiene fecha de fin
+// configurada y esa fecha ya pasó). Si no tiene fecha de fin, la
+// promoción se considera sin vencimiento (nunca "vencida").
+func (p Product) PromoExpired() bool {
+	return !p.PromoEndsAt.IsZero() && time.Now().After(p.PromoEndsAt)
+}
+
 // GetAllProducts regresa todo el catálogo, más recientes primero, con
 // sus fotos ya cargadas (evita N+1: una query para productos, otra
 // para TODAS las fotos, y se juntan en memoria).

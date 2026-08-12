@@ -239,3 +239,50 @@
 }
 .ad-datepicker-actions button{ font-size:12px; font-weight:700; color:var(--blue-600); transition:color .2s var(--ease); }
 .ad-datepicker-actions button:hover{ color:var(--blue-700); }
+
+/* ---------- Toggle de vista (cuadrícula / tabla) ---------- */
+.view-toggle{
+  display:flex; gap:4px; padding:4px; border-radius:12px;
+  background:var(--blue-50, #f4f5fb); border:1px solid var(--line); flex-shrink:0;
+}
+.view-toggle-btn{
+  width:32px; height:32px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--grey); transition:background .18s var(--ease), color .18s var(--ease);
+}
+.view-toggle-btn svg{ width:16px; height:16px; }
+.view-toggle-btn:hover{ color:var(--ink); }
+.view-toggle-btn.active{ background:var(--white); color:var(--blue-600); box-shadow:0 1px 4px rgba(10,14,56,.12); }
+
+/* ---------- Vista de tabla ---------- */
+.products-table-wrap{ overflow-x:auto; padding:0 24px 26px; }
+.products-table{ width:100%; border-collapse:collapse; min-width:980px; }
+.products-table thead th{
+  text-align:left; font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  color:var(--grey); padding:10px 12px; border-bottom:1.5px solid var(--line);
+}
+.products-table th.pt-photo, .products-table td.pt-photo{ width:76px; }
+.products-table th.pt-actions, .products-table td.pt-actions{ width:40px; }
+.products-table tbody tr{ border-bottom:1px solid var(--line); transition:background .15s var(--ease); }
+.products-table tbody tr:last-child{ border-bottom:none; }
+.products-table tbody tr:hover{ background:var(--blue-50, #f4f5fb); }
+.products-table td{ padding:10px 12px; font-size:13px; color:var(--ink); vertical-align:middle; }
+
+.pt-photo img{ width:52px; height:52px; border-radius:11px; object-fit:cover; display:block; background:var(--blue-50); }
+.products-table td.pt-photo{ padding:8px 12px; }
+.pt-title{ font-weight:700; font-size:13px; }
+.pt-logo-col{ width:36px; }
+.pt-logo{ width:30px; height:30px; border-radius:50%; object-fit:contain; background:var(--white); border:1px solid var(--line); padding:3px; box-sizing:border-box; display:block; }
+.pt-old-price{ font-size:11.5px; color:var(--grey); text-decoration:line-through; }
+.pt-new-price{ font-weight:700; }
+.pt-badge-pill{ position:static; box-shadow:none; }
+
+.pt-status{
+  display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.02em;
+  padding:4px 10px; border-radius:100px;
+}
+.pt-status-promo{ background:#e7f6ec; color:#1f9d55; }
+.pt-status-expired{ background:#fdecea; color:#c0392b; }
+.pt-status-none{ color:var(--grey); font-weight:400; padding:0; background:none; }
+
+.products-table-empty-row td{ text-align:center; padding:40px 20px; color:var(--grey); font-size:13.5px; }
