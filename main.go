@@ -282,6 +282,7 @@ func main() {
 		apiAdmin.POST("/anuncios", adminHandlers.CreateAd)
 		apiAdmin.PUT("/anuncios/:id", adminHandlers.UpdateAd)
 		apiAdmin.DELETE("/anuncios/:id", adminHandlers.DeleteAd)
+		apiAdmin.GET("/marcas", adminHandlers.ListBrands)
 		apiAdmin.POST("/productos", adminHandlers.CreateProduct)
 		apiAdmin.PUT("/productos/:id", adminHandlers.UpdateProduct)
 		apiAdmin.DELETE("/productos/:id", adminHandlers.DeleteProduct)
@@ -308,6 +309,7 @@ func main() {
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
 	router.GET("/media/productos/*key", handlers.ServeProductImage)
+	router.GET("/media/logos/*key", handlers.ServeLogoImage)
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
 

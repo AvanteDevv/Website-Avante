@@ -40,6 +40,19 @@ func Products(c *gin.Context) {
 	})
 }
 
+// ListBrands — GET /api/admin/marcas
+// Regresa las marcas ya usadas en el catálogo con su logo más
+// reciente, para el selector "usar un logo existente" del form de
+// crear/editar producto.
+func ListBrands(c *gin.Context) {
+	brands, err := models.GetBrandLogos()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar las marcas."})
+		return
+	}
+	c.JSON(http.StatusOK, brands)
+}
+
 var allowedProductImageExt = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
 
 // allowedProductIcons son las mismas 3 formas de lente que ya usa la
@@ -104,13 +117,68 @@ func uploadOneImage(c *gin.Context, fh *multipart.FileHeader, folder string) (st
 	return key, nil
 }
 
-// uploadProductLogo sube el archivo del campo "logo" (uno solo).
-func uploadProductLogo(c *gin.Context, folder string) (string, error) {
-	_, fh, err := c.Request.FormFile("logo")
-	if err != nil {
-		return "", fmt.Errorf("selecciona el logo de la marca")
+// uploadProductLogo sube el archivo del campo "logo" (uno solo) a
+// logos/ — carpeta aparte de productos/, porque el logo se reutiliza
+// entre varios productos y no es exclusivo de uno solo.
+func uploadProductLogo(c *gin.Context, fh *multipart.FileHeader) (string, error) {
+	ext := strings.ToLower(filepath.Ext(fh.Filename))
+	if !allowedProductImageExt[ext] {
+		return "", fmt.Errorf("formato de imagen no soportado (usa JPG, PNG o WEBP)")
 	}
-	return uploadOneImage(c, fh, folder)
+
+	file, err := fh.Open()
+	if err != nil {
+		return "", fmt.Errorf("no se pudo leer la imagen")
+	}
+	defer file.Close()
+
+	contentType := fh.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+	if err := storage.UploadObject(c.Request.Context(), "logos/"+filename, file, fh.Size, contentType); err != nil {
+		return "", fmt.Errorf("no se pudo subir el logo al bucket")
+	}
+	return filename, nil
+}
+
+// resolveLogoKey decide de dónde sale el logo del producto:
+//   - Si viene "existing_logo_key" en el form (el admin eligió reusar
+//     el logo de una marca que ya tenía), se COPIA ese archivo del
+//     bucket (dentro de logos/) a una key nueva — nunca se comparte la
+//     misma key entre dos productos, porque borrar uno se llevaría el
+//     logo del otro. Antes de copiar se valida que esa key sí
+//     pertenezca a algún producto real (no se confía en cualquier
+//     ruta que mande el form).
+//   - Si no, sube el archivo del campo "logo" normal.
+//   - requireOne=true exige que venga una de las dos cosas (crear);
+//     en false, si no viene ninguna regresa "" sin error (editar sin
+//     tocar el logo).
+func resolveLogoKey(c *gin.Context, requireOne bool) (string, error) {
+	existingKey := strings.TrimSpace(c.PostForm("existing_logo_key"))
+	if existingKey != "" {
+		ok, err := models.LogoKeyExists(existingKey)
+		if err != nil || !ok {
+			return "", fmt.Errorf("el logo que elegiste ya no existe, intenta de nuevo")
+		}
+		ext := filepath.Ext(existingKey)
+		newKey := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		if err := storage.CopyObject(c.Request.Context(), "logos/"+existingKey, "logos/"+newKey); err != nil {
+			return "", fmt.Errorf("no se pudo copiar el logo elegido")
+		}
+		return newKey, nil
+	}
+
+	if _, fh, err := c.Request.FormFile("logo"); err == nil {
+		return uploadProductLogo(c, fh)
+	}
+
+	if requireOne {
+		return "", fmt.Errorf("sube el logo de la marca o elige uno existente")
+	}
+	return "", nil
 }
 
 // uploadProductPhotos sube todos los archivos del campo "images" (uno o
@@ -206,7 +274,7 @@ func CreateProduct(c *gin.Context) {
 	// subcarpeta, para que quede organizado en el bucket.
 	folder := productFolder(title)
 
-	logoKey, err := uploadProductLogo(c, folder)
+	logoKey, err := resolveLogoKey(c, true)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -235,7 +303,7 @@ func CreateProduct(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"id":        id,
-		"logoUrl":   "/media/productos/" + logoKey,
+		"logoUrl":   "/media/logos/" + logoKey,
 		"imageUrls": imageURLs,
 	})
 }
@@ -256,30 +324,27 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	// Si lo que ya subió antes vive en una subcarpeta, lo nuevo se sube
-	// a ESA MISMA carpeta (para que quede junto con lo demás del
-	// producto). Si no hay ninguna pista de carpeta previa (producto
-	// creado antes de este cambio, con keys "planas"), se arma una
-	// carpeta nueva a partir del título.
+	// La carpeta del producto se deriva de sus FOTOS (el logo ya no
+	// tiene subcarpeta propia — vive plano en logos/). Si no hay
+	// ninguna pista de carpeta previa (producto creado antes de este
+	// cambio, con keys "planas"), se arma una carpeta nueva a partir
+	// del título.
 	existingLogoKey, _ := models.GetProductLogoKey(id)
-	folder := folderOf(existingLogoKey)
-	if folder == "" {
-		if keys, _ := models.GetProductImageKeys(id); len(keys) > 0 {
-			folder = folderOf(keys[0])
-		}
+	var folder string
+	if keys, _ := models.GetProductImageKeys(id); len(keys) > 0 {
+		folder = folderOf(keys[0])
 	}
 	if folder == "" {
 		folder = productFolder(title)
 	}
 
-	// Logo opcional al editar.
-	var newLogoKey string
-	if _, _, ferr := c.Request.FormFile("logo"); ferr == nil {
-		newLogoKey, err = uploadProductLogo(c, folder)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+	// Logo opcional al editar: si mandan un archivo nuevo o eligen uno
+	// existente, se reemplaza; si no viene ninguno, se conserva el que
+	// ya tenía (resolveLogoKey regresa "" sin error en ese caso).
+	newLogoKey, err := resolveLogoKey(c, false)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	// Fotos opcionales al editar: si mandan alguna, se reemplazan TODAS
@@ -305,7 +370,7 @@ func UpdateProduct(c *gin.Context) {
 	}
 
 	if newLogoKey != "" && oldLogoKey != "" {
-		storage.DeleteObject(c.Request.Context(), "productos/"+oldLogoKey)
+		storage.DeleteObject(c.Request.Context(), "logos/"+oldLogoKey)
 	}
 	for _, k := range oldImageKeys {
 		storage.DeleteObject(c.Request.Context(), "productos/"+k)
@@ -313,7 +378,7 @@ func UpdateProduct(c *gin.Context) {
 
 	resp := gin.H{"ok": true}
 	if newLogoKey != "" {
-		resp["logoUrl"] = "/media/productos/" + newLogoKey
+		resp["logoUrl"] = "/media/logos/" + newLogoKey
 	}
 	if len(newImageKeys) > 0 {
 		imageURLs := make([]string, len(newImageKeys))
@@ -333,14 +398,18 @@ func DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	imageKeys, err := models.DeleteProduct(id)
+	logoKey, imageKeys, err := models.DeleteProduct(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Producto no encontrado."})
 		return
 	}
 
 	// Borrado del bucket best-effort: si falla, no tumbamos la
-	// respuesta — el registro en BD ya se fue.
+	// respuesta — el registro en BD ya se fue. El logo vive en logos/
+	// y las fotos en productos/, cada una con su prefijo.
+	if logoKey != "" {
+		storage.DeleteObject(c.Request.Context(), "logos/"+logoKey)
+	}
 	for _, k := range imageKeys {
 		if k != "" {
 			storage.DeleteObject(c.Request.Context(), "productos/"+k)

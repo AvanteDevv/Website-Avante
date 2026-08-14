@@ -52,6 +52,12 @@
             <input type="text" id="prodSearch" placeholder="Buscar por título o marca…">
           </div>
         </div>
+        <div class="filter-pills" id="statusFilters">
+          <button type="button" class="filter-pill active" data-status="todos">Todos</button>
+          <button type="button" class="filter-pill" data-status="promo">En promoción</button>
+          <button type="button" class="filter-pill" data-status="expired">Vencidas</button>
+          <button type="button" class="filter-pill" data-status="none">Sin promoción</button>
+        </div>
         <div class="view-toggle" id="productViewToggle">
           <button type="button" class="view-toggle-btn active" data-view="grid" aria-label="Vista de cuadrícula" title="Cuadrícula">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
@@ -68,6 +74,7 @@
              data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
              data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
              data-promo-ends="{{.PromoEndsAtValue}}"
+             data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
              data-descripcion="{{.Description}}"
              data-logo-url="{{.LogoURL}}"
              data-images='{{.ImagesJSON}}'>
@@ -109,14 +116,13 @@
           <thead>
             <tr>
               <th class="pt-photo"></th>
-              <th>Producto</th>
-              <th class="pt-logo-col"></th>
-              <th>Marca</th>
-              <th>Modelo</th>
-              <th>Año</th>
-              <th>Precio anterior</th>
-              <th>Precio actual</th>
-              <th>Fotos</th>
+              <th class="pt-sortable" data-sort="titulo" data-type="text">Producto<span class="pt-sort-arrow"></span></th>
+              <th class="pt-sortable" data-sort="marca" data-type="text">Marca<span class="pt-sort-arrow"></span></th>
+              <th class="pt-sortable" data-sort="modelo" data-type="text">Modelo<span class="pt-sort-arrow"></span></th>
+              <th class="pt-sortable" data-sort="anio" data-type="number">Año<span class="pt-sort-arrow"></span></th>
+              <th class="pt-sortable" data-sort="precioAnterior" data-type="number">Precio anterior<span class="pt-sort-arrow"></span></th>
+              <th class="pt-sortable" data-sort="precio" data-type="number">Precio actual<span class="pt-sort-arrow"></span></th>
+              <th class="pt-sortable" data-sort="fotos" data-type="number">Fotos<span class="pt-sort-arrow"></span></th>
               <th>Estado</th>
               <th>Etiqueta</th>
               <th class="pt-actions"></th>
@@ -128,6 +134,8 @@
                 data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
                 data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
                 data-promo-ends="{{.PromoEndsAtValue}}"
+                data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
+                data-fotos="{{len .Images}}"
                 data-descripcion="{{.Description}}"
                 data-logo-url="{{.LogoURL}}"
                 data-images='{{.ImagesJSON}}'>
@@ -137,7 +145,6 @@
               <td>
                 <div class="pt-title">{{.Title}}</div>
               </td>
-              <td class="pt-logo-col"><img class="pt-logo" src="{{.LogoURL}}" alt="{{.Brand}} logo" onerror="this.style.visibility='hidden';"></td>
               <td>{{.Brand}}</td>
               <td>{{if .Model}}{{.Model}}{{else}}—{{end}}</td>
               <td>{{if .Year}}{{.Year}}{{else}}—{{end}}</td>
@@ -164,7 +171,7 @@
               </td>
             </tr>
             {{else}}
-            <tr class="products-table-empty-row"><td colspan="12">Todavía no has agregado ningún producto.</td></tr>
+            <tr class="products-table-empty-row"><td colspan="11">Todavía no has agregado ningún producto.</td></tr>
             {{end}}
           </tbody>
         </table>
@@ -277,7 +284,13 @@
           <span class="ad-upload-hint" id="prodPhotosHint">JPG, PNG o WEBP — puedes elegir varias a la vez. Si es una sola, en la tienda no se mostrará carrusel.</span>
         </label>
 
-        <label>Logo de la marca
+        <label>Logo de la marca</label>
+        <div class="logo-mode-tabs" id="logoModeTabs">
+          <button type="button" class="logo-mode-tab active" data-mode="upload">Subir nuevo</button>
+          <button type="button" class="logo-mode-tab" data-mode="existing">Usar uno existente</button>
+        </div>
+
+        <div id="logoModeUpload">
           <div class="ad-upload-drop" id="prodLogoDrop">
             <img class="ad-upload-preview" id="prodLogoPreview" alt="" style="display:none;">
             <div class="ad-upload-placeholder" id="prodLogoPlaceholder">
@@ -287,7 +300,14 @@
             <input type="file" id="prodLogoInput" name="logo" accept="image/png,image/jpeg,image/webp" hidden>
           </div>
           <span class="ad-upload-hint">JPG, PNG o WEBP. Se usa solo dentro del panel de admin (no se muestra en la tienda pública).</span>
-        </label>
+        </div>
+
+        <div id="logoModeExisting" style="display:none;">
+          <div class="existing-logos-grid" id="existingLogosGrid">
+            <p class="existing-logos-empty" id="existingLogosEmpty" style="display:none;">Todavía no tienes ninguna marca con logo guardado.</p>
+          </div>
+          <input type="hidden" id="prodExistingLogoKey" name="existing_logo_key" value="">
+        </div>
 
         <p class="admin-user-form-error" id="newProductError"></p>
         <button type="submit" class="btn solid" id="newProductSubmit">Guardar producto</button>

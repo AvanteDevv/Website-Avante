@@ -92,3 +92,18 @@ func DeleteObject(ctx context.Context, key string) error {
 	})
 	return err
 }
+
+// CopyObject copia un objeto ya existente en el bucket a una key nueva,
+// usando el copy nativo de S3 (no descarga ni vuelve a subir el
+// archivo). Se usa para "reutilizar" el logo de una marca que ya
+// existe en otro producto sin que ambos terminen apuntando a la MISMA
+// key — si compartieran key, borrar un producto borraría también el
+// logo del otro.
+func CopyObject(ctx context.Context, sourceKey, destKey string) error {
+	_, err := client.CopyObject(ctx, &s3.CopyObjectInput{
+		Bucket:     aws.String(bucketName),
+		CopySource: aws.String(bucketName + "/" + sourceKey),
+		Key:        aws.String(destKey),
+	})
+	return err
+}

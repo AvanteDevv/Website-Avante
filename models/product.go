@@ -56,6 +56,58 @@ func (p Product) PromoEndsAtValue() string {
 	return p.PromoEndsAt.Format("2006-01-02T15:04")
 }
 
+// BrandLogo es una marca ya usada en el catálogo junto con su logo más
+// reciente — se usa para el selector "usar un logo existente" del
+// admin, así no hay que resubir el mismo logo cada vez que agregas
+// otro producto de una marca que ya tenías.
+type BrandLogo struct {
+	Brand   string `json:"brand"`
+	LogoKey string `json:"logoKey"`
+	LogoURL string `json:"logoUrl"`
+}
+
+// GetBrandLogos regresa una marca por cada valor distinto de "brand" en
+// el catálogo, con el logo_key MÁS RECIENTE que se le haya subido
+// (por si en algún momento subiste logos distintos para la misma
+// marca en productos diferentes).
+func GetBrandLogos() ([]BrandLogo, error) {
+	rows, err := db.DB.Query(`
+		SELECT p.brand, p.logo_key
+		FROM products p
+		INNER JOIN (
+			SELECT brand, MAX(created_at) AS max_created
+			FROM products
+			WHERE logo_key <> ''
+			GROUP BY brand
+		) latest ON p.brand = latest.brand AND p.created_at = latest.max_created
+		ORDER BY p.brand ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var brands []BrandLogo
+	for rows.Next() {
+		var b BrandLogo
+		if err := rows.Scan(&b.Brand, &b.LogoKey); err != nil {
+			continue
+		}
+		b.LogoURL = "/media/productos/" + b.LogoKey
+		brands = append(brands, b)
+	}
+	return brands, nil
+}
+
+// LogoKeyExists confirma que una key sí pertenece a algún producto ya
+// guardado — se usa antes de copiar un logo "existente" para no dejar
+// que el form mande cualquier ruta arbitraria del bucket.
+func LogoKeyExists(logoKey string) (bool, error) {
+	var count int
+	err := db.DB.QueryRow(`SELECT COUNT(*) FROM products WHERE logo_key = ?`, logoKey).Scan(&count)
+	return count > 0, err
+}
+
 // HasPromo indica si el producto tiene precio anterior configurado
 // (esa es la señal de que está "en promoción", igual que en la
 // tienda pública).

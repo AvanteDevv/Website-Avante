@@ -1,21 +1,38 @@
 /* =========================================================
-   PRODUCTOS — buscador por título/marca (aplica a ambas vistas)
+   PRODUCTOS — buscador por título/marca + filtro por estado
+   (aplica a ambas vistas: cuadrícula y tabla)
    ========================================================= */
 (function(){
   var searchInput = document.getElementById('prodSearch');
-  if (!searchInput) return;
+  var statusFilters = document.getElementById('statusFilters');
+  if (!searchInput && !statusFilters) return;
+
+  var currentStatus = 'todos';
 
   function applyFilter(){
-    var term = (searchInput.value || '').toLowerCase().trim();
+    var term = (searchInput && searchInput.value || '').toLowerCase().trim();
     document.querySelectorAll('.product-item').forEach(function(item){
-      var matches = term === '' ||
+      var matchesSearch = term === '' ||
         item.dataset.titulo.toLowerCase().indexOf(term) !== -1 ||
         item.dataset.marca.toLowerCase().indexOf(term) !== -1;
-      item.style.display = matches ? '' : 'none';
+      var matchesStatus = currentStatus === 'todos' || item.dataset.status === currentStatus;
+      item.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
     });
   }
 
-  searchInput.addEventListener('input', applyFilter);
+  if (searchInput) searchInput.addEventListener('input', applyFilter);
+
+  if (statusFilters) {
+    statusFilters.addEventListener('click', function(e){
+      var pill = e.target.closest('.filter-pill');
+      if (!pill) return;
+      currentStatus = pill.dataset.status;
+      statusFilters.querySelectorAll('.filter-pill').forEach(function(p){
+        p.classList.toggle('active', p === pill);
+      });
+      applyFilter();
+    });
+  }
 })();
 
 /* ---------- Toggle de vista: cuadrícula / tabla ---------- */
@@ -83,10 +100,17 @@ var setProductIcon = (function(){
   return setIcon;
 })();
 
-/* ---------- Menú de acciones (3 puntos) por tarjeta ---------- */
+/* ---------- Menú de acciones (3 puntos) por tarjeta/fila ---------- */
 (function(){
   var menus = Array.prototype.slice.call(document.querySelectorAll('.product-card-menu'));
   if (!menus.length) return;
+
+  function hideDropdown(dropdown){
+    if (!dropdown) return;
+    dropdown.style.opacity = '0';
+    dropdown.style.transform = 'translateY(-6px) scale(.96)';
+    dropdown.style.pointerEvents = 'none';
+  }
 
   function closeAll(except){
     menus.forEach(function(m){
@@ -94,12 +118,60 @@ var setProductIcon = (function(){
         m.classList.remove('is-open');
         var btn = m.querySelector('.row-menu-btn');
         if (btn) btn.setAttribute('aria-expanded', 'false');
+        hideDropdown(m.querySelector('.row-menu-dropdown'));
       }
+    });
+  }
+
+  // Se saca el dropdown del DOM y se pega directo en <body> con
+  // position:fixed — así escapa por completo de cualquier contenedor
+  // con overflow:hidden/scroll (el .panel, la tabla, etc.), sin
+  // importar cuántos niveles de anidamiento tenga. La visibilidad se
+  // controla con estilos en línea (no con la clase .is-open del CSS
+  // externo) para no depender de que siga siendo hijo de .row-menu.
+  function openDropdown(btn, dropdown){
+    if (dropdown.parentNode !== document.body) {
+      document.body.appendChild(dropdown);
+    }
+    dropdown.style.position = 'fixed';
+    dropdown.style.zIndex = 9999;
+    dropdown.style.display = 'block';
+    dropdown.style.transition = 'opacity .18s cubic-bezier(.22,1,.36,1), transform .18s cubic-bezier(.22,1,.36,1)';
+    dropdown.style.transformOrigin = 'top right';
+    dropdown.style.pointerEvents = 'auto';
+
+    var r = btn.getBoundingClientRect();
+    // estado inicial (invisible, un poco arriba) SIN transición, para
+    // que el navegador tenga algo de dónde partir al animar
+    dropdown.style.opacity = '0';
+    dropdown.style.transform = 'translateY(-6px) scale(.96)';
+    dropdown.style.top = (r.bottom + 6) + 'px';
+    dropdown.style.right = (window.innerWidth - r.right) + 'px';
+    dropdown.style.left = 'auto';
+
+    requestAnimationFrame(function(){
+      var dr = dropdown.getBoundingClientRect();
+      if (dr.bottom > window.innerHeight - 8) {
+        dropdown.style.top = (r.top - dr.height - 6) + 'px';
+        dropdown.style.transformOrigin = 'bottom right';
+      }
+      if (dr.left < 8) {
+        dropdown.style.right = 'auto';
+        dropdown.style.left = '8px';
+      }
+      // segundo frame: recién aquí se dispara la transición hacia el
+      // estado final visible — si se hiciera en el mismo frame que el
+      // estado inicial, el navegador la saltaría sin animar
+      requestAnimationFrame(function(){
+        dropdown.style.opacity = '1';
+        dropdown.style.transform = 'translateY(0) scale(1)';
+      });
     });
   }
 
   menus.forEach(function(menu){
     var btn = menu.querySelector('.row-menu-btn');
+    var dropdown = menu.querySelector('.row-menu-dropdown');
     if (!btn) return;
     btn.addEventListener('click', function(e){
       e.stopPropagation();
@@ -107,6 +179,9 @@ var setProductIcon = (function(){
       closeAll(willOpen ? menu : null);
       menu.classList.toggle('is-open', willOpen);
       btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      if (!dropdown) return;
+      if (willOpen) openDropdown(btn, dropdown);
+      else hideDropdown(dropdown);
     });
   });
 
@@ -128,7 +203,7 @@ function updateProductCount(){
       grid.insertAdjacentHTML('beforeend', '<div class="products-empty">Todavía no has agregado ningún producto.</div>');
     }
     if (tableBody && !tableBody.querySelector('.products-table-empty-row')) {
-      tableBody.insertAdjacentHTML('beforeend', '<tr class="products-table-empty-row"><td colspan="12">Todavía no has agregado ningún producto.</td></tr>');
+      tableBody.insertAdjacentHTML('beforeend', '<tr class="products-table-empty-row"><td colspan="11">Todavía no has agregado ningún producto.</td></tr>');
     }
   }
 }
@@ -309,6 +384,90 @@ var productPhotos = (function(){
   };
 })();
 
+/* ---------- Logo: subir nuevo vs. usar uno existente ---------- */
+var logoModePicker = (function(){
+  var tabs = document.getElementById('logoModeTabs');
+  var uploadPanel = document.getElementById('logoModeUpload');
+  var existingPanel = document.getElementById('logoModeExisting');
+  var grid = document.getElementById('existingLogosGrid');
+  var emptyMsg = document.getElementById('existingLogosEmpty');
+  var hiddenInput = document.getElementById('prodExistingLogoKey');
+  var logoInputEl = document.getElementById('prodLogoInput');
+  if (!tabs) return { reset: function(){}, forceUploadMode: function(){} };
+
+  var brandsCache = null; // se pide una sola vez, se reusa
+
+  function setMode(mode){
+    tabs.querySelectorAll('.logo-mode-tab').forEach(function(t){ t.classList.toggle('active', t.dataset.mode === mode); });
+    uploadPanel.style.display = mode === 'upload' ? '' : 'none';
+    existingPanel.style.display = mode === 'existing' ? '' : 'none';
+    if (mode === 'upload') {
+      hiddenInput.value = '';
+      grid.querySelectorAll('.existing-logo-tile.selected').forEach(function(t){ t.classList.remove('selected'); });
+      // el archivo solo es obligatorio si estamos creando (el form no
+      // trae editingId todavía) — al editar nunca es obligatorio
+      var form = document.getElementById('newProductForm');
+      if (form && !form.dataset.editingId) logoInputEl.setAttribute('required', 'required');
+    } else {
+      logoInputEl.removeAttribute('required');
+      loadBrands();
+    }
+  }
+
+  function renderBrands(brands){
+    var existing = grid.querySelectorAll('.existing-logo-tile');
+    existing.forEach(function(t){ t.remove(); });
+    if (!brands.length) {
+      emptyMsg.style.display = '';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    brands.forEach(function(b){
+      var tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'existing-logo-tile';
+      tile.dataset.logoKey = b.logoKey;
+      tile.innerHTML = '<img src="' + b.logoUrl + '" alt="">' + '<span>' + b.brand + '</span>';
+      tile.addEventListener('click', function(){
+        grid.querySelectorAll('.existing-logo-tile.selected').forEach(function(t){ t.classList.remove('selected'); });
+        tile.classList.add('selected');
+        hiddenInput.value = b.logoKey;
+      });
+      grid.appendChild(tile);
+    });
+  }
+
+  function loadBrands(force){
+    if (brandsCache && !force) { renderBrands(brandsCache); return; }
+    fetch('/api/admin/marcas')
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        brandsCache = Array.isArray(data) ? data : [];
+        renderBrands(brandsCache);
+      })
+      .catch(function(){ renderBrands([]); });
+  }
+
+  tabs.addEventListener('click', function(e){
+    var tab = e.target.closest('.logo-mode-tab');
+    if (!tab) return;
+    setMode(tab.dataset.mode);
+  });
+
+  // si el admin arrastra/elige un archivo en el dropzone, vuelve
+  // automáticamente a modo "subir nuevo" (por si venía de "existente")
+  logoInputEl.addEventListener('change', function(){ setMode('upload'); });
+
+  return {
+    reset: function(){
+      setMode('upload');
+      hiddenInput.value = '';
+    },
+    forceUploadMode: function(){ setMode('upload'); },
+    invalidateCache: function(){ brandsCache = null; }
+  };
+})();
+
 /* ---------- Modal: crear / editar producto ---------- */
 (function(){
   var openBtn = document.getElementById('newProductBtn');
@@ -326,6 +485,7 @@ var productPhotos = (function(){
     form.reset();
     delete form.dataset.editingId;
     window.resetProductLogo();
+    logoModePicker.reset();
     productPhotos.reset();
     setProductIcon('round');
     promoEndsField.reset();
@@ -341,6 +501,7 @@ var productPhotos = (function(){
     form.reset();
     form.dataset.editingId = card.dataset.productId;
     window.resetProductLogo();
+    logoModePicker.reset();
     titleEl.textContent = 'Editar producto';
     logoInput.removeAttribute('required'); // al editar, el logo es opcional
     submitBtn.textContent = 'Guardar cambios';
@@ -406,6 +567,8 @@ var productPhotos = (function(){
     formData.append('badge', document.getElementById('prodBadge').value.trim());
     formData.append('description', document.getElementById('prodDescripcion').value.trim());
     if (logoInput.files[0]) formData.append('logo', logoInput.files[0]);
+    var existingLogoKey = document.getElementById('prodExistingLogoKey').value;
+    if (existingLogoKey) formData.append('existing_logo_key', existingLogoKey);
     Array.prototype.forEach.call(document.getElementById('prodPhotosInput').files || [], function(file){
       formData.append('images', file);
     });
@@ -651,3 +814,57 @@ window.closeAllProductPickers = function(){
 };
 
 var promoEndsField = setupDateTimeField('prodPromoEnds');
+
+/* ---------- Ordenar tabla por columna ---------- */
+(function(){
+  var headers = Array.prototype.slice.call(document.querySelectorAll('.pt-sortable'));
+  var tbody = document.getElementById('productsTableBody');
+  if (!headers.length || !tbody) return;
+
+  var DATASET_KEY = {
+    titulo: 'titulo',
+    marca: 'marca',
+    modelo: 'modelo',
+    anio: 'anio',
+    precioAnterior: 'precioAnterior',
+    precio: 'precio',
+    fotos: 'fotos'
+  };
+
+  var currentSort = null; // { key, dir }
+
+  function getValue(row, key, type){
+    var raw = row.dataset[DATASET_KEY[key]] || '';
+    if (type === 'number') {
+      var n = parseFloat(raw);
+      return isNaN(n) ? -Infinity : n;
+    }
+    return raw.toLowerCase();
+  }
+
+  function sortBy(key, type, dir){
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr.product-row'));
+    rows.sort(function(a, b){
+      var va = getValue(a, key, type);
+      var vb = getValue(b, key, type);
+      if (va < vb) return dir === 'asc' ? -1 : 1;
+      if (va > vb) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    rows.forEach(function(row){ tbody.appendChild(row); });
+  }
+
+  headers.forEach(function(th){
+    th.addEventListener('click', function(){
+      var key = th.dataset.sort;
+      var type = th.dataset.type;
+      var dir = (currentSort && currentSort.key === key && currentSort.dir === 'asc') ? 'desc' : 'asc';
+
+      headers.forEach(function(h){ h.classList.remove('sort-asc', 'sort-desc'); });
+      th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+
+      currentSort = { key: key, dir: dir };
+      sortBy(key, type, dir);
+    });
+  });
+})();
