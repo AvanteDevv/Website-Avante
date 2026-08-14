@@ -93,7 +93,7 @@ func GetBrandLogos() ([]BrandLogo, error) {
 		if err := rows.Scan(&b.Brand, &b.LogoKey); err != nil {
 			continue
 		}
-		b.LogoURL = "/media/productos/" + b.LogoKey
+		b.LogoURL = "/media/logos/" + b.LogoKey
 		brands = append(brands, b)
 	}
 	return brands, nil
@@ -147,7 +147,7 @@ func GetAllProducts() ([]Product, error) {
 		if promoEndsAt.Valid {
 			p.PromoEndsAt = promoEndsAt.Time
 		}
-		p.LogoURL = "/media/productos/" + p.LogoKey
+		p.LogoURL = "/media/logos/" + p.LogoKey
 		products = append(products, p)
 	}
 	for i := range products {
@@ -287,20 +287,20 @@ func UpdateProduct(id int64, title, brand, year, model string, price, oldPrice f
 }
 
 // DeleteProduct borra el producto (las filas de product_images se van
-// solas por el ON DELETE CASCADE) y regresa TODAS las image_key que
-// hay que limpiar del bucket: el logo y cada una de las fotos.
-func DeleteProduct(id int64) ([]string, error) {
-	var logoKey string
-	if err := db.DB.QueryRow(`SELECT logo_key FROM products WHERE id = ?`, id).Scan(&logoKey); err != nil {
-		return nil, err
+// solas por el ON DELETE CASCADE) y regresa por separado el logo_key
+// (vive en logos/) y las image_key de las fotos (viven en
+// productos/<carpeta>/) que hay que limpiar del bucket — van
+// separadas porque cada una necesita un prefijo distinto al borrar.
+func DeleteProduct(id int64) (logoKey string, imageKeys []string, err error) {
+	if err = db.DB.QueryRow(`SELECT logo_key FROM products WHERE id = ?`, id).Scan(&logoKey); err != nil {
+		return "", nil, err
 	}
 
-	imageKeys, _ := GetProductImageKeys(id)
+	imageKeys, _ = GetProductImageKeys(id)
 
-	if _, err := db.DB.Exec(`DELETE FROM products WHERE id = ?`, id); err != nil {
-		return nil, err
+	if _, err = db.DB.Exec(`DELETE FROM products WHERE id = ?`, id); err != nil {
+		return "", nil, err
 	}
 
-	keys := append([]string{logoKey}, imageKeys...)
-	return keys, nil
+	return logoKey, imageKeys, nil
 }
