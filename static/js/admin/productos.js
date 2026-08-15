@@ -213,11 +213,29 @@ function updateProductCount(){
   document.addEventListener('click', function(e){
     var delBtn = e.target.closest('[data-action="eliminar"]');
     if (!delBtn) return;
-    var card = delBtn.closest('.product-item');
     var id = delBtn.dataset.id;
     if (!id) return;
+    // el dropdown ya no es descendiente de la tarjeta/fila (se movió a
+    // <body> al abrirse), así que se busca el producto por data-id en
+    // vez de closest()
+    var card = document.querySelector('.product-item[data-product-id="' + id + '"]');
+    var dropdown = delBtn.closest('.row-menu-dropdown');
     var titulo = card ? card.dataset.titulo : 'este producto';
     if (!confirm('¿Eliminar "' + titulo + '"? Esta acción no se puede deshacer.')) return;
+    // cierra el dropdown de una vez — si no, se queda huérfano flotando
+    // en <body> aunque la tarjeta/fila ya se haya ido. Se busca por
+    // ".is-open" (no con closest) porque el dropdown ya no es
+    // descendiente de su wrapper una vez que se reparentó a <body>.
+    if (dropdown) {
+      dropdown.style.opacity = '0';
+      dropdown.style.pointerEvents = 'none';
+      var menuWrap = document.querySelector('.product-card-menu.is-open');
+      if (menuWrap) {
+        menuWrap.classList.remove('is-open');
+        var wrapBtn = menuWrap.querySelector('.row-menu-btn');
+        if (wrapBtn) wrapBtn.setAttribute('aria-expanded', 'false');
+      }
+    }
     fetch('/api/admin/productos/' + id, { method: 'DELETE' })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); })
       .then(function(){
@@ -540,7 +558,19 @@ var logoModePicker = (function(){
   document.addEventListener('click', function(e){
     var editBtn = e.target.closest('[data-action="editar"]');
     if (!editBtn) return;
-    var card = editBtn.closest('.product-item');
+    var id = editBtn.dataset.id;
+    var card = id ? document.querySelector('.product-item[data-product-id="' + id + '"]') : null;
+    var dropdown = editBtn.closest('.row-menu-dropdown');
+    if (dropdown) {
+      dropdown.style.opacity = '0';
+      dropdown.style.pointerEvents = 'none';
+      var menuWrap = document.querySelector('.product-card-menu.is-open');
+      if (menuWrap) {
+        menuWrap.classList.remove('is-open');
+        var wrapBtn = menuWrap.querySelector('.row-menu-btn');
+        if (wrapBtn) wrapBtn.setAttribute('aria-expanded', 'false');
+      }
+    }
     if (card) openEditModal(card);
   });
 
