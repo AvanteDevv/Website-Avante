@@ -1322,66 +1322,6 @@ document.getElementById('dirBtn').addEventListener('click', () => document.getEl
   strip.addEventListener('touchend', () => setTimeout(() => strip.classList.remove('is-paused'), 600), {passive:true});
 })();
 /* =========================================================
-   EL OJO DEL HERO — pupila que sigue el cursor + parpadeo
-   real en intervalos aleatorios (independiente del loop
-   decorativo de 4s que ya trae el iris).
-   ========================================================= */
-(function(){
-  'use strict';
-  const stage = document.getElementById('eyeStage');
-  if(!stage) return;
-
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const pupil  = document.getElementById('pupil');
-  const lidTop = document.getElementById('eyelidTop');
-  const lidBot = document.getElementById('eyelidBottom');
-
-  const MAX_OFFSET = 13;
-  let targetX = 0, targetY = 0, curX = 0, curY = 0;
-
-  function onPointerMove(clientX, clientY){
-    const rect = stage.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = clientX - cx, dy = clientY - cy;
-    const dist = Math.hypot(dx, dy) || 1;
-    const norm = Math.min(1, dist / 260);
-    targetX = (dx / dist) * MAX_OFFSET * norm;
-    targetY = (dy / dist) * MAX_OFFSET * norm;
-  }
-  window.addEventListener('mousemove', (e) => onPointerMove(e.clientX, e.clientY));
-  window.addEventListener('touchmove', (e) => {
-    if(e.touches[0]) onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-  }, {passive:true});
-
-  function animateGaze(){
-    curX += (targetX - curX) * 0.12;
-    curY += (targetY - curY) * 0.12;
-    pupil.style.setProperty('--px', curX.toFixed(2) + 'px');
-    pupil.style.setProperty('--py', curY.toFixed(2) + 'px');
-    requestAnimationFrame(animateGaze);
-  }
-  if(!reduced) requestAnimationFrame(animateGaze);
-
-  function blink(){
-    lidTop.classList.add('closed');
-    lidBot.classList.add('closed');
-    setTimeout(() => {
-      lidTop.classList.remove('closed');
-      lidBot.classList.remove('closed');
-    }, 110);
-  }
-  function scheduleBlink(){
-    const delay = 2600 + Math.random() * 3800;
-    setTimeout(() => {
-      blink();
-      if(Math.random() < 0.25) setTimeout(blink, 220);
-      scheduleBlink();
-    }, delay);
-  }
-  if(!reduced) scheduleBlink();
-})();
-/* =========================================================
    UBICACIÓN — pestañas para cambiar de sucursal en el mapa
    ========================================================= */
 (function(){

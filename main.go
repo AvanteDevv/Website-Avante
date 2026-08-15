@@ -320,6 +320,7 @@ func main() {
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
 	router.GET("/media/productos/*key", handlers.ServeProductImage)
 	router.GET("/media/logos/*key", handlers.ServeLogoImage)
+	router.GET("/media/hero/:key", handlers.ServeHeroVideo)
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)
 

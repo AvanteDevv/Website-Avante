@@ -247,6 +247,25 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
   background:radial-gradient(circle, rgba(4,28,255,.05), transparent 65%);
   pointer-events:none;
 }
+
+/* =========================================================
+   VIDEO DEL HERO — reemplaza al ojo animado; mismo marco
+   circular y el mismo viñeteado azul de fondo.
+   ========================================================= */
+.hero-video-stage{
+  position:relative; width:340px; height:340px; flex-shrink:0;
+  border-radius:50%; overflow:hidden;
+  box-shadow:0 0 0 1px rgba(4,28,255,.12), 0 30px 60px -20px rgba(4,28,255,.35);
+}
+.hero-video{
+  position:absolute; top:50%; left:50%;
+  width:100%; height:100%;
+  transform:translate(-50%,-50%);
+  object-fit:cover;
+  border-radius:50%;
+}
+@media (max-width:900px){ .hero-video-stage{ width:280px; height:280px; } }
+@media (max-width:640px){ .hero-video-stage{ width:220px; height:220px; } }
 .eye{
   width:332px; height:332px;
   transform:translate(-50%, -50%);
