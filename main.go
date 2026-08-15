@@ -235,6 +235,16 @@ func main() {
 		adminGroup.GET("/base-de-datos", adminHandlers.Database)
 		adminGroup.GET("/productos", adminHandlers.Products)
 		adminGroup.GET("/anuncios", adminHandlers.Ads)
+		adminGroup.GET("/elementor", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "elementor.html", gin.H{
+				"ActivePage": "admin-elementor",
+			})
+		})
+		adminGroup.GET("/automatizaciones", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "automatizaciones.html", gin.H{
+				"ActivePage": "admin-automatizaciones",
+			})
+		})
 		adminGroup.GET("/blogs", adminHandlers.Blogs)
 		adminGroup.GET("/blogs/nuevo", adminHandlers.NewBlogForm)
 		adminGroup.GET("/blogs/:id/editar", adminHandlers.EditBlogForm)

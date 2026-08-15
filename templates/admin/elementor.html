@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elementor — Admin · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+<link rel="stylesheet" href="/static/css/admin/elementor.css">
+</head>
+<body class="cuenta-body">
+
+{{template "admin-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "admin-sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Elementor</h1>
+        <p>Edita el contenido del sitio público sin tocar código. Los cambios se aplican al Hero de la página de inicio.</p>
+      </div>
+      <button type="button" class="btn solid" id="saveElementorBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+        Guardar cambios
+      </button>
+    </div>
+
+    <p class="elementor-savedmsg" id="elementorSavedMsg">Cambios guardados correctamente.</p>
+
+    <div class="elementor-layout">
+
+      <!-- ===== columna izquierda: formularios ===== -->
+      <div class="elementor-forms">
+
+        <section class="panel elementor-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Textos</h2>
+              <p>Título y subtítulo del Hero</p>
+            </div>
+          </div>
+          <div class="admin-user-form elementor-form-body">
+            <label>Título principal
+              <input type="text" id="elTitulo" value="Queremos que veas la diferencia">
+            </label>
+            <label>Palabra destacada del título <span class="admin-user-form-optional">(se resalta en azul)</span>
+              <input type="text" id="elTituloDestacado" value="diferencia">
+            </label>
+            <label>Subtítulo
+              <input type="text" id="elSubtitulo" value="con nuestros lentes">
+            </label>
+          </div>
+        </section>
+
+        <section class="panel elementor-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Botones</h2>
+              <p>Textos y enlaces de los dos botones del Hero</p>
+            </div>
+          </div>
+          <div class="admin-user-form elementor-form-body">
+            <div class="elementor-field-row">
+              <label>Texto botón principal
+                <input type="text" id="elBtnPrincipalTexto" value="Tienda en Linea">
+              </label>
+              <label>Enlace
+                <input type="text" id="elBtnPrincipalLink" value="/eccomerce">
+              </label>
+            </div>
+            <div class="elementor-field-row">
+              <label>Texto botón secundario
+                <input type="text" id="elBtnSecundarioTexto" value="Iniciar sesión">
+              </label>
+              <label>Enlace
+                <input type="text" id="elBtnSecundarioLink" value="/iniciar-sesion">
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel elementor-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Iconos de redes sociales</h2>
+              <p>Enlaces de los tres iconos debajo de los botones</p>
+            </div>
+          </div>
+          <div class="admin-user-form elementor-form-body">
+            <label class="elementor-social-label">
+              <span class="elementor-social-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12"/></svg></span>
+              <input type="url" id="elFacebook" placeholder="https://facebook.com/avanteoptics">
+            </label>
+            <label class="elementor-social-label">
+              <span class="elementor-social-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c2.7 0 3 0 4.1.1 1.1.1 1.8.2 2.5.5.7.3 1.2.6 1.8 1.2.6.6.9 1.1 1.2 1.8.3.7.4 1.4.5 2.5.1 1 .1 1.4.1 4.1s0 3.1-.1 4.1c-.1 1.1-.2 1.8-.5 2.5-.3.7-.6 1.2-1.2 1.8-.6.6-1.1.9-1.8 1.2-.7.3-1.4.4-2.5.5-1 .1-1.4.1-4.1.1s-3 0-4.1-.1c-1.1-.1-1.8-.2-2.5-.5-.7-.3-1.2-.6-1.8-1.2-.6-.6-.9-1.1-1.2-1.8-.3-.7-.4-1.4-.5-2.5C2 15.1 2 14.7 2 12s0-3.1.1-4.1c.1-1.1.2-1.8.5-2.5.3-.7.6-1.2 1.2-1.8.6-.6 1.1-.9 1.8-1.2.7-.3 1.4-.4 2.5-.5C8.9 2 9.3 2 12 2Zm0 4.9a5.1 5.1 0 1 0 0 10.2 5.1 5.1 0 0 0 0-10.2Zm0 8.4a3.3 3.3 0 1 1 0-6.6 3.3 3.3 0 0 1 0 6.6Zm5.3-8.6a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Z"/></svg></span>
+              <input type="url" id="elInstagram" placeholder="https://instagram.com/avanteoptics">
+            </label>
+            <label class="elementor-social-label">
+              <span class="elementor-social-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg></span>
+              <input type="url" id="elWhatsapp" placeholder="https://wa.me/526622131792">
+            </label>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ===== columna derecha: video del hero ===== -->
+      <div class="elementor-video-col">
+        <section class="panel elementor-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Video del Hero</h2>
+              <p>Reemplaza el video animado que aparece junto al texto</p>
+            </div>
+          </div>
+          <div class="elementor-video-body">
+            <div class="elementor-video-drop" id="elVideoDrop">
+              <video class="elementor-video-preview" id="elVideoPreview" muted loop playsinline autoplay style="display:none;"></video>
+              <div class="elementor-video-placeholder" id="elVideoPlaceholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="15" height="16" rx="2"/><path d="m22 8-5 4 5 4V8Z"/></svg>
+                <span>Arrastra un video (.webm/.mp4) o haz clic para subirlo</span>
+              </div>
+              <input type="file" id="elVideoInput" accept="video/webm,video/mp4" hidden>
+            </div>
+            <span class="elementor-video-hint">Recomendado: fondo transparente, loop de 5–10s, menos de 3MB. Se sube al bucket y reemplaza el video actual del Hero.</span>
+            <div class="elementor-video-current" id="elVideoCurrent">
+              <span class="elementor-video-current-label">Video actual:</span>
+              <span class="elementor-video-current-name" id="elVideoCurrentName">hero-video.webm</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/admin/elementor.js"></script>
+</body>
+</html>

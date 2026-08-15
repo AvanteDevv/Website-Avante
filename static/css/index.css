@@ -153,6 +153,68 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
 @media (prefers-reduced-motion: reduce){
   .hero-text h1{ animation:none; filter:none; opacity:1; transform:none; }
 }
+
+/* --- efecto "focus scan" sobre la palabra "diferencia" ---
+   una franja nítida recorre el texto de un lado a otro
+   mientras el resto permanece desenfocado. */
+.hero-text h1 em.focus-word{
+  --focus-w: clamp(200px, 30vw, 360px);
+  --focus-mask-w: clamp(42px, 6.4vw, 76px);
+  position:relative;
+  display:inline-block;
+  width:var(--focus-w);
+  text-align:left;
+  vertical-align:top;
+  white-space:nowrap;
+}
+.hero-text h1 em.focus-word::before{
+  content:'diferencia';
+  display:block;
+  width:100%;
+  filter:blur(3px);
+}
+.hero-text h1 em.focus-word::after{
+  content:'';
+  position:absolute;
+  width:var(--focus-mask-w);
+  height:calc(100% + 8px);
+  top:-4px;
+  left:0;
+  border-top:2px solid var(--blue-600);
+  border-bottom:2px solid var(--blue-600);
+  animation:focusMaskMove 1.6s linear infinite alternate;
+}
+.focus-mask{
+  overflow:hidden;
+  position:absolute;
+  top:0; left:0;
+  width:var(--focus-mask-w);
+  height:100%;
+  background:var(--white);
+  animation:focusMaskMove 1.6s linear infinite alternate;
+}
+.focus-mask-inner{
+  display:block;
+  width:var(--focus-w);
+  white-space:nowrap;
+  animation:focusMaskInnerMove 1.6s linear infinite alternate;
+}
+@keyframes focusMaskMove{
+  0%{ transform:translateX(0); }
+  100%{ transform:translateX(calc(var(--focus-w) - var(--focus-mask-w))); }
+}
+@keyframes focusMaskInnerMove{
+  0%{ transform:translateX(0); }
+  100%{ transform:translateX(calc(-1 * (var(--focus-w) - var(--focus-mask-w)))); }
+}
+@media (prefers-reduced-motion: reduce){
+  .hero-text h1 em.focus-word::after,
+  .focus-mask,
+  .focus-mask-inner{ animation:none; }
+  .focus-mask{ width:100%; background:transparent; }
+  .hero-text h1 em.focus-word::before{ display:none; }
+}
+
 .hero-sub{
   margin:18px auto 0;
   font-size:15px; color:var(--grey);
