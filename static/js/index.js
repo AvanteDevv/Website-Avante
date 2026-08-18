@@ -173,7 +173,7 @@ shopGrid.innerHTML = PRODUCTS.map((p,i) => {
   const svgImages = imgs.map((src,k) => `
       <clipPath id="clip-${i}-${k}"><path id="path-${i}-${k}" d="${k===0 ? SHOP_CLIP.FULL : SHOP_CLIP.HIDDEN_R}"/></clipPath>`).join('');
   const svgUses = imgs.map((src,k) => `<image clip-path="url(#clip-${i}-${k})" href="${src}" x="0" y="0" width="400" height="400" preserveAspectRatio="xMidYMid slice" onerror="this.style.opacity='0';"/>`).join('');
-  const shareUrl = new URL(`detalle-producto.html?id=${i}`, window.location.href).href;
+  const shareUrl = new URL(`/eccomerce/detalle?id=${i}`, window.location.href).href;
   const shareText = `${p.name} de ${p.brand} — ${p.price} en Avante Optics`;
   const fbShareHref = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
   const waShareHref = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
@@ -539,7 +539,7 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
       oldPrice: p.oldPrice || '',
       icon: p.icon,
       badge: p.badge || '',
-      url: `detalle-producto.html?id=${cardIndex}`
+      url: `/eccomerce/detalle?id=${cardIndex}`
     };
     favBtn.dataset.favId = favId;
     favBtn.addEventListener('click', (e) => {
@@ -589,7 +589,7 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
   const sizeSelect = card.querySelector('.shop-size-select');
   if(sizeSelect) sizeSelect.addEventListener('click', (e) => {
     e.stopPropagation();
-    window.location.href = `detalle-producto.html?id=${cardIndex}`;
+    window.location.href = `/eccomerce/detalle?id=${cardIndex}`;
   });
 
   const rulerBtn = card.querySelector('.shop-ruler-btn');
@@ -608,7 +608,7 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
 
   card.style.cursor = 'pointer';
   card.addEventListener('click', () => {
-    window.location.href = `detalle-producto.html?id=${cardIndex}`;
+    window.location.href = `/eccomerce/detalle?id=${cardIndex}`;
   });
 });
 
@@ -655,7 +655,7 @@ cfStage.innerHTML = PROMOS.map((p,i) => `
           <div class="promo-cd-unit"><span class="promo-cd-num" data-unit="s">00</span><span class="promo-cd-lbl">s</span></div>
         </div>
       </div>` : ''}
-      <a href="${p.link || 'eccomerce.html'}" class="promo-link">Ver más</a>
+      <a href="${p.link || '/eccomerce'}" class="promo-link">Ver más</a>
     </div>
   </div>
 `).join('');
@@ -738,7 +738,7 @@ function cfGoTo(i){
 cfSlides.forEach((slide, i) => {
   slide.querySelector('.coverflow-card').addEventListener('click', () => {
     if(i === cfActive){
-      window.location.href = 'eccomerce.html';
+      window.location.href = PROMOS[i].link || '/eccomerce';
     } else {
       cfGoTo(i);
     }
@@ -748,6 +748,150 @@ cfPrev.addEventListener('click', () => cfGoTo(cfActive - 1));
 cfNext.addEventListener('click', () => cfGoTo(cfActive + 1));
 buildDots();
 cfRender();
+
+/* =========================================================
+   RENDER: reseñas de Google — carrusel horizontal
+   ========================================================= */
+function escapeHtml(str){
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+let starGradId = 0;
+function starSVG(type){
+  if(type === 'full'){
+    return '<svg class="star-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9 5.8 20.8l1.6-6.8-5.2-4.6 6.9-.6L12 2.5z"/></svg>';
+  }
+  if(type === 'half'){
+    starGradId++;
+    const id = 'starHalf' + starGradId;
+    return `<svg viewBox="0 0 24 24"><defs><linearGradient id="${id}"><stop offset="50%" stop-color="#F5B400"/><stop offset="50%" stop-color="transparent"/></linearGradient></defs><path fill="url(#${id})" stroke="#F5B400" stroke-width="1.4" d="M12 2.5l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9 5.8 20.8l1.6-6.8-5.2-4.6 6.9-.6L12 2.5z"/></svg>`;
+  }
+  return '<svg class="star-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2.5l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9 5.8 20.8l1.6-6.8-5.2-4.6 6.9-.6L12 2.5z"/></svg>';
+}
+function buildStars(rating){
+  const rounded = Math.round((Number(rating) || 0) * 2) / 2;
+  let html = '';
+  for(let i = 1; i <= 5; i++){
+    if(rounded >= i) html += starSVG('full');
+    else if(rounded >= i - 0.5) html += starSVG('half');
+    else html += starSVG('empty');
+  }
+  return html;
+}
+const GOOGLE_G_MINI = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.6H24v9h11.8c-.5 2.7-2.1 5-4.4 6.6v5.5h7.1C42.6 37 45.1 31.3 45.1 24.5Z"/><path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41.1 15.3 46 24 46Z"/><path fill="#FBBC05" d="M11.6 28.1c-.5-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3C2.8 17.1 2 20.5 2 24s.8 6.9 2.3 9.8l7.3-5.7Z"/><path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C34.9 4.3 30 2 24 2 15.3 2 7.9 6.9 4.3 14.2l7.3 5.7c1.8-5.2 6.6-9.1 12.4-9.1Z"/></svg>';
+
+// Si el admin ya conectó el perfil de Google Business, el backend inyecta
+// un objeto { rating, count, profileUrl, reviews:[...] } en el mismo
+// mecanismo que las demás secciones (script JSON que el navegador nunca
+// ejecuta). Si no hay datos válidos, se muestran reseñas de ejemplo para
+// que la sección no se vea en blanco.
+function readInjectedGoogleData(){
+  const el = document.getElementById('avante-reviews-data');
+  if(!el) return null;
+  try {
+    const data = JSON.parse(el.textContent);
+    if(data && Array.isArray(data.reviews) && data.reviews.length) return data;
+    return null;
+  } catch(e){ return null; }
+}
+const DEMO_GOOGLE_DATA = {
+  rating: 4.9,
+  count: 128,
+  profileUrl: "https://www.google.com/maps?q=Avante+Optics+Hermosillo",
+  reviews: [
+    { name: "Karla Robles", date: "hace 2 semanas", rating: 5, text: "Excelente atención desde que entras. Me ayudaron a elegir el armazón perfecto para mi rostro y el examen de la vista fue muy completo. Mis lentes quedaron listos antes de lo prometido." },
+    { name: "Jesús Armenta", date: "hace 1 mes", rating: 5, text: "Llevo años comprando aquí y nunca me han fallado. Buenos precios, marcas de calidad y el personal siempre resuelve mis dudas sobre la receta." },
+    { name: "Paola Duarte", date: "hace 1 mes", rating: 4, text: "Muy buen servicio y variedad de armazones. Se tardaron un par de días más de lo esperado en la entrega, pero el resultado final valió la pena." },
+    { name: "Ricardo Moreno", date: "hace 2 meses", rating: 5, text: "Pedí mis lentes de sol por la tienda en línea y todo el proceso fue súper fácil. Llegaron bien empacados y tal cual se veían en las fotos." },
+    { name: "Ana Bustamante", date: "hace 3 meses", rating: 5, text: "El doctor que hizo mi examen visual fue muy profesional y paciente explicando cada resultado. Se nota que cuidan mucho la atención al cliente." },
+    { name: "Luis Felipe Gámez", date: "hace 3 meses", rating: 4, text: "Buena selección de monturas graduadas y precios justos comparado con otras ópticas de la ciudad. Regresaré para mis próximos lentes." }
+  ]
+};
+const GOOGLE_DATA = readInjectedGoogleData() || DEMO_GOOGLE_DATA;
+
+const reviewsScoreNum = document.getElementById('reviewsScoreNum');
+const reviewsSummaryStars = document.getElementById('reviewsSummaryStars');
+const reviewsSummaryCount = document.getElementById('reviewsSummaryCount');
+const reviewsSummaryLink = document.getElementById('reviewsSummaryLink');
+const reviewsTrack = document.getElementById('reviewsTrack');
+const reviewsPrev = document.getElementById('reviewsPrev');
+const reviewsNext = document.getElementById('reviewsNext');
+const reviewsDotsWrap = document.getElementById('reviewsDots');
+
+if(reviewsTrack){
+  const avgRating = Number(GOOGLE_DATA.rating) || 0;
+  if(reviewsScoreNum) reviewsScoreNum.textContent = avgRating.toFixed(1);
+  if(reviewsSummaryStars) reviewsSummaryStars.innerHTML = buildStars(avgRating);
+  if(reviewsSummaryCount) reviewsSummaryCount.textContent = `${GOOGLE_DATA.count || GOOGLE_DATA.reviews.length} reseñas`;
+  if(reviewsSummaryLink) reviewsSummaryLink.href = GOOGLE_DATA.profileUrl || 'https://www.google.com/maps';
+
+  reviewsTrack.innerHTML = GOOGLE_DATA.reviews.map((r) => {
+    const initial = escapeHtml((r.name || '?').trim().charAt(0).toUpperCase() || '?');
+    const avatar = r.avatar
+      ? `<img src="${escapeHtml(r.avatar)}" alt="${escapeHtml(r.name)}" onerror="this.remove();">`
+      : initial;
+    return `
+    <div class="review-card">
+      <div class="review-head">
+        <div class="review-avatar">${avatar}</div>
+        <div class="review-who">
+          <div class="review-name">${escapeHtml(r.name)}</div>
+          <div class="review-date">${escapeHtml(r.date)}</div>
+        </div>
+      </div>
+      <div class="review-stars">${buildStars(r.rating)}</div>
+      <p class="review-text">${escapeHtml(r.text)}</p>
+      <div class="review-badge">${GOOGLE_G_MINI}Reseña de Google</div>
+    </div>`;
+  }).join('');
+
+  const reviewCards = Array.from(reviewsTrack.children);
+
+  function scrollToReview(i){
+    const card = reviewCards[i];
+    if(!card) return;
+    reviewsTrack.scrollTo({ left: card.offsetLeft - reviewsTrack.offsetLeft, behavior: 'smooth' });
+  }
+  function buildReviewDots(){
+    if(!reviewsDotsWrap) return;
+    reviewsDotsWrap.innerHTML = '';
+    reviewCards.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'reviews-dot' + (i === 0 ? ' active' : '');
+      dot.setAttribute('aria-label', 'Ir a la reseña ' + (i + 1));
+      dot.addEventListener('click', () => scrollToReview(i));
+      reviewsDotsWrap.appendChild(dot);
+    });
+  }
+  function updateActiveReviewDot(){
+    if(!reviewsDotsWrap) return;
+    const trackLeft = reviewsTrack.scrollLeft;
+    let closest = 0, closestDist = Infinity;
+    reviewCards.forEach((card, i) => {
+      const dist = Math.abs((card.offsetLeft - reviewsTrack.offsetLeft) - trackLeft);
+      if(dist < closestDist){ closestDist = dist; closest = i; }
+    });
+    Array.from(reviewsDotsWrap.children).forEach((d, i) => d.classList.toggle('active', i === closest));
+  }
+  function reviewStep(){
+    return (reviewCards[0] ? reviewCards[0].getBoundingClientRect().width : 340) + 22;
+  }
+
+  if(reviewCards.length){
+    buildReviewDots();
+    let reviewScrollTick = false;
+    reviewsTrack.addEventListener('scroll', () => {
+      if(reviewScrollTick) return;
+      reviewScrollTick = true;
+      window.requestAnimationFrame(() => { updateActiveReviewDot(); reviewScrollTick = false; });
+    });
+    if(reviewsPrev) reviewsPrev.addEventListener('click', () => reviewsTrack.scrollBy({ left: -reviewStep(), behavior: 'smooth' }));
+    if(reviewsNext) reviewsNext.addEventListener('click', () => reviewsTrack.scrollBy({ left: reviewStep(), behavior: 'smooth' }));
+  }
+}
 
 /* =========================================================
    APPOINTMENT CALENDAR

@@ -25,7 +25,7 @@
         <h1>Elementor</h1>
         <p>Edita el contenido del sitio público sin tocar código. Los cambios se aplican al Hero de la página de inicio.</p>
       </div>
-      <button type="button" class="btn solid" id="saveElementorBtn">
+      <button type="button" class="btn thin" id="saveElementorBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
         Guardar cambios
       </button>
@@ -33,6 +33,26 @@
 
     <p class="elementor-savedmsg" id="elementorSavedMsg">Cambios guardados correctamente.</p>
 
+    <div class="elementor-tabs" id="elementorTabs" role="tablist">
+      <button type="button" class="elementor-tab active" data-tab="index" role="tab" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
+        Index
+      </button>
+      <button type="button" class="elementor-tab" data-tab="faq" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4.2"/><line x1="12" y1="17.2" x2="12" y2="17.3"/></svg>
+        Preguntas frecuentes
+      </button>
+      <button type="button" class="elementor-tab" data-tab="footer" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="16" x2="21" y2="16"/></svg>
+        Footer
+      </button>
+      <button type="button" class="elementor-tab" data-tab="ecommerce" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6"/></svg>
+        Ecommerce
+      </button>
+    </div>
+
+    <div class="elementor-tabpanel" data-tabpanel="index">
     <div class="elementor-layout">
 
       <!-- ===== columna izquierda: formularios ===== -->
@@ -137,6 +157,117 @@
         </section>
       </div>
 
+    </div>
+    </div>
+
+    <!-- ===== tab: preguntas frecuentes ===== -->
+    <div class="elementor-tabpanel" data-tabpanel="faq" hidden>
+      <section class="panel elementor-panel">
+        <div class="panel-head panel-head-actions">
+          <div>
+            <h2>Preguntas frecuentes</h2>
+            <p>Se muestran en la sección "Ayuda" de la página de inicio, en el orden de esta lista</p>
+          </div>
+          <button type="button" class="btn thin" id="elFaqAddBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Agregar pregunta
+          </button>
+        </div>
+        <div class="elementor-faq-list" id="elFaqList">
+          <div class="elementor-faq-item" data-faq-index="0">
+            <div class="elementor-faq-item-head">
+              <span class="elementor-faq-item-num">1</span>
+              <button type="button" class="elementor-faq-remove" aria-label="Eliminar pregunta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              </button>
+            </div>
+            <label>Pregunta
+              <input type="text" class="elFaqQuestion" value="¿Cuánto tarda en llegar mi pedido?">
+            </label>
+            <label>Respuesta
+              <textarea class="elFaqAnswer" rows="3">Los pedidos dentro de México llegan entre 3 y 5 días hábiles. Puedes rastrear tu compra en cualquier momento desde la sección de seguimiento con tu número de orden.</textarea>
+            </label>
+          </div>
+          <div class="elementor-faq-item" data-faq-index="1">
+            <div class="elementor-faq-item-head">
+              <span class="elementor-faq-item-num">2</span>
+              <button type="button" class="elementor-faq-remove" aria-label="Eliminar pregunta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              </button>
+            </div>
+            <label>Pregunta
+              <input type="text" class="elFaqQuestion" value="¿Cómo agendo una cita para probarme lentes?">
+            </label>
+            <label>Respuesta
+              <textarea class="elFaqAnswer" rows="3">Ve a la sección de citas, elige el día y la hora que mejor te acomode y confirma tus datos. Te enviaremos la confirmación al instante.</textarea>
+            </label>
+          </div>
+          <div class="elementor-faq-item" data-faq-index="2">
+            <div class="elementor-faq-item-head">
+              <span class="elementor-faq-item-num">3</span>
+              <button type="button" class="elementor-faq-remove" aria-label="Eliminar pregunta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              </button>
+            </div>
+            <label>Pregunta
+              <input type="text" class="elFaqQuestion" value="¿Puedo usar mi receta médica para pedir en línea?">
+            </label>
+            <label>Respuesta
+              <textarea class="elFaqAnswer" rows="3">Sí. Al elegir tus lentes graduados podrás cargar tu receta o capturar los valores manualmente antes de finalizar tu compra.</textarea>
+            </label>
+          </div>
+          <div class="elementor-faq-item" data-faq-index="3">
+            <div class="elementor-faq-item-head">
+              <span class="elementor-faq-item-num">4</span>
+              <button type="button" class="elementor-faq-remove" aria-label="Eliminar pregunta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              </button>
+            </div>
+            <label>Pregunta
+              <input type="text" class="elFaqQuestion" value="¿Cuál es la política de devoluciones?">
+            </label>
+            <label>Respuesta
+              <textarea class="elFaqAnswer" rows="3">Tienes 30 días naturales desde la entrega para solicitar un cambio o devolución, siempre que la montura esté en su estado original.</textarea>
+            </label>
+          </div>
+          <div class="elementor-faq-item" data-faq-index="4">
+            <div class="elementor-faq-item-head">
+              <span class="elementor-faq-item-num">5</span>
+              <button type="button" class="elementor-faq-remove" aria-label="Eliminar pregunta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              </button>
+            </div>
+            <label>Pregunta
+              <input type="text" class="elFaqQuestion" value="¿Las promociones se pueden combinar con otros descuentos?">
+            </label>
+            <label>Respuesta
+              <textarea class="elFaqAnswer" rows="3">Las piezas en promoción no son acumulables con otros cupones, pero sí puedes combinarlas con el envío gratis en pedidos elegibles.</textarea>
+            </label>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== tab: footer (próximamente) ===== -->
+    <div class="elementor-tabpanel" data-tabpanel="footer" hidden>
+      <section class="panel elementor-panel">
+        <div class="elementor-soon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="16" x2="21" y2="16"/></svg>
+          <h3>Edición del Footer</h3>
+          <p>Próximamente vas a poder editar los datos de contacto, horario y enlaces del footer desde aquí.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== tab: ecommerce (próximamente) ===== -->
+    <div class="elementor-tabpanel" data-tabpanel="ecommerce" hidden>
+      <section class="panel elementor-panel">
+        <div class="elementor-soon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6"/></svg>
+          <h3>Edición de la Tienda</h3>
+          <p>Próximamente vas a poder editar los textos de la sección de Ecommerce desde aquí.</p>
+        </div>
+      </section>
     </div>
   </main>
 </div>

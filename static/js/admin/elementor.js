@@ -43,6 +43,76 @@
     showFile(file);
   });
 
+  /* ---------- tabs de páginas ---------- */
+  var tabs = document.querySelectorAll('.elementor-tab');
+  var panels = document.querySelectorAll('.elementor-tabpanel');
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      var target = tab.dataset.tab;
+      panels.forEach(function(p){ p.hidden = p.dataset.tabpanel !== target; });
+    });
+  });
+
+  /* ---------- FAQ: agregar / eliminar preguntas ---------- */
+  var faqList = document.getElementById('elFaqList');
+  var faqAddBtn = document.getElementById('elFaqAddBtn');
+
+  function renumberFaqItems(){
+    if (!faqList) return;
+    var items = faqList.querySelectorAll('.elementor-faq-item');
+    items.forEach(function(item, i){
+      item.dataset.faqIndex = i;
+      var num = item.querySelector('.elementor-faq-item-num');
+      if (num) num.textContent = i + 1;
+    });
+  }
+
+  function bindFaqRemove(item){
+    var removeBtn = item.querySelector('.elementor-faq-remove');
+    if (!removeBtn) return;
+    removeBtn.addEventListener('click', function(){
+      item.remove();
+      renumberFaqItems();
+    });
+  }
+
+  if (faqList){
+    faqList.querySelectorAll('.elementor-faq-item').forEach(bindFaqRemove);
+  }
+
+  if (faqAddBtn && faqList){
+    faqAddBtn.addEventListener('click', function(){
+      var item = document.createElement('div');
+      item.className = 'elementor-faq-item';
+      item.innerHTML =
+        '<div class="elementor-faq-item-head">' +
+          '<span class="elementor-faq-item-num"></span>' +
+          '<button type="button" class="elementor-faq-remove" aria-label="Eliminar pregunta">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+          '</button>' +
+        '</div>' +
+        '<label>Pregunta<input type="text" class="elFaqQuestion" placeholder="Escribe la pregunta"></label>' +
+        '<label>Respuesta<textarea class="elFaqAnswer" rows="3" placeholder="Escribe la respuesta"></textarea></label>';
+      faqList.appendChild(item);
+      bindFaqRemove(item);
+      renumberFaqItems();
+      item.querySelector('.elFaqQuestion').focus();
+    });
+  }
+
+  function collectFaqItems(){
+    if (!faqList) return [];
+    return Array.from(faqList.querySelectorAll('.elementor-faq-item')).map(function(item){
+      return {
+        question: item.querySelector('.elFaqQuestion').value.trim(),
+        answer: item.querySelector('.elFaqAnswer').value.trim()
+      };
+    }).filter(function(faq){ return faq.question || faq.answer; });
+  }
+
   /* ---------- Guardar cambios ---------- */
   var saveBtn = document.getElementById('saveElementorBtn');
   var savedMsg = document.getElementById('elementorSavedMsg');
@@ -60,6 +130,7 @@
     formData.append('facebook', document.getElementById('elFacebook').value);
     formData.append('instagram', document.getElementById('elInstagram').value);
     formData.append('whatsapp', document.getElementById('elWhatsapp').value);
+    formData.append('faq', JSON.stringify(collectFaqItems()));
     if (selectedFile) formData.append('video', selectedFile);
 
     saveBtn.disabled = true;

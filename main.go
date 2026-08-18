@@ -171,6 +171,7 @@ func main() {
 			"AdSide1URL":   handlers.ActiveAdImage("side1"),
 			"AdSide2URL":   handlers.ActiveAdImage("side2"),
 			"ProductsJSON": buildStoreProductsJSON(),
+			"RecentPosts":  handlers.RecentBlogPosts(3),
 		}))
 	})
 

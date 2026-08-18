@@ -53,6 +53,20 @@ func fetchPublishedBlogPosts() ([]PublicBlogPost, error) {
 	return posts, nil
 }
 
+// RecentBlogPosts regresa hasta `limit` entradas publicadas más
+// recientes, para secciones como el bloque de blog de index.html que
+// solo necesitan un adelanto (no la lista completa de /blog).
+func RecentBlogPosts(limit int) []PublicBlogPost {
+	posts, err := fetchPublishedBlogPosts()
+	if err != nil {
+		return nil
+	}
+	if len(posts) > limit {
+		posts = posts[:limit]
+	}
+	return posts
+}
+
 // BlogList — GET /blog
 // blogCategoryOption es una categoría para el filtro del sidebar —
 // solo las que de verdad tienen alguna entrada publicada.

@@ -203,45 +203,23 @@
     <p>Novedades, guías y lo último de la marca.</p>
   </div>
   <div class="blog-grid">
-    <article class="blog-card reveal-rise">
-      <div class="blog-photo">
-        <img src="https://images.unsplash.com/photo-1577803645773-f96470509666?q=80&w=600&auto=format&fit=crop" alt="Nueva colección de otoño" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+    {{range .RecentPosts}}
+    <article class="blog-card reveal-rise" data-category="{{.CategorySlug}}">
+      <a href="/blog/{{.ID}}" class="blog-photo">
+        <img src="{{.ImageURL}}" alt="{{.Title}}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
         <div class="blog-photo-fallback" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="12" r="4.2"/><circle cx="17" cy="12" r="4.2"/><path d="M11.2 12h1.6M2.5 9 5 7.4M21.5 9 19 7.4"/></svg></div>
-        <span class="blog-date-pill">12 jul 2026</span>
-      </div>
+        <span class="blog-date-pill">{{fechaEs .PublishedAt}}</span>
+      </a>
       <div class="blog-body">
-        <h3>Nueva colección de otoño ya disponible</h3>
-        <p>Monturas redondas y aviador con acabados mate, pensadas para el día a día.</p>
-        <div class="blog-meta">Por el equipo de Avante Optics · Actualizado 14 jul 2026</div>
-        <a href="#" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
+        <h3><a href="/blog/{{.ID}}">{{.Title}}</a></h3>
+        <p>{{.Excerpt}}</p>
+        <div class="blog-meta">Por {{.Author}} · {{fechaEs .PublishedAt}}</div>
+        <a href="/blog/{{.ID}}" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
       </div>
     </article>
-    <article class="blog-card reveal-rise">
-      <div class="blog-photo">
-        <img src="https://images.unsplash.com/photo-1591076482161-42ce6da69f67?q=80&w=600&auto=format&fit=crop" alt="Cómo elegir el lente perfecto" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <div class="blog-photo-fallback" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="12" r="4.3"/><circle cx="16" cy="12" r="4.3"/><path d="M12.3 12h-.6"/></svg></div>
-        <span class="blog-date-pill">02 jul 2026</span>
-      </div>
-      <div class="blog-body">
-        <h3>Cómo elegir el lente perfecto para tu rostro</h3>
-        <p>Una guía rápida para encontrar la montura que mejor se adapta a ti.</p>
-        <div class="blog-meta">Por el equipo de Avante Optics · Actualizado 05 jul 2026</div>
-        <a href="#" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
-      </div>
-    </article>
-    <article class="blog-card reveal-rise">
-      <div class="blog-photo">
-        <img src="https://images.unsplash.com/photo-1556306535-0f09a537f0a3?q=80&w=600&auto=format&fit=crop" alt="Avante Optics abre su primera tienda física" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <div class="blog-photo-fallback" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="8" width="8" height="8" rx="2"/><rect x="13" y="8" width="8" height="8" rx="2"/><path d="M11 12h2"/></svg></div>
-        <span class="blog-date-pill">24 jun 2026</span>
-      </div>
-      <div class="blog-body">
-        <h3>Avante Optics abre su primera tienda física</h3>
-        <p>Ahora puedes probarte tus lentes favoritos antes de comprarlos.</p>
-        <div class="blog-meta">Por el equipo de Avante Optics · Actualizado 27 jun 2026</div>
-        <a href="#" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
-      </div>
-    </article>
+    {{else}}
+    <p class="blog-empty">Todavía no hay entradas publicadas — vuelve pronto.</p>
+    {{end}}
   </div>
   <div class="blog-cta"><a href="blog.html" class="btn">Ver todas las entradas</a></div>
 </section>
@@ -377,6 +355,39 @@
   </div>
 </section>
 
+<section class="strip" id="reviews">
+  <div class="section-head reveal-blur">
+    <div class="eyebrow"><svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>Opiniones<svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg></div>
+    <h2>Lo que dicen en Google</h2>
+    <p>Reseñas reales de clientes que nos visitaron en tienda.</p>
+  </div>
+
+  <div class="reviews-summary reveal-rise">
+    <div class="reviews-summary-brand">
+      <svg class="google-g" viewBox="0 0 48 48" aria-hidden="true">
+        <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.6H24v9h11.8c-.5 2.7-2.1 5-4.4 6.6v5.5h7.1C42.6 37 45.1 31.3 45.1 24.5Z"/>
+        <path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41.1 15.3 46 24 46Z"/>
+        <path fill="#FBBC05" d="M11.6 28.1c-.5-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3C2.8 17.1 2 20.5 2 24s.8 6.9 2.3 9.8l7.3-5.7Z"/>
+        <path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C34.9 4.3 30 2 24 2 15.3 2 7.9 6.9 4.3 14.2l7.3 5.7c1.8-5.2 6.6-9.1 12.4-9.1Z"/>
+      </svg>
+      <span>Google</span>
+    </div>
+    <div class="reviews-summary-score">
+      <span class="reviews-score-num" id="reviewsScoreNum">4.9</span>
+      <div class="reviews-stars" id="reviewsSummaryStars"></div>
+      <span class="reviews-summary-count" id="reviewsSummaryCount">128 reseñas</span>
+    </div>
+    <a class="btn reviews-summary-cta" id="reviewsSummaryLink" href="https://www.google.com/maps?q=Avante+Optics+Hermosillo" target="_blank" rel="noopener">Escribir una reseña</a>
+  </div>
+
+  <div class="reviews-carousel-wrap reveal-rise">
+    <button class="reviews-arrow" id="reviewsPrev" aria-label="Reseña anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div class="reviews-track" id="reviewsTrack"></div>
+    <button class="reviews-arrow" id="reviewsNext" aria-label="Siguiente reseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+  </div>
+  <div class="reviews-dots" id="reviewsDots"></div>
+</section>
+
 {{template "footer" .}}
 
 <div class="modal-overlay" id="apptModalOverlay">
@@ -448,6 +459,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/snap.svg/0.5.1/snap.svg-min.js"></script>
 <script type="application/json" id="avante-products-data">{{.ProductsJSON}}</script>
+<script type="application/json" id="avante-reviews-data">{{.GoogleReviewsJSON}}</script>
 <script src="/static/js/index.js"></script>
 <script src="/static/js/partials/footer.js"></script>
 <a href="https://wa.me/526622131792?text=Hola%2C%20me%20gustar%C3%ADa%20m%C3%A1s%20informaci%C3%B3n" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contáctanos por WhatsApp">

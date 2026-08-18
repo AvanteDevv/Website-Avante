@@ -11,6 +11,71 @@
 }
 .elementor-savedmsg.is-visible{ display:block; }
 
+/* ---------- botones "Guardar cambios" / "Agregar pregunta" — mismo
+   estilo blanco/línea azul que #newUserBtn en Base de datos ---------- */
+#saveElementorBtn, #elFaqAddBtn{
+  padding:9px 16px !important; font-size:11px !important; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--white) !important; color:var(--blue-700) !important; border:1.5px solid var(--blue-600) !important;
+}
+#saveElementorBtn svg, #elFaqAddBtn svg{ width:14px !important; height:14px !important; color:var(--blue-600); flex-shrink:0; }
+#saveElementorBtn:hover, #elFaqAddBtn:hover{ background:var(--blue-50) !important; }
+
+/* ---------- tabs de páginas ---------- */
+.elementor-tabs{
+  display:flex; gap:6px; padding:0 24px 18px; flex-wrap:wrap;
+}
+.elementor-tab{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 16px; border-radius:12px; border:1.5px solid transparent;
+  background:transparent; color:var(--grey); font-size:13px; font-weight:700;
+  cursor:pointer; transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.elementor-tab svg{ width:16px; height:16px; flex-shrink:0; }
+.elementor-tab:hover{ background:var(--blue-50); color:var(--blue-700); }
+.elementor-tab.active{ background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
+
+.elementor-tabpanel[hidden]{ display:none; }
+
+/* ---------- panel-head con acción a la derecha (FAQ) ---------- */
+.elementor-panel .panel-head.panel-head-actions{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+}
+
+/* ---------- lista de preguntas frecuentes ---------- */
+.elementor-faq-list{ display:flex; flex-direction:column; gap:14px; padding:16px 20px 22px; }
+.elementor-faq-item{
+  border:1.5px solid var(--line); border-radius:14px; padding:16px;
+  display:flex; flex-direction:column; gap:10px; background:var(--white);
+}
+.elementor-faq-item-head{ display:flex; align-items:center; justify-content:space-between; }
+.elementor-faq-item-num{
+  width:24px; height:24px; border-radius:50%; background:var(--blue-50); color:var(--blue-600);
+  display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:800;
+}
+.elementor-faq-remove{
+  width:30px; height:30px; border-radius:9px; border:1.5px solid var(--line); background:var(--white);
+  color:var(--grey); display:flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.elementor-faq-remove svg{ width:15px; height:15px; }
+.elementor-faq-remove:hover{ background:#fdeceb; border-color:#e6564a; color:#e6564a; }
+.elementor-faq-item label{ display:flex; flex-direction:column; gap:6px; font-size:12.5px; font-weight:700; color:var(--ink); }
+.elementor-faq-item input, .elementor-faq-item textarea{
+  font-family:inherit; font-size:13px; font-weight:500; color:var(--ink); background:var(--white);
+  border:1.5px solid var(--line); border-radius:10px; padding:9px 12px; resize:vertical;
+}
+.elementor-faq-item input:focus, .elementor-faq-item textarea:focus{ outline:none; border-color:var(--blue-500); }
+
+/* ---------- estado "próximamente" (footer / ecommerce) ---------- */
+.elementor-soon{
+  display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;
+  padding:60px 24px; color:var(--grey);
+}
+.elementor-soon svg{ width:32px; height:32px; color:var(--blue-400); }
+.elementor-soon h3{ font-size:15px; color:var(--ink); margin:0; }
+.elementor-soon p{ font-size:12.5px; max-width:340px; margin:0; }
+
 .elementor-layout{
   display:grid; grid-template-columns:1.4fr 1fr; gap:20px;
   padding:0 24px 30px;
