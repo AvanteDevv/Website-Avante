@@ -1515,3 +1515,28 @@ document.getElementById('trackBtn').addEventListener('click', () => document.get
     setBranch(tab.dataset.branch);
   });
 })();
+// =========================================================
+// GLOBO DE DIÁLOGO — frases rotativas junto al gato del hero
+// =========================================================
+(function(){
+  var bubbleText = document.getElementById('heroBubbleText');
+  if(!bubbleText) return;
+
+  var phrases = [
+    'Bienvenido a Avante Optics',
+    'Revisa tu pedido aquí',
+    'Agenda tu cita en segundos',
+    'Encuentra tus lentes ideales',
+    '¿Necesitas ayuda? Aquí estoy'
+  ];
+  var i = 0;
+
+  setInterval(function(){
+    bubbleText.classList.add('is-swapping');
+    setTimeout(function(){
+      i = (i + 1) % phrases.length;
+      bubbleText.textContent = phrases[i];
+      bubbleText.classList.remove('is-swapping');
+    }, 350);
+  }, 3200);
+})();

@@ -262,6 +262,62 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
 }
 @media (max-width:900px){ .hero-video{ max-width:340px; } }
 @media (max-width:640px){ .hero-video{ max-width:260px; } }
+
+/* =========================================================
+   GLOBO DE DIÁLOGO — frases rotativas junto al gato del hero
+   ========================================================= */
+.hero-bubble{
+  position:absolute;
+  top:-9%; left:34%;
+  z-index:3;
+  max-width:230px;
+  background:var(--white);
+  border:1px solid var(--blue-100);
+  border-radius:18px;
+  padding:14px 18px;
+  box-shadow:0 14px 34px -14px rgba(4,28,255,.22), 0 2px 8px rgba(20,20,43,.06);
+  animation:bubbleFloat 4s ease-in-out infinite;
+}
+.hero-bubble-text{
+  display:block;
+  font-family:var(--sans);
+  font-weight:600;
+  font-size:14.5px;
+  line-height:1.4;
+  color:var(--ink);
+  letter-spacing:-.01em;
+  opacity:1;
+  transition:opacity .35s ease, transform .35s ease;
+}
+.hero-bubble-text.is-swapping{
+  opacity:0;
+  transform:translateY(4px);
+}
+.hero-bubble-tail{
+  position:absolute;
+  bottom:-9px; right:34px;
+  width:18px; height:18px;
+  background:var(--white);
+  border-right:1px solid var(--blue-100);
+  border-bottom:1px solid var(--blue-100);
+  transform:rotate(45deg);
+  border-radius:0 0 4px 0;
+}
+@keyframes bubbleFloat{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-6px); }
+}
+@media (max-width:900px){
+  .hero-bubble{ left:16%; top:-7%; max-width:190px; padding:12px 15px; }
+  .hero-bubble-text{ font-size:13px; }
+}
+@media (max-width:640px){
+  .hero-bubble{ position:static; margin:0 auto 14px; max-width:260px; text-align:center; }
+  .hero-bubble-tail{ display:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .hero-bubble{ animation:none; }
+}
 .eye{
   width:332px; height:332px;
   transform:translate(-50%, -50%);
