@@ -159,7 +159,7 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
    mientras el resto permanece desenfocado. */
 .hero-text h1 em.focus-word{
   --focus-w: clamp(200px, 30vw, 360px);
-  --focus-mask-w: clamp(42px, 6.4vw, 76px);
+  --focus-mask-w: clamp(50px, 7.6vw, 88px);
   position:relative;
   display:inline-block;
   width:var(--focus-w);
@@ -177,11 +177,11 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
   content:'';
   position:absolute;
   width:var(--focus-mask-w);
-  height:calc(100% + 8px);
-  top:-4px;
+  height:var(--focus-mask-w);
+  top:calc(50% - (var(--focus-mask-w) / 2));
   left:0;
-  border-top:2px solid var(--blue-600);
-  border-bottom:2px solid var(--blue-600);
+  border-radius:50%;
+  border:2px solid var(--blue-600);
   animation:focusMaskMove 1.6s linear infinite alternate;
 }
 .focus-mask{
@@ -191,6 +191,7 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
   width:var(--focus-mask-w);
   height:100%;
   background:var(--white);
+  clip-path:circle(calc(var(--focus-mask-w) / 2) at 50% 50%);
   animation:focusMaskMove 1.6s linear infinite alternate;
 }
 .focus-mask-inner{

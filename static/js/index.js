@@ -1417,7 +1417,8 @@ if('IntersectionObserver' in window){
 /* =========================================================
    MISC BUTTONS
    ========================================================= */
-document.getElementById('dirBtn').addEventListener('click', () => document.getElementById('shop').scrollIntoView({behavior:'smooth'}));
+document.getElementById('dirBtn').addEventListener('click', () => document.getElementById('appointment').scrollIntoView({behavior:'smooth'}));
+document.getElementById('trackBtn').addEventListener('click', () => document.getElementById('tracking').scrollIntoView({behavior:'smooth'}));
 
 /* =========================================================
    CATEGORY STRIP — infinite scroll
