@@ -597,6 +597,21 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
     const original = label.textContent;
     label.textContent = 'Agregado';
     setTimeout(() => { buyBtn.classList.remove('is-added'); label.textContent = original; }, 1400);
+
+    if(window.AvanteCart){
+      const p = PRODUCTS[cardIndex];
+      const mainImg = (p.images && p.images.length) ? p.images[0] : PRODUCT_IMAGES[cardIndex % PRODUCT_IMAGES.length];
+      const priceNumber = parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0;
+      window.AvanteCart.addOne({
+        pid: cardIndex,
+        name: p.name,
+        brand: p.brand,
+        image: mainImg,
+        unitPrice: priceNumber,
+        rxOption: '', rxOD: '', rxOI: '',
+        qty: 1
+      });
+    }
   });
 
   card.style.cursor = 'pointer';
