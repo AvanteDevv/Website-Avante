@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"errors"
 	"time"
 
@@ -10,23 +11,16 @@ import (
 // ⚠️ Adjust "avante-optics" in the import above to match the module name
 // declared in your go.mod (first line: "module xxxxx").
 //
-// Requires a MySQL table. Run this once against your database:
+// This file assumes the "orders" table already exists (created earlier
+// without a user link). Run this ALTER once against your database to
+// add the new column used by "Mis pedidos":
 //
-//	CREATE TABLE orders (
-//	  id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-//	  order_code    VARCHAR(20) NOT NULL DEFAULT '',
-//	  product_name  VARCHAR(120) NOT NULL,
-//	  product_brand VARCHAR(80) NOT NULL DEFAULT '',
-//	  quantity      INT NOT NULL DEFAULT 1,
-//	  unit_price    DECIMAL(10,2) NOT NULL,
-//	  total         DECIMAL(10,2) NOT NULL,
-//	  rx_option     VARCHAR(120) NOT NULL DEFAULT '',
-//	  rx_od         VARCHAR(20) NOT NULL DEFAULT '',
-//	  rx_oi         VARCHAR(20) NOT NULL DEFAULT '',
-//	  customer_name VARCHAR(120) NOT NULL DEFAULT '',
-//	  status        VARCHAR(20) NOT NULL DEFAULT 'recibido',
-//	  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-//	);
+//	ALTER TABLE orders ADD COLUMN user_id BIGINT NULL AFTER customer_name;
+//	ALTER TABLE orders ADD INDEX idx_orders_user_id (user_id);
+//
+// user_id stays NULL for guest purchases (no login required to buy —
+// see CreateOrder below). Those orders simply won't show up under any
+// account's "Mis pedidos" until AttachOrderToUser is called for them.
 
 // Order represents a purchase made from the public product page
 // (detalle-producto.html / detalle-producto.js).
@@ -42,6 +36,7 @@ type Order struct {
 	RxOD         string    `json:"rxOD"`
 	RxOI         string    `json:"rxOI"`
 	CustomerName string    `json:"customerName"`
+	UserID       *int64    `json:"userId,omitempty"`
 	Status       string    `json:"status"`
 	CreatedAt    time.Time `json:"createdAt"`
 }
@@ -51,10 +46,11 @@ var ErrOrderNotFound = errors.New("pedido no encontrado")
 
 // CreateOrder inserts a new order with status "recibido". No login is
 // required to buy — anyone visiting the public site can call this
-// through POST /api/pedidos.
-//
-// The order_code (prefix + number, e.g. "AVT-10489") comes from
-// order_settings — editable from the "Configurar estados" panel.
+// through POST /api/pedidos. Unchanged from before: it does NOT take a
+// userID, so it keeps working with your existing checkout handler
+// as-is. If the buyer happens to be logged in, call AttachOrderToUser
+// right after this succeeds (see below) to link the order to their
+// account so it shows up in "Mis pedidos".
 func CreateOrder(productName, productBrand string, quantity int, unitPrice float64, rxOption, rxOD, rxOI, customerName string) (*Order, error) {
 	total := unitPrice * float64(quantity)
 
@@ -88,12 +84,27 @@ func CreateOrder(productName, productBrand string, quantity int, unitPrice float
 	}, nil
 }
 
+// AttachOrderToUser links an already-created order to a logged-in
+// account. Call this from your checkout handler right after
+// CreateOrder succeeds, ONLY if the request has a valid session:
+//
+//	order, err := models.CreateOrder(...)
+//	if err == nil {
+//	    if userID, ok := getSessionUserID(c); ok {
+//	        _ = models.AttachOrderToUser(order.ID, userID) // best-effort, don't fail the purchase over this
+//	    }
+//	}
+func AttachOrderToUser(orderID int64, userID int64) error {
+	_, err := db.DB.Exec("UPDATE orders SET user_id = ? WHERE id = ?", userID, orderID)
+	return err
+}
+
 // GetAllOrders returns every order, most recently created first — used
 // by the admin Pedidos panel.
 func GetAllOrders() ([]Order, error) {
 	rows, err := db.DB.Query(
 		`SELECT id, order_code, product_name, product_brand, quantity, unit_price, total,
-		        rx_option, rx_od, rx_oi, customer_name, status, created_at
+		        rx_option, rx_od, rx_oi, customer_name, user_id, status, created_at
 		 FROM orders ORDER BY created_at DESC`,
 	)
 	if err != nil {
@@ -101,12 +112,40 @@ func GetAllOrders() ([]Order, error) {
 	}
 	defer rows.Close()
 
+	return scanOrders(rows)
+}
+
+// GetOrdersByUserID returns every order linked to a given account,
+// most recently created first — used by the client "Mis pedidos" view
+// (GET /api/mis-pedidos). Guest orders (user_id IS NULL) never show up
+// here, even if the customer_name/email happen to match.
+func GetOrdersByUserID(userID int64) ([]Order, error) {
+	rows, err := db.DB.Query(
+		`SELECT id, order_code, product_name, product_brand, quantity, unit_price, total,
+		        rx_option, rx_od, rx_oi, customer_name, user_id, status, created_at
+		 FROM orders WHERE user_id = ? ORDER BY created_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanOrders(rows)
+}
+
+// scanOrders reads rows from either query above into []Order.
+func scanOrders(rows *sql.Rows) ([]Order, error) {
 	var list []Order
 	for rows.Next() {
 		var o Order
+		var userID sql.NullInt64
 		if err := rows.Scan(&o.ID, &o.OrderCode, &o.ProductName, &o.ProductBrand, &o.Quantity, &o.UnitPrice, &o.Total,
-			&o.RxOption, &o.RxOD, &o.RxOI, &o.CustomerName, &o.Status, &o.CreatedAt); err != nil {
+			&o.RxOption, &o.RxOD, &o.RxOI, &o.CustomerName, &userID, &o.Status, &o.CreatedAt); err != nil {
 			return nil, err
+		}
+		if userID.Valid {
+			o.UserID = &userID.Int64
 		}
 		list = append(list, o)
 	}
@@ -114,8 +153,8 @@ func GetAllOrders() ([]Order, error) {
 }
 
 // UpdateOrderStatus changes an order's status (e.g. to "enviado" when
-// the admin ships it). Valid values: recibido, preparacion, enviado,
-// camino, entregado (must match ORDER_STATUS_LABEL in pedidos.js).
+// the admin ships it). Valid values are whatever status_key's exist in
+// order_statuses (configurable from the admin gear icon).
 func UpdateOrderStatus(id int64, status string) error {
 	result, err := db.DB.Exec("UPDATE orders SET status = ? WHERE id = ?", status, id)
 	if err != nil {

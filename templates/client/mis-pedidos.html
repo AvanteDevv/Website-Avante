@@ -24,15 +24,10 @@
       <p>Historial y estado de tus compras en Avante Optics.</p>
     </div>
 
-    <div class="hint-banner">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <span>Estos son pedidos de ejemplo — el sitio aún no tiene un carrito de compras conectado a un backend real. En cuanto lo esté, aquí verás tu historial verdadero.</span>
-    </div>
-
-    <div class="cuenta-stats">
-      <div class="cuenta-stat-card"><div class="num">3</div><div class="label">Pedidos totales</div></div>
-      <div class="cuenta-stat-card"><div class="num">1</div><div class="label">En proceso</div></div>
-      <div class="cuenta-stat-card"><div class="num">2</div><div class="label">Entregados</div></div>
+    <div class="cuenta-stats" id="cuentaStats">
+      <div class="cuenta-stat-card"><div class="num">0</div><div class="label">Pedidos totales</div></div>
+      <div class="cuenta-stat-card"><div class="num">0</div><div class="label">En proceso</div></div>
+      <div class="cuenta-stat-card"><div class="num">0</div><div class="label">Entregados</div></div>
     </div>
 
     <section class="panel">
@@ -40,76 +35,12 @@
         <h2>Todos los pedidos</h2>
       </div>
       <div class="panel-body no-pad">
-        <div class="order-list">
-        <div class="order-card">
-          <div class="order-top">
-            <div>
-              <div class="order-id">AVT-10493</div>
-              <div class="order-date">Pedido el 15 de julio de 2026</div>
-              <div class="order-items">Armazón Meridian + micas antirreflejantes</div>
-            </div>
-            <div class="order-total">
-              <span class="status-badge camino">En camino</span>
-              <div class="amount">$1,180.00</div>
-            </div>
-          </div>
-          <div class="order-steps">
-            <div class="order-step done"><span class="dot"></span><span class="lbl">Recibido</span></div>
-            <div class="order-step done"><span class="dot"></span><span class="lbl">Preparación</span></div>
-            <div class="order-step done"><span class="dot"></span><span class="lbl">Enviado</span></div>
-            <div class="order-step current"><span class="dot"></span><span class="lbl">En camino</span></div>
-            <div class="order-step "><span class="dot"></span><span class="lbl">Entregado</span></div>
-          </div>
-          <div class="order-actions">
-            <a href="/#tracking" class="btn small">Rastrear pedido</a>
-          </div>
-        </div>
-        <div class="order-card">
-          <div class="order-top">
-            <div>
-              <div class="order-id">AVT-10488</div>
-              <div class="order-date">Pedido el 2 de julio de 2026</div>
-              <div class="order-items">Lentes de sol Solstice</div>
-            </div>
-            <div class="order-total">
-              <span class="status-badge entregado">Entregado</span>
-              <div class="amount">$890.00</div>
-            </div>
-          </div>
-          <div class="order-steps">
-            <div class="order-step done"><span class="dot"></span><span class="lbl">Recibido</span></div>
-            <div class="order-step done"><span class="dot"></span><span class="lbl">Preparación</span></div>
-            <div class="order-step done"><span class="dot"></span><span class="lbl">Enviado</span></div>
-            <div class="order-step done"><span class="dot"></span><span class="lbl">En camino</span></div>
-            <div class="order-step current"><span class="dot"></span><span class="lbl">Entregado</span></div>
-          </div>
-          <div class="order-actions">
-            <a href="/#tracking" class="btn small">Rastrear pedido</a>
-          </div>
-        </div>
-        <div class="order-card">
-          <div class="order-top">
-            <div>
-              <div class="order-id">AVT-10471</div>
-              <div class="order-date">Pedido el 18 de junio de 2026</div>
-              <div class="order-items">Armazón Aurora + examen de graduación</div>
-            </div>
-            <div class="order-total">
-              <span class="status-badge entregado">Entregado</span>
-              <div class="amount">$1,540.00</div>
-            </div>
-          </div>
-          <div class="order-steps">
-            <div class="order-step done"><span class="dot"></span><span class="lbl">Recibido</span></div>
-            <div class="order-step done"><span class="dot"></span><span class="lbl">Preparación</span></div>
-            <div class="order-step done"><span class="dot"></span><span class="lbl">Enviado</span></div>
-            <div class="order-step done"><span class="dot"></span><span class="lbl">En camino</span></div>
-            <div class="order-step current"><span class="dot"></span><span class="lbl">Entregado</span></div>
-          </div>
-          <div class="order-actions">
-            <a href="/#tracking" class="btn small">Rastrear pedido</a>
-          </div>
-        </div>
+        <div class="order-list" id="orderList"></div>
+        <div class="orders-empty" id="ordersEmpty" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <h3>Aún no tienes pedidos</h3>
+          <p>Cuando compres algo en la tienda, tu historial va a aparecer aquí.</p>
+          <a href="/eccomerce" class="btn small solid">Ir a la tienda</a>
         </div>
       </div>
     </section>

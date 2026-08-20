@@ -137,6 +137,8 @@ func loadTemplates() *template.Template {
 	tmpl = template.Must(tmpl.ParseGlob("templates/client/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/admin/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth-admin/*.html"))
+	tmpl = template.Must(tmpl.ParseGlob("templates/receptionist/*.html"))
+	tmpl = template.Must(tmpl.ParseGlob("templates/optometrist/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/ecommerce/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/pages/*.html"))
 	return tmpl
@@ -231,32 +233,75 @@ func main() {
 		})
 	})
 
+	// Cada ruta trae su propio RequireRole(...) después de
+	// RequireAdminAuth() — así, aunque alguien con rol recepcionista o
+	// optometrista intente entrar directo por URL a algo que el
+	// sidebar no le muestra (p. ej. /admin/productos), el backend lo
+	// bloquea con 403 igual. Ajusta las listas de roles aquí si
+	// cambias qué puede ver cada quien.
+	onlyAdmin := handlers.RequireRole(handlers.RoleAdmin)
+	pedidosStaff := handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist)
+	citasStaff := handlers.RequireRole(handlers.RoleAdmin, handlers.RoleOptometrist, handlers.RoleReceptionist)
+
 	adminGroup := router.Group("/admin", handlers.RequireAdminAuth())
 	{
-		adminGroup.GET("/base-de-datos", adminHandlers.Database)
-		adminGroup.GET("/productos", adminHandlers.Products)
-		adminGroup.GET("/anuncios", adminHandlers.Ads)
-		adminGroup.GET("/elementor", func(c *gin.Context) {
+		adminGroup.GET("/base-de-datos", onlyAdmin, adminHandlers.Database)
+		adminGroup.GET("/productos", onlyAdmin, adminHandlers.Products)
+		adminGroup.GET("/anuncios", onlyAdmin, adminHandlers.Ads)
+		adminGroup.GET("/elementor", onlyAdmin, func(c *gin.Context) {
 			c.HTML(http.StatusOK, "elementor.html", gin.H{
 				"ActivePage": "admin-elementor",
 			})
 		})
-		adminGroup.GET("/automatizaciones", func(c *gin.Context) {
+		adminGroup.GET("/automatizaciones", onlyAdmin, func(c *gin.Context) {
 			c.HTML(http.StatusOK, "automatizaciones.html", gin.H{
 				"ActivePage": "admin-automatizaciones",
 			})
 		})
-		adminGroup.GET("/blogs", adminHandlers.Blogs)
-		adminGroup.GET("/blogs/nuevo", adminHandlers.NewBlogForm)
-		adminGroup.GET("/blogs/:id/editar", adminHandlers.EditBlogForm)
-		adminGroup.GET("/citas", adminHandlers.Appointments)
-		adminGroup.PATCH("/citas/:id/estado", adminHandlers.UpdateAppointmentStatus)
-		adminGroup.DELETE("/citas/:id", adminHandlers.DeleteAppointment)
-		adminGroup.GET("/configuracion", adminHandlers.Settings)
-		adminGroup.POST("/configuracion/horarios", adminHandlers.UpdateAgendaHours)
-		adminGroup.GET("/pedidos", func(c *gin.Context) {
+		adminGroup.GET("/blogs", onlyAdmin, adminHandlers.Blogs)
+		adminGroup.GET("/blogs/nuevo", onlyAdmin, adminHandlers.NewBlogForm)
+		adminGroup.GET("/blogs/:id/editar", onlyAdmin, adminHandlers.EditBlogForm)
+		adminGroup.GET("/citas", citasStaff, adminHandlers.Appointments)
+		adminGroup.PATCH("/citas/:id/estado", citasStaff, adminHandlers.UpdateAppointmentStatus)
+		adminGroup.DELETE("/citas/:id", citasStaff, adminHandlers.DeleteAppointment)
+		adminGroup.GET("/configuracion", onlyAdmin, adminHandlers.Settings)
+		adminGroup.POST("/configuracion/horarios", onlyAdmin, adminHandlers.UpdateAgendaHours)
+		adminGroup.GET("/pedidos", pedidosStaff, func(c *gin.Context) {
 			c.HTML(http.StatusOK, "pedidos.html", gin.H{
 				"ActivePage": "admin-pedidos",
+			})
+		})
+	}
+
+	// Receptionist panel (templates/receptionist/*.html) — mismo login
+	// y misma cookie que /admin (RequireAdminAuth), pero solo entra
+	// quien tenga sesión con role "admin" o "receptionist".
+	//
+	// ⚠️ /receptionist/citas está pendiente: necesito el handler real
+	// de citas (probablemente handlers/admin/citas.go o appointments.go)
+	// para reusar su lógica de datos con la plantilla propia de
+	// recepción en vez de la de admin. Por ahora NO está registrada —
+	// agrégala aquí en cuanto la tengamos:
+	//
+	//	receptionistGroup.GET("/citas", receptionistHandlers.Citas)
+	receptionistGroup := router.Group("/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
+	_ = receptionistGroup
+
+	// Optometrist panel (templates/optometrist/*.html) — mismo login y
+	// misma cookie que /admin, pero solo entra role "admin" u
+	// "optometrist". Las dos páginas por ahora son cascarones sin
+	// backend (ver el aviso dentro de cada .html) — no hay modelo de
+	// historial clínico ni de examen de la vista todavía.
+	optometristGroup := router.Group("/optometrist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleOptometrist))
+	{
+		optometristGroup.GET("/historial-clinico", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "historial-clinico.html", gin.H{
+				"ActivePage": "optometrist-historial",
+			})
+		})
+		optometristGroup.GET("/examen-vista", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "examen-vista.html", gin.H{
+				"ActivePage": "optometrist-examen",
 			})
 		})
 	}
@@ -273,37 +318,38 @@ func main() {
 		api.GET("/horarios/ocupadas", handlers.GetOccupiedHours)
 		api.GET("/horarios", handlers.GetAgendaHours)
 		api.POST("/pedidos", handlers.CreatePedido)
+		api.GET("/estados", handlers.GetOrderStatuses)
 	}
 
 	// Admin JSON API — called from pedidos.js to fill the Pedidos table
 	apiAdmin := router.Group("/api/admin", handlers.RequireAdminAuth())
 	{
-		apiAdmin.GET("/pedidos", adminHandlers.ListOrders)
-		apiAdmin.PATCH("/pedidos/:id/estado", adminHandlers.UpdateOrderStatus)
-		apiAdmin.DELETE("/pedidos/:id", adminHandlers.DeleteOrder)
-		apiAdmin.GET("/estados", adminHandlers.ListStatusOptions)
-		apiAdmin.POST("/estados", adminHandlers.CreateStatusOption)
-		apiAdmin.PUT("/estados/:id", adminHandlers.UpdateStatusOption)
-		apiAdmin.DELETE("/estados/:id", adminHandlers.DeleteStatusOption)
-		apiAdmin.GET("/pedidos/configuracion", adminHandlers.GetOrderSettings)
-		apiAdmin.PUT("/pedidos/configuracion", adminHandlers.UpdateOrderSettingsHandler)
-		apiAdmin.POST("/usuarios", adminHandlers.CreateUser)
-		apiAdmin.PUT("/usuarios/:id", adminHandlers.UpdateUser)
-		apiAdmin.DELETE("/usuarios/:id", adminHandlers.DeleteUser)
-		apiAdmin.POST("/anuncios", adminHandlers.CreateAd)
-		apiAdmin.PUT("/anuncios/:id", adminHandlers.UpdateAd)
-		apiAdmin.DELETE("/anuncios/:id", adminHandlers.DeleteAd)
-		apiAdmin.GET("/marcas", adminHandlers.ListBrands)
-		apiAdmin.POST("/productos", adminHandlers.CreateProduct)
-		apiAdmin.PUT("/productos/:id", adminHandlers.UpdateProduct)
-		apiAdmin.DELETE("/productos/:id", adminHandlers.DeleteProduct)
-		apiAdmin.POST("/blogs", adminHandlers.CreateBlog)
-		apiAdmin.PUT("/blogs/:id", adminHandlers.UpdateBlog)
-		apiAdmin.DELETE("/blogs/:id", adminHandlers.DeleteBlog)
-		apiAdmin.POST("/blog-categorias", adminHandlers.CreateBlogCategory)
-		apiAdmin.DELETE("/blog-categorias/:id", adminHandlers.DeleteBlogCategory)
-		apiAdmin.POST("/blog-etiquetas", adminHandlers.CreateBlogTag)
-		apiAdmin.DELETE("/blog-etiquetas/:id", adminHandlers.DeleteBlogTag)
+		apiAdmin.GET("/pedidos", pedidosStaff, adminHandlers.ListOrders)
+		apiAdmin.PATCH("/pedidos/:id/estado", pedidosStaff, adminHandlers.UpdateOrderStatus)
+		apiAdmin.DELETE("/pedidos/:id", pedidosStaff, adminHandlers.DeleteOrder)
+		apiAdmin.GET("/estados", onlyAdmin, adminHandlers.ListStatusOptions)
+		apiAdmin.POST("/estados", onlyAdmin, adminHandlers.CreateStatusOption)
+		apiAdmin.PUT("/estados/:id", onlyAdmin, adminHandlers.UpdateStatusOption)
+		apiAdmin.DELETE("/estados/:id", onlyAdmin, adminHandlers.DeleteStatusOption)
+		apiAdmin.GET("/pedidos/configuracion", onlyAdmin, adminHandlers.GetOrderSettings)
+		apiAdmin.PUT("/pedidos/configuracion", onlyAdmin, adminHandlers.UpdateOrderSettingsHandler)
+		apiAdmin.POST("/usuarios", onlyAdmin, adminHandlers.CreateUser)
+		apiAdmin.PUT("/usuarios/:id", onlyAdmin, adminHandlers.UpdateUser)
+		apiAdmin.DELETE("/usuarios/:id", onlyAdmin, adminHandlers.DeleteUser)
+		apiAdmin.POST("/anuncios", onlyAdmin, adminHandlers.CreateAd)
+		apiAdmin.PUT("/anuncios/:id", onlyAdmin, adminHandlers.UpdateAd)
+		apiAdmin.DELETE("/anuncios/:id", onlyAdmin, adminHandlers.DeleteAd)
+		apiAdmin.GET("/marcas", onlyAdmin, adminHandlers.ListBrands)
+		apiAdmin.POST("/productos", onlyAdmin, adminHandlers.CreateProduct)
+		apiAdmin.PUT("/productos/:id", onlyAdmin, adminHandlers.UpdateProduct)
+		apiAdmin.DELETE("/productos/:id", onlyAdmin, adminHandlers.DeleteProduct)
+		apiAdmin.POST("/blogs", onlyAdmin, adminHandlers.CreateBlog)
+		apiAdmin.PUT("/blogs/:id", onlyAdmin, adminHandlers.UpdateBlog)
+		apiAdmin.DELETE("/blogs/:id", onlyAdmin, adminHandlers.DeleteBlog)
+		apiAdmin.POST("/blog-categorias", onlyAdmin, adminHandlers.CreateBlogCategory)
+		apiAdmin.DELETE("/blog-categorias/:id", onlyAdmin, adminHandlers.DeleteBlogCategory)
+		apiAdmin.POST("/blog-etiquetas", onlyAdmin, adminHandlers.CreateBlogTag)
+		apiAdmin.DELETE("/blog-etiquetas/:id", onlyAdmin, adminHandlers.DeleteBlogTag)
 	}
 
 	// Client JSON API — llamada desde index.js / ecommerce.js (el corazón
@@ -315,6 +361,7 @@ func main() {
 		apiClient.GET("/favorites", handlers.GetFavorites)
 		apiClient.POST("/favorites", handlers.AddFavorite)
 		apiClient.DELETE("/favorites/:productId", handlers.DeleteFavorite)
+		apiClient.GET("/mis-pedidos", handlers.GetMyOrders)
 	}
 
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)

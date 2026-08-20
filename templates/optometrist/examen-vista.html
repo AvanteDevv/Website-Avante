@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen de la vista — Optometría · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+</head>
+<body class="cuenta-body">
+
+{{template "optometrist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "optometrist-sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Examen de la vista</h1>
+        <p>Registra los resultados de un nuevo examen (OD/OI, esfera, cilindro, eje, adición).</p>
+      </div>
+      <button type="button" class="btn thin" id="newExamBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo examen</button>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Exámenes recientes</h2>
+          <p>Todavía no hay exámenes registrados</p>
+        </div>
+      </div>
+
+      <div class="ads-empty">
+        Todavía no hay exámenes de la vista cargados — esta sección está lista para conectarse en cuanto definamos la estructura del examen (OD/OI, esfera, cilindro, eje, distancia pupilar, adición, y si va ligado a una cita o directo a la cuenta del paciente).
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+</body>
+</html>

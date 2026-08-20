@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historial clínico — Optometría · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+</head>
+<body class="cuenta-body">
+
+{{template "optometrist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "optometrist-sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Historial clínico</h1>
+        <p>Consulta el historial de graduaciones y notas de cada paciente.</p>
+      </div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Pacientes</h2>
+          <p>Todavía no hay historiales registrados</p>
+        </div>
+      </div>
+
+      <div class="panel-toolbar">
+        <div class="search-box">
+          <div class="search-box-glow"></div>
+          <div class="search-box-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="historialSearch" placeholder="Buscar paciente por nombre…" disabled>
+          </div>
+        </div>
+      </div>
+
+      <div class="ads-empty">
+        Todavía no hay historiales clínicos cargados — esta sección está lista para conectarse en cuanto definamos qué campos necesitas guardar por paciente (graduación anterior, notas de consulta, alergias, etc.).
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+</body>
+</html>

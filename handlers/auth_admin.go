@@ -14,22 +14,42 @@ import (
 // ⚠️ Ajusta "avante-optics" en los imports de arriba para que coincida con
 // el nombre del módulo en tu go.mod (primera línea: "module xxxxx").
 //
-// Separado de auth.go a propósito: la autenticación de admin no es "login
-// de cliente + un permiso extra", es un flujo distinto (sin registro
-// público, tabla propia `admins`, cookie de sesión propia). Mantenerlo en
-// su propio archivo evita que un bug en el login de cliente arrastre al
-// de admin, o viceversa.
+// Separado de auth.go a propósito: la autenticación de staff (admin /
+// recepción / optometría) no es "login de cliente + un permiso extra",
+// es un flujo distinto (sin registro público, tablas propias, cookie
+// de sesión propia). Mantenerlo en su propio archivo evita que un bug
+// en el login de cliente arrastre al de staff, o viceversa.
+//
+// Las tres cuentas (admin, recepción, optometría) comparten el MISMO
+// formulario de login y la MISMA cookie de sesión (AdminSessionName)
+// — es un solo panel de entrada. Lo que cambia es la tabla en la que
+// vive cada cuenta: son identidades separadas (Admin / Receptionist /
+// Optometrist, cada una en su propio archivo de modelo), no una sola
+// tabla con una columna de rol.
+
+// Roles válidos para la sesión de staff — usa estas constantes en
+// RequireRole(...) en vez de escribir el string a mano.
+const (
+	RoleAdmin        = "admin"
+	RoleReceptionist = "receptionist"
+	RoleOptometrist  = "optometrist"
+)
 
 type adminLoginInput struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
 
-// AdminLogin valida credenciales de administrador y arranca su sesión.
-// A propósito NO existe un AdminRegister público: los admins se crean
-// con el script cmd/seedadmin (el primero) o desde una pantalla del
-// propio panel ya autenticado (los siguientes) — nunca desde un endpoint
-// abierto al público.
+// AdminLogin valida credenciales contra las tres tablas de staff, en
+// este orden: admins -> receptionists -> optometrists. La primera que
+// tenga ese correo (y cuya contraseña haga match) es la que arranca
+// sesión. Un correo solo debería existir en una de las tres tablas a
+// la vez — tú controlas eso al crear las cuentas, aquí no se valida.
+//
+// A propósito NO existe un registro público para ninguna de las tres:
+// el primer admin se crea con cmd/seedadmin; las cuentas de recepción
+// y optometría se crean desde una pantalla del propio panel ya
+// autenticado como admin.
 func AdminLogin(c *gin.Context) {
 	var input adminLoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -37,34 +57,66 @@ func AdminLogin(c *gin.Context) {
 		return
 	}
 
-	admin, err := models.GetAdminByEmail(input.Email)
-	if errors.Is(err, models.ErrAdminNotFound) {
+	// 1) Admin
+	if admin, err := models.GetAdminByEmail(input.Email); err == nil {
+		if bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(input.Password)) == nil {
+			finishStaffLogin(c, RoleAdmin, admin.ID, admin.Name, "/admin/base-de-datos")
+			return
+		}
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
 		return
-	}
-	if err != nil {
+	} else if !errors.Is(err, models.ErrAdminNotFound) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error del servidor. Intenta de nuevo."})
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(input.Password)); err != nil {
+	// 2) Recepción
+	if r, err := models.GetReceptionistByEmail(input.Email); err == nil {
+		if bcrypt.CompareHashAndPassword([]byte(r.PasswordHash), []byte(input.Password)) == nil {
+			finishStaffLogin(c, RoleReceptionist, r.ID, r.Name, "/receptionist/citas")
+			return
+		}
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
+		return
+	} else if !errors.Is(err, models.ErrReceptionistNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error del servidor. Intenta de nuevo."})
 		return
 	}
 
-	if err := startAdminSession(c, admin); err != nil {
+	// 3) Optometría
+	if o, err := models.GetOptometristByEmail(input.Email); err == nil {
+		if bcrypt.CompareHashAndPassword([]byte(o.PasswordHash), []byte(input.Password)) == nil {
+			finishStaffLogin(c, RoleOptometrist, o.ID, o.Name, "/optometrist/historial-clinico")
+			return
+		}
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
+		return
+	} else if !errors.Is(err, models.ErrOptometristNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error del servidor. Intenta de nuevo."})
+		return
+	}
+
+	// No apareció en ninguna de las tres tablas.
+	c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
+}
+
+// finishStaffLogin arranca la sesión y responde el JSON de éxito —
+// compartido por las tres ramas de AdminLogin para no repetir la
+// misma respuesta tres veces.
+func finishStaffLogin(c *gin.Context, role string, id int64, name string, redirect string) {
+	if err := startStaffSession(c, role, id, name); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo iniciar sesión. Intenta de nuevo."})
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "Bienvenido al panel de administrador.",
-		"redirect": "/admin/base-de-datos",
+		"message":  "Bienvenido al panel de administración.",
+		"redirect": redirect,
 	})
 }
 
-// AdminLogout cierra la sesión de administrador (cookie AdminSessionName,
+// AdminLogout cierra la sesión de staff (cookie AdminSessionName,
 // no toca la sesión de cliente si hubiera una activa en el mismo navegador).
+// Sirve para las tres cuentas por igual — es la misma cookie.
 func AdminLogout(c *gin.Context) {
 	session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
 	session.Options.MaxAge = -1
@@ -72,29 +124,71 @@ func AdminLogout(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/admin/iniciar-sesion")
 }
 
-// RequireAdminAuth protege las rutas del panel de administrador. Úsalo
-// así en main.go:
+// RequireAdminAuth protege las rutas del panel de staff — cualquiera
+// de los tres roles pasa esta capa, siempre y cuando tenga sesión
+// activa. Úsalo así en main.go:
 //
 //	admin := router.Group("/admin", handlers.RequireAdminAuth())
 //	admin.GET("/base-de-datos", ...)
+//
+// Además de validar la sesión, deja el rol disponible en el contexto
+// (c.Set("staff_role", ...)) para que RequireRole (abajo) y los propios
+// handlers puedan leerlo sin volver a tocar la cookie.
 func RequireAdminAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
-		if session.Values["admin_id"] == nil {
+		if session.Values["staff_id"] == nil {
 			c.Redirect(http.StatusFound, "/admin/iniciar-sesion")
 			c.Abort()
 			return
+		}
+		if role, ok := session.Values["staff_role"].(string); ok {
+			c.Set("staff_role", role)
 		}
 		c.Next()
 	}
 }
 
-func startAdminSession(c *gin.Context, admin *models.Admin) error {
+// RequireRole restringe una ruta a uno o más roles específicos — debe ir
+// SIEMPRE después de RequireAdminAuth() en la cadena, nunca solo:
+//
+//	adminGroup := router.Group("/admin", handlers.RequireAdminAuth())
+//	adminGroup.GET("/productos", handlers.RequireRole(handlers.RoleAdmin), adminHandlers.Products)
+//
+//	apiAdmin := router.Group("/api/admin", handlers.RequireAdminAuth())
+//	apiAdmin.GET("/pedidos", handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist), adminHandlers.ListOrders)
+//
+// Si alguien con un rol no autorizado intenta entrar directo por URL
+// (sin que el sidebar le muestre el link), esto lo corta con 403 —
+// nunca confíes solo en que el frontend oculte el botón.
+func RequireRole(allowed ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		raw, _ := c.Get("staff_role")
+		role, _ := raw.(string)
+
+		for _, r := range allowed {
+			if role == r {
+				c.Next()
+				return
+			}
+		}
+
+		if c.GetHeader("Accept") == "application/json" || len(c.Request.Header.Get("X-Requested-With")) > 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para esto."})
+		} else {
+			c.String(http.StatusForbidden, "No tienes permiso para acceder a esta sección.")
+		}
+		c.Abort()
+	}
+}
+
+func startStaffSession(c *gin.Context, role string, id int64, name string) error {
 	session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
-	// Sesión de admin más corta que la de cliente (8h vs. 7 días) —
+	// Sesión de staff más corta que la de cliente (8h vs. 7 días) —
 	// tiene más privilegios, así que conviene que expire más rápido.
 	session.Options.MaxAge = 8 * 60 * 60
-	session.Values["admin_id"] = admin.ID
-	session.Values["admin_name"] = admin.Name
+	session.Values["staff_id"] = id
+	session.Values["staff_name"] = name
+	session.Values["staff_role"] = role
 	return session.Save(c.Request, c.Writer)
 }

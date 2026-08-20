@@ -1,0 +1,34 @@
+{{define "optometrist-sidebar"}}
+<aside class="cuenta-sidebar" id="cuentaSidebar">
+  <button type="button" class="cuenta-sidebar-toggle" id="sidebarToggle" aria-label="Colapsar menú" title="Colapsar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </button>
+
+  <div class="cuenta-themeContainer">
+    <label class="cuenta-themeLabel" id="cuentaThemeLabel">
+      <input class="cuenta-themeInput" type="checkbox" id="cuentaThemeToggle">
+      <div class="cuenta-themeType light">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span>Light</span>
+      </div>
+      <div class="cuenta-themeType dark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span>Dark</span>
+      </div>
+    </label>
+  </div>
+
+  <nav class="cuenta-nav-group">
+    <span class="cuenta-nav-blob" aria-hidden="true"></span>
+    <a href="/optometrist/historial-clinico" class="cuenta-nav-link{{if eq .ActivePage "optometrist-historial"}} active{{end}}"><i data-feather="file-text"></i><span>Historial clínico</span><span class="cuenta-nav-tooltip">Historial clínico</span></a>
+    <a href="/optometrist/examen-vista" class="cuenta-nav-link{{if eq .ActivePage "optometrist-examen"}} active{{end}}"><i data-feather="eye"></i><span>Examen de la vista</span><span class="cuenta-nav-tooltip">Examen de la vista</span></a>
+  </nav>
+
+  <div class="cuenta-nav-divider"></div>
+
+  <nav class="cuenta-nav-group cuenta-nav-group--plain">
+    <a href="/" class="cuenta-nav-link"><i data-feather="home"></i><span>Volver al sitio</span><span class="cuenta-nav-tooltip">Volver al sitio</span></a>
+    <a href="/admin/logout" class="cuenta-nav-link logout"><i data-feather="log-out"></i><span>Cerrar sesión</span><span class="cuenta-nav-tooltip">Cerrar sesión</span></a>
+  </nav>
+</aside>
+{{end}}

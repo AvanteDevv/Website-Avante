@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"avante-optics/auth"
 	"avante-optics/models"
 )
 
@@ -23,8 +24,16 @@ type createPedidoInput struct {
 }
 
 // CreatePedido handles purchases from the public product page. No
-// login required — this is what detalle-producto.js calls when the
-// person clicks "Agregar al carrito".
+// login required — this is what detalle-producto.js (y ahora
+// pasarela-de-pagos.js, una vez por línea del carrito) llama al
+// comprar.
+//
+// Esta ruta sigue siendo pública (POST /api/pedidos, sin
+// RequireAuthAPI) — comprar sin cuenta debe seguir funcionando igual.
+// Por eso aquí no usamos currentUserID(c) (que depende de que
+// RequireAuthAPI ya haya corrido) — leemos la cookie de sesión
+// directamente, y si no hay sesión válida simplemente no ligamos nada
+// (el pedido queda como invitado, igual que antes).
 func CreatePedido(c *gin.Context) {
 	var input createPedidoInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -39,6 +48,27 @@ func CreatePedido(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear el pedido. Intenta de nuevo."})
 		return
+	}
+
+	// Si hay sesión de cliente activa (aunque esta ruta no la exija),
+	// ligamos el pedido a la cuenta para que aparezca en "Mis
+	// pedidos". Best-effort: si algo falla aquí, no tumbamos la compra
+	// — el pedido ya se creó bien.
+	if session, err := auth.Store.Get(c.Request, auth.SessionName); err == nil {
+		if raw := session.Values["user_id"]; raw != nil {
+			var userID int64
+			switch v := raw.(type) {
+			case int64:
+				userID = v
+			case int:
+				userID = int64(v)
+			}
+			if userID != 0 {
+				if err := models.AttachOrderToUser(order.ID, userID); err == nil {
+					order.UserID = &userID
+				}
+			}
+		}
 	}
 
 	c.JSON(http.StatusCreated, order)

@@ -174,6 +174,16 @@ body.cuenta-body{
 
 .order-actions{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
 
+/* ---------- Estado vacío (sin pedidos) ---------- */
+.orders-empty{
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  gap:10px; padding:60px 24px 68px; color:var(--grey);
+}
+.orders-empty svg{ width:40px; height:40px; stroke:var(--blue-300); margin-bottom:6px; }
+.orders-empty h3{ font-family:var(--sans); font-weight:700; font-size:15.5px; color:var(--ink); }
+.orders-empty p{ font-size:12.5px; max-width:320px; line-height:1.6; }
+.orders-empty .btn{ margin-top:6px; }
+
 @media (max-width:520px){
   .cuenta-header h1{ font-size:26px; }
   .order-card{ margin:12px; padding:16px; }

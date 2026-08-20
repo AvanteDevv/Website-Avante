@@ -1,0 +1,27 @@
+{{define "optometrist-userbar"}}
+<div class="header-outer">
+<header class="userbar-row">
+  <div class="userbar" id="userbar">
+    <button type="button" class="userbar-trigger">
+      <span class="userbar-avatar">OP</span>
+      <span class="userbar-name">Optometría</span>
+      <svg class="userbar-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div class="userbar-menu">
+      <div class="userbar-menu-head">
+        <span class="userbar-avatar">OP</span>
+        <div>
+          <div class="name">Optometría</div>
+          <div class="email">Avante Optics</div>
+        </div>
+      </div>
+        <a href="/optometrist/historial-clinico" class="userbar-menu-link{{if eq .ActivePage "optometrist-historial"}} active{{end}}"><i data-feather="file-text"></i>Historial clínico</a>
+        <a href="/optometrist/examen-vista" class="userbar-menu-link{{if eq .ActivePage "optometrist-examen"}} active{{end}}"><i data-feather="eye"></i>Examen de la vista</a>
+      <div class="userbar-menu-divider"></div>
+      <a href="/" class="userbar-menu-link"><i data-feather="home"></i>Volver al sitio</a>
+      <a href="/admin/logout" class="userbar-menu-link logout"><i data-feather="log-out"></i>Cerrar sesión</a>
+    </div>
+  </div>
+</header>
+</div>
+{{end}}
