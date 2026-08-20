@@ -1,0 +1,148 @@
+/* ===========================================================
+   Avante Optics — Admin — Optometría — Examen de la vista
+   Autocontenido, mismo patrón que pedidos.css / productos.css:
+   trae sus propios tokens + shell + panel, no depende de que
+   otro archivo se haya cargado antes.
+   =========================================================== */
+
+:root{
+  --blue-900:#000850;
+  --blue-700:#0015E0;
+  --blue-600:#041cff;
+  --blue-500:#3E50FF;
+  --blue-300:#8992FF;
+  --blue-100:#EAEFFF;
+  --blue-50:#F5F7FF;
+  --white:#FFFFFF;
+  --ink:#0A0E38;
+  --grey:#6670A6;
+  --line:#DDE3FA;
+  --on-accent:#FFFFFF;
+  --serif:'Fraunces', serif;
+  --sans:'Public Sans', sans-serif;
+  --ease:cubic-bezier(.16,.84,.44,1);
+
+  --radius-lg:26px;
+  --radius-md:18px;
+  --radius-sm:14px;
+  --shadow-sm: 0 1px 3px rgba(4,28,255,.06);
+  --shadow-md: 0 14px 30px -16px rgba(4,28,255,.18);
+  --shadow-lg: 0 26px 48px -18px rgba(4,28,255,.28);
+}
+
+/* ---------- Modo oscuro ---------- */
+body.dark{
+  --white:#161616;
+  --ink:#FFFFFF;
+  --grey:#9A9A9A;
+  --line:#2B2B2B;
+  --blue-50:rgba(4,28,255,.14);
+  --blue-100:rgba(137,146,255,.24);
+}
+body.dark.cuenta-body{
+  background:#0A0A0A;
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.10), transparent 45%);
+}
+body.dark{ transition:background-color .3s var(--ease); }
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--white);
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%; display:block;}
+a{color:inherit; text-decoration:none;}
+button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+ul{list-style:none;}
+input,select,textarea{font-family:inherit;}
+::selection{background:var(--blue-600); color:var(--on-accent);}
+
+body.cuenta-body{
+  background:#ffffff;
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.05), transparent 45%);
+  min-height:100vh;
+}
+
+.btn{
+  padding:15px 34px;
+  font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase;
+  border:1px solid var(--ink);
+  border-radius:30px;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  white-space:nowrap;
+  transition:background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease), transform .2s var(--ease);
+}
+.btn svg{ width:14px; height:14px; flex-shrink:0; }
+.btn:hover{ transform:translateY(-2px); }
+.btn.solid{ background:var(--blue-600); border-color:var(--blue-600); color:var(--on-accent); }
+.btn.solid:hover{ background:var(--blue-700); border-color:var(--blue-700); }
+.btn:not(.solid):hover{ background:var(--ink); color:var(--white); }
+.btn.thin{ padding:10px 20px; font-size:11px; letter-spacing:.8px; }
+.btn:disabled{ opacity:.5; cursor:default; pointer-events:none; }
+
+/* =========================================================
+   CUENTA SHELL — sidebar + contenido
+   ========================================================= */
+.cuenta-shell{
+  max-width:1180px; margin:0 auto;
+  padding:36px 24px 90px;
+  display:flex; align-items:flex-start; gap:32px;
+}
+@media (max-width:900px){ .cuenta-shell{ flex-direction:column; padding:28px 18px 70px; gap:22px; } }
+
+.cuenta-main{ flex:1; min-width:0; }
+
+.cuenta-header{ margin-bottom:28px; }
+.cuenta-header h1{
+  font-family:var(--serif); font-weight:500; font-size:32px; letter-spacing:-.01em; color:var(--ink);
+}
+.cuenta-header p{ font-size:14px; color:var(--grey); margin-top:7px; max-width:560px; line-height:1.55; }
+@media (max-width:520px){ .cuenta-header h1{ font-size:26px; } }
+
+.admin-header-row{
+  display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px;
+}
+
+/* ---------- Panel ---------- */
+.panel{
+  background:var(--white); border:1.5px solid var(--line); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-md);
+}
+.panel-head{
+  display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;
+  padding:20px 24px; border-bottom:1px solid var(--line);
+}
+.panel-head h2{ font-family:var(--sans); font-weight:700; font-size:15.5px; }
+.panel-head p{ font-size:12px; color:var(--grey); margin-top:3px; }
+
+.panel-toolbar{
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+  padding:16px 24px; border-bottom:1px solid var(--line); background:transparent;
+}
+.search-box{ position:relative; flex:1; min-width:200px; max-width:340px; border-radius:16px; }
+@property --search-angle{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+.search-box-glow{
+  position:absolute; inset:0; border-radius:16px;
+  background:conic-gradient(from var(--search-angle,0deg), var(--blue-600), var(--blue-300), #ffffff, var(--blue-500), var(--blue-600));
+  animation:searchBorderSpin 3.2s linear infinite;
+}
+@keyframes searchBorderSpin{ to{ --search-angle:360deg; } }
+.search-box-inner{
+  position:relative; z-index:1; margin:2px; display:flex; align-items:center; gap:10px;
+  background:var(--white); border-radius:14px; padding:10px 14px;
+}
+.search-box-inner svg{ width:15px; height:15px; color:var(--blue-600); flex-shrink:0; }
+.search-box-inner input{
+  border:none; outline:none; flex:1; min-width:0; font-family:var(--sans); font-size:13px; color:var(--ink); background:none;
+}
+.search-box-inner input::placeholder{ color:var(--grey); }
+.search-box-inner input:disabled{ opacity:.6; }
+
+/* ---------- Estado vacío ---------- */
+.empty-state{
+  padding:50px 24px; text-align:center; color:var(--grey); font-size:13px; line-height:1.6;
+  border-top:1px solid var(--line);
+}
