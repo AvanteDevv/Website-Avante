@@ -304,6 +304,24 @@ func main() {
 				"ActivePage": "optometrist-examen",
 			})
 		})
+		optometristGroup.GET("/plantilla-examen", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "plantilla-examen.html", gin.H{
+				"ActivePage": "optometrist-plantilla",
+			})
+		})
+	}
+
+	// API del editor visual de plantilla de examen — mismo grupo de
+	// rol que el panel de optometría (admin u optometrist).
+	apiOptometrist := router.Group("/api/optometrist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleOptometrist))
+	{
+		apiOptometrist.GET("/plantillas", handlers.ListExamTemplates)
+		apiOptometrist.GET("/plantillas/activa", handlers.GetActiveExamTemplate)
+		apiOptometrist.GET("/plantillas/:id", handlers.GetExamTemplate)
+		apiOptometrist.POST("/plantillas", handlers.CreateExamTemplate)
+		apiOptometrist.PUT("/plantillas/:id", handlers.UpdateExamTemplate)
+		apiOptometrist.POST("/plantillas/:id/activar", handlers.ActivateExamTemplate)
+		apiOptometrist.DELETE("/plantillas/:id", handlers.DeleteExamTemplate)
 	}
 
 	// Auth API — called from iniciar-sesion.js / registro.js
