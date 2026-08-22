@@ -32,7 +32,7 @@
       renderer = AvanteExamRender.mount(canvasEl, {
         canvasW: t.canvasW,
         canvasH: t.canvasH,
-        elements: JSON.parse(t.elements || '[]'),
+        elements: (t.elements || []),
         readonly: false
       });
     })

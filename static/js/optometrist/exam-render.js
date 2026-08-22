@@ -82,10 +82,14 @@ window.AvanteExamRender = (function(){
 
   function buildTable(el, data, readonly){
     var saved = data.tables[el.id]; // [][] de strings, si ya había datos
+    var rowLabels = el.rowLabels || [];
     var table = document.createElement('table');
 
     var thead = document.createElement('thead');
     var headRow = document.createElement('tr');
+    var corner = document.createElement('th');
+    corner.className = 'exf-table-corner';
+    headRow.appendChild(corner);
     (el.headers || []).forEach(function(h){
       var th = document.createElement('th');
       th.textContent = h;
@@ -97,6 +101,10 @@ window.AvanteExamRender = (function(){
     var tbody = document.createElement('tbody');
     for (var r = 0; r < (el.rows || 0); r++){
       var tr = document.createElement('tr');
+      var rowTh = document.createElement('th');
+      rowTh.className = 'exf-table-rowlabel';
+      rowTh.textContent = rowLabels[r] || '';
+      tr.appendChild(rowTh);
       for (var c = 0; c < (el.cols || 0); c++){
         var td = document.createElement('td');
         var input = document.createElement('input');

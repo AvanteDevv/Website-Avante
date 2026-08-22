@@ -51,7 +51,8 @@
         return {
           w: 340, h: 100,
           rows: 3, cols: 4,
-          headers: ['OD', 'ESF', 'CIL', 'EJE']
+          headers: ['OD', 'ESF', 'CIL', 'EJE'],
+          rowLabels: ['', '', '']
         };
       default:
         return { w: 120, h: 30 };
@@ -88,6 +89,11 @@
     });
     renderProps();
     renderTplList();
+  }
+
+  function resetCanvasScroll(){
+    var wrap = canvas.parentElement;
+    if (wrap){ wrap.scrollLeft = 0; wrap.scrollTop = 0; }
   }
 
   function buildElNode(el){
@@ -140,12 +146,20 @@
   }
 
   function buildTableNode(el){
+    el.rowLabels = el.rowLabels || [];
+    while (el.rowLabels.length < (el.rows || 0)) el.rowLabels.push('');
+
     var wrap = document.createElement('div');
     wrap.className = 'tpl-table-wrap';
 
     var table = document.createElement('table');
     var thead = document.createElement('thead');
     var headRow = document.createElement('tr');
+
+    var corner = document.createElement('th');
+    corner.className = 'tpl-table-corner';
+    headRow.appendChild(corner);
+
     (el.headers || []).forEach(function(h, colIndex){
       var th = document.createElement('th');
       th.textContent = h;
@@ -182,25 +196,39 @@
     var tbody = document.createElement('tbody');
     for (var r = 0; r < (el.rows || 0); r++){
       var tr = document.createElement('tr');
-      for (var c = 0; c < (el.cols || 0); c++){
-        var td = document.createElement('td');
-        if (c === 0 && el.id === state.selectedId && el.rows > 1){
+
+      var rowTh = document.createElement('th');
+      rowTh.className = 'tpl-table-rowlabel';
+      rowTh.textContent = el.rowLabels[r] || '';
+      rowTh.title = 'Doble clic para editar';
+      (function(rowIndex, rowThEl){
+        rowThEl.addEventListener('dblclick', function(e){
+          e.stopPropagation();
+          makeEditable(rowThEl, function(newVal){
+            el.rowLabels[rowIndex] = newVal;
+            render();
+          });
+        });
+        if (el.id === state.selectedId && el.rows > 1){
           var rmRow = document.createElement('button');
           rmRow.type = 'button';
           rmRow.className = 'tpl-table-rm tpl-table-rm-row';
           rmRow.textContent = '×';
           rmRow.title = 'Eliminar fila';
           rmRow.addEventListener('mousedown', function(e){ e.stopPropagation(); });
-          (function(rowIndex){
-            rmRow.addEventListener('click', function(e){
-              e.stopPropagation();
-              el.rows = Math.max(0, el.rows - 1);
-              render();
-            });
-          })(r);
-          td.appendChild(rmRow);
+          rmRow.addEventListener('click', function(e){
+            e.stopPropagation();
+            el.rowLabels.splice(rowIndex, 1);
+            el.rows = Math.max(0, el.rows - 1);
+            render();
+          });
+          rowThEl.appendChild(rmRow);
         }
-        tr.appendChild(td);
+      })(r, rowTh);
+      tr.appendChild(rowTh);
+
+      for (var c = 0; c < (el.cols || 0); c++){
+        tr.appendChild(document.createElement('td'));
       }
       tbody.appendChild(tr);
     }
@@ -229,6 +257,8 @@
       addRow.addEventListener('mousedown', function(e){ e.stopPropagation(); });
       addRow.addEventListener('click', function(e){
         e.stopPropagation();
+        el.rowLabels = el.rowLabels || [];
+        el.rowLabels.push('');
         el.rows = (el.rows || 0) + 1;
         render();
       });
@@ -356,6 +386,7 @@
       html += fieldNumber('rows', 'Filas', el.rows);
       html += fieldNumber('cols', 'Columnas', el.cols);
       html += fieldText('headersCsv', 'Encabezados (separados por coma)', (el.headers || []).join(', '));
+      html += fieldText('rowLabelsCsv', 'Etiquetas de fila (separadas por coma)', (el.rowLabels || []).join(', '));
     }
 
     if (el.type === 'image'){
@@ -407,6 +438,10 @@
     on('prop_cols', function(e){ el.cols = Math.max(0, Number(e.target.value) || 0); render(); });
     on('prop_headersCsv', function(e){
       el.headers = e.target.value.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+      render();
+    });
+    on('prop_rowLabelsCsv', function(e){
+      el.rowLabels = e.target.value.split(',').map(function(s){ return s.trim(); });
       render();
     });
 
@@ -483,11 +518,12 @@
         state.name = t.name;
         state.canvasW = t.canvasW;
         state.canvasH = t.canvasH;
-        state.elements = JSON.parse(t.elements || '[]');
+        state.elements = (t.elements || []);
         state.selectedId = null;
         canvas.style.width = state.canvasW + 'px';
         canvas.style.height = state.canvasH + 'px';
         render();
+        resetCanvasScroll();
         showStatus('Plantilla "' + t.name + '" cargada.', 'ok');
       })
       .catch(function(){ showStatus('No se pudo cargar esa plantilla.', 'error'); });
@@ -540,11 +576,12 @@
         state.name = t.name;
         state.canvasW = t.canvasW;
         state.canvasH = t.canvasH;
-        state.elements = JSON.parse(t.elements || '[]');
+        state.elements = (t.elements || []);
         canvas.style.width = state.canvasW + 'px';
         canvas.style.height = state.canvasH + 'px';
       }
       render();
+      resetCanvasScroll();
       refreshTplList();
     })
     .catch(function(){ render(); refreshTplList(); });

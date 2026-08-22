@@ -132,6 +132,8 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 }
 .tpl-table-wrap th{ background:var(--blue-50); font-weight:700; cursor:text; }
 .tpl-table-wrap th.is-editing{ background:var(--white); white-space:normal; outline:2px solid var(--blue-600); outline-offset:-2px; }
+.tpl-table-corner{ width:34px; background:var(--line); cursor:default; }
+.tpl-table-rowlabel{ width:34px; text-align:center; }
 
 .tpl-table-rm{
   position:absolute; top:1px; right:2px; z-index:6;
