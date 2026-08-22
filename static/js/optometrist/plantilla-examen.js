@@ -131,6 +131,7 @@
 
     node.addEventListener('click', function(e){
       e.stopPropagation();
+      if (state.selectedId === el.id) return;
       state.selectedId = el.id;
       render();
     });
@@ -139,12 +140,40 @@
   }
 
   function buildTableNode(el){
+    var wrap = document.createElement('div');
+    wrap.className = 'tpl-table-wrap';
+
     var table = document.createElement('table');
     var thead = document.createElement('thead');
     var headRow = document.createElement('tr');
-    (el.headers || []).forEach(function(h){
+    (el.headers || []).forEach(function(h, colIndex){
       var th = document.createElement('th');
       th.textContent = h;
+      th.title = 'Doble clic para editar';
+
+      th.addEventListener('dblclick', function(e){
+        e.stopPropagation();
+        makeEditable(th, function(newVal){
+          el.headers[colIndex] = newVal;
+          render();
+        });
+      });
+
+      if (el.id === state.selectedId && (el.headers || []).length > 1){
+        var rmCol = document.createElement('button');
+        rmCol.type = 'button';
+        rmCol.className = 'tpl-table-rm tpl-table-rm-col';
+        rmCol.textContent = '×';
+        rmCol.title = 'Eliminar columna';
+        rmCol.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+        rmCol.addEventListener('click', function(e){
+          e.stopPropagation();
+          el.headers.splice(colIndex, 1);
+          el.cols = Math.max(0, el.cols - 1);
+          render();
+        });
+        th.appendChild(rmCol);
+      }
       headRow.appendChild(th);
     });
     thead.appendChild(headRow);
@@ -154,18 +183,97 @@
     for (var r = 0; r < (el.rows || 0); r++){
       var tr = document.createElement('tr');
       for (var c = 0; c < (el.cols || 0); c++){
-        tr.appendChild(document.createElement('td'));
+        var td = document.createElement('td');
+        if (c === 0 && el.id === state.selectedId && el.rows > 1){
+          var rmRow = document.createElement('button');
+          rmRow.type = 'button';
+          rmRow.className = 'tpl-table-rm tpl-table-rm-row';
+          rmRow.textContent = '×';
+          rmRow.title = 'Eliminar fila';
+          rmRow.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+          (function(rowIndex){
+            rmRow.addEventListener('click', function(e){
+              e.stopPropagation();
+              el.rows = Math.max(0, el.rows - 1);
+              render();
+            });
+          })(r);
+          td.appendChild(rmRow);
+        }
+        tr.appendChild(td);
       }
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-    return table;
+    wrap.appendChild(table);
+
+    if (el.id === state.selectedId){
+      var addCol = document.createElement('button');
+      addCol.type = 'button';
+      addCol.className = 'tpl-table-add tpl-table-add-col';
+      addCol.textContent = '+ columna';
+      addCol.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+      addCol.addEventListener('click', function(e){
+        e.stopPropagation();
+        el.headers = el.headers || [];
+        el.headers.push('Col');
+        el.cols = (el.cols || 0) + 1;
+        render();
+      });
+      wrap.appendChild(addCol);
+
+      var addRow = document.createElement('button');
+      addRow.type = 'button';
+      addRow.className = 'tpl-table-add tpl-table-add-row';
+      addRow.textContent = '+ fila';
+      addRow.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+      addRow.addEventListener('click', function(e){
+        e.stopPropagation();
+        el.rows = (el.rows || 0) + 1;
+        render();
+      });
+      wrap.appendChild(addRow);
+    }
+
+    return wrap;
+  }
+
+  function makeEditable(th, onCommit){
+    th.querySelectorAll('.tpl-table-rm').forEach(function(btn){ btn.remove(); });
+    th.contentEditable = 'true';
+    th.classList.add('is-editing');
+    th.focus();
+    document.execCommand && placeCaretAtEnd(th);
+
+    function commit(){
+      th.contentEditable = 'false';
+      th.classList.remove('is-editing');
+      th.removeEventListener('blur', commit);
+      th.removeEventListener('keydown', onKey);
+      onCommit(th.textContent.trim());
+    }
+    function onKey(e){
+      if (e.key === 'Enter'){ e.preventDefault(); th.blur(); }
+      if (e.key === 'Escape'){ e.preventDefault(); th.blur(); }
+    }
+    th.addEventListener('blur', commit);
+    th.addEventListener('keydown', onKey);
+  }
+
+  function placeCaretAtEnd(el){
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
   }
 
   /* ---------- arrastrar ---------- */
   function bindDrag(node, el){
     node.addEventListener('mousedown', function(e){
       if (e.target.classList.contains('tpl-resize-handle')) return;
+      if (e.target.closest && e.target.closest('[contenteditable="true"]')) return;
       e.preventDefault();
       state.selectedId = el.id;
       var startX = e.clientX, startY = e.clientY;
@@ -216,6 +324,16 @@
     render();
   });
 
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+    if (!state.selectedId) return;
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (document.activeElement && document.activeElement.isContentEditable) return;
+    e.preventDefault();
+    deleteSelected();
+  });
+
   /* ---------- panel de propiedades ---------- */
   function renderProps(){
     var el = state.selectedId ? findEl(state.selectedId) : null;
@@ -245,7 +363,9 @@
     }
 
     html += '<div class="tpl-props-row"><label>X<input type="number" id="propX" value="' + el.x + '"></label><label>Y<input type="number" id="propY" value="' + el.y + '"></label></div>';
-    html += '<div class="tpl-props-row"><label>Ancho<input type="number" id="propW" value="' + el.w + '"></label><label>Alto<input type="number" id="propH" value="' + el.h + '"></label></div>';
+    var heightLabel = (el.type === 'line') ? 'Grosor (px)' : 'Alto';
+    var widthLabel = (el.type === 'line') ? 'Largo' : 'Ancho';
+    html += '<div class="tpl-props-row"><label>' + widthLabel + '<input type="number" id="propW" value="' + el.w + '"></label><label>' + heightLabel + '<input type="number" id="propH" value="' + el.h + '"></label></div>';
     html += '<button type="button" class="tpl-props-delete" id="propDelete">Eliminar elemento</button>';
 
     propsPanel.innerHTML = html;
