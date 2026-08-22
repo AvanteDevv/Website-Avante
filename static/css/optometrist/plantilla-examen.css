@@ -98,8 +98,10 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 .tpl-canvas-wrap{
   flex:1; min-width:0; overflow:auto;
   background:var(--blue-50); border:1.5px solid var(--line); border-radius:var(--radius-md);
-  padding:30px; display:flex; justify-content:center;
+  padding:30px;
+  direction:rtl; /* truco: garantiza que el borde izquierdo del lienzo sea alcanzable por scroll incluso si el contenido queda centrado */
 }
+.tpl-canvas-wrap > .tpl-canvas{ direction:ltr; }
 .tpl-canvas{
   position:relative; background:var(--white); box-shadow:var(--shadow-lg);
   flex-shrink:0; border:1px solid var(--line);

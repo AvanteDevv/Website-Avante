@@ -8,8 +8,6 @@
   var formWrap = document.getElementById('examFormWrap');
   var canvasEl = document.getElementById('examCanvas');
   var saveBtn = document.getElementById('saveExamBtn');
-  var patientNameInput = document.getElementById('patientName');
-  var patientPhoneInput = document.getElementById('patientPhone');
 
   var template = null;
   var renderer = null;
@@ -22,7 +20,11 @@
   fetch('/api/optometrist/plantillas/activa')
     .then(function(res){
       if (res.status === 404){ noTemplateEl.style.display = 'block'; return null; }
-      if (!res.ok) throw new Error('request failed');
+      if (!res.ok){
+        return res.json().catch(function(){ return {}; }).then(function(body){
+          throw new Error('HTTP ' + res.status + ' — ' + (body.error || res.statusText));
+        });
+      }
       return res.json();
     })
     .then(function(t){
@@ -36,23 +38,25 @@
         readonly: false
       });
     })
-    .catch(function(){ showStatus('No se pudo cargar la plantilla activa. Intenta de nuevo.', 'error'); });
+    .catch(function(err){
+      console.error('nuevo-examen: fallo al cargar la plantilla activa', err);
+      showStatus('No se pudo cargar la plantilla activa: ' + err.message, 'error');
+    });
 
   saveBtn.addEventListener('click', function(){
     if (!template || !renderer) return;
 
-    var name = patientNameInput.value.trim();
+    var data = renderer.collectData();
+    var name = (data.fields.nombre || '').trim();
     if (!name){
-      showStatus('Escribe el nombre del paciente.', 'error');
-      patientNameInput.focus();
+      showStatus('Escribe el nombre del paciente en el campo NOMBRE de la plantilla.', 'error');
       return;
     }
 
-    var data = renderer.collectData();
     var payload = {
       templateId: template.id,
       patientName: name,
-      patientPhone: patientPhoneInput.value.trim(),
+      patientPhone: (data.fields.telefono || '').trim(),
       data: data
     };
 

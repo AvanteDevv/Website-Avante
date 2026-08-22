@@ -8,7 +8,10 @@
 }
 .exf-el{ position:absolute; }
 .exf-el-title{ font-family:var(--serif); font-weight:600; color:var(--ink); overflow:hidden; white-space:nowrap; }
-.exf-el-static{ font-family:var(--sans); color:var(--ink); overflow:hidden; white-space:nowrap; }
+.exf-el-static{
+  font-family:var(--sans); color:var(--ink); overflow:hidden; white-space:nowrap;
+  display:flex; align-items:flex-end;
+}
 .exf-el-line{ background:var(--ink); }
 .exf-el-image{ overflow:hidden; }
 .exf-el-image img{ width:100%; height:100%; object-fit:contain; }

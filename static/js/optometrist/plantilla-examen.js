@@ -93,7 +93,18 @@
 
   function resetCanvasScroll(){
     var wrap = canvas.parentElement;
-    if (wrap){ wrap.scrollLeft = 0; wrap.scrollTop = 0; }
+    if (!wrap) return;
+    wrap.scrollTop = 0;
+    // El wrap está en direction:rtl (truco para que el borde izquierdo del
+    // lienzo sea alcanzable por scroll). Eso invierte a qué extremo
+    // apunta scrollLeft=0 según el navegador — probamos con un valor
+    // negativo (convención moderna de Chrome/Firefox) y, si el navegador
+    // lo ignora y se queda en 0 o positivo, usamos la convención vieja.
+    var maxScroll = wrap.scrollWidth - wrap.clientWidth;
+    wrap.scrollLeft = -maxScroll;
+    if (wrap.scrollLeft >= 0){
+      wrap.scrollLeft = maxScroll;
+    }
   }
 
   function buildElNode(el){
