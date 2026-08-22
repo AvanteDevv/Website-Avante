@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nuevo examen — Optometría · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-vista.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-render.css">
+</head>
+<body class="cuenta-body">
+
+{{template "optometrist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "optometrist-sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Nuevo examen</h1>
+        <p>Llena los datos sobre el formato activo.</p>
+      </div>
+      <div class="admin-header-actions">
+        <a href="/optometrist/examen-vista" class="btn thin">Cancelar</a>
+        <button type="button" class="btn solid thin" id="saveExamBtn">Guardar examen</button>
+      </div>
+    </div>
+
+    <p class="tpl-status" id="examStatus"></p>
+
+    <div id="noTemplateNotice" class="empty-state" style="display:none;">
+      Todavía no hay ninguna plantilla activa. Ve a <a href="/optometrist/plantilla-examen">Plantilla de examen</a> y activa una antes de crear un examen.
+    </div>
+
+    <div id="examFormWrap" style="display:none;">
+      <div class="exf-patient-panel">
+        <label>Nombre del paciente
+          <input type="text" id="patientName" required placeholder="Nombre completo">
+        </label>
+        <label>Teléfono <span style="font-weight:400;color:var(--grey);">(opcional)</span>
+          <input type="text" id="patientPhone" placeholder="(662) 000 0000">
+        </label>
+      </div>
+
+      <div class="exf-canvas-wrap">
+        <div id="examCanvas"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/optometrist/examen-render.js"></script>
+<script src="/static/js/optometrist/nuevo-examen.js"></script>
+</body>
+</html>

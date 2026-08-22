@@ -309,6 +309,17 @@ func main() {
 				"ActivePage": "optometrist-plantilla",
 			})
 		})
+		optometristGroup.GET("/examen-vista/nuevo", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "nuevo-examen.html", gin.H{
+				"ActivePage": "optometrist-examen",
+			})
+		})
+		optometristGroup.GET("/examen-vista/:id", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "ver-examen.html", gin.H{
+				"ActivePage": "optometrist-examen",
+				"ExamID":     c.Param("id"),
+			})
+		})
 	}
 
 	// API del editor visual de plantilla de examen — mismo grupo de
@@ -322,6 +333,10 @@ func main() {
 		apiOptometrist.PUT("/plantillas/:id", handlers.UpdateExamTemplate)
 		apiOptometrist.POST("/plantillas/:id/activar", handlers.ActivateExamTemplate)
 		apiOptometrist.DELETE("/plantillas/:id", handlers.DeleteExamTemplate)
+
+		apiOptometrist.GET("/examenes", handlers.ListEyeExams)
+		apiOptometrist.GET("/examenes/:id", handlers.GetEyeExam)
+		apiOptometrist.POST("/examenes", handlers.CreateEyeExam)
 	}
 
 	// Auth API — called from iniciar-sesion.js / registro.js

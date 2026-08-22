@@ -145,6 +145,12 @@ func RequireAdminAuth() gin.HandlerFunc {
 		if role, ok := session.Values["staff_role"].(string); ok {
 			c.Set("staff_role", role)
 		}
+		if id, ok := session.Values["staff_id"].(int64); ok {
+			c.Set("staff_id", id)
+		}
+		if name, ok := session.Values["staff_name"].(string); ok {
+			c.Set("staff_name", name)
+		}
 		c.Next()
 	}
 }

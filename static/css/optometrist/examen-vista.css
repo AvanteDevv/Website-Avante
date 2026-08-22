@@ -146,3 +146,16 @@ body.cuenta-body{
   padding:50px 24px; text-align:center; color:var(--grey); font-size:13px; line-height:1.6;
   border-top:1px solid var(--line);
 }
+
+.tpl-status{ font-size:12px; color:var(--grey); min-height:16px; margin-bottom:14px; }
+.tpl-status.ok{ color:#1f7a3d; }
+.tpl-status.error{ color:#c0392b; }
+
+.tpl-list{ display:flex; flex-direction:column; gap:8px; }
+.tpl-list-item{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:12px 14px; border-radius:12px; border:1px solid var(--line);
+  font-size:13px; font-weight:600; color:var(--ink);
+  transition:background .18s var(--ease), border-color .18s var(--ease);
+}
+.tpl-list-item:hover{ background:var(--blue-50); border-color:var(--blue-300); }

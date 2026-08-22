@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Examen de la vista — Optometría · Avante Optics</title>
+<title>Examen — Optometría · Avante Optics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/admin/userbar.css">
 <link rel="stylesheet" href="/static/css/admin/sidebar.css">
 <link rel="stylesheet" href="/static/css/optometrist/examen-vista.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-render.css">
 </head>
-<body class="cuenta-body">
+<body class="cuenta-body" data-exam-id="{{.ExamID}}">
 
 {{template "optometrist-userbar" .}}
 
@@ -21,31 +22,26 @@
   <main class="cuenta-main">
     <div class="cuenta-header admin-header-row">
       <div>
-        <h1>Examen de la vista</h1>
-        <p>Registra los resultados de un nuevo examen (OD/OI, esfera, cilindro, eje, adición).</p>
+        <h1>Examen</h1>
+        <p id="examMeta" class="exf-meta"></p>
       </div>
-      <a href="/optometrist/examen-vista/nuevo" class="btn thin" id="newExamBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo examen</a>
+      <div class="admin-header-actions">
+        <a href="/optometrist/examen-vista" class="btn thin">Volver</a>
+      </div>
     </div>
 
-    <section class="panel">
-      <div class="panel-head">
-        <div>
-          <h2>Exámenes recientes</h2>
-          <p id="examCount">Cargando…</p>
-        </div>
-      </div>
+    <p class="tpl-status" id="examStatus"></p>
 
-      <div id="examList" class="tpl-list" style="padding:14px 24px;"></div>
-      <div class="empty-state" id="examEmpty" style="display:none;">
-        Todavía no hay exámenes de la vista registrados.
-      </div>
-    </section>
+    <div class="exf-canvas-wrap">
+      <div id="examCanvas"></div>
+    </div>
   </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/admin/userbar.js"></script>
-<script src="/static/js/optometrist/examen-vista.js"></script>
+<script src="/static/js/optometrist/examen-render.js"></script>
+<script src="/static/js/optometrist/ver-examen.js"></script>
 </body>
 </html>
