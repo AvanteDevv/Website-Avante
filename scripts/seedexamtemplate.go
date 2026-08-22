@@ -107,14 +107,15 @@ func main() {
 		field("f_luz", 665, 238, 115, 22, 12, "molestias_luz"),
 
 		label("l_solar", 40, 265, 160, 22, 12, "SOLAR O ARTIFICIAL"),
-		field("f_solar", 205, 265, 200, 22, 12, "solar_artificial"),
-		label("l_enfermedades", 420, 265, 360, 22, 11, "ENFERMEDADES QUE PADEZCA QUE PUEDAN AFECTAR SU VISTA"),
-		field("f_enfermedades", 40, 293, 740, 22, 12, "enfermedades"),
+		field("f_solar", 205, 265, 300, 22, 12, "solar_artificial"),
 
-		label("l_ultimo", 40, 333, 430, 22, 11, "HACE CUANTO SE HIZO EL ULTIMO EXAMEN DE LA VISTA"),
-		field("f_ultimo", 40, 359, 180, 22, 12, "ultimo_examen"),
-		label("l_recomendaron", 230, 359, 165, 22, 12, "QUE LE RECOMENDARON"),
-		field("f_recomendaron", 400, 359, 380, 22, 12, "recomendaron"),
+		label("l_enfermedades", 40, 293, 310, 22, 10, "ENFERMEDADES QUE PADEZCA QUE PUEDAN AFECTAR SU VISTA"),
+		field("f_enfermedades", 360, 293, 420, 22, 12, "enfermedades"),
+
+		label("l_ultimo", 40, 321, 290, 22, 10, "HACE CUANTO SE HIZO EL ULTIMO EXAMEN DE LA VISTA"),
+		field("f_ultimo", 340, 321, 440, 22, 12, "ultimo_examen"),
+		label("l_recomendaron", 40, 347, 170, 22, 12, "QUE LE RECOMENDARON"),
+		field("f_recomendaron", 215, 347, 565, 22, 12, "recomendaron"),
 
 		label("l_resultados", 40, 386, 175, 22, 12, "QUE RESULTADOS OBTUVO"),
 		field("f_resultados", 220, 386, 430, 22, 12, "resultados"),

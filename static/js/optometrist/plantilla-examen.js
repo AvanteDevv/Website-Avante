@@ -24,7 +24,8 @@
     canvasW: CANVAS_W,
     canvasH: CANVAS_H,
     elements: [],
-    selectedId: null
+    selectedId: null,
+    showGuides: false
   };
   var nextLocalId = 1;
 
@@ -84,6 +85,9 @@
   /* ---------- render del lienzo ---------- */
   function render(){
     canvas.innerHTML = '';
+    canvas.classList.toggle('show-guides', state.showGuides);
+    var guidesInput = document.getElementById('toggleGuidesInput');
+    if (guidesInput) guidesInput.checked = state.showGuides;
     state.elements.forEach(function(el){
       canvas.appendChild(buildElNode(el));
     });
@@ -436,22 +440,32 @@
       node.addEventListener('input', handler);
       node.addEventListener('change', handler);
     }
+    function onChangeOnly(id, handler){
+      var node = document.getElementById(id);
+      if (!node) return;
+      node.addEventListener('change', handler);
+    }
 
     on('propX', function(e){ el.x = clampNum(e.target.value, 0, state.canvasW - el.w); moveNode(el); });
     on('propY', function(e){ el.y = clampNum(e.target.value, 0, state.canvasH - el.h); moveNode(el); });
-    on('propW', function(e){ el.w = Math.max(10, Number(e.target.value) || el.w); render(); });
-    on('propH', function(e){ el.h = Math.max(10, Number(e.target.value) || el.h); render(); });
+    on('propW', function(e){ el.w = Math.max(10, Number(e.target.value) || el.w); resizeNode(el); });
+    on('propH', function(e){ el.h = Math.max(10, Number(e.target.value) || el.h); resizeNode(el); });
 
-    on('prop_text', function(e){ el.text = e.target.value; render(); });
-    on('prop_fontSize', function(e){ el.fontSize = Number(e.target.value) || el.fontSize; render(); });
+    on('prop_text', function(e){ el.text = e.target.value; updateTextNode(el); });
+    on('prop_fontSize', function(e){ el.fontSize = Number(e.target.value) || el.fontSize; updateTextNode(el); });
     on('prop_fieldKey', function(e){ el.fieldKey = e.target.value; });
-    on('prop_rows', function(e){ el.rows = Math.max(0, Number(e.target.value) || 0); render(); });
-    on('prop_cols', function(e){ el.cols = Math.max(0, Number(e.target.value) || 0); render(); });
-    on('prop_headersCsv', function(e){
+
+    // Estos sí cambian la estructura de la tabla (agrega/quita columnas o
+    // filas de verdad), así que necesitan reconstruirla — pero solo al
+    // salir del campo (change), no en cada tecla, para no perder el foco
+    // mientras escribes.
+    onChangeOnly('prop_rows', function(e){ el.rows = Math.max(0, Number(e.target.value) || 0); render(); });
+    onChangeOnly('prop_cols', function(e){ el.cols = Math.max(0, Number(e.target.value) || 0); render(); });
+    onChangeOnly('prop_headersCsv', function(e){
       el.headers = e.target.value.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
       render();
     });
-    on('prop_rowLabelsCsv', function(e){
+    onChangeOnly('prop_rowLabelsCsv', function(e){
       el.rowLabels = e.target.value.split(',').map(function(s){ return s.trim(); });
       render();
     });
@@ -479,10 +493,26 @@
     var node = canvas.querySelector('[data-id="' + el.id + '"]');
     if (node){ node.style.left = el.x + 'px'; node.style.top = el.y + 'px'; }
   }
+  function resizeNode(el){
+    var node = canvas.querySelector('[data-id="' + el.id + '"]');
+    if (node){ node.style.width = el.w + 'px'; node.style.height = el.h + 'px'; }
+  }
+  function updateTextNode(el){
+    var node = canvas.querySelector('[data-id="' + el.id + '"]');
+    if (!node) return;
+    node.textContent = el.text;
+    node.style.fontSize = el.fontSize + 'px';
+  }
 
   /* ---------- toolbar: agregar elementos ---------- */
   document.querySelectorAll('.tpl-tool-btn[data-add]').forEach(function(btn){
     btn.addEventListener('click', function(){ addElement(btn.dataset.add); });
+  });
+
+  var toggleGuidesInput = document.getElementById('toggleGuidesInput');
+  toggleGuidesInput.addEventListener('change', function(){
+    state.showGuides = toggleGuidesInput.checked;
+    canvas.classList.toggle('show-guides', state.showGuides);
   });
 
   document.getElementById('newTplBtn').addEventListener('click', function(){
@@ -505,12 +535,36 @@
       var active = t.id === state.templateId ? ' active' : '';
       return '<div class="tpl-list-item' + active + '" data-tpl-id="' + t.id + '">' +
         '<span>' + escapeHtml(t.name) + '</span>' +
+        '<span class="tpl-list-item-right">' +
         (t.isActive ? '<span class="active-dot" title="Plantilla activa"></span>' : '') +
+        '<button type="button" class="tpl-list-item-delete" data-del-tpl-id="' + t.id + '" title="Eliminar plantilla">×</button>' +
+        '</span>' +
         '</div>';
     }).join('');
 
     tplListEl.querySelectorAll('.tpl-list-item').forEach(function(item){
       item.addEventListener('click', function(){ loadTemplate(Number(item.dataset.tplId)); });
+    });
+    tplListEl.querySelectorAll('.tpl-list-item-delete').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var id = Number(btn.dataset.delTplId);
+        var tpl = savedTemplates.find(function(t){ return t.id === id; });
+        if (!confirm('¿Eliminar la plantilla "' + (tpl ? tpl.name : id) + '"? Esta acción no se puede deshacer.')) return;
+        fetch('/api/optometrist/plantillas/' + id, { method: 'DELETE' })
+          .then(function(res){ if (!res.ok) throw new Error(); })
+          .then(function(){
+            if (state.templateId === id){
+              state.templateId = null;
+              state.elements = [];
+              state.selectedId = null;
+              render();
+            }
+            showStatus('Plantilla eliminada.', 'ok');
+            refreshTplList();
+          })
+          .catch(function(){ showStatus('No se pudo eliminar esa plantilla.', 'error'); });
+      });
     });
   }
 

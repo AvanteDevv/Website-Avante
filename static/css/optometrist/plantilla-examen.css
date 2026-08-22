@@ -92,6 +92,12 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 .tpl-list-item:hover{ background:var(--blue-50); }
 .tpl-list-item.active{ border-color:var(--blue-300); background:var(--blue-50); color:var(--blue-700); }
 .tpl-list-item .active-dot{ width:7px; height:7px; border-radius:50%; background:#1f9d55; flex-shrink:0; }
+.tpl-list-item-right{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.tpl-list-item-delete{
+  color:var(--grey); font-size:14px; line-height:1; padding:2px 4px; border-radius:6px;
+  flex-shrink:0;
+}
+.tpl-list-item-delete:hover{ color:#c0392b; background:#fdecea; }
 .tpl-list-empty{ font-size:11.5px; color:var(--grey); padding:6px 2px; }
 
 /* ---------- Lienzo ---------- */
@@ -117,6 +123,29 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 }
 .tpl-el:hover{ border-color:var(--blue-300); }
 .tpl-el.selected{ border-color:var(--blue-600); box-shadow:0 0 0 3px var(--blue-100); }
+.tpl-canvas.show-guides .tpl-el{ border-color:var(--blue-300) !important; }
+.tpl-canvas.show-guides .tpl-el.selected{ border-color:var(--blue-600) !important; }
+
+.tpl-tool-btn.is-toggled{ background:var(--blue-50); border-color:var(--blue-300); color:var(--blue-700); }
+
+.tpl-guides-toggle{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; border-radius:12px; border:1px solid var(--line);
+  font-size:12.5px; font-weight:600; color:var(--ink); cursor:pointer;
+}
+.ios-switch{ position:relative; display:inline-block; width:38px; height:22px; flex-shrink:0; }
+.ios-switch input{ opacity:0; width:0; height:0; position:absolute; }
+.ios-switch-track{
+  position:absolute; inset:0; background:var(--line); border-radius:999px;
+  transition:background .2s var(--ease); cursor:pointer;
+}
+.ios-switch-thumb{
+  position:absolute; top:2px; left:2px; width:18px; height:18px;
+  background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.25);
+  transition:transform .2s var(--ease);
+}
+.ios-switch input:checked + .ios-switch-track{ background:var(--blue-600); }
+.ios-switch input:checked + .ios-switch-track .ios-switch-thumb{ transform:translateX(16px); }
 
 .tpl-el-title{ font-family:var(--serif); font-weight:600; color:var(--ink); overflow:hidden; white-space:nowrap; }
 .tpl-el-text{ font-family:var(--sans); color:var(--ink); overflow:hidden; }
