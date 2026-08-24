@@ -26,6 +26,7 @@ type addFavoriteInput struct {
 	Price     string `json:"price" binding:"required"`
 	OldPrice  string `json:"old_price"`
 	Icon      string `json:"icon"`
+	Image     string `json:"image"`
 	Badge     string `json:"badge"`
 	URL       string `json:"url"`
 }
@@ -58,6 +59,7 @@ func AddFavorite(c *gin.Context) {
 		Price:     input.Price,
 		OldPrice:  input.OldPrice,
 		Icon:      input.Icon,
+		Image:     input.Image,
 		Badge:     input.Badge,
 		URL:       input.URL,
 	})

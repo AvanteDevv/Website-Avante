@@ -28,16 +28,16 @@
 
 /* ---------- Modo oscuro ---------- */
 body.dark{
-  --white:#10163a;
-  --ink:#F2F4FF;
-  --grey:#9AA3D6;
-  --line:#2A3266;
-  --blue-50:rgba(62,80,255,.16);
-  --blue-100:rgba(137,146,255,.28);
+  --white:#161616;
+  --ink:#FFFFFF;
+  --grey:#9A9A9A;
+  --line:#2B2B2B;
+  --blue-50:rgba(4,28,255,.14);
+  --blue-100:rgba(137,146,255,.24);
 }
 body.dark.cuenta-body{
-  background:#070b24;
-  background-image:radial-gradient(circle at 100% 0%, rgba(62,80,255,.12), transparent 45%);
+  background:#0A0A0A;
+  background-image:radial-gradient(circle at 100% 0%, rgba(4,28,255,.10), transparent 45%);
 }
 body.dark{ transition:background-color .3s var(--ease); }
 

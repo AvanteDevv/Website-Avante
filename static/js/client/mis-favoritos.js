@@ -57,7 +57,9 @@
         '</div>' +
         '<div class="fav-photo">' +
           (fav.badge ? '<span class="fav-badge">' + escapeHTML(fav.badge) + '</span>' : '') +
-          lensIcon(ICONS[fav.icon] || ICONS.round) +
+          (fav.image
+            ? '<img src="' + escapeHTML(fav.image) + '" alt="' + escapeHTML(fav.name) + '" class="fav-img" loading="lazy" data-fallback-icon="' + escapeHTML(fav.icon || 'round') + '">'
+            : lensIcon(ICONS[fav.icon] || ICONS.round)) +
         '</div>' +
         '<h3 class="fav-name">' + escapeHTML(fav.name) + '</h3>' +
         '<div class="fav-brand-row">' +
@@ -86,6 +88,16 @@
     grid.innerHTML = favorites.map(cardHTML).join('');
     if (window.feather) feather.replace();
   }
+
+  grid.addEventListener('error', function (e) {
+    var img = e.target;
+    if (!img.matches || !img.matches('.fav-img')) return;
+    var iconKey = img.dataset.fallbackIcon || 'round';
+    var fallback = document.createElement('div');
+    fallback.className = 'fav-icon-fallback';
+    fallback.innerHTML = lensIcon(ICONS[iconKey] || ICONS.round);
+    img.replaceWith(fallback);
+  }, true);
 
   grid.addEventListener('click', function (e) {
     var btn = e.target.closest('.fav-remove');

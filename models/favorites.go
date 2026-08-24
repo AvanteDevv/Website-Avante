@@ -25,6 +25,7 @@ type Favorite struct {
 	Price     string    `json:"price"`
 	OldPrice  string    `json:"old_price,omitempty"`
 	Icon      string    `json:"icon,omitempty"`
+	Image     string    `json:"image,omitempty"`
 	Badge     string    `json:"badge,omitempty"`
 	URL       string    `json:"url,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
@@ -34,7 +35,7 @@ type Favorite struct {
 // recientes primero.
 func GetFavoritesByUser(userID int64) ([]Favorite, error) {
 	rows, err := db.DB.Query(
-		`SELECT id, user_id, product_id, name, brand, price, old_price, icon, badge, url, created_at
+		`SELECT id, user_id, product_id, name, brand, price, old_price, icon, image, badge, url, created_at
 		 FROM favorites WHERE user_id = ? ORDER BY created_at DESC`,
 		userID,
 	)
@@ -46,7 +47,7 @@ func GetFavoritesByUser(userID int64) ([]Favorite, error) {
 	favorites := []Favorite{}
 	for rows.Next() {
 		var f Favorite
-		if err := rows.Scan(&f.ID, &f.UserID, &f.ProductID, &f.Name, &f.Brand, &f.Price, &f.OldPrice, &f.Icon, &f.Badge, &f.URL, &f.CreatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.UserID, &f.ProductID, &f.Name, &f.Brand, &f.Price, &f.OldPrice, &f.Icon, &f.Image, &f.Badge, &f.URL, &f.CreatedAt); err != nil {
 			return nil, err
 		}
 		favorites = append(favorites, f)
@@ -60,10 +61,10 @@ func GetFavoritesByUser(userID int64) ([]Favorite, error) {
 // registro ya existente.
 func AddFavorite(userID int64, f Favorite) (*Favorite, error) {
 	_, err := db.DB.Exec(
-		`INSERT INTO favorites (user_id, product_id, name, brand, price, old_price, icon, badge, url)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO favorites (user_id, product_id, name, brand, price, old_price, icon, image, badge, url)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON DUPLICATE KEY UPDATE name = name`, // no-op: solo evita el error de duplicado
-		userID, f.ProductID, f.Name, f.Brand, f.Price, f.OldPrice, f.Icon, f.Badge, f.URL,
+		userID, f.ProductID, f.Name, f.Brand, f.Price, f.OldPrice, f.Icon, f.Image, f.Badge, f.URL,
 	)
 	if err != nil {
 		return nil, err
@@ -71,10 +72,10 @@ func AddFavorite(userID int64, f Favorite) (*Favorite, error) {
 
 	var saved Favorite
 	err = db.DB.QueryRow(
-		`SELECT id, user_id, product_id, name, brand, price, old_price, icon, badge, url, created_at
+		`SELECT id, user_id, product_id, name, brand, price, old_price, icon, image, badge, url, created_at
 		 FROM favorites WHERE user_id = ? AND product_id = ?`,
 		userID, f.ProductID,
-	).Scan(&saved.ID, &saved.UserID, &saved.ProductID, &saved.Name, &saved.Brand, &saved.Price, &saved.OldPrice, &saved.Icon, &saved.Badge, &saved.URL, &saved.CreatedAt)
+	).Scan(&saved.ID, &saved.UserID, &saved.ProductID, &saved.Name, &saved.Brand, &saved.Price, &saved.OldPrice, &saved.Icon, &saved.Image, &saved.Badge, &saved.URL, &saved.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
