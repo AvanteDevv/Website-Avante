@@ -76,11 +76,24 @@
 
 /* ---------- Toggle de tema claro/oscuro ---------- */
 (function () {
+  var KEY = 'avanteTheme'; // 'dark' | 'light'
   var input = document.getElementById('cuentaThemeToggle');
   var label = document.getElementById('cuentaThemeLabel');
+
+  // Aplicar de inmediato lo que ya se haya guardado antes — así el
+  // modo oscuro persiste al navegar entre páginas del panel.
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) { /* localStorage no disponible, se ignora */ }
+  if (saved === 'dark') {
+    document.body.classList.add('dark');
+    if (input) input.checked = true;
+    if (label) label.classList.add('switched');
+  }
+
   if (!input || !label) return;
   input.addEventListener('change', function () {
     document.body.classList.toggle('dark', input.checked);
     label.classList.toggle('switched', input.checked);
+    try { localStorage.setItem(KEY, input.checked ? 'dark' : 'light'); } catch (e) { /* se ignora */ }
   });
 })();
