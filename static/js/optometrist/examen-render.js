@@ -15,6 +15,10 @@
    ========================================================= */
 window.AvanteExamRender = (function(){
 
+  function alignToJustify(align){
+    return { left: 'flex-start', center: 'center', right: 'flex-end' }[align] || 'flex-start';
+  }
+
   function mount(container, opts){
     var elements = opts.elements || [];
     var readonly = !!opts.readonly;
@@ -48,12 +52,14 @@ window.AvanteExamRender = (function(){
     if (el.type === 'title'){
       node.textContent = el.text;
       node.style.fontSize = el.fontSize + 'px';
+      node.style.textAlign = el.align || 'left';
     } else if (el.type === 'text'){
       node.style.fontSize = el.fontSize + 'px';
       if (el.fieldKey){
         var input = document.createElement('input');
         input.type = 'text';
         input.className = 'exf-input';
+        input.style.textAlign = el.align || 'left';
         input.placeholder = el.text || '';
         input.value = data.fields[el.fieldKey] || '';
         input.disabled = readonly;
@@ -64,6 +70,7 @@ window.AvanteExamRender = (function(){
         // se muestra tal cual, no es editable en ningún modo.
         node.textContent = el.text;
         node.classList.add('exf-el-static');
+        node.style.justifyContent = alignToJustify(el.align);
       }
     } else if (el.type === 'line'){
       /* nada más, el fondo lo pinta CSS */

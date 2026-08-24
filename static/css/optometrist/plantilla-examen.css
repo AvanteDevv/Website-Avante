@@ -211,3 +211,12 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 }
 .tpl-props-delete:hover{ background:#fdecea; }
 .tpl-props input[type="file"]{ font-size:11px; }
+
+.tpl-align-group{ display:flex; gap:4px; }
+.tpl-align-btn{
+  flex:1; padding:7px 0; border:1.5px solid var(--line); border-radius:8px;
+  font-size:11px; font-weight:600; color:var(--grey);
+  transition:background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease);
+}
+.tpl-align-btn:hover{ border-color:var(--blue-300); }
+.tpl-align-btn.active{ background:var(--blue-600); border-color:var(--blue-600); color:var(--on-accent); }

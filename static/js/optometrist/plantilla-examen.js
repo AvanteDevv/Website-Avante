@@ -41,9 +41,9 @@
   function defaultsFor(type){
     switch(type){
       case 'title':
-        return { w: 320, h: 40, text: 'HISTORIA CLÍNICA', fontSize: 22 };
+        return { w: 320, h: 40, text: 'HISTORIA CLÍNICA', fontSize: 22, align: 'left' };
       case 'text':
-        return { w: 220, h: 26, text: 'Nombre', fieldKey: '', fontSize: 12 };
+        return { w: 220, h: 26, text: 'Nombre', fieldKey: '', fontSize: 12, align: 'left' };
       case 'line':
         return { w: 220, h: 2 };
       case 'image':
@@ -123,9 +123,11 @@
     if (el.type === 'title'){
       node.textContent = el.text;
       node.style.fontSize = el.fontSize + 'px';
+      node.style.textAlign = el.align || 'left';
     } else if (el.type === 'text'){
       node.textContent = el.text;
       node.style.fontSize = el.fontSize + 'px';
+      node.style.textAlign = el.align || 'left';
     } else if (el.type === 'line'){
       /* nada más, el fondo ya lo pinta .tpl-el-line */
     } else if (el.type === 'image'){
@@ -392,6 +394,7 @@
     if (el.type === 'title' || el.type === 'text'){
       html += fieldTextarea('text', 'Texto', el.text);
       html += fieldNumber('fontSize', 'Tamaño de letra', el.fontSize);
+      html += fieldAlign(el.align || 'left');
       if (el.type === 'text'){
         html += fieldText('fieldKey', 'Clave del campo (opcional, para llenarlo después)', el.fieldKey || '');
       }
@@ -430,6 +433,13 @@
   function fieldNumber(id, label, value){
     return '<label>' + label + '<input type="number" id="prop_' + id + '" value="' + value + '"></label>';
   }
+  function fieldAlign(current){
+    var opts = [['left','Izq'], ['center','Centro'], ['right','Der']];
+    var btns = opts.map(function(o){
+      return '<button type="button" class="tpl-align-btn' + (current === o[0] ? ' active' : '') + '" data-align="' + o[0] + '">' + o[1] + '</button>';
+    }).join('');
+    return '<label>Alineación<div class="tpl-align-group">' + btns + '</div></label>';
+  }
   function escapeAttr(s){ return String(s).replace(/"/g, '&quot;'); }
   function escapeHtml(s){ return String(s).replace(/</g, '&lt;'); }
 
@@ -454,6 +464,15 @@
     on('prop_text', function(e){ el.text = e.target.value; updateTextNode(el); });
     on('prop_fontSize', function(e){ el.fontSize = Number(e.target.value) || el.fontSize; updateTextNode(el); });
     on('prop_fieldKey', function(e){ el.fieldKey = e.target.value; });
+
+    var alignBtns = propsPanel.querySelectorAll('.tpl-align-btn');
+    alignBtns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        el.align = btn.dataset.align;
+        alignBtns.forEach(function(b){ b.classList.toggle('active', b === btn); });
+        alignNode(el);
+      });
+    });
 
     // Estos sí cambian la estructura de la tabla (agrega/quita columnas o
     // filas de verdad), así que necesitan reconstruirla — pero solo al
@@ -502,6 +521,10 @@
     if (!node) return;
     node.textContent = el.text;
     node.style.fontSize = el.fontSize + 'px';
+  }
+  function alignNode(el){
+    var node = canvas.querySelector('[data-id="' + el.id + '"]');
+    if (node) node.style.textAlign = el.align || 'left';
   }
 
   /* ---------- toolbar: agregar elementos ---------- */
