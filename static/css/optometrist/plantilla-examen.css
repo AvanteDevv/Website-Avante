@@ -165,6 +165,7 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 .tpl-table-wrap th.is-editing{ background:var(--white); white-space:normal; outline:2px solid var(--blue-600); outline-offset:-2px; }
 .tpl-table-corner{ width:34px; background:var(--line); cursor:default; }
 .tpl-table-rowlabel{ width:34px; text-align:center; }
+.tpl-cell-prefix{ color:var(--grey); font-weight:600; }
 
 .tpl-table-rm{
   position:absolute; top:1px; right:2px; z-index:6;
@@ -211,6 +212,55 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 }
 .tpl-props-delete:hover{ background:#fdecea; }
 .tpl-props input[type="file"]{ font-size:11px; }
+
+/* ---------- Modal: eliminar plantilla ---------- */
+.tpl-modal-overlay{
+  position:fixed; inset:0; z-index:200;
+  background:rgba(10,14,56,.45);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none;
+  transition:opacity .25s var(--ease);
+}
+.tpl-modal-overlay.open{ opacity:1; pointer-events:auto; }
+
+.tpl-modal-card{
+  background:var(--white); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg);
+  padding:26px; width:360px; max-width:90vw;
+  transform:scale(.94) translateY(8px); opacity:0;
+  transition:transform .25s var(--ease), opacity .25s var(--ease);
+}
+.tpl-modal-overlay.open .tpl-modal-card{ transform:scale(1) translateY(0); opacity:1; }
+.tpl-modal-card h3{ font-family:var(--sans); font-size:16px; font-weight:700; margin-bottom:8px; }
+.tpl-modal-card p{ font-size:13px; color:var(--grey); line-height:1.6; }
+.tpl-modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+.tpl-modal-danger{ background:#c0392b !important; border-color:#c0392b !important; }
+.tpl-modal-danger:hover{ background:#a5301f !important; }
+
+/* ---------- Modo "tamaño completo": colapsa toolbar/props, el
+   lienzo sigue siendo el mismo #tplCanvas editable de siempre. ---------- */
+.tpl-editor.is-fullview .tpl-toolbar,
+.tpl-editor.is-fullview .tpl-props{
+  display:none;
+}
+
+.tpl-print-export-hidden{
+  position:fixed; top:0; left:-99999px;
+}
+
+@page{
+  size:816px 1056px;
+  margin:0;
+}
+
+@media print{
+  .header-outer, .cuenta-shell, .tpl-modal-overlay{ display:none !important; }
+  .tpl-print-export-hidden{
+    display:block !important; position:static !important; left:auto !important; top:auto !important;
+  }
+  .tpl-print-export-hidden, .tpl-print-export-hidden *{
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+}
 
 .tpl-align-group{ display:flex; gap:4px; }
 .tpl-align-btn{

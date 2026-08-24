@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/static/css/admin/userbar.css">
 <link rel="stylesheet" href="/static/css/admin/sidebar.css">
 <link rel="stylesheet" href="/static/css/optometrist/plantilla-examen.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-render.css">
 </head>
 <body class="cuenta-body">
 
@@ -25,6 +26,10 @@
         <p>Arrastra y acomoda el logo, el título, los textos, las líneas y las tablas — así se va a ver el formato cuando llenes un examen nuevo.</p>
       </div>
       <div class="admin-header-actions">
+        <button type="button" class="btn thin" id="fullViewBtn">Ver tamaño completo</button>
+        <button type="button" class="btn thin" id="printBtn">Imprimir</button>
+        <button type="button" class="btn thin" id="exportPdfBtn">Exportar PDF</button>
+        <button type="button" class="btn thin" id="exportWordBtn">Exportar Word</button>
         <button type="button" class="btn thin" id="activateBtn">Activar esta plantilla</button>
         <button type="button" class="btn solid thin" id="saveBtn">Guardar</button>
       </div>
@@ -67,9 +72,28 @@
   </main>
 </div>
 
+<!-- Fuera de pantalla a propósito: solo se usa para Imprimir/Exportar,
+     renderizado con el mismo motor que "Nuevo examen" (con rayas de
+     verdad), no el lienzo pelón del editor. -->
+<div id="printExportCanvas" class="tpl-print-export-hidden"></div>
+
+<div class="tpl-modal-overlay" id="deleteModalOverlay">
+  <div class="tpl-modal-card">
+    <h3>Eliminar plantilla</h3>
+    <p id="deleteModalText">¿Eliminar esta plantilla? Esta acción no se puede deshacer.</p>
+    <div class="tpl-modal-actions">
+      <button type="button" class="btn thin" id="deleteModalCancel">Cancelar</button>
+      <button type="button" class="btn solid thin tpl-modal-danger" id="deleteModalConfirm">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/optometrist/examen-render.js"></script>
 <script src="/static/js/optometrist/plantilla-examen.js"></script>
 </body>
 </html>

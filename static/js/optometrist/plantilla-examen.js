@@ -245,7 +245,15 @@
       tr.appendChild(rowTh);
 
       for (var c = 0; c < (el.cols || 0); c++){
-        tr.appendChild(document.createElement('td'));
+        var td = document.createElement('td');
+        var prefix = (el.cellPrefixes && el.cellPrefixes[c]) || '';
+        if (prefix){
+          var pre = document.createElement('span');
+          pre.className = 'tpl-cell-prefix';
+          pre.textContent = prefix;
+          td.appendChild(pre);
+        }
+        tr.appendChild(td);
       }
       tbody.appendChild(tr);
     }
@@ -405,6 +413,7 @@
       html += fieldNumber('cols', 'Columnas', el.cols);
       html += fieldText('headersCsv', 'Encabezados (separados por coma)', (el.headers || []).join(', '));
       html += fieldText('rowLabelsCsv', 'Etiquetas de fila (separadas por coma)', (el.rowLabels || []).join(', '));
+      html += fieldText('cellPrefixesCsv', 'Prefijo fijo por columna (ej. "20/", separados por coma, deja vacío el que no lleve)', (el.cellPrefixes || []).join(', '));
     }
 
     if (el.type === 'image'){
@@ -486,6 +495,10 @@
     });
     onChangeOnly('prop_rowLabelsCsv', function(e){
       el.rowLabels = e.target.value.split(',').map(function(s){ return s.trim(); });
+      render();
+    });
+    onChangeOnly('prop_cellPrefixesCsv', function(e){
+      el.cellPrefixes = e.target.value.split(',').map(function(s){ return s.trim(); });
       render();
     });
 
@@ -573,20 +586,7 @@
         e.stopPropagation();
         var id = Number(btn.dataset.delTplId);
         var tpl = savedTemplates.find(function(t){ return t.id === id; });
-        if (!confirm('¿Eliminar la plantilla "' + (tpl ? tpl.name : id) + '"? Esta acción no se puede deshacer.')) return;
-        fetch('/api/optometrist/plantillas/' + id, { method: 'DELETE' })
-          .then(function(res){ if (!res.ok) throw new Error(); })
-          .then(function(){
-            if (state.templateId === id){
-              state.templateId = null;
-              state.elements = [];
-              state.selectedId = null;
-              render();
-            }
-            showStatus('Plantilla eliminada.', 'ok');
-            refreshTplList();
-          })
-          .catch(function(){ showStatus('No se pudo eliminar esa plantilla.', 'error'); });
+        openDeleteModal(id, tpl ? tpl.name : ('Plantilla #' + id));
       });
     });
   }
@@ -675,4 +675,112 @@
     .catch(function(){ render(); refreshTplList(); });
 
   if (window.feather) feather.replace();
+
+  /* ---------- Modal: eliminar plantilla ---------- */
+  var deleteModalOverlay = document.getElementById('deleteModalOverlay');
+  var deleteModalText = document.getElementById('deleteModalText');
+  var deleteModalCancel = document.getElementById('deleteModalCancel');
+  var deleteModalConfirm = document.getElementById('deleteModalConfirm');
+  var pendingDeleteId = null;
+
+  function openDeleteModal(id, name){
+    pendingDeleteId = id;
+    deleteModalText.textContent = '¿Eliminar la plantilla "' + name + '"? Esta acción no se puede deshacer.';
+    deleteModalOverlay.classList.add('open');
+  }
+  function closeDeleteModal(){
+    deleteModalOverlay.classList.remove('open');
+    pendingDeleteId = null;
+  }
+  deleteModalCancel.addEventListener('click', closeDeleteModal);
+  deleteModalOverlay.addEventListener('click', function(e){ if (e.target === deleteModalOverlay) closeDeleteModal(); });
+  deleteModalConfirm.addEventListener('click', function(){
+    if (!pendingDeleteId) return;
+    var id = pendingDeleteId;
+    fetch('/api/optometrist/plantillas/' + id, { method: 'DELETE' })
+      .then(function(res){ if (!res.ok) throw new Error(); })
+      .then(function(){
+        if (state.templateId === id){
+          state.templateId = null;
+          state.elements = [];
+          state.selectedId = null;
+          render();
+        }
+        showStatus('Plantilla eliminada.', 'ok');
+        refreshTplList();
+        closeDeleteModal();
+      })
+      .catch(function(){ showStatus('No se pudo eliminar esa plantilla.', 'error'); closeDeleteModal(); });
+  });
+
+  /* ---------- Imprimir/Exportar: arma una copia de solo lectura con el
+     mismo motor que "Nuevo examen" (con rayas reales), no el lienzo
+     pelón del editor. ---------- */
+  var printExportEl = document.getElementById('printExportCanvas');
+  function buildPrintExportCanvas(){
+    AvanteExamRender.mount(printExportEl, {
+      canvasW: state.canvasW,
+      canvasH: state.canvasH,
+      elements: state.elements,
+      readonly: true
+    });
+    return printExportEl;
+  }
+
+  /* ---------- Tamaño completo: colapsa toolbar/props, sigue siendo el
+     mismo lienzo editable, no una copia de solo lectura. ---------- */
+  var fullViewBtn = document.getElementById('fullViewBtn');
+  var tplEditorEl = document.querySelector('.tpl-editor');
+  var isFullView = false;
+  fullViewBtn.addEventListener('click', function(){
+    isFullView = !isFullView;
+    tplEditorEl.classList.toggle('is-fullview', isFullView);
+    fullViewBtn.textContent = isFullView ? 'Salir de tamaño completo' : 'Ver tamaño completo';
+  });
+
+  document.getElementById('printBtn').addEventListener('click', function(){
+    buildPrintExportCanvas();
+    window.print();
+  });
+
+  document.getElementById('exportPdfBtn').addEventListener('click', function(){
+    var btn = document.getElementById('exportPdfBtn');
+    btn.disabled = true;
+    var originalText = btn.textContent;
+    btn.textContent = 'Generando...';
+    var target = buildPrintExportCanvas();
+    html2canvas(target, { scale: 2 }).then(function(canvasImg){
+      var imgData = canvasImg.toDataURL('image/png');
+      var pdf = new jspdf.jsPDF({ unit: 'px', format: [state.canvasW, state.canvasH] });
+      pdf.addImage(imgData, 'PNG', 0, 0, state.canvasW, state.canvasH);
+      pdf.save((state.name || 'plantilla') + '.pdf');
+    }).catch(function(){
+      showStatus('No se pudo generar el PDF.', 'error');
+    }).finally(function(){
+      btn.disabled = false;
+      btn.textContent = originalText;
+    });
+  });
+
+  document.getElementById('exportWordBtn').addEventListener('click', function(){
+    // Exportación simple vía el truco de Word (abre un HTML como .doc).
+    // Ojo: Word no soporta posicionamiento absoluto, así que el layout
+    // exacto del lienzo no se conserva — esto es más para tener el
+    // contenido en un documento editable, no una réplica pixel-perfect.
+    var target = buildPrintExportCanvas();
+    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+      'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
+      'xmlns="http://www.w3.org/TR/REC-html40">' +
+      '<head><meta charset="utf-8"><title>' + (state.name || 'Plantilla') + '</title></head>' +
+      '<body>' + target.innerHTML + '</body></html>';
+    var blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (state.name || 'plantilla') + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
 })();

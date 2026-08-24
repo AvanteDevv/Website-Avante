@@ -114,12 +114,22 @@ window.AvanteExamRender = (function(){
       tr.appendChild(rowTh);
       for (var c = 0; c < (el.cols || 0); c++){
         var td = document.createElement('td');
+        var cellWrap = document.createElement('div');
+        cellWrap.className = 'exf-cell-wrap';
+        var prefix = (el.cellPrefixes && el.cellPrefixes[c]) || '';
+        if (prefix){
+          var pre = document.createElement('span');
+          pre.className = 'exf-cell-prefix';
+          pre.textContent = prefix;
+          cellWrap.appendChild(pre);
+        }
         var input = document.createElement('input');
         input.type = 'text';
         input.className = 'exf-cell-input';
         input.value = (saved && saved[r] && saved[r][c] !== undefined) ? saved[r][c] : '';
         input.disabled = readonly;
-        td.appendChild(input);
+        cellWrap.appendChild(input);
+        td.appendChild(cellWrap);
         tr.appendChild(td);
       }
       tbody.appendChild(tr);

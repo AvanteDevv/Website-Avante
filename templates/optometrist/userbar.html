@@ -3,16 +3,17 @@
 <header class="userbar-row">
   <div class="userbar" id="userbar">
     <button type="button" class="userbar-trigger">
-      <span class="userbar-avatar">OP</span>
-      <span class="userbar-name">Optometría</span>
+      <span class="userbar-avatar">{{.StaffInitials}}</span>
+      <span class="userbar-name">{{.StaffName}}</span>
       <svg class="userbar-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
     </button>
     <div class="userbar-menu">
       <div class="userbar-menu-head">
-        <span class="userbar-avatar">OP</span>
+        <span class="userbar-avatar">{{.StaffInitials}}</span>
         <div>
-          <div class="name">Optometría</div>
-          <div class="email">Avante Optics</div>
+          <div class="name">{{.StaffName}}</div>
+          <div class="email">{{.StaffRole}}</div>
+          <div class="email">{{.StaffEmail}}</div>
         </div>
       </div>
         <a href="/optometrist/historial-clinico" class="userbar-menu-link{{if eq .ActivePage "optometrist-historial"}} active{{end}}"><i data-feather="file-text"></i>Historial clínico</a>

@@ -295,30 +295,30 @@ func main() {
 	optometristGroup := router.Group("/optometrist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleOptometrist))
 	{
 		optometristGroup.GET("/historial-clinico", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "historial-clinico.html", gin.H{
+			c.HTML(http.StatusOK, "historial-clinico.html", handlers.WithStaff(c, gin.H{
 				"ActivePage": "optometrist-historial",
-			})
+			}))
 		})
 		optometristGroup.GET("/examen-vista", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "examen-vista.html", gin.H{
+			c.HTML(http.StatusOK, "examen-vista.html", handlers.WithStaff(c, gin.H{
 				"ActivePage": "optometrist-examen",
-			})
+			}))
 		})
 		optometristGroup.GET("/plantilla-examen", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "plantilla-examen.html", gin.H{
+			c.HTML(http.StatusOK, "plantilla-examen.html", handlers.WithStaff(c, gin.H{
 				"ActivePage": "optometrist-plantilla",
-			})
+			}))
 		})
 		optometristGroup.GET("/examen-vista/nuevo", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "nuevo-examen.html", gin.H{
+			c.HTML(http.StatusOK, "nuevo-examen.html", handlers.WithStaff(c, gin.H{
 				"ActivePage": "optometrist-examen",
-			})
+			}))
 		})
 		optometristGroup.GET("/examen-vista/:id", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "ver-examen.html", gin.H{
+			c.HTML(http.StatusOK, "ver-examen.html", handlers.WithStaff(c, gin.H{
 				"ActivePage": "optometrist-examen",
 				"ExamID":     c.Param("id"),
-			})
+			}))
 		})
 	}
 

@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -60,7 +61,7 @@ func AdminLogin(c *gin.Context) {
 	// 1) Admin
 	if admin, err := models.GetAdminByEmail(input.Email); err == nil {
 		if bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(input.Password)) == nil {
-			finishStaffLogin(c, RoleAdmin, admin.ID, admin.Name, "/admin/base-de-datos")
+			finishStaffLogin(c, RoleAdmin, admin.ID, admin.Name, admin.Email, "/admin/base-de-datos")
 			return
 		}
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
@@ -73,7 +74,7 @@ func AdminLogin(c *gin.Context) {
 	// 2) Recepción
 	if r, err := models.GetReceptionistByEmail(input.Email); err == nil {
 		if bcrypt.CompareHashAndPassword([]byte(r.PasswordHash), []byte(input.Password)) == nil {
-			finishStaffLogin(c, RoleReceptionist, r.ID, r.Name, "/receptionist/citas")
+			finishStaffLogin(c, RoleReceptionist, r.ID, r.Name, r.Email, "/receptionist/citas")
 			return
 		}
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
@@ -86,7 +87,7 @@ func AdminLogin(c *gin.Context) {
 	// 3) Optometría
 	if o, err := models.GetOptometristByEmail(input.Email); err == nil {
 		if bcrypt.CompareHashAndPassword([]byte(o.PasswordHash), []byte(input.Password)) == nil {
-			finishStaffLogin(c, RoleOptometrist, o.ID, o.Name, "/optometrist/historial-clinico")
+			finishStaffLogin(c, RoleOptometrist, o.ID, o.Name, o.Email, "/optometrist/historial-clinico")
 			return
 		}
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
@@ -103,8 +104,8 @@ func AdminLogin(c *gin.Context) {
 // finishStaffLogin arranca la sesión y responde el JSON de éxito —
 // compartido por las tres ramas de AdminLogin para no repetir la
 // misma respuesta tres veces.
-func finishStaffLogin(c *gin.Context, role string, id int64, name string, redirect string) {
-	if err := startStaffSession(c, role, id, name); err != nil {
+func finishStaffLogin(c *gin.Context, role string, id int64, name string, email string, redirect string) {
+	if err := startStaffSession(c, role, id, name, email); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo iniciar sesión. Intenta de nuevo."})
 		return
 	}
@@ -151,6 +152,9 @@ func RequireAdminAuth() gin.HandlerFunc {
 		if name, ok := session.Values["staff_name"].(string); ok {
 			c.Set("staff_name", name)
 		}
+		if email, ok := session.Values["staff_email"].(string); ok {
+			c.Set("staff_email", email)
+		}
 		c.Next()
 	}
 }
@@ -188,13 +192,87 @@ func RequireRole(allowed ...string) gin.HandlerFunc {
 	}
 }
 
-func startStaffSession(c *gin.Context, role string, id int64, name string) error {
+func startStaffSession(c *gin.Context, role string, id int64, name string, email string) error {
 	session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
 	// Sesión de staff más corta que la de cliente (8h vs. 7 días) —
 	// tiene más privilegios, así que conviene que expire más rápido.
 	session.Options.MaxAge = 8 * 60 * 60
 	session.Values["staff_id"] = id
 	session.Values["staff_name"] = name
+	session.Values["staff_email"] = email
 	session.Values["staff_role"] = role
 	return session.Save(c.Request, c.Writer)
+}
+
+// roleLabel traduce el rol interno (en inglés, usado en el código y
+// las rutas) a la etiqueta en español que se muestra en el userbar.
+func roleLabel(role string) string {
+	switch role {
+	case RoleAdmin:
+		return "Administrador"
+	case RoleReceptionist:
+		return "Recepción"
+	case RoleOptometrist:
+		return "Optometrista"
+	default:
+		return role
+	}
+}
+
+// staffInitialsOf saca las iniciales (hasta 2 letras) de un nombre para
+// el avatar circular del userbar de staff — "Dra. Barbara López" -> "BL".
+// Nombre propio (no "initialsOf" a secas) para no chocar con la función
+// homónima que ya tienes en user_context.go para el lado de cliente.
+func staffInitialsOf(name string) string {
+	words := strings.Fields(name)
+	out := ""
+	for _, w := range words {
+		// Salta partículas cortas tipo "de", "la" o títulos con punto
+		// como "Dr."/"Dra." para que las iniciales sean de nombre real.
+		clean := strings.TrimRight(w, ".")
+		if len(clean) <= 3 && (strings.EqualFold(clean, "dr") || strings.EqualFold(clean, "dra") || strings.EqualFold(clean, "de") || strings.EqualFold(clean, "la") || strings.EqualFold(clean, "el")) {
+			continue
+		}
+		r := []rune(clean)
+		if len(r) > 0 {
+			out += strings.ToUpper(string(r[0]))
+		}
+		if len(out) >= 2 {
+			break
+		}
+	}
+	if out == "" && len(words) > 0 {
+		r := []rune(words[0])
+		if len(r) > 0 {
+			out = strings.ToUpper(string(r[0]))
+		}
+	}
+	return out
+}
+
+// WithStaff agrega el nombre, rol, correo e iniciales de la cuenta de
+// staff logueada (admin/recepción/optometría) a los datos que le
+// pasas a una plantilla — así el userbar puede mostrar quién es de
+// verdad en vez de un texto fijo. Úsalo en vez de armar el gin.H a
+// mano en cada ruta:
+//
+//	c.HTML(http.StatusOK, "historial-clinico.html", handlers.WithStaff(c, gin.H{
+//	    "ActivePage": "optometrist-historial",
+//	}))
+func WithStaff(c *gin.Context, data gin.H) gin.H {
+	if data == nil {
+		data = gin.H{}
+	}
+	nameVal, _ := c.Get("staff_name")
+	name, _ := nameVal.(string)
+	roleVal, _ := c.Get("staff_role")
+	role, _ := roleVal.(string)
+	emailVal, _ := c.Get("staff_email")
+	email, _ := emailVal.(string)
+
+	data["StaffName"] = name
+	data["StaffRole"] = roleLabel(role)
+	data["StaffEmail"] = email
+	data["StaffInitials"] = staffInitialsOf(name)
+	return data
 }

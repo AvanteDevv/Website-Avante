@@ -38,20 +38,21 @@ import (
 // subas ahí, pero el resto de la plantilla funciona igual.
 
 type element struct {
-	ID        string   `json:"id"`
-	Type      string   `json:"type"`
-	X         int      `json:"x"`
-	Y         int      `json:"y"`
-	W         int      `json:"w"`
-	H         int      `json:"h"`
-	Text      string   `json:"text,omitempty"`
-	FontSize  int      `json:"fontSize,omitempty"`
-	FieldKey  string   `json:"fieldKey,omitempty"`
-	Src       string   `json:"src,omitempty"`
-	Headers   []string `json:"headers,omitempty"`
-	RowLabels []string `json:"rowLabels,omitempty"`
-	Rows      int      `json:"rows,omitempty"`
-	Cols      int      `json:"cols,omitempty"`
+	ID            string   `json:"id"`
+	Type          string   `json:"type"`
+	X             int      `json:"x"`
+	Y             int      `json:"y"`
+	W             int      `json:"w"`
+	H             int      `json:"h"`
+	Text          string   `json:"text,omitempty"`
+	FontSize      int      `json:"fontSize,omitempty"`
+	FieldKey      string   `json:"fieldKey,omitempty"`
+	Src           string   `json:"src,omitempty"`
+	Headers       []string `json:"headers,omitempty"`
+	RowLabels     []string `json:"rowLabels,omitempty"`
+	CellPrefixes  []string `json:"cellPrefixes,omitempty"`
+	Rows          int      `json:"rows,omitempty"`
+	Cols          int      `json:"cols,omitempty"`
 }
 
 func label(id string, x, y, w, h, fontSize int, text string) element {
@@ -65,6 +66,9 @@ func title(id string, x, y, w, h, fontSize int, text string) element {
 }
 func table(id string, x, y, w, h, rows, cols int, rowLabels []string, headers ...string) element {
 	return element{ID: id, Type: "table", X: x, Y: y, W: w, H: h, Rows: rows, Cols: cols, Headers: headers, RowLabels: rowLabels}
+}
+func tableWithPrefixes(id string, x, y, w, h, rows, cols int, rowLabels, cellPrefixes []string, headers ...string) element {
+	return element{ID: id, Type: "table", X: x, Y: y, W: w, H: h, Rows: rows, Cols: cols, Headers: headers, RowLabels: rowLabels, CellPrefixes: cellPrefixes}
 }
 
 func main() {
@@ -128,7 +132,7 @@ func main() {
 		field("f_pasatiempo", 505, 413, 275, 22, 12, "pasatiempo"),
 
 		title("t_agudeza", 300, 448, 220, 24, 16, "AGUDEZA VISUAL"),
-		table("tb_agudeza", 40, 478, 380, 100, 3, 3, []string{"OD", "OI", "AO"}, "S/C", "A/E", "C/C"),
+		tableWithPrefixes("tb_agudeza", 40, 478, 380, 100, 3, 3, []string{"OD", "OI", "AO"}, []string{"20/", "20/", "20/"}, "S/C", "A/E", "C/C"),
 		table("tb_queratometria", 440, 478, 340, 100, 3, 1, []string{"OD", "OI", "OBS"}, "Queratometría"),
 
 		title("t_rxant", 340, 596, 160, 22, 15, "RX ANTERIOR"),
