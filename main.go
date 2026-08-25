@@ -397,6 +397,18 @@ func main() {
 		apiClient.GET("/mis-pedidos", handlers.GetMyOrders)
 	}
 
+	// SMS gateway — llamada por la app Android del celular que manda los
+	// códigos de verificación por SMS real (ver sms_gateway.go). No usa
+	// sesión de cliente/admin: se protege con la llave fija
+	// SMS_GATEWAY_KEY (header X-Gateway-Key), validada dentro de cada
+	// handler porque no es una persona la que llama, es el dispositivo.
+	gateway := router.Group("/api/gateway")
+	{
+		gateway.GET("/sms/siguiente", handlers.GetPendingSMS)
+		gateway.POST("/sms/:id/confirmar", handlers.ConfirmSMSSent)
+		gateway.POST("/sms/:id/fallido", handlers.ReportSMSFailed)
+	}
+
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
 	router.GET("/media/productos/*key", handlers.ServeProductImage)

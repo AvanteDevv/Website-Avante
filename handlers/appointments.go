@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"regexp"
@@ -27,19 +27,11 @@ type sendCodeInput struct {
 	Celular  string `json:"celular" binding:"required"` // "+52XXXXXXXXXX"
 }
 
-// SendVerificationCode genera un código de 4 dígitos y lo "envía" por
-// WhatsApp al celular dado.
-//
-// ⚠️ POR AHORA EL ENVÍO ESTÁ SIMULADO: el código solo se imprime en el
-// log del servidor (log.Printf abajo), no se manda ningún mensaje real.
-// Cuando tengas listo el canal de envío (API de Meta, Twilio, o el bot
-// de WhatsApp de Attomos), reemplaza ese log.Printf por la llamada real,
-// por ejemplo:
-//
-//	if err := whatsapp.SendText(input.Celular, "Tu código es: "+code); err != nil { ... }
-//
-// El resto de la lógica (guardar/expirar/verificar el código) ya
-// funciona y no necesita cambios.
+// SendVerificationCode genera un código de 4 dígitos y lo encola para
+// enviarse por SMS real a través del celular-gateway (ver
+// sms_queue.go / sms_gateway.go). El código ya no se simula: se guarda
+// en la tabla sms_queue con status "pendiente" y la app Android del
+// celular lo recoge y lo manda por SMS en los siguientes segundos.
 func SendVerificationCode(c *gin.Context) {
 	var input sendCodeInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -58,13 +50,16 @@ func SendVerificationCode(c *gin.Context) {
 		return
 	}
 
-	// --- ENVÍO SIMULADO ---
-	log.Printf("[OTP SIMULADO] Código para %s (%s %s): %s", input.Celular, input.Nombre, input.Apellido, code)
+	mensaje := fmt.Sprintf("Avante Optics: tu código de verificación es %s. Vence en 5 minutos.", code)
+	if _, err := models.EnqueueSMS(input.Celular, mensaje); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo enviar el código. Intenta de nuevo."})
+		return
+	}
 
-	resp := gin.H{"message": "Te enviamos un código de verificación por WhatsApp."}
+	resp := gin.H{"message": "Te enviamos un código de verificación por SMS."}
 	// Solo para pruebas locales: si defines APPT_OTP_DEBUG=true en el
 	// entorno, el código se regresa también en la respuesta para no
-	// tener que ir a revisar los logs mientras pruebas. Quítalo (o deja
+	// tener que ir a revisar la base mientras pruebas. Quítalo (o deja
 	// la variable sin definir) en producción.
 	if os.Getenv("APPT_OTP_DEBUG") == "true" {
 		resp["debug_code"] = code
@@ -179,7 +174,7 @@ func CreateAppointment(c *gin.Context) {
 	// justo antes de esto (ConsumeVerification lo borra al usarlo, así
 	// que un mismo código verificado no se puede reusar para 2 citas).
 	if err := models.ConsumeVerification(input.Celular); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Debes verificar tu número de WhatsApp antes de agendar."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Debes verificar tu número antes de agendar."})
 		return
 	}
 
