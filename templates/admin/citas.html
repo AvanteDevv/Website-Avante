@@ -101,12 +101,12 @@
           </thead>
           <tbody id="citasTableBody">
             {{range .Citas}}
-            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-celular="{{.Celular}}">
+            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-celular="{{.Celular}}" data-cancel-reason="{{.CancelReason}}">
               <td>{{.ID}}</td>
               <td class="cita-cliente">{{.Nombre}} {{.Apellido}}</td>
               <td class="cita-dia">{{fechaEs .Date}}</td>
               <td>{{.Time}}</td>
-              <td><span class="admin-badge {{.Status}}">{{.Status}}</span></td>
+              <td><span class="admin-badge {{.Status}}"{{if .CancelReason}} title="Motivo: {{.CancelReason}}"{{end}}>{{.Status}}</span></td>
               <td>{{fechaEs .CreatedAt}}</td>
               <td>
                 <div class="row-menu" data-menu-id="{{.ID}}">
@@ -215,6 +215,7 @@
         <span id="calEventWhen"></span>
       </div>
       <span class="admin-badge" id="calEventStatus"></span>
+      <p class="cal-event-reason" id="calEventReason" hidden></p>
 
       <div class="cal-event-actions">
         <button type="button" class="cal-action cal-action-confirm" data-action="confirm" id="calEventConfirm">

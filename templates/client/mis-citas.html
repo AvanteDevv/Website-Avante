@@ -25,9 +25,9 @@
     </div>
 
     <div class="cuenta-stats" id="cuentaStats">
-      <div class="cuenta-stat-card"><div class="num">0</div><div class="label">Citas totales</div></div>
-      <div class="cuenta-stat-card"><div class="num">0</div><div class="label">Próximas</div></div>
-      <div class="cuenta-stat-card"><div class="num">—</div><div class="label">Siguiente cita</div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="cuenta-stat-card"><div class="num">0</div><div class="label">Citas totales</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="cuenta-stat-card"><div class="num">0</div><div class="label">Próximas</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="cuenta-stat-card"><div class="num">—</div><div class="label">Siguiente cita</div></div></div>
     </div>
 
     <section class="panel">
@@ -45,6 +45,29 @@
       </div>
     </section>
   </main>
+</div>
+
+<div class="modal-overlay" id="cancelApptModalOverlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Cancelar cita</h3>
+      <button type="button" class="modal-close" id="cancelApptModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">Cuéntanos brevemente por qué cancelas — nuestro equipo lo va a ver para darle seguimiento.</p>
+      <label class="modal-field">
+        <span>Motivo</span>
+        <textarea id="cancelApptReason" rows="3" placeholder="Ej. Ya no puedo esa hora, tuve un imprevisto..." maxlength="500"></textarea>
+      </label>
+      <p class="modal-error" id="cancelApptError"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn small" id="cancelApptBack">Regresar</button>
+        <button type="button" class="btn small danger" id="cancelApptConfirm">Cancelar cita</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>

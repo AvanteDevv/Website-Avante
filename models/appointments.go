@@ -17,24 +17,52 @@ import (
 // logueado, corre esto una vez contra tu base:
 //
 //	ALTER TABLE appointments ADD COLUMN user_id BIGINT NULL, ADD INDEX idx_appointments_user_id (user_id);
+//
+// Y para guardar el motivo cuando el cliente cancela su propia cita:
+//
+//	ALTER TABLE appointments ADD COLUMN cancel_reason VARCHAR(500) NULL;
 
 // Appointment represents a booking made from the public "Agenda tu cita"
 // section (agendar.html / agendar.js).
 type Appointment struct {
-	ID        int64         `json:"id"`
-	Date      time.Time     `json:"date"` // day only, stored as SQL DATE
-	Time      string        `json:"time"` // "HH:MM" — one of the fixed slots offered in agendar.js
-	Nombre    string        `json:"nombre"`
-	Apellido  string        `json:"apellido"`
-	Celular   string        `json:"celular"` // formato "+52XXXXXXXXXX", verificado por WhatsApp antes de agendar
-	Status    string        `json:"status"`  // "pendiente" | "confirmada" | "cancelada"
-	UserID    sql.NullInt64 `json:"-"`       // vacío si la agendó alguien sin sesión iniciada
-	CreatedAt time.Time     `json:"created_at"`
+	ID           int64         `json:"id"`
+	Date         time.Time     `json:"date"` // day only, stored as SQL DATE
+	Time         string        `json:"time"` // "HH:MM" — one of the fixed slots offered in agendar.js
+	Nombre       string        `json:"nombre"`
+	Apellido     string        `json:"apellido"`
+	Celular      string        `json:"celular"`                 // formato "+52XXXXXXXXXX", verificado por WhatsApp antes de agendar
+	Status       string        `json:"status"`                  // "pendiente" | "confirmada" | "cancelada"
+	CancelReason string        `json:"cancel_reason,omitempty"` // motivo que dio el cliente al cancelar — vacío si no se canceló, o si la canceló staff
+	UserID       sql.NullInt64 `json:"-"`                       // vacío si la agendó alguien sin sesión iniciada
+	CreatedAt    time.Time     `json:"created_at"`
 }
 
 // ErrAppointmentNotFound is returned when no appointment matches the
 // given id.
 var ErrAppointmentNotFound = errors.New("cita no encontrada")
+
+// rowScanner es lo mínimo que necesita scanAppointmentRow — lo
+// implementa *sql.Rows, así que sirve tal cual para rows.Scan(...).
+type rowScanner interface {
+	Scan(dest ...interface{}) error
+}
+
+// scanAppointmentRow escanea una fila con las columnas
+// "id, appt_date, appt_time, nombre, apellido, celular, status,
+// cancel_reason, created_at" (en ese orden) — la usan tanto
+// GetAllAppointments como GetAppointmentsByUser, para no repetir dos
+// veces el manejo de cancel_reason (nullable en la tabla, string plano
+// en el struct).
+func scanAppointmentRow(row rowScanner, a *Appointment) error {
+	var reason sql.NullString
+	if err := row.Scan(&a.ID, &a.Date, &a.Time, &a.Nombre, &a.Apellido, &a.Celular, &a.Status, &reason, &a.CreatedAt); err != nil {
+		return err
+	}
+	if reason.Valid {
+		a.CancelReason = reason.String
+	}
+	return nil
+}
 
 // CreateAppointment inserts a new booking with status "confirmada" — el
 // número de celular ya pasó por la verificación de código (ver
@@ -79,7 +107,7 @@ func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular strin
 // primero — usado por el panel "Mis citas".
 func GetAppointmentsByUser(userID int64) ([]Appointment, error) {
 	rows, err := db.DB.Query(
-		"SELECT id, appt_date, appt_time, nombre, apellido, celular, status, created_at FROM appointments WHERE user_id = ? ORDER BY appt_date DESC, appt_time DESC",
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, status, cancel_reason, created_at FROM appointments WHERE user_id = ? ORDER BY appt_date DESC, appt_time DESC",
 		userID,
 	)
 	if err != nil {
@@ -90,7 +118,7 @@ func GetAppointmentsByUser(userID int64) ([]Appointment, error) {
 	list := []Appointment{}
 	for rows.Next() {
 		var a Appointment
-		if err := rows.Scan(&a.ID, &a.Date, &a.Time, &a.Nombre, &a.Apellido, &a.Celular, &a.Status, &a.CreatedAt); err != nil {
+		if err := scanAppointmentRow(rows, &a); err != nil {
 			return nil, err
 		}
 		list = append(list, a)
@@ -98,11 +126,33 @@ func GetAppointmentsByUser(userID int64) ([]Appointment, error) {
 	return list, rows.Err()
 }
 
+// CancelAppointmentByUser cancela una cita, pero SOLO si pertenece al
+// cliente que la está cancelando (WHERE id=? AND user_id=?) — así nadie
+// puede cancelar la cita de otra persona adivinando el id. El motivo es
+// obligatorio y queda visible para recepción/admin en su propio panel.
+func CancelAppointmentByUser(id, userID int64, reason string) error {
+	result, err := db.DB.Exec(
+		"UPDATE appointments SET status = 'cancelada', cancel_reason = ? WHERE id = ? AND user_id = ?",
+		reason, id, userID,
+	)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrAppointmentNotFound
+	}
+	return nil
+}
+
 // GetAllAppointments returns every booking, most recently created
 // first — used by the admin Citas panel.
 func GetAllAppointments() ([]Appointment, error) {
 	rows, err := db.DB.Query(
-		"SELECT id, appt_date, appt_time, nombre, apellido, celular, status, created_at FROM appointments ORDER BY created_at DESC",
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, status, cancel_reason, created_at FROM appointments ORDER BY created_at DESC",
 	)
 	if err != nil {
 		return nil, err
@@ -112,7 +162,7 @@ func GetAllAppointments() ([]Appointment, error) {
 	var list []Appointment
 	for rows.Next() {
 		var a Appointment
-		if err := rows.Scan(&a.ID, &a.Date, &a.Time, &a.Nombre, &a.Apellido, &a.Celular, &a.Status, &a.CreatedAt); err != nil {
+		if err := scanAppointmentRow(rows, &a); err != nil {
 			return nil, err
 		}
 		list = append(list, a)

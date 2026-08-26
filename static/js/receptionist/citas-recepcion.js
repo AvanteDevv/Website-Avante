@@ -289,6 +289,21 @@
       statusEl.textContent = status;
       statusEl.className = 'admin-badge ' + status;
 
+      var reasonEl = document.getElementById('calEventReason');
+      var reason = row.dataset.cancelReason ? row.dataset.cancelReason.trim() : '';
+      if (reasonEl) {
+        reasonEl.textContent = '';
+        if (status === 'cancelada' && reason) {
+          var reasonLabel = document.createElement('strong');
+          reasonLabel.textContent = 'Motivo de cancelación: ';
+          reasonEl.appendChild(reasonLabel);
+          reasonEl.appendChild(document.createTextNode(reason));
+          reasonEl.hidden = false;
+        } else {
+          reasonEl.hidden = true;
+        }
+      }
+
       document.getElementById('calEventConfirm').onclick = function(){ updateStatus(id, 'confirmada'); };
       document.getElementById('calEventCancel').onclick = function(){ updateStatus(id, 'cancelada'); };
       document.getElementById('calEventDelete').onclick = function(){ deleteCita(id); };

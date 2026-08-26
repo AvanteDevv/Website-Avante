@@ -52,9 +52,9 @@ function renderStats(){
   const siguienteLabel = siguiente ? (fechaCorta(siguiente.date).day + ' ' + fechaCorta(siguiente.date).mon) : '—';
 
   wrap.innerHTML = `
-    <div class="cuenta-stat-card"><div class="num">${total}</div><div class="label">Citas totales</div></div>
-    <div class="cuenta-stat-card"><div class="num">${proximas.length}</div><div class="label">Próximas</div></div>
-    <div class="cuenta-stat-card"><div class="num">${siguienteLabel}</div><div class="label">Siguiente cita</div></div>
+    <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="cuenta-stat-card"><div class="num">${total}</div><div class="label">Citas totales</div></div></div>
+    <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="cuenta-stat-card"><div class="num">${proximas.length}</div><div class="label">Próximas</div></div></div>
+    <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="cuenta-stat-card"><div class="num">${siguienteLabel}</div><div class="label">Siguiente cita</div></div></div>
   `;
 }
 
@@ -75,9 +75,6 @@ function renderCitas(){
 
   listEl.innerHTML = sorted.map(c => {
     const { day, mon } = fechaCorta(c.date);
-    // El botón de cancelar todavía no está conectado a ningún endpoint
-    // de cliente — por ahora solo se muestra deshabilitado con una
-    // explicación, en vez de fingir que hace algo.
     const canCancel = c.status !== 'cancelada';
     return `
       <div class="appt-row">
@@ -91,7 +88,7 @@ function renderCitas(){
         </div>
         <span class="status-badge ${c.status}">${c.status}</span>
         <div class="appt-actions">
-          ${canCancel ? '<button type="button" class="btn small danger" disabled title="Para cancelar tu cita, contáctanos por WhatsApp.">Cancelar</button>' : ''}
+          ${canCancel ? '<button type="button" class="btn small danger" data-action="cancelar" data-id="' + c.id + '">Cancelar</button>' : ''}
         </div>
       </div>
     `;
@@ -116,3 +113,71 @@ function loadMyAppointments(){
 loadMyAppointments()
   .then(() => { renderStats(); renderCitas(); })
   .finally(() => { if (window.feather) feather.replace(); });
+
+/* ---------- modal: cancelar cita (con motivo obligatorio) ---------- */
+(function () {
+  const overlay = document.getElementById('cancelApptModalOverlay');
+  const closeBtn = document.getElementById('cancelApptModalClose');
+  const backBtn = document.getElementById('cancelApptBack');
+  const confirmBtn = document.getElementById('cancelApptConfirm');
+  const reasonInput = document.getElementById('cancelApptReason');
+  const errorEl = document.getElementById('cancelApptError');
+  const listEl = document.getElementById('apptList');
+  if (!overlay || !listEl) return;
+
+  let pendingId = null;
+
+  function closeModal() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    pendingId = null;
+  }
+  function openModal(id) {
+    pendingId = id;
+    if (reasonInput) reasonInput.value = '';
+    if (errorEl) errorEl.textContent = '';
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (reasonInput) reasonInput.focus();
+  }
+
+  closeBtn && closeBtn.addEventListener('click', closeModal);
+  backBtn && backBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+  listEl.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action="cancelar"]');
+    if (!btn) return;
+    openModal(btn.dataset.id);
+  });
+
+  confirmBtn && confirmBtn.addEventListener('click', () => {
+    const reason = (reasonInput ? reasonInput.value : '').trim();
+    if (!reason) {
+      if (errorEl) errorEl.textContent = 'Cuéntanos brevemente el motivo antes de cancelar.';
+      return;
+    }
+    if (errorEl) errorEl.textContent = '';
+    confirmBtn.disabled = true;
+
+    fetch('/api/mis-citas/' + encodeURIComponent(pendingId) + '/cancelar', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    })
+      .then(res => res.json().catch(() => ({})).then(data => {
+        if (!res.ok) throw new Error(data.error || 'No se pudo cancelar la cita.');
+      }))
+      .then(() => {
+        closeModal();
+        return loadMyAppointments();
+      })
+      .then(() => { renderStats(); renderCitas(); if (window.feather) feather.replace(); })
+      .catch(err => {
+        if (errorEl) errorEl.textContent = err.message || 'No se pudo cancelar la cita. Intenta de nuevo.';
+      })
+      .finally(() => {
+        confirmBtn.disabled = false;
+      });
+  });
+})();

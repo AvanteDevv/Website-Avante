@@ -391,6 +391,7 @@ func main() {
 		apiClient.DELETE("/favorites/:productId", handlers.DeleteFavorite)
 		apiClient.GET("/mis-pedidos", handlers.GetMyOrders)
 		apiClient.GET("/mis-citas", handlers.GetMyAppointments)
+		apiClient.PATCH("/mis-citas/:id/cancelar", handlers.CancelMyAppointment)
 	}
 
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
