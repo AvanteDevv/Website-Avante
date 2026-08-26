@@ -123,19 +123,26 @@ body.cuenta-body{
 .field input:hover, .field select:hover{ border-color:var(--blue-300); }
 .field input:focus, .field select:focus{ outline:none; border-color:var(--blue-600); box-shadow:0 0 0 4px var(--blue-50); }
 .form-actions{ display:flex; justify-content:flex-end; gap:12px; margin-top:22px; }
+.form-status{ font-size:12.5px; margin-top:14px; min-height:1em; }
+.form-status.ok{ color:#1f9d55; }
+.form-status.error{ color:#e2554a; }
 
-/* ---------- Pills de opción (preferencia de contacto) ---------- */
+/* ---------- Pills de opción (cómo te registraste) ---------- */
 .pill-options{ display:flex; flex-wrap:wrap; gap:10px; }
 .pill-option{
   display:flex; align-items:center; gap:8px;
   padding:10px 18px; border:1.5px solid var(--line); border-radius:100px;
   font-size:12.5px; font-weight:600; color:var(--grey);
-  transition:border-color .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
 }
 .pill-option svg{ width:15px; height:15px; }
-.pill-option:hover{ border-color:var(--blue-300); }
-.pill-option input{ display:none; }
-.pill-option:has(input:checked){ background:var(--blue-600); border-color:var(--blue-600); color:var(--white); }
+.pill-option.active{ background:var(--blue-600); border-color:var(--blue-600); color:var(--white); }
+.pill-option.soon{ opacity:.55; cursor:default; }
+.pill-soon-tag{
+  font-size:9.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  color:var(--grey); background:var(--blue-50); padding:2px 7px; border-radius:100px;
+}
+.pill-option.soon.active{ opacity:1; }
+.pill-option.soon.active .pill-soon-tag{ background:rgba(255,255,255,.2); color:var(--white); }
 
 @media (max-width:520px){
   .cuenta-header h1{ font-size:26px; }

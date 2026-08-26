@@ -24,43 +24,54 @@
       <p>Tus datos personales y cómo prefieres que te contactemos.</p>
     </div>
 
+    {{if .ProfileError}}
+    <p style="color:#e2554a; margin-bottom:20px;">{{.ProfileError}}</p>
+    {{end}}
+
     <section class="panel">
       <div class="panel-head">
         <h2>Datos personales</h2>
       </div>
       <div class="panel-body">
-        <form>
+        <form id="profileForm">
           <div class="field-grid">
             <div class="field">
               <label for="pfName">Nombre completo</label>
-              <input type="text" id="pfName" name="name" value="Cliente Avante">
+              <input type="text" id="pfName" name="name" value="{{.UserName}}" required minlength="3">
             </div>
             <div class="field">
               <label for="pfEmail">Correo electrónico</label>
-              <input type="email" id="pfEmail" name="email" value="cliente@avanteoptics.mx">
+              <input type="email" id="pfEmail" name="email" value="{{.UserEmail}}" required>
             </div>
             <div class="field">
               <label for="pfPhone">Teléfono</label>
-              <input type="tel" id="pfPhone" name="phone" placeholder="(662) 000 0000">
+              <input type="tel" id="pfPhone" name="phone" value="{{.UserPhone}}" placeholder="(662) 000 0000">
             </div>
             <div class="field">
-              <label>Preferencia de contacto</label>
+              <label>Cómo te registraste</label>
               <div class="pill-options">
-                <label class="pill-option">
-                  <input type="radio" name="contactPref" checked>
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Z"/></svg>
-                  WhatsApp
-                </label>
-                <label class="pill-option">
-                  <input type="radio" name="contactPref">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
-                  Correo
-                </label>
+                <span class="pill-option{{if eq .UserAuthProvider "formulario"}} active{{end}}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                  Formulario
+                </span>
+                <span class="pill-option soon{{if eq .UserAuthProvider "google"}} active{{end}}" title="Próximamente">
+                  <svg viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.580z"/></svg>
+                  Google <span class="pill-soon-tag">Próximamente</span>
+                </span>
+                <span class="pill-option soon{{if eq .UserAuthProvider "microsoft"}} active{{end}}" title="Próximamente">
+                  <svg viewBox="0 0 23 23"><path fill="#F35325" d="M1 1h10v10H1z"/><path fill="#81BC06" d="M12 1h10v10H12z"/><path fill="#05A6F0" d="M1 12h10v10H1z"/><path fill="#FFBA08" d="M12 12h10v10H12z"/></svg>
+                  Microsoft <span class="pill-soon-tag">Próximamente</span>
+                </span>
+                <span class="pill-option soon{{if eq .UserAuthProvider "facebook"}} active{{end}}" title="Próximamente">
+                  <svg viewBox="0 0 24 24" fill="#1877F2"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12"/></svg>
+                  Facebook <span class="pill-soon-tag">Próximamente</span>
+                </span>
               </div>
             </div>
           </div>
+          <p class="form-status" id="profileStatus"></p>
           <div class="form-actions">
-            <button type="button" class="btn solid small">Guardar cambios</button>
+            <button type="submit" class="btn solid small" id="profileSubmit">Guardar cambios</button>
           </div>
         </form>
       </div>
@@ -72,23 +83,24 @@
         <p>Cambia tu contraseña de acceso.</p>
       </div>
       <div class="panel-body">
-        <form>
+        <form id="passwordForm">
           <div class="field-grid">
             <div class="field full">
               <label for="pfCurrentPass">Contraseña actual</label>
-              <input type="password" id="pfCurrentPass" placeholder="••••••••">
+              <input type="password" id="pfCurrentPass" name="currentPassword" placeholder="••••••••" required>
             </div>
             <div class="field">
               <label for="pfNewPass">Nueva contraseña</label>
-              <input type="password" id="pfNewPass" placeholder="••••••••">
+              <input type="password" id="pfNewPass" name="newPassword" placeholder="••••••••" required minlength="8">
             </div>
             <div class="field">
               <label for="pfConfirmPass">Confirmar nueva contraseña</label>
-              <input type="password" id="pfConfirmPass" placeholder="••••••••">
+              <input type="password" id="pfConfirmPass" name="newPassword2" placeholder="••••••••" required minlength="8">
             </div>
           </div>
+          <p class="form-status" id="passwordStatus"></p>
           <div class="form-actions">
-            <button type="button" class="btn small">Actualizar contraseña</button>
+            <button type="submit" class="btn small" id="passwordSubmit">Actualizar contraseña</button>
           </div>
         </form>
       </div>

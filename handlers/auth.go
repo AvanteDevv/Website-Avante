@@ -18,6 +18,7 @@ import (
 type registerInput struct {
 	Name     string `json:"name" binding:"required,min=3"`
 	Email    string `json:"email" binding:"required,email"`
+	Celular  string `json:"celular" binding:"required"` // "+52XXXXXXXXXX", debe estar ya verificado
 	Password string `json:"password" binding:"required,min=8"`
 }
 
@@ -26,11 +27,26 @@ type loginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// Register crea una cuenta nueva y arranca sesión automáticamente.
+// Register crea una cuenta nueva y arranca sesión automáticamente. El
+// celular debe haber pasado ya por la verificación de código de 4
+// dígitos (mismo mecanismo que usa "Agenda tu cita" — ver
+// SendVerificationCode/VerifyCode en appointments.go): ConsumeVerification
+// se lo cobra aquí, así nadie puede pegarle a este endpoint directo sin
+// haber verificado nada.
 func Register(c *gin.Context) {
 	var input registerInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Revisa tu nombre, correo y contraseña (mínimo 8 caracteres)."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Revisa tu nombre, correo, celular y contraseña (mínimo 8 caracteres)."})
+		return
+	}
+
+	if !celularRe.MatchString(input.Celular) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Número de celular inválido."})
+		return
+	}
+
+	if err := models.ConsumeVerification(input.Celular); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Debes verificar tu celular antes de crear la cuenta."})
 		return
 	}
 
@@ -41,7 +57,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	user, err := models.CreateUser(input.Name, input.Email, string(hash))
+	user, err := models.CreateUser(input.Name, input.Email, input.Celular, string(hash))
 	if errors.Is(err, models.ErrEmailTaken) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Ya existe una cuenta con ese correo."})
 		return

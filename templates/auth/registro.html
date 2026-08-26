@@ -86,6 +86,16 @@
           </div>
 
           <div>
+            <label class="field-label" for="regCelular">Celular</label>
+            <div class="field field-phone">
+              <span class="field-phone-lada">+52</span>
+              <input type="tel" id="regCelular" name="celular" inputmode="numeric" maxlength="10" placeholder="6621234567" autocomplete="tel-national" required>
+              <p class="field-error">Ingresa un celular a 10 dígitos.</p>
+            </div>
+            <p class="field-hint">Te vamos a mandar un código de 4 dígitos para verificarlo.</p>
+          </div>
+
+          <div>
             <label class="field-label" for="regPassword">Contraseña</label>
             <div class="field">
               <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -122,6 +132,23 @@
 </section>
 
 {{template "footer" .}}
+
+<div class="auth-modal-overlay" id="regCodeModalOverlay">
+  <div class="auth-modal-card">
+    <button type="button" class="auth-modal-close" id="regCodeModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <h3>Verifica tu celular</h3>
+    <p>Enviamos un código de 4 dígitos a <strong id="regCodePhoneLabel"></strong>.</p>
+    <div class="auth-code-row">
+      <input type="text" inputmode="numeric" maxlength="1" class="auth-code-digit" data-idx="0">
+      <input type="text" inputmode="numeric" maxlength="1" class="auth-code-digit" data-idx="1">
+      <input type="text" inputmode="numeric" maxlength="1" class="auth-code-digit" data-idx="2">
+      <input type="text" inputmode="numeric" maxlength="1" class="auth-code-digit" data-idx="3">
+    </div>
+    <p class="auth-modal-error" id="regCodeError"></p>
+    <button type="button" class="btn solid auth-submit" id="regCodeSubmit">Verificar y crear cuenta</button>
+    <button type="button" class="auth-code-resend" id="regCodeResend">¿No te llegó? Reenviar código</button>
+  </div>
+</div>
 
 <div class="auth-toast" id="authToast">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>

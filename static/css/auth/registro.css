@@ -179,6 +179,12 @@ form{ display:flex; flex-direction:column; gap:18px; }
 .field-error{ margin-top:7px; font-size:11.5px; color:var(--red); display:none; }
 .field.invalid input{ border-color:var(--red); }
 .field.invalid .field-error{ display:block; }
+.field-phone{ display:flex; align-items:center; gap:8px; }
+.field-phone-lada{
+  flex-shrink:0; padding:15px 14px; font-size:14.5px; font-weight:600; color:var(--ink);
+  background:var(--blue-50); border:1.5px solid var(--line); border-radius:100px;
+}
+.field-phone input{ flex:1; padding-left:18px; }
 
 .pw-strength{ display:flex; gap:5px; margin-top:9px; }
 .pw-strength span{ height:3px; flex:1; border-radius:2px; background:var(--line); transition:background .25s var(--ease); }
@@ -211,3 +217,46 @@ form{ display:flex; flex-direction:column; gap:18px; }
 }
 .auth-toast.show{ transform:translate(-50%,0); visibility:visible; }
 .auth-toast svg{ width:16px; height:16px; color:var(--blue-300); flex-shrink:0; }
+
+/* =========================================================
+   MODAL — verificación de celular al registrarse
+   ========================================================= */
+.auth-modal-overlay{
+  position:fixed; inset:0; z-index:300; background:rgba(8,24,72,.5); backdrop-filter:blur(4px);
+  display:flex; align-items:center; justify-content:center; padding:20px; overflow-y:auto;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .35s var(--ease), visibility 0s linear .35s;
+}
+.auth-modal-overlay.open{
+  opacity:1; visibility:visible; pointer-events:auto;
+  transition:opacity .35s var(--ease), visibility 0s linear;
+}
+.auth-modal-card{
+  background:var(--white); border:1px solid var(--line); border-radius:24px; padding:44px;
+  max-width:400px; width:100%; margin:auto; text-align:center; position:relative;
+  opacity:0; transform:scale(.92) translateY(14px);
+  transition:transform .45s cubic-bezier(.22,1.4,.36,1), opacity .35s var(--ease);
+}
+.auth-modal-overlay.open .auth-modal-card{ opacity:1; transform:scale(1) translateY(0); }
+.auth-modal-close{
+  position:absolute; top:16px; right:16px; width:30px; height:30px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%; color:var(--grey);
+  transition:background .25s var(--ease), color .25s var(--ease), transform .25s var(--ease);
+}
+.auth-modal-close svg{ width:16px; height:16px; }
+.auth-modal-close:hover{ background:var(--blue-50); color:var(--blue-600); transform:rotate(90deg) scale(1.08); }
+.auth-modal-card h3{ font-size:22px; }
+.auth-modal-card p{ margin-top:10px; font-size:14px; color:var(--grey); line-height:1.55; }
+.auth-code-row{ display:flex; gap:12px; justify-content:center; margin-top:22px; }
+.auth-code-digit{
+  width:52px; height:60px; text-align:center; font-size:24px; font-weight:700; color:var(--ink);
+  background:var(--blue-50); border:1px solid var(--line); border-radius:12px;
+}
+.auth-code-digit:focus{ outline:none; border-color:var(--blue-600); background:var(--white); }
+.auth-modal-error{ min-height:16px; font-size:12.5px; color:var(--red); margin:10px 0 0; }
+.auth-modal-card .auth-submit{ width:100%; margin-top:20px; }
+.auth-code-resend{
+  display:block; margin:16px auto 0; font-size:12.5px; font-weight:600; color:var(--blue-600);
+  text-align:center; text-decoration:underline; text-underline-offset:3px;
+}
+.auth-code-resend:disabled{ color:var(--grey); text-decoration:none; cursor:default; }

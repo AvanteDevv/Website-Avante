@@ -1,4 +1,85 @@
 /* =========================================================
-   MI PERFIL
+   MI PERFIL — datos reales de la cuenta logueada.
+     PUT   /api/mi-perfil           -> guardar nombre/correo/teléfono
+     PATCH /api/mi-perfil/password  -> cambiar contraseña
    ========================================================= */
+
+function setStatus(el, msg, kind){
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'form-status' + (kind ? ' ' + kind : '');
+}
+
+/* ---------- Datos personales ---------- */
+const profileForm = document.getElementById('profileForm');
+const profileStatus = document.getElementById('profileStatus');
+const profileSubmit = document.getElementById('profileSubmit');
+
+if (profileForm) {
+  profileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setStatus(profileStatus, '');
+    profileSubmit.disabled = true;
+
+    const payload = {
+      name: document.getElementById('pfName').value.trim(),
+      email: document.getElementById('pfEmail').value.trim(),
+      phone: document.getElementById('pfPhone').value.trim()
+    };
+
+    try {
+      const res = await fetch('/api/mi-perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudieron guardar los cambios.');
+      setStatus(profileStatus, data.message || 'Cambios guardados.', 'ok');
+    } catch (err) {
+      setStatus(profileStatus, err.message || 'No se pudieron guardar los cambios.', 'error');
+    } finally {
+      profileSubmit.disabled = false;
+    }
+  });
+}
+
+/* ---------- Seguridad (contraseña) ---------- */
+const passwordForm = document.getElementById('passwordForm');
+const passwordStatus = document.getElementById('passwordStatus');
+const passwordSubmit = document.getElementById('passwordSubmit');
+
+if (passwordForm) {
+  passwordForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setStatus(passwordStatus, '');
+
+    const currentPassword = document.getElementById('pfCurrentPass').value;
+    const newPassword = document.getElementById('pfNewPass').value;
+    const newPassword2 = document.getElementById('pfConfirmPass').value;
+
+    if (newPassword !== newPassword2) {
+      setStatus(passwordStatus, 'Las contraseñas nuevas no coinciden.', 'error');
+      return;
+    }
+
+    passwordSubmit.disabled = true;
+    try {
+      const res = await fetch('/api/mi-perfil/password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo actualizar la contraseña.');
+      setStatus(passwordStatus, data.message || 'Contraseña actualizada.', 'ok');
+      passwordForm.reset();
+    } catch (err) {
+      setStatus(passwordStatus, err.message || 'No se pudo actualizar la contraseña.', 'error');
+    } finally {
+      passwordSubmit.disabled = false;
+    }
+  });
+}
+
 if (window.feather) feather.replace();

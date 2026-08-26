@@ -18,6 +18,12 @@ import (
 //	ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'cliente';
 //	UPDATE users SET role = 'cliente' WHERE role IS NULL OR role = '';
 //
+// Y para saber cómo se registró cada cuenta (formulario, o más
+// adelante Google/Microsoft/Facebook cuando esos login existan de
+// verdad):
+//
+//	ALTER TABLE users ADD COLUMN auth_provider VARCHAR(20) NOT NULL DEFAULT 'formulario';
+//
 // Valores usados: 'cliente', 'optometrista', 'admin' — los mismos que
 // ofrece el <select> del modal "Nuevo usuario" en base-de-datos.html.
 //
@@ -33,12 +39,17 @@ import (
 // El campo PasswordHash nunca se serializa a JSON (json:"-") para que jamás
 // se escape por accidente en una respuesta de la API.
 type User struct {
-	ID           int64     `json:"id"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	Phone        string    `json:"phone,omitempty"`
-	Role         string    `json:"role"`
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"-"`
+	Phone        string `json:"phone,omitempty"`
+	Role         string `json:"role"`
+	// AuthProvider: "formulario" | "google" | "microsoft" | "facebook".
+	// Por ahora TODAS las cuentas se crean con "formulario" — los otros
+	// tres valores existen en el esquema para cuando esos logins
+	// existan de verdad, pero ningún código los asigna todavía.
+	AuthProvider string    `json:"auth_provider"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
@@ -61,10 +72,9 @@ func EmailExists(email string) (bool, error) {
 
 // CreateUser inserta un nuevo usuario con rol "cliente" — es la que ya
 // usa el registro público (Register en auth.go). El hasheo con bcrypt
-// se hace en el handler, no aquí. Firma sin cambios respecto a la que
-// ya tenías.
-func CreateUser(name, email, passwordHash string) (*User, error) {
-	return createUser(name, email, "", passwordHash, "cliente")
+// se hace en el handler, no aquí.
+func CreateUser(name, email, phone, passwordHash string) (*User, error) {
+	return createUser(name, email, phone, passwordHash, "cliente")
 }
 
 // CreateUserByAdmin inserta un usuario con teléfono y rol elegidos
@@ -89,7 +99,7 @@ func createUser(name, email, phone, passwordHash, role string) (*User, error) {
 	}
 
 	result, err := db.DB.Exec(
-		"INSERT INTO users (name, email, password_hash, phone, role) VALUES (?, ?, ?, ?, ?)",
+		"INSERT INTO users (name, email, password_hash, phone, role, auth_provider) VALUES (?, ?, ?, ?, ?, 'formulario')",
 		name, email, passwordHash, phone, role,
 	)
 	if err != nil {
@@ -101,7 +111,7 @@ func createUser(name, email, phone, passwordHash, role string) (*User, error) {
 		return nil, err
 	}
 
-	return &User{ID: id, Name: name, Email: email, PasswordHash: passwordHash, Phone: phone, Role: role}, nil
+	return &User{ID: id, Name: name, Email: email, PasswordHash: passwordHash, Phone: phone, Role: role, AuthProvider: "formulario"}, nil
 }
 
 // GetUserByEmail busca un usuario por correo. Devuelve ErrUserNotFound si
@@ -111,9 +121,9 @@ func GetUserByEmail(email string) (*User, error) {
 
 	var u User
 	err := db.DB.QueryRow(
-		"SELECT id, name, email, password_hash, phone, role, created_at FROM users WHERE email = ?",
+		"SELECT id, name, email, password_hash, phone, role, auth_provider, created_at FROM users WHERE email = ?",
 		email,
-	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.CreatedAt)
+	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.AuthProvider, &u.CreatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
@@ -130,9 +140,9 @@ func GetUserByEmail(email string) (*User, error) {
 func GetUserByID(id int64) (*User, error) {
 	var u User
 	err := db.DB.QueryRow(
-		"SELECT id, name, email, password_hash, phone, role, created_at FROM users WHERE id = ?",
+		"SELECT id, name, email, password_hash, phone, role, auth_provider, created_at FROM users WHERE id = ?",
 		id,
-	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.CreatedAt)
+	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.AuthProvider, &u.CreatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
@@ -142,6 +152,42 @@ func GetUserByID(id int64) (*User, error) {
 	}
 
 	return &u, nil
+}
+
+// UpdateUserProfile edita nombre, correo y teléfono de un cliente —
+// usado desde su propio "Mi perfil" (PUT /api/mi-perfil). A propósito
+// NO toca el rol: eso solo lo hace UpdateUser (la que usa el admin
+// desde "Editar usuario"), para que nadie pueda cambiarse su propio
+// rol desde su perfil.
+func UpdateUserProfile(id int64, name, email, phone string) error {
+	email = normalizeEmail(email)
+	name = strings.TrimSpace(name)
+
+	// Si cambió de correo, hay que checar que no choque con otra
+	// cuenta — pero sin marcar falso-positivo contra sí mismo.
+	if existing, err := GetUserByEmail(email); err == nil {
+		if existing.ID != id {
+			return ErrEmailTaken
+		}
+	} else if !errors.Is(err, ErrUserNotFound) {
+		return err
+	}
+
+	result, err := db.DB.Exec(
+		"UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ?",
+		name, email, phone, id,
+	)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
 }
 
 // UpdateUser edita nombre, correo, teléfono y rol — usado por

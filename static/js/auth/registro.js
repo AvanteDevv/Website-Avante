@@ -56,6 +56,121 @@ pw.addEventListener('input', () => {
 
 const registerForm = document.getElementById('registerForm');
 const registerSubmitBtn = registerForm.querySelector('.auth-submit');
+const celularInput = document.getElementById('regCelular');
+
+/* ---------- modal: verificación de celular ---------- */
+const regCodeModalOverlay = document.getElementById('regCodeModalOverlay');
+const regCodeModalClose = document.getElementById('regCodeModalClose');
+const regCodePhoneLabel = document.getElementById('regCodePhoneLabel');
+const regCodeDigits = Array.from(document.querySelectorAll('.auth-code-digit'));
+const regCodeError = document.getElementById('regCodeError');
+const regCodeSubmit = document.getElementById('regCodeSubmit');
+const regCodeResend = document.getElementById('regCodeResend');
+let pendingRegistration = null; // { name, email, password, celular }
+
+function openRegCodeModal(){
+  regCodeModalOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeRegCodeModal(){
+  regCodeModalOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+regCodeModalClose.addEventListener('click', closeRegCodeModal);
+regCodeModalOverlay.addEventListener('click', (e) => { if(e.target === regCodeModalOverlay) closeRegCodeModal(); });
+
+regCodeDigits.forEach((input, idx) => {
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/\D/g, '').slice(0, 1);
+    if(input.value && idx < regCodeDigits.length - 1) regCodeDigits[idx + 1].focus();
+  });
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Backspace' && !input.value && idx > 0) regCodeDigits[idx - 1].focus();
+  });
+  input.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    const digits = pasted.replace(/\D/g, '').slice(0, regCodeDigits.length);
+    if(!digits) return;
+    digits.split('').forEach((d, i) => { regCodeDigits[i].value = d; });
+    regCodeDigits[Math.min(digits.length, regCodeDigits.length) - 1].focus();
+  });
+});
+
+// Reutiliza el mismo endpoint público de código de agendar cita — el
+// mecanismo de verificación (SMS de 4 dígitos) es el mismo, no hace
+// falta uno nuevo solo para registro.
+async function sendVerificationCode(nombre, apellido, celular){
+  try{
+    const res = await fetch('/api/agendar/codigo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, apellido, celular })
+    });
+    return res.ok;
+  } catch(e){ return false; }
+}
+async function verifyCode(celular, codigo){
+  try{
+    const res = await fetch('/api/agendar/verificar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ celular, codigo })
+    });
+    return res.ok;
+  } catch(e){ return false; }
+}
+
+regCodeSubmit.addEventListener('click', async () => {
+  const codigo = regCodeDigits.map(i => i.value).join('');
+  if(codigo.length < 4){ regCodeError.textContent = 'Ingresa los 4 dígitos.'; return; }
+
+  regCodeError.textContent = '';
+  regCodeSubmit.disabled = true;
+  regCodeSubmit.textContent = 'Verificando...';
+
+  const okCode = await verifyCode(pendingRegistration.celular, codigo);
+  if(!okCode){
+    regCodeSubmit.disabled = false;
+    regCodeSubmit.textContent = 'Verificar y crear cuenta';
+    regCodeError.textContent = 'El código no es correcto o ya expiró.';
+    return;
+  }
+
+  try{
+    const res = await fetch('/api/registro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pendingRegistration)
+    });
+    const data = await res.json().catch(() => ({}));
+
+    regCodeSubmit.disabled = false;
+    regCodeSubmit.textContent = 'Verificar y crear cuenta';
+
+    if(!res.ok){
+      regCodeError.textContent = data.error || 'No se pudo crear la cuenta.';
+      return;
+    }
+
+    closeRegCodeModal();
+    showToast(data.message || 'Cuenta creada correctamente.');
+    registerForm.reset();
+    strengthBars.forEach(bar => bar.style.background = 'var(--line)');
+    strengthLabel.textContent = 'Usa al menos 8 caracteres, con letras y números.';
+    setTimeout(() => { window.location.href = data.redirect || '/dashboard'; }, 1200);
+  } catch(err){
+    regCodeSubmit.disabled = false;
+    regCodeSubmit.textContent = 'Verificar y crear cuenta';
+    regCodeError.textContent = 'No se pudo conectar con el servidor. Intenta de nuevo.';
+  }
+});
+
+regCodeResend.addEventListener('click', async () => {
+  regCodeResend.disabled = true;
+  const [nombre, ...resto] = pendingRegistration.name.split(/\s+/);
+  const sent = await sendVerificationCode(nombre, resto.join(' ') || nombre, pendingRegistration.celular);
+  regCodeResend.disabled = false;
+  regCodeError.textContent = sent ? 'Te reenviamos el código.' : 'No pudimos reenviar el código.';
+});
 
 registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -68,45 +183,43 @@ registerForm.addEventListener('submit', async (e) => {
 
   const nameField = name.closest('.field');
   const emailField = email.closest('.field');
+  const celularField = celularInput.closest('.field');
   const pw1Field = pw1.closest('.field');
   const pw2Field = pw2.closest('.field');
 
   if(!name.checkValidity()){ markInvalid(nameField); ok = false; } else { clearInvalid(nameField); }
   if(!email.checkValidity()){ markInvalid(emailField); ok = false; } else { clearInvalid(emailField); }
+  const celularDigits = celularInput.value.trim();
+  if(!/^\d{10}$/.test(celularDigits)){ markInvalid(celularField); ok = false; } else { clearInvalid(celularField); }
   if(!pw1.checkValidity()){ markInvalid(pw1Field); ok = false; } else { clearInvalid(pw1Field); }
   if(pw1.value !== pw2.value || !pw2.checkValidity()){ markInvalid(pw2Field, 'Las contraseñas no coinciden.'); ok = false; } else { clearInvalid(pw2Field); }
   if(!terms.checked){ ok = false; showToast('Debes aceptar los términos y condiciones'); }
   if(!ok) return;
 
   registerSubmitBtn.disabled = true;
+  registerSubmitBtn.textContent = 'Enviando código...';
 
-  try{
-    const res = await fetch('/api/registro', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: name.value.trim(),
-        email: email.value.trim(),
-        password: pw1.value
-      })
-    });
-    const data = await res.json().catch(() => ({}));
+  const fullName = name.value.trim();
+  const [nombre, ...resto] = fullName.split(/\s+/);
+  const apellido = resto.join(' ') || nombre;
+  const celular = '+52' + celularDigits;
 
-    if(!res.ok){
-      showToast(data.error || 'No se pudo crear la cuenta.');
-      registerSubmitBtn.disabled = false;
-      return;
-    }
+  const sent = await sendVerificationCode(nombre, apellido, celular);
 
-    showToast(data.message || 'Cuenta creada correctamente.');
-    registerForm.reset();
-    strengthBars.forEach(bar => bar.style.background = 'var(--line)');
-    strengthLabel.textContent = 'Usa al menos 8 caracteres, con letras y números.';
-    setTimeout(() => { window.location.href = data.redirect || '/dashboard'; }, 1200);
-  } catch(err){
-    showToast('No se pudo conectar con el servidor. Intenta de nuevo.');
-    registerSubmitBtn.disabled = false;
+  registerSubmitBtn.disabled = false;
+  registerSubmitBtn.innerHTML = 'Crear cuenta <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+  if(!sent){
+    showToast('No pudimos enviar el código. Intenta de nuevo.');
+    return;
   }
+
+  pendingRegistration = { name: fullName, email: email.value.trim(), password: pw1.value, celular };
+  regCodePhoneLabel.textContent = '+52 ' + celularDigits;
+  regCodeError.textContent = '';
+  regCodeDigits.forEach(i => i.value = '');
+  openRegCodeModal();
+  regCodeDigits[0].focus();
 });
 
 document.getElementById('googleBtn').addEventListener('click', () => showToast('Conecta tu cuenta de Google para continuar'));
