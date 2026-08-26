@@ -35,7 +35,7 @@
       <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.TotalUsuarios}}</div><div class="label">Usuarios totales</div></div></div>
       <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.NuevosEsteMes}}</div><div class="label">Nuevos este mes</div></div></div>
       <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.TotalClientes}}</div><div class="label">Clientes</div></div></div>
-      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.TotalAdmins}}</div><div class="label">Administradores</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">{{.TotalStaff}}</div><div class="label">Staff</div></div></div>
     </div>
 
     <section class="panel">
@@ -57,7 +57,7 @@
         <div class="filter-pills" id="roleFilters">
           <button type="button" class="filter-pill active" data-role="todos">Todos</button>
           <button type="button" class="filter-pill" data-role="cliente">Clientes</button>
-          <button type="button" class="filter-pill" data-role="admin">Administradores</button>
+          <button type="button" class="filter-pill" data-role="staff">Staff</button>
         </div>
       </div>
 
@@ -75,6 +75,9 @@
           </thead>
           <tbody>
             {{range .Usuarios}}
+            {{if .DividerLabel}}
+            <tr class="table-divider"><td colspan="6"><span>{{.DividerLabel}}</span></td></tr>
+            {{end}}
             <tr data-role="{{.Role}}" data-user-id="{{.ID}}">
               <td>
                 <div class="user-cell">
@@ -87,7 +90,7 @@
               </td>
               <td>{{if .Phone}}{{.Phone}}{{else}}—{{end}}</td>
               <td>{{fechaEs .CreatedAt}}</td>
-              <td><span class="role-badge {{.Role}}">{{if eq .Role "admin"}}Admin{{else}}Cliente{{end}}</span></td>
+              <td><span class="role-badge {{.Role}}">{{if eq .Role "admin"}}Admin{{else if eq .Role "optometrist"}}Optometrista{{else if eq .Role "receptionist"}}Recepción{{else}}Cliente{{end}}</span></td>
               <td><span class="status-dot activo">Activo</span></td>
               <td>
                 <div class="row-menu">
@@ -135,9 +138,14 @@
     </div>
     <div class="admin-modal-body">
       <form class="admin-user-form" id="newUserForm">
-        <label>Nombre completo
-          <input type="text" id="newUserName" name="name" required placeholder="Ej. Ana Ramírez">
-        </label>
+        <div class="admin-user-form-row">
+          <label>Nombre(s)
+            <input type="text" id="newUserFirstName" name="firstName" required placeholder="Ej. Ana">
+          </label>
+          <label>Apellido(s) <span class="admin-user-form-optional" id="newUserLastNameOptional" style="display:none;">(opcional)</span>
+            <input type="text" id="newUserLastName" name="lastName" required placeholder="Ej. Ramírez">
+          </label>
+        </div>
         <label>Correo electrónico
           <input type="email" id="newUserEmail" name="email" required placeholder="correo@ejemplo.com">
         </label>
@@ -155,8 +163,10 @@
             </button>
             <div class="admin-role-select-menu" id="newUserRoleMenu">
               <button type="button" class="admin-role-option active" data-value="cliente">Cliente</button>
-              <button type="button" class="admin-role-option" data-value="optometrista" data-disabled="true">Optometrista <span class="admin-role-soon">Próximamente</span></button>
-              <button type="button" class="admin-role-option" data-value="admin" data-disabled="true">Administrador <span class="admin-role-soon">Próximamente</span></button>
+              <div class="admin-role-divider" role="separator"></div>
+              <button type="button" class="admin-role-option" data-value="optometrist">Optometrista</button>
+              <button type="button" class="admin-role-option" data-value="receptionist">Recepcionista</button>
+              <button type="button" class="admin-role-option" data-value="admin">Administrador</button>
             </div>
           </div>
           <input type="hidden" id="newUserRole" name="role" value="cliente">

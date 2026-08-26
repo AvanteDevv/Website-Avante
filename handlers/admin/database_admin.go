@@ -27,8 +27,15 @@ type userRow struct {
 	Email     string
 	Phone     string
 	CreatedAt time.Time
-	Role      string // "cliente" | "admin"
+	Role      string // "cliente" | "admin" | "optometrist" | "receptionist"
 	Initials  string
+	// DividerLabel viene vacío casi siempre. Se llena solo en la
+	// primera fila de una sección nueva ("Empleados" al pasar de
+	// admins a optometristas/recepcionistas, "Clientes" al pasar de
+	// staff a clientes) — el template pinta ahí una fila separadora,
+	// para que la tabla se vea como varias secciones sin dejar de
+	// ser un solo <table>.
+	DividerLabel string
 }
 
 // Database renders the admin panel with real users pulled live from
@@ -42,7 +49,19 @@ func Database(c *gin.Context) {
 		UNION ALL
 		SELECT id, name, email, '' AS phone, created_at, 'admin' AS role
 		FROM admins
-		ORDER BY created_at DESC
+		UNION ALL
+		SELECT id, name, email, '' AS phone, created_at, 'optometrist' AS role
+		FROM optometrists
+		UNION ALL
+		SELECT id, name, email, '' AS phone, created_at, 'receptionist' AS role
+		FROM receptionists
+		ORDER BY
+			CASE
+				WHEN role = 'admin' THEN 0
+				WHEN role IN ('optometrist', 'receptionist') THEN 1
+				ELSE 2
+			END,
+			created_at DESC
 	`)
 	if err != nil {
 		log.Printf("admin.Database: error querying users: %v", err)
@@ -55,7 +74,7 @@ func Database(c *gin.Context) {
 	defer rows.Close()
 
 	var usuarios []userRow
-	var totalClientes, totalAdmins, nuevosEsteMes int
+	var totalClientes, totalStaff, nuevosEsteMes int
 	now := time.Now()
 
 	for rows.Next() {
@@ -66,10 +85,10 @@ func Database(c *gin.Context) {
 		}
 		u.Initials = initials(u.Name)
 
-		if u.Role == "admin" {
-			totalAdmins++
-		} else {
+		if u.Role == "cliente" {
 			totalClientes++
+		} else {
+			totalStaff++
 		}
 		if u.CreatedAt.Year() == now.Year() && u.CreatedAt.Month() == now.Month() {
 			nuevosEsteMes++
@@ -77,12 +96,34 @@ func Database(c *gin.Context) {
 		usuarios = append(usuarios, u)
 	}
 
+	// Con el ORDER BY de arriba, las filas ya vienen agrupadas:
+	// admins -> optometristas/recepcionistas -> clientes. Aquí solo se
+	// marca la PRIMERA fila de cada sección nueva con su etiqueta.
+	sectionOf := func(role string) string {
+		switch role {
+		case "admin":
+			return "Administradores"
+		case "optometrist", "receptionist":
+			return "Empleados"
+		default:
+			return "Clientes"
+		}
+	}
+	var prevSection string
+	for i := range usuarios {
+		section := sectionOf(usuarios[i].Role)
+		if i > 0 && section != prevSection {
+			usuarios[i].DividerLabel = section
+		}
+		prevSection = section
+	}
+
 	c.HTML(http.StatusOK, "base-de-datos.html", gin.H{
 		"ActivePage":    "admin-base-de-datos",
 		"Usuarios":      usuarios,
 		"TotalUsuarios": len(usuarios),
 		"TotalClientes": totalClientes,
-		"TotalAdmins":   totalAdmins,
+		"TotalStaff":    totalStaff,
 		"NuevosEsteMes": nuevosEsteMes,
 	})
 }

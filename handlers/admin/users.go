@@ -4,10 +4,12 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
+	"avante-optics/handlers"
 	"avante-optics/models"
 )
 
@@ -22,15 +24,14 @@ type createUserInput struct {
 	Role     string `json:"role" binding:"required"`
 }
 
-// CreateUser crea un usuario desde el modal "Nuevo usuario" del panel
-// de administración — POST /api/admin/usuarios.
+// CreateUser crea un usuario o una cuenta de staff desde el modal
+// "Nuevo usuario" del panel de administración — POST /api/admin/usuarios.
 //
-// ⚠️ Por ahora SOLO crea clientes. Los admins viven en su propia tabla
-// `admins` (ver database_admin.go / auth_admin.go), así que crear uno
-// aquí insertándolo en `users` con role="admin" produciría una fila
-// engañosa: se vería como admin en la lista pero no podría entrar por
-// /admin/iniciar-sesion. Esto se activa en cuanto tengamos
-// models/admin.go con su CreateAdmin correspondiente.
+// El rol decide en qué tabla se inserta: "cliente" va a `users`
+// (models.CreateUserByAdmin); "admin", "receptionist" y "optometrist"
+// van a sus tablas propias (models.CreateAdmin / CreateReceptionist /
+// CreateOptometrist) — son identidades de staff separadas, no un
+// permiso extra sobre `users` (ver auth_admin.go).
 func CreateUser(c *gin.Context) {
 	var input createUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -38,9 +39,14 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	if input.Role == "admin" {
-		c.JSON(http.StatusNotImplemented, gin.H{"error": "Crear administradores desde aquí todavía no está conectado."})
-		return
+	// Cliente, recepcionista y optometrista son personas: se exige
+	// nombre(s) + apellido(s) (al menos 2 palabras). Admin se deja
+	// libre porque a veces es una cuenta de marca (p. ej. "Avante-Admin").
+	if input.Role == "cliente" || input.Role == handlers.RoleReceptionist || input.Role == handlers.RoleOptometrist {
+		if len(strings.Fields(input.Name)) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe nombre(s) y apellido(s) completos."})
+			return
+		}
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -49,6 +55,49 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	switch input.Role {
+	case handlers.RoleAdmin:
+		admin, err := models.CreateAdmin(input.Name, input.Email, string(hash))
+		if errors.Is(err, models.ErrAdminEmailTaken) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Ya existe un administrador con ese correo."})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear el administrador."})
+			return
+		}
+		c.JSON(http.StatusCreated, admin)
+		return
+
+	case handlers.RoleReceptionist:
+		r, err := models.CreateReceptionist(input.Name, input.Email, string(hash))
+		if errors.Is(err, models.ErrReceptionistEmailTaken) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Ya existe una cuenta de recepción con ese correo."})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear la cuenta de recepción."})
+			return
+		}
+		c.JSON(http.StatusCreated, r)
+		return
+
+	case handlers.RoleOptometrist:
+		o, err := models.CreateOptometrist(input.Name, input.Email, string(hash))
+		if errors.Is(err, models.ErrOptometristEmailTaken) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Ya existe una cuenta de optometrista con ese correo."})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear la cuenta de optometrista."})
+			return
+		}
+		c.JSON(http.StatusCreated, o)
+		return
+	}
+
+	// Cualquier otro valor (incluido "cliente") cae aquí — cliente sigue
+	// yendo a la tabla `users`, tal como ya funcionaba.
 	user, err := models.CreateUserByAdmin(input.Name, input.Email, input.Phone, string(hash), input.Role)
 	if errors.Is(err, models.ErrEmailTaken) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Ya existe una cuenta con ese correo."})

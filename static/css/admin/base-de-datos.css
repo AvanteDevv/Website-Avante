@@ -183,6 +183,15 @@ table.users-table{ width:100%; border-collapse:collapse; min-width:820px; }
 }
 .users-table tbody tr:last-child td{ border-bottom:none; }
 .users-table tbody tr:hover{ background:var(--blue-50); }
+.users-table tbody tr.table-divider:hover{ background:none; }
+.users-table tbody tr.table-divider td{
+  padding:10px 20px; border-bottom:1px solid var(--line);
+  background:var(--blue-50);
+}
+.users-table tbody tr.table-divider span{
+  font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--blue-700);
+}
+body.dark .users-table tbody tr.table-divider td{ background:rgba(255,255,255,.03); }
 
 .user-cell{ display:flex; align-items:center; gap:11px; }
 .user-cell .userbar-avatar{ width:34px; height:34px; font-size:12px; flex-shrink:0; }
@@ -272,8 +281,10 @@ body.dark .role-badge.admin{ background:var(--blue-600); color:var(--on-accent);
    =========================================================== */
 .btn.thin{ padding:9px 22px; font-size:10.5px; letter-spacing:.7px; }
 
-.role-badge.optometrista{ background:#E3F3FF; color:#0f6fa8; }
-body.dark .role-badge.optometrista{ background:#0f6fa8; color:var(--on-accent); }
+.role-badge.optometrist{ background:#E3F3FF; color:#0f6fa8; }
+body.dark .role-badge.optometrist{ background:#0f6fa8; color:var(--on-accent); }
+.role-badge.receptionist{ background:#F3E8FF; color:#7a2fbf; }
+body.dark .role-badge.receptionist{ background:#7a2fbf; color:var(--on-accent); }
 
 .admin-modal-overlay{
   position:fixed; inset:0;
@@ -326,6 +337,8 @@ body.dark .role-badge.optometrista{ background:#0f6fa8; color:var(--on-accent); 
   font-size:12px; font-weight:600; color:var(--ink);
 }
 .admin-user-form-optional{ font-weight:400; color:var(--grey); }
+.admin-user-form-row{ display:flex; gap:12px; }
+.admin-user-form-row label{ flex:1; min-width:0; }
 .admin-user-form input, .admin-user-form select{
   border:1.5px solid var(--line); border-radius:12px;
   padding:10px 13px; font-family:var(--sans); font-size:13px; color:var(--ink);
@@ -369,6 +382,7 @@ body.dark .role-badge.optometrista{ background:#0f6fa8; color:var(--on-accent); 
 .admin-role-option.active{ color:var(--blue-600); font-weight:700; }
 .admin-role-option[data-disabled="true"]{ color:var(--grey); cursor:default; }
 .admin-role-option[data-disabled="true"]:hover{ background:none; }
+.admin-role-divider{ height:1px; background:var(--line); margin:6px 4px; }
 .admin-role-soon{
   font-size:9.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
   color:var(--blue-600); background:var(--blue-50); padding:3px 8px; border-radius:100px;
