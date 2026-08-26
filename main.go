@@ -390,6 +390,7 @@ func main() {
 		apiClient.POST("/favorites", handlers.AddFavorite)
 		apiClient.DELETE("/favorites/:productId", handlers.DeleteFavorite)
 		apiClient.GET("/mis-pedidos", handlers.GetMyOrders)
+		apiClient.GET("/mis-citas", handlers.GetMyAppointments)
 	}
 
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)

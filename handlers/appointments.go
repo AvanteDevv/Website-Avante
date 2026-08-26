@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"avante-optics/auth"
 	"avante-optics/models"
 )
 
@@ -133,10 +134,31 @@ type createAppointmentInput struct {
 	Celular  string `json:"celular" binding:"required"` // "+52XXXXXXXXXX", debe estar ya verificado
 }
 
+// optionalUserID revisa si quien está agendando tiene sesión de cliente
+// iniciada, SIN exigirla — a diferencia de currentUserID (auth.go), que
+// solo se usa detrás de RequireAuthAPI() y asume que la sesión ya fue
+// validada. Agendar cita sigue siendo público (no requiere login), así
+// que aquí solo es "si la hay, úsala; si no, sigue como invitado".
+// Devuelve 0 cuando no hay sesión.
+func optionalUserID(c *gin.Context) int64 {
+	session, _ := auth.Store.Get(c.Request, auth.SessionName)
+	switch id := session.Values["user_id"].(type) {
+	case int64:
+		return id
+	case int:
+		return int64(id)
+	default:
+		return 0
+	}
+}
+
 // CreateAppointment handles bookings from the public "Agenda tu cita"
 // section. No login required — this is what agendar.js calls when the
 // person confirms a day y hora, después de haber verificado su celular
-// con el código de 4 dígitos.
+// con el código de 4 dígitos. Si la persona SÍ tiene sesión de cliente
+// iniciada en ese momento, la cita queda ligada a su cuenta (aparece en
+// su panel "Mis citas"); si no, queda solo identificada por celular,
+// igual que antes.
 func CreateAppointment(c *gin.Context) {
 	var input createAppointmentInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -178,7 +200,7 @@ func CreateAppointment(c *gin.Context) {
 		return
 	}
 
-	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular); err != nil {
+	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, optionalUserID(c)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo agendar la cita. Intenta de nuevo."})
 		return
 	}
