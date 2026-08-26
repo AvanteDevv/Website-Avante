@@ -124,3 +124,30 @@ func GetReceptionistByID(id int64) (*Receptionist, error) {
 
 	return &r, nil
 }
+
+// UpdateReceptionist actualiza nombre y correo de una cuenta de
+// recepción existente — usado desde el modal "Editar usuario" del
+// panel. El rol no se puede cambiar desde ahí (movería la cuenta entre
+// tablas), así que esta función nunca toca password_hash.
+func UpdateReceptionist(id int64, name, email string) error {
+	email = normalizeEmail(email)
+	name = strings.TrimSpace(name)
+	_, err := db.DB.Exec("UPDATE receptionists SET name = ?, email = ? WHERE id = ?", name, email, id)
+	return err
+}
+
+// UpdateReceptionistPassword cambia la contraseña de una cuenta de
+// recepción — se llama aparte de UpdateReceptionist solo cuando el
+// modal de edición trae una contraseña nueva (si viene vacía, no se toca).
+func UpdateReceptionistPassword(id int64, passwordHash string) error {
+	_, err := db.DB.Exec("UPDATE receptionists SET password_hash = ? WHERE id = ?", passwordHash, id)
+	return err
+}
+
+// DeleteReceptionist elimina una cuenta de recepción — usado desde el
+// menú de fila del panel "Base de datos". No es un error si el id no
+// existía (el DELETE simplemente afecta 0 filas).
+func DeleteReceptionist(id int64) error {
+	_, err := db.DB.Exec("DELETE FROM receptionists WHERE id = ?", id)
+	return err
+}

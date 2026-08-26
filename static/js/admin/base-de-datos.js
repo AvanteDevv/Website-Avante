@@ -127,22 +127,178 @@
 
   document.addEventListener('click', function () { closeAll(); });
 
+  var deleteOverlay = document.getElementById('deleteUserModalOverlay');
+  var deleteClose = document.getElementById('deleteUserModalClose');
+  var deleteCancel = document.getElementById('deleteUserCancel');
+  var deleteConfirm = document.getElementById('deleteUserConfirm');
+  var deleteNameEl = document.getElementById('deleteUserName');
+  var pendingDelete = null; // { id, role, row }
+
+  function closeDeleteModal() {
+    if (!deleteOverlay) return;
+    deleteOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+    pendingDelete = null;
+  }
+
+  if (deleteOverlay) {
+    deleteClose && deleteClose.addEventListener('click', closeDeleteModal);
+    deleteCancel && deleteCancel.addEventListener('click', closeDeleteModal);
+    deleteOverlay.addEventListener('click', function (e) { if (e.target === deleteOverlay) closeDeleteModal(); });
+
+    deleteConfirm && deleteConfirm.addEventListener('click', function () {
+      if (!pendingDelete) return;
+      var id = pendingDelete.id;
+      var role = pendingDelete.role;
+      var row = pendingDelete.row;
+      deleteConfirm.disabled = true;
+
+      fetch('/api/admin/usuarios/' + encodeURIComponent(id) + '?role=' + encodeURIComponent(role), { method: 'DELETE' })
+        .then(function (res) {
+          if (!res.ok) throw new Error('request failed');
+          if (row) row.remove();
+          closeDeleteModal();
+        })
+        .catch(function () {
+          alert('No se pudo eliminar el usuario. Intenta de nuevo.');
+        })
+        .finally(function () {
+          deleteConfirm.disabled = false;
+        });
+    });
+  }
+
   document.querySelectorAll('.row-menu-item[data-action="eliminar"]').forEach(function (item) {
     item.addEventListener('click', function () {
       var id = item.dataset.id;
       var row = item.closest('tr[data-user-id]');
-      if (!id || !confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+      if (!id || !deleteOverlay) return;
 
-      fetch('/api/admin/usuarios/' + encodeURIComponent(id), { method: 'DELETE' })
-        .then(function (res) {
-          if (!res.ok) throw new Error('request failed');
-          if (row) row.remove();
-        })
-        .catch(function () {
-          alert('No se pudo eliminar el usuario. Intenta de nuevo.');
-        });
+      var nameEl = row ? row.querySelector('.u-name') : null;
+      if (deleteNameEl) deleteNameEl.textContent = nameEl ? nameEl.textContent.trim() : 'este usuario';
+
+      pendingDelete = { id: id, role: row ? row.dataset.role : 'cliente', row: row };
+      deleteOverlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
     });
   });
+})();
+
+/* ---------- Modal: Ver usuario / Editar usuario ---------- */
+(function () {
+  var ROLE_LABELS = { cliente: 'Cliente', admin: 'Administrador', optometrist: 'Optometrista', receptionist: 'Recepcionista' };
+  function roleLabelOf(role) { return ROLE_LABELS[role] || role; }
+
+  // Lee los datos ya renderizados en la fila — no hace falta otra
+  // llamada a la API, la tabla ya los tiene.
+  function rowData(row) {
+    var tds = row.querySelectorAll('td');
+    var nameEl = row.querySelector('.u-name');
+    var emailEl = row.querySelector('.u-email');
+    var phone = tds[1] ? tds[1].textContent.trim() : '';
+    return {
+      id: row.dataset.userId,
+      role: row.dataset.role,
+      name: nameEl ? nameEl.textContent.trim() : '',
+      email: emailEl ? emailEl.textContent.trim() : '',
+      phone: phone === '—' ? '' : phone,
+      created: tds[2] ? tds[2].textContent.trim() : ''
+    };
+  }
+
+  /* ----- Ver (solo lectura) ----- */
+  var viewOverlay = document.getElementById('viewUserModalOverlay');
+  var viewClose = document.getElementById('viewUserModalClose');
+  if (viewOverlay) {
+    function closeViewModal() { viewOverlay.classList.remove('open'); document.body.style.overflow = ''; }
+    viewClose && viewClose.addEventListener('click', closeViewModal);
+    viewOverlay.addEventListener('click', function (e) { if (e.target === viewOverlay) closeViewModal(); });
+
+    document.querySelectorAll('.row-menu-item[data-action="ver"]').forEach(function (item) {
+      item.addEventListener('click', function () {
+        var row = item.closest('tr[data-user-id]');
+        if (!row) return;
+        var d = rowData(row);
+        document.getElementById('viewUserName').textContent = d.name;
+        document.getElementById('viewUserEmail').textContent = d.email;
+        document.getElementById('viewUserPhone').textContent = d.phone || 'No registrado';
+        document.getElementById('viewUserRole').textContent = roleLabelOf(d.role);
+        document.getElementById('viewUserCreated').textContent = d.created;
+        viewOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+  }
+
+  /* ----- Editar ----- */
+  var editOverlay = document.getElementById('editUserModalOverlay');
+  var editClose = document.getElementById('editUserModalClose');
+  var editForm = document.getElementById('editUserForm');
+  var editError = document.getElementById('editUserError');
+  var editSubmit = document.getElementById('editUserSubmit');
+  var editPhoneField = document.getElementById('editUserPhoneField');
+  if (editOverlay && editForm) {
+    function closeEditModal() { editOverlay.classList.remove('open'); document.body.style.overflow = ''; }
+    editClose && editClose.addEventListener('click', closeEditModal);
+    editOverlay.addEventListener('click', function (e) { if (e.target === editOverlay) closeEditModal(); });
+
+    document.querySelectorAll('.row-menu-item[data-action="editar"]').forEach(function (item) {
+      item.addEventListener('click', function () {
+        var row = item.closest('tr[data-user-id]');
+        if (!row) return;
+        var d = rowData(row);
+        if (editError) editError.textContent = '';
+        document.getElementById('editUserId').value = d.id;
+        document.getElementById('editUserRole').value = d.role;
+        document.getElementById('editUserName').value = d.name;
+        document.getElementById('editUserEmail').value = d.email;
+        document.getElementById('editUserPhone').value = d.phone;
+        document.getElementById('editUserPassword').value = '';
+        document.getElementById('editUserRoleLabel').value = roleLabelOf(d.role);
+        // El teléfono solo existe en la tabla de clientes — el resto
+        // de roles no tiene esa columna, así que se oculta.
+        if (editPhoneField) editPhoneField.style.display = d.role === 'cliente' ? '' : 'none';
+        editOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    editForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (editError) editError.textContent = '';
+      if (editSubmit) editSubmit.disabled = true;
+
+      var id = document.getElementById('editUserId').value;
+      var payload = {
+        name: document.getElementById('editUserName').value.trim(),
+        email: document.getElementById('editUserEmail').value.trim(),
+        phone: document.getElementById('editUserPhone').value.trim(),
+        password: document.getElementById('editUserPassword').value,
+        role: document.getElementById('editUserRole').value
+      };
+
+      fetch('/api/admin/usuarios/' + encodeURIComponent(id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (data) {
+            if (!res.ok) throw new Error(data.error || 'No se pudo actualizar el usuario.');
+            return data;
+          });
+        })
+        .then(function () {
+          window.location.reload();
+        })
+        .catch(function (err) {
+          if (editError) editError.textContent = err.message || 'No se pudo actualizar el usuario. Intenta de nuevo.';
+        })
+        .finally(function () {
+          if (editSubmit) editSubmit.disabled = false;
+        });
+    });
+  }
 })();
 
 /* ---------- Modal + dropdown de rol: "Nuevo usuario" ---------- */

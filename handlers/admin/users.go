@@ -119,9 +119,15 @@ type updateUserInput struct {
 	Role     string `json:"role" binding:"required"`
 }
 
-// UpdateUser edita un usuario existente — PUT /api/admin/usuarios/:id.
-// Si Password viene vacío, la contraseña actual no se toca (así el
-// modal de "Editar" puede dejarla en blanco).
+// UpdateUser edita un usuario o cuenta de staff existente —
+// PUT /api/admin/usuarios/:id. Si Password viene vacío, la contraseña
+// actual no se toca (así el modal de "Editar" puede dejarla en blanco).
+//
+// El rol viaja en el body pero NUNCA se usa para cambiar de tabla —
+// solo para saber en cuál de las 4 ya está la cuenta. Cambiar el rol
+// de alguien implicaría borrar de una tabla y crear en otra (con todo
+// lo que eso arrastra: sesiones activas, historiales, etc.), así que
+// el modal de edición ni siquiera deja tocarlo.
 func UpdateUser(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -135,31 +141,80 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	if err := models.UpdateUser(id, input.Name, input.Email, input.Phone, input.Role); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado."})
+	if input.Password != "" && len(input.Password) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "La contraseña debe tener al menos 8 caracteres."})
 		return
 	}
-
+	var passwordHash string
 	if input.Password != "" {
-		if len(input.Password) < 8 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "La contraseña debe tener al menos 8 caracteres."})
-			return
-		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error del servidor. Intenta de nuevo."})
 			return
 		}
-		if err := models.UpdateUserPassword(id, string(hash)); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Usuario actualizado, pero no se pudo cambiar la contraseña."})
+		passwordHash = string(hash)
+	}
+
+	switch input.Role {
+	case handlers.RoleAdmin:
+		if err := models.UpdateAdmin(id, input.Name, input.Email); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Administrador no encontrado."})
 			return
+		}
+		if passwordHash != "" {
+			if err := models.UpdateAdminPassword(id, passwordHash); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Usuario actualizado, pero no se pudo cambiar la contraseña."})
+				return
+			}
+		}
+
+	case handlers.RoleReceptionist:
+		if err := models.UpdateReceptionist(id, input.Name, input.Email); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Cuenta de recepción no encontrada."})
+			return
+		}
+		if passwordHash != "" {
+			if err := models.UpdateReceptionistPassword(id, passwordHash); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Usuario actualizado, pero no se pudo cambiar la contraseña."})
+				return
+			}
+		}
+
+	case handlers.RoleOptometrist:
+		if err := models.UpdateOptometrist(id, input.Name, input.Email); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Cuenta de optometrista no encontrada."})
+			return
+		}
+		if passwordHash != "" {
+			if err := models.UpdateOptometristPassword(id, passwordHash); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Usuario actualizado, pero no se pudo cambiar la contraseña."})
+				return
+			}
+		}
+
+	default:
+		// "cliente" y cualquier otro valor caen aquí — tabla `users`,
+		// tal como ya funcionaba.
+		if err := models.UpdateUser(id, input.Name, input.Email, input.Phone, input.Role); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado."})
+			return
+		}
+		if passwordHash != "" {
+			if err := models.UpdateUserPassword(id, passwordHash); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Usuario actualizado, pero no se pudo cambiar la contraseña."})
+				return
+			}
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Usuario actualizado correctamente."})
 }
 
-// DeleteUser elimina un usuario — DELETE /api/admin/usuarios/:id.
+// DeleteUser elimina un usuario o cuenta de staff — DELETE
+// /api/admin/usuarios/:id?role=admin|receptionist|optometrist|cliente.
+// El rol viene por query param (no por body, un DELETE normalmente no
+// lleva uno) porque el mismo id se repite entre tablas — sin el rol
+// no hay forma de saber cuál de las 4 borrar.
 func DeleteUser(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -167,9 +222,27 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteUser(id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado."})
-		return
+	switch c.Query("role") {
+	case handlers.RoleAdmin:
+		if err := models.DeleteAdmin(id); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar el administrador."})
+			return
+		}
+	case handlers.RoleReceptionist:
+		if err := models.DeleteReceptionist(id); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar la cuenta de recepción."})
+			return
+		}
+	case handlers.RoleOptometrist:
+		if err := models.DeleteOptometrist(id); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar la cuenta de optometrista."})
+			return
+		}
+	default:
+		if err := models.DeleteUser(id); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado."})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Usuario eliminado."})

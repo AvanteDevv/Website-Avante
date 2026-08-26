@@ -31,7 +31,7 @@
 body.dark{
   --white:#161616;
   --ink:#FFFFFF;
-  --grey:#9A9A9A;
+  --grey:#FFFFFF;
   --line:#2B2B2B;
   --blue-50:rgba(4,28,255,.14);
   --blue-100:rgba(137,146,255,.24);
@@ -309,6 +309,7 @@ body.dark .role-badge.receptionist{ background:#7a2fbf; color:var(--on-accent); 
   transition:transform .32s var(--ease);
 }
 .admin-modal-overlay.open .admin-modal-card{ transform:translateY(0) scale(1); }
+.admin-modal-card--sm{ max-width:340px; }
 .admin-modal-head{
   display:flex; align-items:center; justify-content:space-between;
   padding:18px 22px; border-bottom:1px solid var(--line);
@@ -339,6 +340,19 @@ body.dark .role-badge.receptionist{ background:#7a2fbf; color:var(--on-accent); 
 .admin-user-form-optional{ font-weight:400; color:var(--grey); }
 .admin-user-form-row{ display:flex; gap:12px; }
 .admin-user-form-row label{ flex:1; min-width:0; }
+
+.admin-user-view{ display:flex; flex-direction:column; gap:14px; }
+.admin-user-view-row{
+  display:flex; justify-content:space-between; align-items:baseline; gap:16px;
+  padding-bottom:12px; border-bottom:1px solid var(--line); font-size:13px;
+}
+.admin-user-view-row:last-child{ border-bottom:none; padding-bottom:0; }
+.admin-user-view-row span{ color:var(--grey); font-weight:600; flex-shrink:0; }
+.admin-user-view-row strong{ color:var(--ink); font-weight:600; text-align:right; }
+
+.admin-confirm-text{ font-size:13.5px; color:var(--ink); line-height:1.6; }
+.admin-confirm-text strong{ font-weight:700; }
+.admin-confirm-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
 .admin-user-form input, .admin-user-form select{
   border:1.5px solid var(--line); border-radius:12px;
   padding:10px 13px; font-family:var(--sans); font-size:13px; color:var(--ink);

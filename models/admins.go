@@ -116,5 +116,32 @@ func GetAdminByID(id int64) (*Admin, error) {
 	return &a, nil
 }
 
+// UpdateAdmin actualiza nombre y correo de un administrador existente —
+// usado desde el modal "Editar usuario" del panel. El rol no se puede
+// cambiar desde ahí (movería la cuenta entre tablas), así que esta
+// función nunca toca password_hash.
+func UpdateAdmin(id int64, name, email string) error {
+	email = normalizeEmail(email)
+	name = strings.TrimSpace(name)
+	_, err := db.DB.Exec("UPDATE admins SET name = ?, email = ? WHERE id = ?", name, email, id)
+	return err
+}
+
+// UpdateAdminPassword cambia la contraseña de un administrador — se
+// llama aparte de UpdateAdmin solo cuando el modal de edición trae
+// una contraseña nueva (si viene vacía, no se toca).
+func UpdateAdminPassword(id int64, passwordHash string) error {
+	_, err := db.DB.Exec("UPDATE admins SET password_hash = ? WHERE id = ?", passwordHash, id)
+	return err
+}
+
+// DeleteAdmin elimina un administrador — usado desde el menú de fila
+// del panel "Base de datos". No es un error si el id no existía (el
+// DELETE simplemente afecta 0 filas), igual que RemoveFavorite.
+func DeleteAdmin(id int64) error {
+	_, err := db.DB.Exec("DELETE FROM admins WHERE id = ?", id)
+	return err
+}
+
 // Nota: normalizeEmail() ya está definida en users.go, dentro del mismo
 // paquete `models` — se reutiliza aquí tal cual, no hace falta duplicarla.

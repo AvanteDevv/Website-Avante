@@ -178,6 +178,78 @@
   </div>
 </div>
 
+<div class="admin-modal-overlay" id="viewUserModalOverlay">
+  <div class="admin-modal-card">
+    <div class="admin-modal-head">
+      <h3>Detalle de usuario</h3>
+      <button type="button" class="admin-modal-close" id="viewUserModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="admin-user-view">
+        <div class="admin-user-view-row"><span>Nombre</span><strong id="viewUserName"></strong></div>
+        <div class="admin-user-view-row"><span>Correo</span><strong id="viewUserEmail"></strong></div>
+        <div class="admin-user-view-row"><span>Teléfono</span><strong id="viewUserPhone"></strong></div>
+        <div class="admin-user-view-row"><span>Rol</span><strong id="viewUserRole"></strong></div>
+        <div class="admin-user-view-row"><span>Registrado</span><strong id="viewUserCreated"></strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal-overlay" id="editUserModalOverlay">
+  <div class="admin-modal-card">
+    <div class="admin-modal-head">
+      <h3>Editar usuario</h3>
+      <button type="button" class="admin-modal-close" id="editUserModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="admin-user-form" id="editUserForm">
+        <input type="hidden" id="editUserId">
+        <input type="hidden" id="editUserRole">
+        <label>Nombre completo
+          <input type="text" id="editUserName" name="name" required minlength="3">
+        </label>
+        <label>Correo electrónico
+          <input type="email" id="editUserEmail" name="email" required>
+        </label>
+        <label id="editUserPhoneField">Teléfono <span class="admin-user-form-optional">(opcional)</span>
+          <input type="tel" id="editUserPhone" name="phone" placeholder="(662) 000 0000">
+        </label>
+        <label>Nueva contraseña <span class="admin-user-form-optional">(déjala en blanco para no cambiarla)</span>
+          <input type="password" id="editUserPassword" name="password" minlength="8" placeholder="Mínimo 8 caracteres">
+        </label>
+        <label>Rol
+          <input type="text" id="editUserRoleLabel" disabled>
+        </label>
+        <p class="admin-user-form-error" id="editUserError"></p>
+        <button type="submit" class="btn solid" id="editUserSubmit">Guardar cambios</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal-overlay" id="deleteUserModalOverlay">
+  <div class="admin-modal-card admin-modal-card--sm">
+    <div class="admin-modal-head">
+      <h3>Eliminar usuario</h3>
+      <button type="button" class="admin-modal-close" id="deleteUserModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="admin-confirm-text">¿Eliminar a <strong id="deleteUserName"></strong>? Esta acción no se puede deshacer.</p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="deleteUserCancel">Cancelar</button>
+        <button type="button" class="btn small danger" id="deleteUserConfirm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </main>
 </div>
 

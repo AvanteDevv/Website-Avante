@@ -1252,7 +1252,12 @@ apptCodeSubmit.addEventListener('click', async () => {
 
   if(result.ok){
     closeApptCodeModal();
-    openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
+    const bookedTime = selectedTime;
+    selectedTime = null;
+    apptDetailTime.textContent = 'Por definir';
+    await loadOccupiedHours(selectedDate);
+    renderHours();
+    openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(bookedTime) + '. Te esperamos en Avante Optics.');
   } else if(result.conflict){
     closeApptCodeModal();
     selectedTime = null;

@@ -1,10 +1,11 @@
 /* =========================================================
-   ADMIN — Citas
-   Los datos ya vienen renderizados por el servidor (MySQL, vía
-   Go templates) — este archivo conecta el menú de acciones de
-   cada fila con la API del admin, calcula las estadísticas,
-   filtra con la barra de búsqueda y pagina en el cliente (todas
-   las filas ya están en el DOM, solo se muestran/ocultan).
+   RECEPCIÓN — Citas
+   Copia exacta de citas.js (admin) — mismos endpoints
+   (/admin/citas/...; el rol receptionist ya tiene permiso ahí
+   vía citasStaff en main.go), solo cambia qué vista se muestra
+   primero (eso lo decide el HTML: calendario en vez de tabla).
+   El bloque del modal de horario sigue aquí pero no hace nada
+   porque esa página no tiene el botón que lo abre (es admin-only).
    ========================================================= */
 (function(){
   var tbody = document.getElementById('citasTableBody');

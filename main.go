@@ -16,6 +16,7 @@ import (
 	"avante-optics/db"
 	"avante-optics/handlers"
 	adminHandlers "avante-optics/handlers/admin"
+	receptionistHandlers "avante-optics/handlers/receptionist"
 	"avante-optics/models"
 	"avante-optics/storage"
 )
@@ -276,16 +277,10 @@ func main() {
 	// Receptionist panel (templates/receptionist/*.html) — mismo login
 	// y misma cookie que /admin (RequireAdminAuth), pero solo entra
 	// quien tenga sesión con role "admin" o "receptionist".
-	//
-	// ⚠️ /receptionist/citas está pendiente: necesito el handler real
-	// de citas (probablemente handlers/admin/citas.go o appointments.go)
-	// para reusar su lógica de datos con la plantilla propia de
-	// recepción en vez de la de admin. Por ahora NO está registrada —
-	// agrégala aquí en cuanto la tengamos:
-	//
-	//	receptionistGroup.GET("/citas", receptionistHandlers.Citas)
 	receptionistGroup := router.Group("/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
-	_ = receptionistGroup
+	{
+		receptionistGroup.GET("/citas", receptionistHandlers.Citas)
+	}
 
 	// Optometrist panel (templates/optometrist/*.html) — mismo login y
 	// misma cookie que /admin, pero solo entra role "admin" u
@@ -395,18 +390,6 @@ func main() {
 		apiClient.POST("/favorites", handlers.AddFavorite)
 		apiClient.DELETE("/favorites/:productId", handlers.DeleteFavorite)
 		apiClient.GET("/mis-pedidos", handlers.GetMyOrders)
-	}
-
-	// SMS gateway — llamada por la app Android del celular que manda los
-	// códigos de verificación por SMS real (ver sms_gateway.go). No usa
-	// sesión de cliente/admin: se protege con la llave fija
-	// SMS_GATEWAY_KEY (header X-Gateway-Key), validada dentro de cada
-	// handler porque no es una persona la que llama, es el dispositivo.
-	gateway := router.Group("/api/gateway")
-	{
-		gateway.GET("/sms/siguiente", handlers.GetPendingSMS)
-		gateway.POST("/sms/:id/confirmar", handlers.ConfirmSMSSent)
-		gateway.POST("/sms/:id/fallido", handlers.ReportSMSFailed)
 	}
 
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)

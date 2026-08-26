@@ -30,12 +30,15 @@ type Appointment struct {
 // given id.
 var ErrAppointmentNotFound = errors.New("cita no encontrada")
 
-// CreateAppointment inserts a new booking with status "pendiente". El
+// CreateAppointment inserts a new booking with status "confirmada". El
 // número de celular debe haber pasado ya por la verificación de código
-// (ver ConsumeVerification en otp.go) antes de llegar aquí.
+// (ver ConsumeVerification en otp.go) antes de llegar aquí — como esa
+// verificación ya es la confirmación real de identidad, la cita nace
+// confirmada, no pendiente (antes se guardaba "pendiente" a pesar de
+// que index.html ya le mostraba a la persona "¡Cita confirmada!").
 func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular string) (*Appointment, error) {
 	result, err := db.DB.Exec(
-		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, status) VALUES (?, ?, ?, ?, ?, 'pendiente')",
+		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, status) VALUES (?, ?, ?, ?, ?, 'confirmada')",
 		date.Format("2006-01-02"), apptTime, nombre, apellido, celular,
 	)
 	if err != nil {
@@ -48,7 +51,7 @@ func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular strin
 	return &Appointment{
 		ID: id, Date: date, Time: apptTime,
 		Nombre: nombre, Apellido: apellido, Celular: celular,
-		Status: "pendiente",
+		Status: "confirmada",
 	}, nil
 }
 

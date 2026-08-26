@@ -124,3 +124,30 @@ func GetOptometristByID(id int64) (*Optometrist, error) {
 
 	return &o, nil
 }
+
+// UpdateOptometrist actualiza nombre y correo de una cuenta de
+// optometrista existente — usado desde el modal "Editar usuario" del
+// panel. El rol no se puede cambiar desde ahí (movería la cuenta entre
+// tablas), así que esta función nunca toca password_hash.
+func UpdateOptometrist(id int64, name, email string) error {
+	email = normalizeEmail(email)
+	name = strings.TrimSpace(name)
+	_, err := db.DB.Exec("UPDATE optometrists SET name = ?, email = ? WHERE id = ?", name, email, id)
+	return err
+}
+
+// UpdateOptometristPassword cambia la contraseña de una cuenta de
+// optometrista — se llama aparte de UpdateOptometrist solo cuando el
+// modal de edición trae una contraseña nueva (si viene vacía, no se toca).
+func UpdateOptometristPassword(id int64, passwordHash string) error {
+	_, err := db.DB.Exec("UPDATE optometrists SET password_hash = ? WHERE id = ?", passwordHash, id)
+	return err
+}
+
+// DeleteOptometrist elimina una cuenta de optometrista — usado desde
+// el menú de fila del panel "Base de datos". No es un error si el id
+// no existía (el DELETE simplemente afecta 0 filas).
+func DeleteOptometrist(id int64) error {
+	_, err := db.DB.Exec("DELETE FROM optometrists WHERE id = ?", id)
+	return err
+}
