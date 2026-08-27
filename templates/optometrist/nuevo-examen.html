@@ -27,20 +27,24 @@
       </div>
       <div class="admin-header-actions">
         <a href="/optometrist/examen-vista" class="btn thin">Cancelar</a>
-        <button type="button" class="btn solid thin" id="saveExamBtn">Guardar examen</button>
+        <button type="button" class="btn thin" id="wizardBackBtn">Atrás</button>
+        <button type="button" class="btn solid thin" id="wizardNextBtn">Siguiente</button>
       </div>
     </div>
 
     <p class="tpl-status" id="examStatus"></p>
+
+    <div class="exam-wizard-progress" id="examWizardProgress" style="display:none;">
+      <div class="exam-wizard-progress-track"><div class="exam-wizard-progress-fill" id="examWizardProgressFill"></div></div>
+      <span class="exam-wizard-progress-label" id="examWizardProgressLabel"></span>
+    </div>
 
     <div id="noTemplateNotice" class="empty-state" style="display:none;">
       Todavía no hay ninguna plantilla activa. Ve a <a href="/optometrist/plantilla-examen">Plantilla de examen</a> y activa una antes de crear un examen.
     </div>
 
     <div id="examFormWrap" style="display:none;">
-      <div class="exf-canvas-wrap">
-        <div id="examCanvas"></div>
-      </div>
+      <div class="exam-wizard-card" id="examWizardStep"></div>
     </div>
   </main>
 </div>
@@ -48,7 +52,6 @@
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/admin/userbar.js"></script>
-<script src="/static/js/optometrist/examen-render.js"></script>
 <script src="/static/js/optometrist/nuevo-examen.js"></script>
 </body>
 </html>
