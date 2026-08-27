@@ -327,6 +327,12 @@ func main() {
 		apiOptometrist.GET("/pacientes", handlers.SearchPatients)
 	}
 
+	// JSON de citas — a diferencia de "/admin/citas" (que renderiza
+	// HTML), esta la consumen páginas que solo necesitan los datos, como
+	// "Examen de la vista" para mostrar la próxima cita. Mismo rol que
+	// ya puede ver citas (citasStaff), no solo admin.
+	router.GET("/api/citas", handlers.RequireAdminAuth(), citasStaff, adminHandlers.ListAppointmentsJSON)
+
 	// Auth API — called from iniciar-sesion.js / registro.js
 	api := router.Group("/api")
 	{

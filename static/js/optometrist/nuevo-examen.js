@@ -101,11 +101,30 @@
         readonly: false
       });
       setupPatientSearch();
+      prefillFromQueryParams();
     })
     .catch(function(err){
       console.error('nuevo-examen: fallo al cargar la plantilla activa', err);
       showStatus('No se pudo cargar la plantilla activa: ' + err.message, 'error');
     });
+
+  // Si llegó desde "Realizar examen" en la tarjeta de próxima cita,
+  // ya sabemos nombre/apellido/teléfono (y userId si esa cita estaba
+  // ligada a una cuenta) — se precargan para no volver a escribirlos.
+  function prefillFromQueryParams(){
+    var params = new URLSearchParams(window.location.search);
+    var nombre = params.get('nombre');
+    var apellido = params.get('apellido');
+    var telefono = params.get('telefono');
+    var userId = params.get('userId');
+    if (!nombre) return;
+
+    var nombreInput = canvasEl.querySelector('.exf-input[data-field-key="nombre"]');
+    var telefonoInput = canvasEl.querySelector('.exf-input[data-field-key="telefono"]');
+    if (nombreInput) nombreInput.value = apellido ? (nombre + ' ' + apellido) : nombre;
+    if (telefonoInput && telefono) telefonoInput.value = telefono;
+    if (userId) selectedPatientId = parseInt(userId, 10) || 0;
+  }
 
   saveBtn.addEventListener('click', function(){
     if (!template || !renderer) return;

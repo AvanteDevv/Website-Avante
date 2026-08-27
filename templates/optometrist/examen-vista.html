@@ -27,6 +27,17 @@
       <a href="/optometrist/examen-vista/nuevo" class="btn thin" id="newExamBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo examen</a>
     </div>
 
+    <section class="panel" id="nextApptPanel" style="display:none; margin-bottom:22px;">
+      <div class="panel-body next-appt-body">
+        <div>
+          <div class="next-appt-label">Tu próxima cita</div>
+          <div class="next-appt-name" id="nextApptName"></div>
+          <div class="next-appt-date" id="nextApptDate"></div>
+        </div>
+        <a href="#" class="btn solid thin" id="nextApptBtn">Realizar examen</a>
+      </div>
+    </section>
+
     <section class="panel">
       <div class="panel-head">
         <div>
@@ -35,7 +46,19 @@
         </div>
       </div>
 
-      <div id="examList" class="tpl-list" style="padding:14px 24px;"></div>
+      <div class="table-wrap">
+        <table class="exam-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Apellido</th>
+              <th>Fecha</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="examList"></tbody>
+        </table>
+      </div>
       <div class="empty-state" id="examEmpty" style="display:none;">
         Todavía no hay exámenes de la vista registrados.
       </div>

@@ -36,6 +36,21 @@ type updateAppointmentStatusInput struct {
 	Status string `json:"status" binding:"required"`
 }
 
+// ListAppointmentsJSON devuelve todas las citas en JSON — a diferencia
+// de Appointments (que renderiza citas.html), esta es la que consumen
+// páginas que solo necesitan los datos, como "Examen de la vista"
+// (para mostrar la próxima cita y ofrecer "Realizar examen").
+// GET /api/citas.
+func ListAppointmentsJSON(c *gin.Context) {
+	appointments, err := models.GetAllAppointments()
+	if err != nil {
+		log.Printf("admin.ListAppointmentsJSON: error querying appointments: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar las citas."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"citas": appointments})
+}
+
 // UpdateAppointmentStatus lets the admin mark a booking as confirmed (or
 // any other status). Called via PATCH /admin/citas/:id/estado.
 func UpdateAppointmentStatus(c *gin.Context) {
