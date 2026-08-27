@@ -324,6 +324,7 @@ func main() {
 		apiOptometrist.GET("/examenes", handlers.ListEyeExams)
 		apiOptometrist.GET("/examenes/:id", handlers.GetEyeExam)
 		apiOptometrist.POST("/examenes", handlers.CreateEyeExam)
+		apiOptometrist.GET("/pacientes", handlers.SearchPatients)
 	}
 
 	// Auth API — called from iniciar-sesion.js / registro.js
@@ -386,6 +387,7 @@ func main() {
 		apiClient.PATCH("/mis-citas/:id/cancelar", handlers.CancelMyAppointment)
 		apiClient.PUT("/mi-perfil", handlers.UpdateMyProfile)
 		apiClient.PATCH("/mi-perfil/password", handlers.UpdateMyPassword)
+		apiClient.GET("/mis-examenes", handlers.GetMyEyeExams)
 	}
 
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)

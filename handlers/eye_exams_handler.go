@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -19,6 +20,7 @@ type createEyeExamInput struct {
 	PatientName  string          `json:"patientName" binding:"required"`
 	PatientPhone string          `json:"patientPhone"`
 	Data         json.RawMessage `json:"data" binding:"required"`
+	UserID       int64           `json:"userId"` // 0 si el paciente no tiene cuenta
 }
 
 // CreateEyeExam guarda un examen ya llenado (POST /api/optometrist/examenes).
@@ -38,12 +40,29 @@ func CreateEyeExam(c *gin.Context) {
 	nameVal, _ := c.Get("staff_name")
 	name, _ := nameVal.(string)
 
-	exam, err := models.CreateEyeExam(input.TemplateID, input.PatientName, input.PatientPhone, input.Data, roleStr, id, name)
+	exam, err := models.CreateEyeExam(input.TemplateID, input.PatientName, input.PatientPhone, input.Data, roleStr, id, name, input.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el examen."})
 		return
 	}
 	c.JSON(http.StatusCreated, exam)
+}
+
+// SearchPatients busca clientes por nombre o teléfono (para el
+// autocompletado del campo "Nombre" en Nuevo examen) —
+// GET /api/optometrist/pacientes?q=...
+func SearchPatients(c *gin.Context) {
+	term := c.Query("q")
+	if len(term) < 2 {
+		c.JSON(http.StatusOK, []models.PatientMatch{})
+		return
+	}
+	matches, err := models.SearchPatients(term)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo buscar al paciente."})
+		return
+	}
+	c.JSON(http.StatusOK, matches)
 }
 
 // ListEyeExams devuelve los exámenes recientes, o filtrados por nombre
@@ -88,4 +107,22 @@ func GetEyeExam(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, exam)
+}
+
+// GetMyEyeExams devuelve los exámenes ligados a la cuenta del cliente
+// logueado — GET /api/mis-examenes. Requiere sesión de cliente
+// (RequireAuthAPI, igual que /api/favorites y /api/mis-citas).
+//
+// Solo aparecen aquí los exámenes que quedaron ligados por user_id al
+// momento de crearse (el optometrista encontró la cuenta al escribir
+// el nombre) — los de pacientes sin cuenta no aparecen, se comparten
+// por WhatsApp/correo en su momento.
+func GetMyEyeExams(c *gin.Context) {
+	exams, err := models.ListEyeExamsByUser(currentUserID(c))
+	if err != nil {
+		log.Println("GetMyEyeExams: error al leer exámenes:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar tus exámenes."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"examenes": exams})
 }

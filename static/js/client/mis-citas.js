@@ -330,6 +330,40 @@
     apptContactSubmit.textContent = 'Enviar código';
   });
 
+  // Reserva de una vez que ya se sabe el celular es confiable (o
+  // porque se acaba de verificar por SMS, o porque quien agenda ya
+  // tenía sesión iniciada) — la usan tanto el paso del código como el
+  // atajo directo de abajo. onError recibe el mensaje para mostrarlo
+  // donde corresponda en cada caso.
+  async function finishBooking(opts){
+    opts = opts || {};
+    const result = await bookAppointment(selectedDate, selectedTime, contactData);
+
+    if (result.ok) {
+      if (opts.onDone) opts.onDone();
+      openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
+      // Ya quedó ligada a tu cuenta (tenías sesión iniciada) — refresca
+      // la lista de "Mis citas" de una vez, sin esperar a que cierres
+      // este mensaje.
+      if (typeof loadMyAppointments === 'function') {
+        loadMyAppointments().then(() => {
+          if (typeof renderStats === 'function') renderStats();
+          if (typeof renderCitas === 'function') renderCitas();
+          if (window.feather) feather.replace();
+        });
+      }
+    } else if (result.conflict) {
+      if (opts.onDone) opts.onDone();
+      selectedTime = null;
+      apptDetailTime.textContent = 'Por definir';
+      await loadOccupiedHours(selectedDate);
+      renderHours();
+      openApptModal('Justo se agendó esa hora — elige otra disponible.');
+    } else if (opts.onError) {
+      opts.onError('No pudimos agendar tu cita. Intenta de nuevo.');
+    }
+  }
+
   apptCodeSubmit.addEventListener('click', async () => {
     const codigo = apptCodeDigits.map(i => i.value).join('');
     if (codigo.length < 4) { apptCodeError.textContent = 'Ingresa los 4 dígitos.'; return; }
@@ -346,33 +380,12 @@
       return;
     }
 
-    const result = await bookAppointment(selectedDate, selectedTime, contactData);
+    await finishBooking({
+      onDone: closeApptCodeModal,
+      onError: (msg) => { apptCodeError.textContent = msg; }
+    });
     apptCodeSubmit.disabled = false;
     apptCodeSubmit.textContent = 'Verificar y agendar';
-
-    if (result.ok) {
-      closeApptCodeModal();
-      openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
-      // Ya quedó ligada a tu cuenta (tenías sesión iniciada) — refresca
-      // la lista de "Mis citas" de una vez, sin esperar a que cierres
-      // este mensaje.
-      if (typeof loadMyAppointments === 'function') {
-        loadMyAppointments().then(() => {
-          if (typeof renderStats === 'function') renderStats();
-          if (typeof renderCitas === 'function') renderCitas();
-          if (window.feather) feather.replace();
-        });
-      }
-    } else if (result.conflict) {
-      closeApptCodeModal();
-      selectedTime = null;
-      apptDetailTime.textContent = 'Por definir';
-      await loadOccupiedHours(selectedDate);
-      renderHours();
-      openApptModal('Justo se agendó esa hora — elige otra disponible.');
-    } else {
-      apptCodeError.textContent = 'No pudimos agendar tu cita. Intenta de nuevo.';
-    }
   });
 
   apptCodeResend.addEventListener('click', async () => {
@@ -419,16 +432,18 @@
     const complete = prefillContactFromAccount();
 
     if (complete) {
-      // Ya tenemos nombre, apellido y celular de la cuenta — nos
-      // saltamos el modal de "Tus datos" y vamos directo al código.
-      apptContactSubmit.disabled = true;
-      apptContactSubmit.textContent = 'Enviando...';
-      const sent = await proceedToCodeStep(apptNombre.value.trim(), apptApellido.value.trim(), apptCelular.value.trim(), {
-        onError: () => { openApptModal('No pudimos enviar el código. Intenta de nuevo.'); }
+      // Ya tenemos nombre, apellido y celular de la cuenta, y quien
+      // agenda ya tiene sesión iniciada — el backend no le va a pedir
+      // verificación por SMS en este caso, así que agenda directo, sin
+      // pasar ni por "Tus datos" ni por el código.
+      contactData = { nombre: apptNombre.value.trim(), apellido: apptApellido.value.trim(), celular: '+52' + apptCelular.value.trim() };
+      apptSubmit.disabled = true;
+      apptSubmit.textContent = 'Agendando...';
+      await finishBooking({
+        onError: (msg) => { openApptModal(msg); }
       });
-      apptContactSubmit.disabled = false;
-      apptContactSubmit.textContent = 'Enviar código';
-      if (!sent) return; // se quedó en la vista del calendario; puede reintentar
+      apptSubmit.disabled = false;
+      apptSubmit.textContent = 'Confirmar cita';
     } else {
       openApptContactModal();
     }

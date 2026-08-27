@@ -110,6 +110,23 @@ body.cuenta-body{
 .panel-body{ padding:26px; }
 
 .form-actions{ display:flex; justify-content:flex-end; gap:12px; margin-top:22px; }
+.form-status{ font-size:12.5px; margin-top:14px; min-height:1em; }
+.form-status.ok{ color:#1f9d55; }
+.form-status.error{ color:#e2554a; }
+
+/* ---------- Campos de formulario (Seguridad) ---------- */
+.field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px 20px; }
+@media (max-width:600px){ .field-grid{ grid-template-columns:1fr; } }
+.field{ display:flex; flex-direction:column; gap:7px; }
+.field.full{ grid-column:1/-1; }
+.field label{ font-size:12px; font-weight:700; color:var(--ink); letter-spacing:.01em; }
+.field input{
+  font-size:13.5px; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px;
+  color:var(--ink); background:var(--white);
+  transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.field input:hover{ border-color:var(--blue-300); }
+.field input:focus{ outline:none; border-color:var(--blue-600); box-shadow:0 0 0 4px var(--blue-50); }
 
 /* ---------- Pills de opción (preferencia de contacto) ---------- */
 .pill-options{ display:flex; flex-wrap:wrap; gap:10px; }

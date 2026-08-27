@@ -148,3 +148,9 @@ body.cuenta-body{
   .cuenta-header h1{ font-size:26px; }
   .panel-body{ padding:20px; }
 }
+
+/* ---------- Estado vacío (Mis exámenes) ---------- */
+.panel-body.no-pad{ padding:0; }
+.empty-state{ text-align:center; padding:64px 24px 72px; color:var(--grey); }
+.empty-state svg{ width:44px; height:44px; color:var(--blue-300); margin:0 auto 16px; }
+.empty-state p{ font-size:13.5px; line-height:1.7; max-width:380px; margin:0 auto; }

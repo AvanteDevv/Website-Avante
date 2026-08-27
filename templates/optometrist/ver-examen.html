@@ -27,6 +27,9 @@
       </div>
       <div class="admin-header-actions">
         <a href="/optometrist/examen-vista" class="btn thin">Volver</a>
+        <a href="#" class="btn thin" id="formatToggleLink">Ver como hoja</a>
+        <button type="button" class="btn thin" id="printExamBtn">Imprimir</button>
+        <button type="button" class="btn solid thin" id="exportExamPdfBtn">Exportar PDF</button>
       </div>
     </div>
 
@@ -34,10 +37,16 @@
 
     <div class="exf-canvas-wrap">
       <div id="examCanvas"></div>
+      <div class="exf-hoja-meta" id="examHojaMeta" hidden>
+        <div class="exf-hoja-name" id="examHojaName"></div>
+        <div class="exf-hoja-date" id="examHojaDate"></div>
+      </div>
     </div>
   </main>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/admin/userbar.js"></script>

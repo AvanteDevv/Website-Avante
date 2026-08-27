@@ -57,13 +57,17 @@ func GetFavoritesByUser(userID int64) ([]Favorite, error) {
 
 // AddFavorite guarda un producto como favorito de un usuario. Es idempotente:
 // si ya existe ese product_id para ese usuario (UNIQUE user_id+product_id),
-// no lo duplica ni truena — simplemente no hace nada y devuelve el
-// registro ya existente.
+// no lo duplica ni truena — actualiza esa fila con los datos que llegaron
+// ahora (nombre, precio, imagen, etc.), por si cambiaron desde la última
+// vez que se guardó.
 func AddFavorite(userID int64, f Favorite) (*Favorite, error) {
 	_, err := db.DB.Exec(
 		`INSERT INTO favorites (user_id, product_id, name, brand, price, old_price, icon, image, badge, url)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		 ON DUPLICATE KEY UPDATE name = name`, // no-op: solo evita el error de duplicado
+		 ON DUPLICATE KEY UPDATE
+		   name = VALUES(name), brand = VALUES(brand), price = VALUES(price),
+		   old_price = VALUES(old_price), icon = VALUES(icon), image = VALUES(image),
+		   badge = VALUES(badge), url = VALUES(url)`,
 		userID, f.ProductID, f.Name, f.Brand, f.Price, f.OldPrice, f.Icon, f.Image, f.Badge, f.URL,
 	)
 	if err != nil {

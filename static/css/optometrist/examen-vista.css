@@ -159,3 +159,45 @@ body.cuenta-body{
   transition:background .18s var(--ease), border-color .18s var(--ease);
 }
 .tpl-list-item:hover{ background:var(--blue-50); border-color:var(--blue-300); }
+
+/* ---------- Fila de examen + menú de tres puntos ---------- */
+.exam-row{ display:flex; align-items:center; gap:10px; padding:0; }
+.exam-row-link{
+  flex:1; min-width:0; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:12px 14px; font-size:13px; font-weight:600; color:var(--ink);
+}
+.exam-row-date{ color:var(--grey); font-weight:400; flex-shrink:0; }
+
+.row-menu{ position:relative; flex-shrink:0; margin-right:6px; }
+.row-menu-btn{
+  width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
+  background:var(--white); color:var(--grey);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
+}
+.row-menu-btn svg{ width:16px; height:16px; }
+.row-menu-btn:hover, .row-menu.is-open .row-menu-btn{ background:var(--blue-50); color:var(--blue-600); border-color:var(--blue-300); }
+
+.row-menu-dropdown{
+  position:absolute; top:calc(100% + 8px); right:0; z-index:20; width:220px;
+  background:var(--white); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow-lg); padding:6px;
+  opacity:0; transform:translateY(-6px) scale(.97); transform-origin:top right;
+  pointer-events:none;
+  transition:opacity .18s var(--ease), transform .18s var(--ease);
+}
+.row-menu.is-open .row-menu-dropdown{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+.row-menu-item{
+  display:flex; align-items:center; gap:10px; width:100%;
+  padding:9px 10px; border-radius:10px; font-size:12.5px; font-weight:600; color:var(--ink);
+  transition:background .15s var(--ease);
+}
+.row-menu-item svg{ width:15px; height:15px; color:var(--grey); flex-shrink:0; }
+.row-menu-item:hover{ background:var(--blue-50); }
+.row-menu-item:disabled{ color:var(--grey); cursor:default; }
+.row-menu-item:disabled:hover{ background:none; }
+.row-menu-soon{
+  margin-left:auto; font-size:9px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  color:var(--grey); background:var(--blue-50); padding:2px 6px; border-radius:100px; flex-shrink:0;
+}
+.row-menu-sep{ height:1px; background:var(--line); margin:6px 4px; }

@@ -46,7 +46,7 @@ async function toggleFavorite(product, wasActive){
       body: JSON.stringify({
         product_id: product.id, name: product.name, brand: product.brand || '',
         price: product.price, old_price: product.oldPrice || '',
-        icon: product.icon || '', badge: product.badge || '', url: product.url || ''
+        icon: product.icon || '', image: product.image || '', badge: product.badge || '', url: product.url || ''
       })
     });
     return true;
@@ -530,6 +530,7 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
   if(favBtn){
     const favId = 'index-' + cardIndex;
     const p = PRODUCTS[cardIndex];
+    const favImage = (p.images && p.images.length) ? p.images[0] : PRODUCT_IMAGES[cardIndex % PRODUCT_IMAGES.length];
     const favProduct = {
       id: favId,
       name: p.name,
@@ -537,6 +538,7 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
       price: p.price,
       oldPrice: p.oldPrice || '',
       icon: p.icon,
+      image: favImage,
       badge: p.badge || '',
       url: `/eccomerce/detalle?id=${cardIndex}`
     };

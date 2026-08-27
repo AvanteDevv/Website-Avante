@@ -88,6 +88,35 @@
       <button type="button" class="btn solid small">Guardar cambios</button>
     </div>
 
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Seguridad</h2>
+        <p>Cambia tu contraseña de acceso.</p>
+      </div>
+      <div class="panel-body">
+        <form id="passwordForm">
+          <div class="field-grid">
+            <div class="field full">
+              <label for="pfCurrentPass">Contraseña actual</label>
+              <input type="password" id="pfCurrentPass" name="currentPassword" placeholder="••••••••" required>
+            </div>
+            <div class="field">
+              <label for="pfNewPass">Nueva contraseña</label>
+              <input type="password" id="pfNewPass" name="newPassword" placeholder="••••••••" required minlength="8">
+            </div>
+            <div class="field">
+              <label for="pfConfirmPass">Confirmar nueva contraseña</label>
+              <input type="password" id="pfConfirmPass" name="newPassword2" placeholder="••••••••" required minlength="8">
+            </div>
+          </div>
+          <p class="form-status" id="passwordStatus"></p>
+          <div class="form-actions">
+            <button type="submit" class="btn small" id="passwordSubmit">Actualizar contraseña</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
     <section class="panel" style="margin-top:22px;">
       <div class="panel-head">
         <h2>Cuenta</h2>

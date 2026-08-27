@@ -195,12 +195,18 @@ func CreateAppointment(c *gin.Context) {
 	// El celular debe haber sido verificado con el código de 4 dígitos
 	// justo antes de esto (ConsumeVerification lo borra al usarlo, así
 	// que un mismo código verificado no se puede reusar para 2 citas).
-	if err := models.ConsumeVerification(input.Celular); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Debes verificar tu número antes de agendar."})
-		return
+	//
+	// EXCEPCIÓN: si quien agenda ya tiene sesión de cliente iniciada, su
+	// login ya la autentica — no se le vuelve a pedir el código SMS.
+	userID := optionalUserID(c)
+	if userID == 0 {
+		if err := models.ConsumeVerification(input.Celular); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Debes verificar tu número antes de agendar."})
+			return
+		}
 	}
 
-	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, optionalUserID(c)); err != nil {
+	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo agendar la cita. Intenta de nuevo."})
 		return
 	}

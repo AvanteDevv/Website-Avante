@@ -1,6 +1,10 @@
 /* =========================================================
    NUEVO EXAMEN — carga la plantilla activa, la pinta como
    formulario editable (AvanteExamRender) y guarda el resultado.
+   El campo NOMBRE del lienzo, además, busca contra la base de
+   clientes mientras se escribe: si la persona ya tiene cuenta,
+   el examen queda ligado a ella (userId) y podrá verlo en
+   "Mis exámenes"; si no, se guarda como paciente sin cuenta.
    ========================================================= */
 (function(){
   var statusEl = document.getElementById('examStatus');
@@ -11,10 +15,69 @@
 
   var template = null;
   var renderer = null;
+  var selectedPatientId = 0; // 0 = sin cuenta encontrada/seleccionada
 
   function showStatus(text, kind){
     statusEl.textContent = text;
     statusEl.className = 'tpl-status' + (kind ? ' ' + kind : '');
+  }
+
+  /* ---------- autocompletado de paciente en el campo NOMBRE ---------- */
+  var patientDropdown = null;
+  function closePatientDropdown(){
+    if (patientDropdown){ patientDropdown.remove(); patientDropdown = null; }
+  }
+  function setupPatientSearch(){
+    var nombreInput = canvasEl.querySelector('.exf-input[data-field-key="nombre"]');
+    if (!nombreInput) return; // esta plantilla no tiene un campo "nombre"
+    var telefonoInput = canvasEl.querySelector('.exf-input[data-field-key="telefono"]');
+
+    var debounceTimer;
+    nombreInput.addEventListener('input', function(){
+      selectedPatientId = 0; // si vuelve a escribir, ya no es la persona que había seleccionado
+      var term = nombreInput.value.trim();
+      clearTimeout(debounceTimer);
+      closePatientDropdown();
+      if (term.length < 2) return;
+
+      debounceTimer = setTimeout(function(){
+        fetch('/api/optometrist/pacientes?q=' + encodeURIComponent(term))
+          .then(function(res){ if (!res.ok) throw new Error(); return res.json(); })
+          .then(function(matches){
+            closePatientDropdown();
+            if (!matches.length) return;
+
+            var rect = nombreInput.getBoundingClientRect();
+            patientDropdown = document.createElement('div');
+            patientDropdown.className = 'patient-search-dropdown';
+            patientDropdown.style.left = (rect.left + window.scrollX) + 'px';
+            patientDropdown.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+            patientDropdown.style.width = rect.width + 'px';
+            patientDropdown.innerHTML = matches.map(function(m){
+              return '<button type="button" class="patient-search-item" data-id="' + m.id + '" data-name="' +
+                m.name.replace(/"/g, '&quot;') + '" data-phone="' + (m.phone || '') + '">' +
+                '<span>' + m.name + '</span>' +
+                (m.phone ? '<span class="patient-search-phone">' + m.phone + '</span>' : '') +
+              '</button>';
+            }).join('');
+            document.body.appendChild(patientDropdown);
+
+            patientDropdown.querySelectorAll('.patient-search-item').forEach(function(item){
+              item.addEventListener('click', function(){
+                nombreInput.value = item.dataset.name;
+                selectedPatientId = parseInt(item.dataset.id, 10);
+                if (telefonoInput && item.dataset.phone) telefonoInput.value = item.dataset.phone;
+                closePatientDropdown();
+              });
+            });
+          })
+          .catch(function(){ /* si falla la búsqueda, se sigue escribiendo el nombre a mano */ });
+      }, 280);
+    });
+
+    document.addEventListener('click', function(e){
+      if (e.target !== nombreInput && !(patientDropdown && patientDropdown.contains(e.target))) closePatientDropdown();
+    });
   }
 
   fetch('/api/optometrist/plantillas/activa')
@@ -37,6 +100,7 @@
         elements: (t.elements || []),
         readonly: false
       });
+      setupPatientSearch();
     })
     .catch(function(err){
       console.error('nuevo-examen: fallo al cargar la plantilla activa', err);
@@ -53,11 +117,15 @@
       return;
     }
 
+    // Si escribió un nombre distinto al que había seleccionado del
+    // autocompletado, ya no coincide con esa cuenta — mejor no ligarlo
+    // a la persona equivocada.
     var payload = {
       templateId: template.id,
       patientName: name,
       patientPhone: (data.fields.telefono || '').trim(),
-      data: data
+      data: data,
+      userId: selectedPatientId
     };
 
     saveBtn.disabled = true;

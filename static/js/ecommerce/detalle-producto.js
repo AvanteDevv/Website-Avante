@@ -140,11 +140,85 @@ const bumpQty = () => {
 document.getElementById('pdQtyMinus').addEventListener('click', () => { qty = Math.max(1, qty - 1); bumpQty(); });
 document.getElementById('pdQtyPlus').addEventListener('click', () => { qty = Math.min(9, qty + 1); bumpQty(); });
 
+/* =========================================================
+   FAVORITOS — conexión directa con /api/favorites
+   Copiado del mismo patrón que ya usan index.js/ecommerce.js —
+   aquí el corazón solo alternaba una clase CSS, sin guardar nada.
+   ========================================================= */
+async function favRequest(path, options){
+  let res;
+  try{
+    res = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, options));
+  }catch(e){
+    throw new Error('No se pudo conectar con el servidor.');
+  }
+  if(res.status === 401) throw new Error('AUTH_REQUERIDA');
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error(data.error || 'No se pudo completar la operación.');
+  return data;
+}
+async function getFavorites(){
+  try{
+    const data = await favRequest('/api/favorites', { method: 'GET' });
+    return data.favorites || [];
+  }catch(e){
+    return [];
+  }
+}
+async function toggleFavorite(fav, wasActive){
+  try{
+    if(wasActive){
+      await favRequest('/api/favorites/' + encodeURIComponent(fav.id), { method: 'DELETE' });
+      return false;
+    }
+    await favRequest('/api/favorites', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_id: fav.id, name: fav.name, brand: fav.brand || '',
+        price: fav.price, old_price: fav.oldPrice || '',
+        icon: fav.icon || '', image: fav.image || '', badge: fav.badge || '', url: fav.url || ''
+      })
+    });
+    return true;
+  }catch(e){
+    if(e.message === 'AUTH_REQUERIDA') window.location.href = '/iniciar-sesion';
+    throw e;
+  }
+}
+
 /* favorito / compartir */
 const favBtn = document.getElementById('pdFav');
+// Mismo esquema de id que usa la tienda (/eccomerce) para esta misma
+// tarjeta — así si ya la habías marcado desde el grid, el corazón
+// nace activo aquí también, en vez de siempre en cero.
+const favProduct = {
+  id: 'eccomerce-' + pid,
+  name: product.name,
+  brand: product.brand,
+  price: product.price,
+  oldPrice: product.oldPrice || '',
+  icon: product.icon,
+  image: imgs[0],
+  badge: product.badge || '',
+  url: `/eccomerce/detalle?id=${pid}`
+};
+getFavorites().then((favorites) => {
+  const isFav = favorites.some(f => f.product_id === favProduct.id);
+  favBtn.classList.toggle('is-active', isFav);
+  favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+});
 favBtn.addEventListener('click', () => {
-  const active = favBtn.classList.toggle('is-active');
-  favBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  if(favBtn.dataset.favBusy === '1') return;
+  favBtn.dataset.favBusy = '1';
+  const estabaMarcado = favBtn.classList.contains('is-active');
+  favBtn.classList.toggle('is-active', !estabaMarcado);
+  favBtn.setAttribute('aria-pressed', (!estabaMarcado) ? 'true' : 'false');
+  toggleFavorite(favProduct, estabaMarcado)
+    .catch(() => {
+      favBtn.classList.toggle('is-active', estabaMarcado);
+      favBtn.setAttribute('aria-pressed', estabaMarcado ? 'true' : 'false');
+    })
+    .finally(() => { favBtn.dataset.favBusy = ''; });
 });
 const shareBtn = document.getElementById('pdShare');
 const shareMenu = document.getElementById('pdShareMenu');

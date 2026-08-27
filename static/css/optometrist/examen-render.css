@@ -55,3 +55,35 @@
 .exf-meta{ font-size:12px; color:var(--grey); margin-bottom:18px; }
 .exf-meta strong{ color:var(--ink); }
 .exf-canvas-wrap{ overflow:auto; padding:10px 0 40px; }
+.exf-hoja-meta{ text-align:center; margin-top:18px; }
+.exf-hoja-name{ font-family:var(--serif); font-weight:600; font-size:19px; color:var(--ink); }
+.exf-hoja-date{ font-size:13px; color:var(--grey); margin-top:4px; }
+
+/* ---------- Autocompletado de paciente (Nuevo examen) ---------- */
+.patient-search-dropdown{
+  position:absolute; z-index:50;
+  background:var(--white); border:1.5px solid var(--line); border-radius:12px;
+  box-shadow:var(--shadow-md); overflow:hidden; max-height:220px; overflow-y:auto;
+}
+.patient-search-item{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  width:100%; padding:9px 12px; font-size:12.5px; font-weight:600; color:var(--ink);
+  text-align:left; border-bottom:1px solid var(--line);
+  transition:background .15s var(--ease);
+}
+.patient-search-item:last-child{ border-bottom:none; }
+.patient-search-item:hover{ background:var(--blue-50); }
+.patient-search-phone{ font-size:11px; font-weight:500; color:var(--grey); flex-shrink:0; }
+
+/* ---------- Impresión (Nuevo examen / Ver examen) ---------- */
+@page{
+  size:816px 1056px;
+  margin:0;
+}
+@media print{
+  .header-outer, .cuenta-sidebar, .cuenta-header, .tpl-status, .admin-header-actions{ display:none !important; }
+  .exf-canvas-wrap{ padding:0 !important; overflow:visible !important; }
+  .exf-canvas, .exf-canvas *{
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+}
