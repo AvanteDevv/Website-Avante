@@ -30,7 +30,7 @@
       <div class="panel-head">
         <div>
           <h2>Pacientes</h2>
-          <p>Todavía no hay historiales registrados</p>
+          <p id="historialHint">Busca un paciente por nombre o teléfono para ver su historial.</p>
         </div>
       </div>
 
@@ -39,14 +39,31 @@
           <div class="search-box-glow"></div>
           <div class="search-box-inner">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" id="historialSearch" placeholder="Buscar paciente por nombre…" disabled>
+            <input type="text" id="historialSearch" placeholder="Buscar paciente por nombre o teléfono…">
           </div>
         </div>
       </div>
 
-      <div class="empty-state">
-        Todavía no hay historiales clínicos cargados — esta sección está lista para conectarse en cuanto definamos qué campos necesitas guardar por paciente (graduación anterior, notas de consulta, alergias, etc.).
+      <div class="patient-results" id="patientResults" hidden></div>
+
+      <div class="empty-state" id="historialEmpty">
+        Busca un paciente arriba (por nombre o teléfono) para ver su historial — tenga o no cuenta en Avante Optics.
       </div>
+    </section>
+
+    <section class="panel" id="patientPanel" style="display:none; margin-top:22px;">
+      <div class="panel-head patient-card-head">
+        <div>
+          <h2 id="patientName"></h2>
+          <p id="patientPhone"></p>
+          <span class="patient-account-badge" id="patientAccountBadge"></span>
+        </div>
+        <a href="#" class="btn solid thin" id="patientNewExamBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Nuevo examen
+        </a>
+      </div>
+      <div class="exam-timeline" id="examTimeline"></div>
     </section>
   </main>
 </div>

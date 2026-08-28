@@ -146,3 +146,56 @@ body.cuenta-body{
   padding:50px 24px; text-align:center; color:var(--grey); font-size:13px; line-height:1.6;
   border-top:1px solid var(--line);
 }
+/* ---------- Resultados de búsqueda de paciente ---------- */
+.patient-results{
+  margin:0 24px 16px; border:1.5px solid var(--line); border-radius:14px; overflow:hidden;
+  max-height:260px; overflow-y:auto;
+}
+.patient-result-item{
+  display:flex; align-items:center; gap:10px; width:100%;
+  padding:12px 16px; border-bottom:1px solid var(--line);
+  font-size:13px; font-weight:600; color:var(--ink); text-align:left;
+  transition:background .15s var(--ease);
+}
+.patient-result-item:last-child{ border-bottom:none; }
+.patient-result-item:hover{ background:var(--blue-50); }
+.patient-result-phone{ color:var(--grey); font-weight:400; font-size:12px; }
+.patient-result-tag{
+  margin-left:auto; font-size:9.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  color:var(--blue-700); background:var(--blue-100); padding:3px 8px; border-radius:100px; flex-shrink:0;
+}
+
+/* ---------- Ficha del paciente ---------- */
+.patient-card-head{ align-items:flex-start; }
+.patient-card-head h2{ font-family:var(--serif); font-weight:600; font-size:19px; color:var(--ink); }
+.patient-card-head p{ font-size:12.5px; color:var(--grey); margin-top:3px; }
+.patient-account-badge{
+  display:inline-block; margin-top:8px; font-size:10.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  color:var(--grey); background:var(--blue-50); padding:4px 10px; border-radius:100px;
+}
+.patient-account-badge.has-account{ color:#1f7a3d; background:#e6f6ec; }
+
+/* ---------- Línea de tiempo de exámenes ---------- */
+.exam-timeline{ padding:8px 24px 24px; display:flex; flex-direction:column; }
+.timeline-loading, .timeline-empty{ padding:24px 0; text-align:center; color:var(--grey); font-size:13px; }
+.timeline-item{
+  position:relative; display:flex; align-items:center; gap:14px;
+  padding:16px 4px 16px 22px; border-bottom:1px solid var(--line);
+  transition:background .15s var(--ease);
+}
+.timeline-item:last-child{ border-bottom:none; }
+.timeline-item:hover{ background:var(--blue-50); }
+.timeline-item:before{
+  content:''; position:absolute; left:5px; top:0; bottom:0; width:1.5px; background:var(--line);
+}
+.timeline-item:first-child:before{ top:50%; }
+.timeline-item:last-child:before{ bottom:50%; }
+.timeline-dot{
+  position:absolute; left:0; top:50%; transform:translateY(-50%);
+  width:11px; height:11px; border-radius:50%; background:var(--blue-600); border:2px solid var(--white);
+  box-shadow:0 0 0 2px var(--blue-600); flex-shrink:0;
+}
+.timeline-item-body{ flex:1; min-width:0; }
+.timeline-item-date{ font-size:13.5px; font-weight:600; color:var(--ink); }
+.timeline-item-by{ font-size:11.5px; color:var(--grey); margin-top:2px; }
+.timeline-item-arrow{ width:16px; height:16px; color:var(--grey); flex-shrink:0; }
