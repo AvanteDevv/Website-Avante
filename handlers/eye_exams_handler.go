@@ -126,3 +126,23 @@ func GetMyEyeExams(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"examenes": exams})
 }
+
+// DeleteEyeExam elimina un examen — DELETE /api/optometrist/examenes/:id.
+func DeleteEyeExam(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID de examen inválido."})
+		return
+	}
+
+	if err := models.DeleteEyeExam(id); err != nil {
+		if errors.Is(err, models.ErrEyeExamNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Examen no encontrado."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar el examen."})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Examen eliminado."})
+}

@@ -231,3 +231,21 @@ func ListEyeExamsByUser(userID int64) ([]EyeExam, error) {
 	}
 	return list, nil
 }
+
+// DeleteEyeExam elimina un examen — usado desde el menú de fila de
+// "Examen de la vista". No es un error si el id no existía (el DELETE
+// simplemente afecta 0 filas), igual que RemoveFavorite/DeleteAppointment.
+func DeleteEyeExam(id int64) error {
+	result, err := db.DB.Exec("DELETE FROM eye_exams WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrEyeExamNotFound
+	}
+	return nil
+}

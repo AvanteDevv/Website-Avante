@@ -4,6 +4,33 @@
    (--white, --line, --ink, --grey, --blue-600, --blue-700, --blue-50,
    --serif, --ease)
    ========================================================= */
+.promo-bar{
+  display:flex; align-items:center; justify-content:center;
+  gap:14px;
+  padding:9px 20px;
+  background:var(--blue-600);
+  color:var(--white);
+}
+.promo-bar p{
+  font-size:12.5px; font-weight:600; letter-spacing:.01em;
+  display:flex; align-items:center; gap:6px;
+  white-space:nowrap;
+}
+.promo-icon{ width:17px; height:17px; flex-shrink:0; }
+.promo-cta{
+  padding:6px 16px; border-radius:100px;
+  background:var(--white); color:var(--blue-600);
+  font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  white-space:nowrap;
+  transition:background .2s var(--ease), transform .2s var(--ease);
+}
+.promo-cta:hover{ background:var(--blue-50); transform:translateY(-1px); }
+@media (max-width:640px){
+  .promo-bar{ padding:8px 14px; gap:8px; }
+  .promo-bar p{ font-size:11px; white-space:normal; text-align:center; }
+  .promo-cta{ padding:5px 12px; font-size:10px; flex-shrink:0; }
+}
+
 .header-outer{
   position:sticky; top:0; z-index:80;
   display:flex; justify-content:center;
@@ -44,6 +71,7 @@ header{
 .mark-word span{ color:var(--blue-600); }
 
 nav{ display:flex; gap:30px; }
+.nav-left nav{ gap:22px; }
 nav a{
   font-size:13px; font-weight:600; letter-spacing:.02em;
   color:var(--grey);

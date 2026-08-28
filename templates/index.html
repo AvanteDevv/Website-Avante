@@ -54,43 +54,6 @@
 </svg>
 
 
-<section class="strip" id="appointment">
-  <div class="section-head reveal-blur">
-    <div class="eyebrow"><svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>Visítanos<svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg></div>
-    <h2>Agenda tu cita</h2>
-    <p>Elige el día y la hora que mejor te acomode.</p>
-  </div>
-  <div class="appt-card reveal-rise">
-    <div class="appt-side">
-      <div class="appt-side-daynum" id="apptDayNum">--</div>
-      <div class="appt-side-weekday" id="apptWeekday">Elige un día</div>
-      <div class="appt-side-monthyear" id="apptSideMonthYear"></div>
-      <div class="appt-side-details">
-        <div class="appt-detail-label">Detalles de tu cita</div>
-        <div class="appt-detail-row"><span>Hora</span><strong id="apptDetailTime">Por definir</strong></div>
-        <div class="appt-detail-row"><span>Dirección</span><strong id="apptDetailAddress">Luis Donaldo Colosio #69, Col. Centro, Hermosillo, Son.</strong></div>
-      </div>
-    </div>
-
-    <div class="appt-main">
-      <div class="appt-view appt-view-day active" id="apptDayView">
-        <div class="appt-weekdays"><span>DOM</span><span>LUN</span><span>MAR</span><span>MIÉ</span><span>JUE</span><span>VIE</span><span>SÁB</span></div>
-        <div class="appt-day-grid" id="apptDayGrid"></div>
-      </div>
-
-      <div class="appt-view appt-view-hour" id="apptHourView">
-        <div class="appt-nav-row">
-          <button type="button" class="appt-back" id="apptBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Volver</button>
-          <span id="apptHourDateLabel"></span>
-        </div>
-        <hr class="appt-line">
-        <div class="appt-hour-grid" id="apptHourGrid"></div>
-        <button type="button" class="btn solid appt-hour-submit" id="apptSubmit">Confirmar cita</button>
-      </div>
-    </div>
-  </div>
-</section>
-
 <div class="cat-strip" id="catStrip">
   <div class="cat-track" id="catTrack">
   <button class="cat-chip"><span class="cat-ring"><span class="cat-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="12" r="4.2"/><circle cx="17" cy="12" r="4.2"/><path d="M11.2 12h1.6M2.5 9 5 7.4M21.5 9 19 7.4"/></svg></span></span><span class="cat-label">Sol</span></button>
@@ -161,45 +124,6 @@
   </div>
 </section>
 
-<section class="strip" id="tracking">
-  <div class="tracking-blob b1"></div>
-  <div class="tracking-blob b2"></div>
-  <div class="section-head reveal-blur">
-    <div class="eyebrow"><svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>Seguimiento<svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg></div>
-    <h2>¿Cómo va tu pedido?</h2>
-    <p>Ingresa tu número de orden para ver el estado de tu compra.</p>
-  </div>
-  <div class="tracking-wrap">
-    <div class="tracking-card reveal-rise">
-      <div class="tracking-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>Rastreo en tiempo real</div>
-      <div class="tracking-search">
-        <div class="tracking-search-field">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          <input type="text" id="trackingInput" placeholder="Número de pedido, ej. AVT-10493">
-        </div>
-        <button class="btn solid" id="trackingBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-          Rastrear pedido
-        </button>
-      </div>
-      <div class="tracking-result" id="trackingResult">
-        <div class="tracking-order-info">
-          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Pedido <strong id="trackingOrderNum">—</strong></span>
-          <span class="chip eta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span id="trackingEta">Entrega estimada: —</span></span>
-        </div>
-        <div class="tracking-steps" id="trackingSteps">
-          <div class="tracking-progress" id="trackingProgress"></div>
-          <div class="tracking-step" data-step="0"><span class="tracking-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tracking-label">Recibido</span></div>
-          <div class="tracking-step" data-step="1"><span class="tracking-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tracking-label">Preparación</span></div>
-          <div class="tracking-step" data-step="2"><span class="tracking-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tracking-label">Enviado</span></div>
-          <div class="tracking-step" data-step="3"><span class="tracking-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tracking-label">En camino</span></div>
-          <div class="tracking-step" data-step="4"><span class="tracking-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tracking-label">Entregado</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section class="strip" id="blog">
   <div class="section-head reveal-blur">
     <div class="eyebrow"><svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>Desde Avante Optics<svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg></div>
@@ -226,51 +150,6 @@
     {{end}}
   </div>
   <div class="blog-cta"><a href="blog.html" class="btn">Ver todas las entradas</a></div>
-</section>
-
-<section class="strip" id="faq">
-  <div class="section-head reveal-blur">
-    <div class="eyebrow">Ayuda</div>
-    <h2>Preguntas frecuentes</h2>
-    <p>Todo lo que necesitas saber antes de tu compra o tu cita.</p>
-  </div>
-  <div class="faq-list reveal-rise" id="faqList">
-    <div class="faq-item">
-      <button class="faq-question" aria-expanded="false">
-        <span>¿Cuánto tarda en llegar mi pedido?</span>
-        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-      </button>
-      <div class="faq-answer"><p>Los pedidos dentro de México llegan entre 3 y 5 días hábiles. Puedes rastrear tu compra en cualquier momento desde la sección de seguimiento con tu número de orden.</p></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-question" aria-expanded="false">
-        <span>¿Cómo agendo una cita para probarme lentes?</span>
-        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-      </button>
-      <div class="faq-answer"><p>Ve a la sección de citas, elige el día y la hora que mejor te acomode y confirma tus datos. Te enviaremos la confirmación al instante.</p></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-question" aria-expanded="false">
-        <span>¿Puedo usar mi receta médica para pedir en línea?</span>
-        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-      </button>
-      <div class="faq-answer"><p>Sí. Al elegir tus lentes graduados podrás cargar tu receta o capturar los valores manualmente antes de finalizar tu compra.</p></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-question" aria-expanded="false">
-        <span>¿Cuál es la política de devoluciones?</span>
-        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-      </button>
-      <div class="faq-answer"><p>Tienes 30 días naturales desde la entrega para solicitar un cambio o devolución, siempre que la montura esté en su estado original.</p></div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-question" aria-expanded="false">
-        <span>¿Las promociones se pueden combinar con otros descuentos?</span>
-        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-      </button>
-      <div class="faq-answer"><p>Las piezas en promoción no son acumulables con otros cupones, pero sí puedes combinarlas con el envío gratis en pedidos elegibles.</p></div>
-    </div>
-  </div>
 </section>
 
 <section class="strip" id="contact">
@@ -392,63 +271,53 @@
   <div class="reviews-dots" id="reviewsDots"></div>
 </section>
 
+<section class="strip" id="faq">
+  <div class="section-head reveal-blur">
+    <div class="eyebrow">Ayuda</div>
+    <h2>Preguntas frecuentes</h2>
+    <p>Todo lo que necesitas saber antes de tu compra o tu cita.</p>
+  </div>
+  <div class="faq-list reveal-rise" id="faqList">
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false">
+        <span>¿Cuánto tarda en llegar mi pedido?</span>
+        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-answer"><p>Los pedidos dentro de México llegan entre 3 y 5 días hábiles. Puedes rastrear tu compra en cualquier momento desde la sección de seguimiento con tu número de orden.</p></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false">
+        <span>¿Cómo agendo una cita para probarme lentes?</span>
+        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-answer"><p>Ve a la sección de citas, elige el día y la hora que mejor te acomode y confirma tus datos. Te enviaremos la confirmación al instante.</p></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false">
+        <span>¿Puedo usar mi receta médica para pedir en línea?</span>
+        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-answer"><p>Sí. Al elegir tus lentes graduados podrás cargar tu receta o capturar los valores manualmente antes de finalizar tu compra.</p></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false">
+        <span>¿Cuál es la política de devoluciones?</span>
+        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-answer"><p>Tienes 30 días naturales desde la entrega para solicitar un cambio o devolución, siempre que la montura esté en su estado original.</p></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false">
+        <span>¿Las promociones se pueden combinar con otros descuentos?</span>
+        <span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-answer"><p>Las piezas en promoción no son acumulables con otros cupones, pero sí puedes combinarlas con el envío gratis en pedidos elegibles.</p></div>
+    </div>
+  </div>
+</section>
+
 {{template "footer" .}}
 
-<div class="modal-overlay" id="apptModalOverlay">
-  <div class="modal-card">
-    <button class="modal-close" id="apptModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <div class="modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
-    <h3>¡Cita confirmada!</h3>
-    <p id="apptModalText">Te esperamos en Avante Optics.</p>
-    <button class="btn solid modal-ok" id="apptModalOk">Listo</button>
-  </div>
-</div>
-
-<!-- Modal 1: datos de contacto (antes de agendar) -->
-<div class="modal-overlay" id="apptContactModalOverlay">
-  <div class="modal-card modal-form-card">
-    <button class="modal-close" id="apptContactModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <h3>Tus datos</h3>
-    <p>Los necesitamos para confirmar tu cita.</p>
-    <form id="apptContactForm" class="modal-form" novalidate>
-      <div class="modal-field">
-        <label for="apptNombre">Nombre</label>
-        <input type="text" id="apptNombre" name="nombre" autocomplete="given-name" required>
-      </div>
-      <div class="modal-field">
-        <label for="apptApellido">Apellido</label>
-        <input type="text" id="apptApellido" name="apellido" autocomplete="family-name" required>
-      </div>
-      <div class="modal-field">
-        <label for="apptCelular">Celular</label>
-        <div class="modal-phone-row">
-          <span class="modal-phone-lada">+52</span>
-          <input type="tel" id="apptCelular" name="celular" inputmode="numeric" maxlength="10" placeholder="6621234567" autocomplete="tel-national" required>
-        </div>
-      </div>
-      <p class="modal-form-error" id="apptContactError"></p>
-      <button type="submit" class="btn solid modal-ok" id="apptContactSubmit">Enviar código</button>
-    </form>
-  </div>
-</div>
-
-<!-- Modal 2: código de verificación -->
-<div class="modal-overlay" id="apptCodeModalOverlay">
-  <div class="modal-card modal-form-card">
-    <button class="modal-close" id="apptCodeModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <h3>Verifica tus notificaciones</h3>
-    <p>Enviamos un código de 4 dígitos a <strong id="apptCodePhoneLabel"></strong>.</p>
-    <div class="modal-code-row">
-      <input type="text" inputmode="numeric" maxlength="1" class="modal-code-digit" data-idx="0">
-      <input type="text" inputmode="numeric" maxlength="1" class="modal-code-digit" data-idx="1">
-      <input type="text" inputmode="numeric" maxlength="1" class="modal-code-digit" data-idx="2">
-      <input type="text" inputmode="numeric" maxlength="1" class="modal-code-digit" data-idx="3">
-    </div>
-    <p class="modal-form-error" id="apptCodeError"></p>
-    <button type="button" class="btn solid modal-ok" id="apptCodeSubmit">Verificar y agendar</button>
-    <button type="button" class="modal-resend" id="apptCodeResend">¿No te llegó? Reenviar código</button>
-  </div>
-</div>
 
 <div class="modal-overlay" id="contactModalOverlay">
   <div class="modal-card">
@@ -466,7 +335,7 @@
 <script type="application/json" id="avante-reviews-data">{{.GoogleReviewsJSON}}</script>
 <script src="/static/js/index.js"></script>
 <script src="/static/js/partials/footer.js"></script>
-<a href="https://wa.me/526622131792?text=Hola%2C%20me%20gustar%C3%ADa%20m%C3%A1s%20informaci%C3%B3n" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contáctanos por WhatsApp">
+<a href="https://wa.me/526622561704?text=Hola%2C%20me%20gustar%C3%ADa%20m%C3%A1s%20informaci%C3%B3n" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contáctanos por WhatsApp">
   <span class="whatsapp-float-ring"></span>
   <span class="whatsapp-float-ring delay"></span>
   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg>

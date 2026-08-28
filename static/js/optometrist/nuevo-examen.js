@@ -226,12 +226,12 @@
         cellInput.type = 'text';
         cellInput.className = 'exam-wizard-cell';
         cellInput.value = (values.tables[step.id][r] && values.tables[step.id][r][c]) || '';
-        (function(row, col){
-          cellInput.addEventListener('input', function(){
+        (function(row, col, input){
+          input.addEventListener('input', function(){
             values.tables[step.id][row] = values.tables[step.id][row] || [];
-            values.tables[step.id][row][col] = cellInput.value;
+            values.tables[step.id][row][col] = input.value;
           });
-        })(r, c);
+        })(r, c, cellInput);
         cellInput.addEventListener('keydown', function(e){
           if (e.key === 'Enter'){ e.preventDefault(); nextBtn.click(); }
         });

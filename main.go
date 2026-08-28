@@ -324,6 +324,7 @@ func main() {
 		apiOptometrist.GET("/examenes", handlers.ListEyeExams)
 		apiOptometrist.GET("/examenes/:id", handlers.GetEyeExam)
 		apiOptometrist.POST("/examenes", handlers.CreateEyeExam)
+		apiOptometrist.DELETE("/examenes/:id", handlers.DeleteEyeExam)
 		apiOptometrist.GET("/pacientes", handlers.SearchPatients)
 	}
 
