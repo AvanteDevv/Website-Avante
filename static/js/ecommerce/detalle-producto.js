@@ -185,6 +185,22 @@ async function toggleFavorite(fav, wasActive){
     throw e;
   }
 }
+// Checa si hay sesión iniciada reusando /api/favorites (ya requiere
+// sesión). Se usa para exigir login antes de agregar al carrito —
+// si la petición falla por otra razón (red/servidor) no bloqueamos
+// la compra, solo bloqueamos cuando el servidor confirma 401.
+async function requireSession(){
+  try{
+    await favRequest('/api/favorites', { method: 'GET' });
+    return true;
+  }catch(e){
+    if(e.message === 'AUTH_REQUERIDA'){
+      window.location.href = '/iniciar-sesion';
+      return false;
+    }
+    return true;
+  }
+}
 
 /* favorito / compartir */
 const favBtn = document.getElementById('pdFav');
@@ -252,8 +268,9 @@ function writeCart(cart){
   try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch(e){ /* ignorado */ }
 }
 
-buyBtn.addEventListener('click', () => {
+buyBtn.addEventListener('click', async () => {
   if(buyBtn.disabled) return;
+  if(!(await requireSession())) return; // sin sesión: ya se redirigió a /iniciar-sesion
 
   const manualActive = rxManual.style.display !== 'none';
   const rxOption = manualActive ? '' : (rxOptionsEl.querySelector('.pd-size-btn.active')?.textContent || '');
