@@ -6,7 +6,9 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -124,6 +126,148 @@ func buildStoreProductsJSON() template.JS {
 	return template.JS(b)
 }
 
+// --- Reseñas de Google (Places API) ---
+//
+// Requiere dos variables de entorno (.env o las que ya inyecta tu
+// hosting junto a las demás):
+//   GOOGLE_PLACES_API_KEY  — API key de Google Cloud con "Places API" habilitada
+//   GOOGLE_PLACE_ID        — Place ID de Avante Optics en Google Maps
+//
+// Si cualquiera de las dos falta, o la API falla, buildGoogleReviewsJSON
+// regresa "null" y el JS del front (readInjectedGoogleData) cae solo a
+// sus reseñas de ejemplo — la sección nunca se queda vacía ni rompe la
+// página.
+
+type googleReviewOut struct {
+	Name   string `json:"name"`
+	Date   string `json:"date"`
+	Rating int    `json:"rating"`
+	Text   string `json:"text"`
+	Avatar string `json:"avatar,omitempty"`
+}
+
+type googleReviewsPayload struct {
+	Rating     float64           `json:"rating"`
+	Count      int               `json:"count"`
+	ProfileURL string            `json:"profileUrl"`
+	Reviews    []googleReviewOut `json:"reviews"`
+}
+
+type placesAPIResponse struct {
+	Status       string `json:"status"`
+	ErrorMessage string `json:"error_message"`
+	Result       struct {
+		Rating           float64 `json:"rating"`
+		UserRatingsTotal int     `json:"user_ratings_total"`
+		URL              string  `json:"url"`
+		Reviews          []struct {
+			AuthorName              string `json:"author_name"`
+			ProfilePhotoURL         string `json:"profile_photo_url"`
+			Rating                  int    `json:"rating"`
+			RelativeTimeDescription string `json:"relative_time_description"`
+			Text                    string `json:"text"`
+		} `json:"reviews"`
+	} `json:"result"`
+}
+
+// Caché en memoria: las reseñas de Google casi no cambian de un día
+// a otro, y la Places API solo da 1,000 consultas gratis al mes para
+// el tier que incluye reviews — refrescar cada 6 horas te deja en unas
+// ~120 llamadas al mes (muy por debajo del límite gratis) sin importar
+// cuántas visitas reciba el sitio, porque todas leen del mismo caché.
+var (
+	googleReviewsCache      googleReviewsPayload
+	googleReviewsCacheAt    time.Time
+	googleReviewsCacheValid bool
+	googleReviewsMu         sync.Mutex
+)
+
+const googleReviewsCacheTTL = 6 * time.Hour
+
+// fetchGoogleReviewsFromAPI le pega al endpoint "Place Details" de la
+// Places API clásica pidiendo solo los campos que usamos (rating,
+// total de reseñas, url del perfil y hasta 5 reseñas — es el máximo
+// que Google regresa por este endpoint, no hay forma de pedir más).
+func fetchGoogleReviewsFromAPI() (googleReviewsPayload, error) {
+	apiKey := os.Getenv("GOOGLE_PLACES_API_KEY")
+	placeID := os.Getenv("GOOGLE_PLACE_ID")
+	if apiKey == "" || placeID == "" {
+		return googleReviewsPayload{}, fmt.Errorf("faltan GOOGLE_PLACES_API_KEY o GOOGLE_PLACE_ID")
+	}
+
+	endpoint := "https://maps.googleapis.com/maps/api/place/details/json" +
+		"?place_id=" + url.QueryEscape(placeID) +
+		"&fields=rating,user_ratings_total,url,reviews" +
+		"&language=es&reviews_no_translations=true" +
+		"&key=" + url.QueryEscape(apiKey)
+
+	client := &http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Get(endpoint)
+	if err != nil {
+		return googleReviewsPayload{}, err
+	}
+	defer resp.Body.Close()
+
+	var parsed placesAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		return googleReviewsPayload{}, err
+	}
+	if parsed.Status != "OK" {
+		if parsed.ErrorMessage != "" {
+			return googleReviewsPayload{}, fmt.Errorf("places API status: %s (%s)", parsed.Status, parsed.ErrorMessage)
+		}
+		return googleReviewsPayload{}, fmt.Errorf("places API status: %s", parsed.Status)
+	}
+
+	out := googleReviewsPayload{
+		Rating:     parsed.Result.Rating,
+		Count:      parsed.Result.UserRatingsTotal,
+		ProfileURL: parsed.Result.URL,
+	}
+	for _, r := range parsed.Result.Reviews {
+		out.Reviews = append(out.Reviews, googleReviewOut{
+			Name:   r.AuthorName,
+			Date:   r.RelativeTimeDescription,
+			Rating: r.Rating,
+			Text:   r.Text,
+			Avatar: r.ProfilePhotoURL,
+		})
+	}
+	return out, nil
+}
+
+// buildGoogleReviewsJSON arma {{.GoogleReviewsJSON}} para el carrusel
+// de reseñas del index (mismo mecanismo que buildStoreProductsJSON:
+// un <script type="application/json"> que el JS del front lee).
+func buildGoogleReviewsJSON() template.JS {
+	googleReviewsMu.Lock()
+	defer googleReviewsMu.Unlock()
+
+	if googleReviewsCacheValid && time.Since(googleReviewsCacheAt) < googleReviewsCacheTTL {
+		b, _ := json.Marshal(googleReviewsCache)
+		return template.JS(b)
+	}
+
+	data, err := fetchGoogleReviewsFromAPI()
+	if err != nil {
+		log.Printf("reseñas de Google: %v", err)
+		if googleReviewsCacheValid {
+			// Prefiere mostrar la última respuesta buena (aunque esté
+			// desactualizada) antes que caer al demo por un fallo puntual.
+			b, _ := json.Marshal(googleReviewsCache)
+			return template.JS(b)
+		}
+		return template.JS("null")
+	}
+
+	googleReviewsCache = data
+	googleReviewsCacheAt = time.Now()
+	googleReviewsCacheValid = true
+
+	b, _ := json.Marshal(data)
+	return template.JS(b)
+}
+
 func loadTemplates() *template.Template {
 	funcs := template.FuncMap{
 		"fechaEs":     spanishDate,
@@ -169,12 +313,13 @@ func main() {
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", handlers.WithUser(c, gin.H{
-			"ActivePage":   "inicio",
-			"AdMainURL":    handlers.ActiveAdImage("main"),
-			"AdSide1URL":   handlers.ActiveAdImage("side1"),
-			"AdSide2URL":   handlers.ActiveAdImage("side2"),
-			"ProductsJSON": buildStoreProductsJSON(),
-			"RecentPosts":  handlers.RecentBlogPosts(3),
+			"ActivePage":        "inicio",
+			"AdMainURL":         handlers.ActiveAdImage("main"),
+			"AdSide1URL":        handlers.ActiveAdImage("side1"),
+			"AdSide2URL":        handlers.ActiveAdImage("side2"),
+			"ProductsJSON":      buildStoreProductsJSON(),
+			"RecentPosts":       handlers.RecentBlogPosts(3),
+			"GoogleReviewsJSON": buildGoogleReviewsJSON(),
 		}))
 	})
 
@@ -426,6 +571,11 @@ func main() {
 	router.GET("/agendar", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "agendar.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "agendar",
+		}))
+	})
+	router.GET("/rastreo", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "rastreo.html", handlers.WithUser(c, gin.H{
+			"ActivePage": "rastreo",
 		}))
 	})
 	router.GET("/carrito", func(c *gin.Context) {

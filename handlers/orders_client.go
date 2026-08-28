@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,9 @@ func GetMyOrders(c *gin.Context) {
 
 	orders, err := models.GetOrdersByUserID(userID)
 	if err != nil {
+		// Antes se tragaba el error real — ahora se imprime completo
+		// para poder ver la causa (columna faltante, etc.) sin adivinar.
+		log.Println("GetMyOrders: error al cargar pedidos para userID", userID, ":", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar tus pedidos."})
 		return
 	}
@@ -38,6 +42,7 @@ func GetMyOrders(c *gin.Context) {
 func GetOrderStatuses(c *gin.Context) {
 	statuses, err := models.GetAllOrderStatuses()
 	if err != nil {
+		log.Println("GetOrderStatuses: error al cargar estados:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar los estados."})
 		return
 	}

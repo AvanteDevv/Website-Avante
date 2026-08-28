@@ -30,11 +30,14 @@ function renderStats(){
   }).length;
   const enProceso = total - entregados;
 
-  wrap.innerHTML = `
-    <div class="cuenta-stat-card"><div class="num">${total}</div><div class="label">Pedidos totales</div></div>
-    <div class="cuenta-stat-card"><div class="num">${enProceso}</div><div class="label">En proceso</div></div>
-    <div class="cuenta-stat-card"><div class="num">${entregados}</div><div class="label">Entregados</div></div>
+  const stat = (num, label) => `
+    <div class="cuenta-stat-wrap">
+      <div class="cuenta-stat-glow"></div>
+      <div class="cuenta-stat-card"><div class="num">${num}</div><div class="label">${label}</div></div>
+    </div>
   `;
+
+  wrap.innerHTML = stat(total, 'Pedidos totales') + stat(enProceso, 'En proceso') + stat(entregados, 'Entregados');
 }
 
 /* ---------- stepper dinámico ---------- */
