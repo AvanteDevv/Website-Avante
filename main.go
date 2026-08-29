@@ -492,6 +492,7 @@ func main() {
 		api.GET("/horarios", handlers.GetAgendaHours)
 		api.POST("/pedidos", handlers.CreatePedido)
 		api.GET("/estados", handlers.GetOrderStatuses)
+		api.GET("/rastreo", handlers.TrackOrder)
 	}
 
 	// Admin JSON API — called from pedidos.js to fill the Pedidos table

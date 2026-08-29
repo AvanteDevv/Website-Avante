@@ -134,6 +134,38 @@ func GetOrdersByUserID(userID int64) ([]Order, error) {
 	return scanOrders(rows)
 }
 
+// GetOrderByCode busca UN pedido por su código público (ej. "AVT-10499"),
+// sin importar a qué cuenta pertenece ni si tiene user_id — es la
+// consulta que usa el widget público de rastreo (GET /api/rastreo),
+// que no requiere sesión. Regresa ErrOrderNotFound si no existe.
+func GetOrderByCode(code string) (*Order, error) {
+	row := db.DB.QueryRow(
+		`SELECT id, order_code, product_name, product_brand, quantity, unit_price, total,
+		        rx_option, rx_od, rx_oi, customer_name, user_id, status, created_at
+		 FROM orders WHERE order_code = ?`,
+		code,
+	)
+
+	var o Order
+	var userID sql.NullInt64
+
+	err := row.Scan(
+		&o.ID, &o.OrderCode, &o.ProductName, &o.ProductBrand, &o.Quantity, &o.UnitPrice, &o.Total,
+		&o.RxOption, &o.RxOD, &o.RxOI, &o.CustomerName, &userID, &o.Status, &o.CreatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, ErrOrderNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if userID.Valid {
+		o.UserID = &userID.Int64
+	}
+
+	return &o, nil
+}
+
 // scanOrders reads rows from either query above into []Order.
 func scanOrders(rows *sql.Rows) ([]Order, error) {
 	var list []Order

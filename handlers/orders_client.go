@@ -52,3 +52,29 @@ func GetOrderStatuses(c *gin.Context) {
 
 	c.JSON(http.StatusOK, statuses)
 }
+
+// TrackOrder busca un pedido por su código para el widget PÚBLICO de
+// rastreo (GET /api/rastreo?pedido=AVT-10499). A diferencia de
+// GetMyOrders, esta ruta va SIN auth — no filtra por cuenta, cualquiera
+// con el código del pedido puede consultarlo, igual que un rastreo de
+// paquetería normal.
+func TrackOrder(c *gin.Context) {
+	code := c.Query("pedido")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Falta el número de pedido."})
+		return
+	}
+
+	order, err := models.GetOrderByCode(code)
+	if err == models.ErrOrderNotFound {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pedido no encontrado."})
+		return
+	}
+	if err != nil {
+		log.Println("TrackOrder: error al buscar pedido", code, ":", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo consultar el pedido."})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
+}
