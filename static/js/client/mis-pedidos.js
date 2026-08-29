@@ -100,9 +100,6 @@ function renderOrders(){
         </div>
       </div>
       ${renderSteps(o)}
-      <div class="order-actions">
-        <a href="/tracking?pedido=${encodeURIComponent(o.orderCode || o.id)}" class="btn small">Rastrear pedido</a>
-      </div>
     </div>
   `).join('');
 
