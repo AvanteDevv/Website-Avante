@@ -565,6 +565,17 @@ func main() {
 			"ProductsJSON": buildStoreProductsJSON(),
 		}))
 	})
+	// Registrada como ruta ESTÁTICA ("/eccomerce/probador-virtual.html", no
+	// ":producto") porque detalle-producto.js enlaza a este archivo con un
+	// href RELATIVO ("probador-virtual.html") — el navegador, parado en
+	// /eccomerce/detalle, lo resuelve exactamente a esta URL. Gin prioriza
+	// las rutas estáticas sobre ":producto" en el mismo nivel, así que
+	// ambas conviven sin conflicto.
+	router.GET("/eccomerce/probador-virtual.html", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "probador-virtual.html", handlers.WithUser(c, gin.H{
+			"ActivePage": "tienda",
+		}))
+	})
 
 	// Standalone pages (templates/pages/*.html)
 	router.GET("/blog", handlers.BlogList)

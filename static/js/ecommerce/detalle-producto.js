@@ -68,6 +68,15 @@ if(product.badge){
   b.style.display = 'inline-block';
 }
 
+/* enlace al probador virtual: le pasamos el estilo/mica que más se
+   parece a este producto (a partir de su "icon") para que abra ya
+   preseleccionado, en vez de arrancar siempre en Clásico/Negro. */
+const TRYON_ESTILO_POR_ICON = { round: 'redondo', square: 'clasico', sun: 'aviador' };
+const tryonEstilo = TRYON_ESTILO_POR_ICON[product.icon] || 'clasico';
+const tryonMica = product.icon === 'sun' ? 'sol' : 'oftalmico';
+const tryonParams = new URLSearchParams({ estilo: tryonEstilo, mica: tryonMica, nombre: product.name });
+document.getElementById('pdTryOn').href = `probador-virtual.html?${tryonParams.toString()}`;
+
 /* miniaturas + navegación con animación */
 const thumbsEl = document.getElementById('pdThumbs');
 const pdPrevBtn = document.getElementById('pdPrevImg');

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Probador virtual · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/ecommerce/probador-virtual.css">
+</head>
+<body>
+
+<div class="header-outer">
+<header>
+  <div class="nav-side nav-left">
+    <a href="index.html">Inicio</a>
+    <a href="eccomerce.html">Tienda</a>
+  </div>
+
+  <a href="index.html" class="mark">
+    <svg class="mark-icon" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>
+    <span class="mark-word">Avante<span>.</span></span>
+  </a>
+
+  <div class="nav-side nav-right">
+    <nav>
+      <a href="index.html#appointment">Agendar</a>
+      <a href="index.html#tracking">Rastreo</a>
+      <a href="blog.html">Blog</a>
+    </nav>
+    <div class="head-actions">
+      <button class="head-icon-btn cart" id="cartBtn" aria-label="Carrito">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      </button>
+      <a href="index.html#tracking" class="head-icon-btn" aria-label="Rastrear pedido">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+      </a>
+      <button class="hamburger" id="menuBtn" aria-label="Menú"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+
+  <nav id="mainNav">
+    <a href="index.html">Inicio</a>
+    <a href="eccomerce.html">Tienda</a>
+    <a href="index.html#appointment">Agendar</a>
+    <a href="index.html#tracking">Rastreo</a>
+    <a href="blog.html">Blog</a>
+  </nav>
+</header>
+</div>
+
+<section class="intro">
+  <span class="eyebrow">
+    <svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>
+    Probador virtual
+  </span>
+  <h1>Pruébate tus próximos lentes sin salir de casa</h1>
+  <p>Activa tu cámara, elige un estilo y mira cómo te quedan en tiempo real. Cuando encuentres el indicado, agenda tu cita o visítanos en tienda.</p>
+  <span class="tryon-producto-chip" id="tryon-producto" style="display:none;"></span>
+</section>
+
+<main class="probador">
+
+  <!-- Visor de cámara -->
+  <div class="visor">
+    <video id="video" playsinline></video>
+    <canvas id="lienzo"></canvas>
+
+    <div class="estado" id="estado">
+      <div class="icono-cam">
+        <svg viewBox="0 0 24 24"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+      </div>
+      <h2 id="estado-titulo">Probador virtual</h2>
+      <p id="estado-texto">Necesitamos acceso a tu cámara para mostrarte cómo te quedan los lentes. La imagen no se guarda ni se envía a ningún servidor.</p>
+      <button class="btn-permiso" id="btn-iniciar">Activar cámara</button>
+    </div>
+
+    <div class="aviso-cara" id="aviso-cara">Acércate un poco y mira de frente 👓</div>
+  </div>
+
+  <!-- Panel de controles -->
+  <aside class="panel">
+
+    <div class="grupo">
+      <h3>Estilo <small>elige tu armazón</small></h3>
+      <div class="estilos" id="estilos">
+        <button class="estilo activo" data-estilo="clasico" aria-pressed="true">
+          <svg viewBox="0 0 120 44"><g class="trazo"><rect x="8" y="10" width="42" height="26" rx="8"/><rect x="70" y="10" width="42" height="26" rx="8"/><path d="M50 18 Q60 12 70 18"/></g></svg>
+          <span>Clásico</span>
+        </button>
+        <button class="estilo" data-estilo="redondo" aria-pressed="false">
+          <svg viewBox="0 0 120 44"><g class="trazo"><circle cx="30" cy="23" r="15"/><circle cx="90" cy="23" r="15"/><path d="M45 18 Q60 12 75 18"/></g></svg>
+          <span>Redondo</span>
+        </button>
+        <button class="estilo" data-estilo="aviador" aria-pressed="false">
+          <svg viewBox="0 0 120 44"><g class="trazo"><path d="M10 12 h40 v6 q0 20 -20 20 q-20 0 -20 -20 z"/><path d="M70 12 h40 v6 q0 20 -20 20 q-20 0 -20 -20 z"/><path d="M50 15 Q60 11 70 15"/></g></svg>
+          <span>Aviador</span>
+        </button>
+        <button class="estilo" data-estilo="cateye" aria-pressed="false">
+          <svg viewBox="0 0 120 44"><g class="trazo"><path d="M10 16 Q6 8 16 10 L50 16 Q52 32 32 34 Q12 36 10 16 z"/><path d="M110 16 Q114 8 104 10 L70 16 Q68 32 88 34 Q108 36 110 16 z"/><path d="M50 20 Q60 14 70 20"/></g></svg>
+          <span>Cat-eye</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="grupo">
+      <h3>Color</h3>
+      <div class="colores" id="colores">
+        <button class="color activo" data-color="#1c1c22" style="background:#1c1c22" aria-label="Negro" aria-pressed="true"></button>
+        <button class="color" data-color="#6e4a2a" style="background:linear-gradient(135deg,#6e4a2a 40%,#a5773f)" aria-label="Carey" aria-pressed="false"></button>
+        <button class="color" data-color="#c9a24b" style="background:#c9a24b" aria-label="Dorado" aria-pressed="false"></button>
+        <button class="color" data-color="#041cff" style="background:#041cff" aria-label="Azul Avante" aria-pressed="false"></button>
+      </div>
+    </div>
+
+    <div class="grupo">
+      <h3>Mica</h3>
+      <div class="micas" id="micas">
+        <button class="mica activo" data-mica="oftalmico" aria-pressed="true">Oftálmica</button>
+        <button class="mica" data-mica="sol" aria-pressed="false">De sol</button>
+      </div>
+    </div>
+
+    <div class="grupo">
+      <h3>Tamaño <small>ajuste fino</small></h3>
+      <div class="tamano">
+        <input type="range" id="tamano" min="80" max="125" value="100" aria-label="Tamaño del armazón">
+        <span id="tamano-valor">100%</span>
+      </div>
+    </div>
+
+    <div class="acciones">
+      <button class="btn solid btn-foto" id="btn-foto" disabled>
+        <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM9 3 7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9z"/></svg>
+        Tomar foto
+      </button>
+      <p class="nota-panel">¿Ya encontraste el indicado? <a href="index.html#appointment">Agenda tu cita</a> y te ayudamos con tu graduación.</p>
+    </div>
+
+  </aside>
+</main>
+
+<!-- MediaPipe FaceMesh -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+<script src="/static/js/ecommerce/probador-virtual.js"></script>
+</body>
+</html>
