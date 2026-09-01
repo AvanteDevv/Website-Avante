@@ -91,26 +91,16 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
 @media (max-width:720px){ .cat-track{ gap:20px; } }
 .cat-chip{
   flex-shrink:0;
-  display:flex; flex-direction:column; align-items:center; gap:10px;
-  width:74px;
-}
-.cat-ring{
-  width:64px; height:64px; border-radius:50%; padding:2px;
-  background:conic-gradient(from 200deg, var(--blue-600), var(--blue-500) 45%, var(--blue-100) 70%, var(--blue-600));
   display:flex; align-items:center; justify-content:center;
-  transition:transform .25s var(--ease), filter .25s var(--ease);
+  height:64px; padding:0 8px;
 }
-.cat-circle{
-  width:100%; height:100%; border-radius:50%;
-  background:var(--white); border:2px solid var(--white);
-  display:flex; align-items:center; justify-content:center;
-  transition:background .2s var(--ease);
+.brand-logo{
+  max-height:36px; max-width:120px; width:auto; height:auto;
+  object-fit:contain;
+  filter:grayscale(1); opacity:.55;
+  transition:filter .25s var(--ease), opacity .25s var(--ease), transform .25s var(--ease);
 }
-.cat-circle svg{ width:22px; height:22px; color:var(--blue-700); transition:color .2s var(--ease); }
-.cat-label{ font-size:11.5px; font-weight:600; color:var(--ink); letter-spacing:.01em; white-space:nowrap; }
-.cat-chip:hover .cat-ring{ transform:scale(1.06); }
-.cat-chip:hover .cat-circle{ background:var(--blue-600); }
-.cat-chip:hover .cat-circle svg{ color:var(--white); }
+.cat-chip:hover .brand-logo{ filter:grayscale(0); opacity:1; transform:scale(1.06); }
 
 /* =========================================================
    HERO — texto centrado sobre fondo de vidrio líquido a pantalla completa
