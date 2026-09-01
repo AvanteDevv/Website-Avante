@@ -6,9 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +16,6 @@ import (
 	"avante-optics/db"
 	"avante-optics/handlers"
 	adminHandlers "avante-optics/handlers/admin"
-	receptionistHandlers "avante-optics/handlers/receptionist"
 	"avante-optics/models"
 	"avante-optics/storage"
 )
@@ -126,148 +123,6 @@ func buildStoreProductsJSON() template.JS {
 	return template.JS(b)
 }
 
-// --- Reseñas de Google (Places API) ---
-//
-// Requiere dos variables de entorno (.env o las que ya inyecta tu
-// hosting junto a las demás):
-//   GOOGLE_PLACES_API_KEY  — API key de Google Cloud con "Places API" habilitada
-//   GOOGLE_PLACE_ID        — Place ID de Avante Optics en Google Maps
-//
-// Si cualquiera de las dos falta, o la API falla, buildGoogleReviewsJSON
-// regresa "null" y el JS del front (readInjectedGoogleData) cae solo a
-// sus reseñas de ejemplo — la sección nunca se queda vacía ni rompe la
-// página.
-
-type googleReviewOut struct {
-	Name   string `json:"name"`
-	Date   string `json:"date"`
-	Rating int    `json:"rating"`
-	Text   string `json:"text"`
-	Avatar string `json:"avatar,omitempty"`
-}
-
-type googleReviewsPayload struct {
-	Rating     float64           `json:"rating"`
-	Count      int               `json:"count"`
-	ProfileURL string            `json:"profileUrl"`
-	Reviews    []googleReviewOut `json:"reviews"`
-}
-
-type placesAPIResponse struct {
-	Status       string `json:"status"`
-	ErrorMessage string `json:"error_message"`
-	Result       struct {
-		Rating           float64 `json:"rating"`
-		UserRatingsTotal int     `json:"user_ratings_total"`
-		URL              string  `json:"url"`
-		Reviews          []struct {
-			AuthorName              string `json:"author_name"`
-			ProfilePhotoURL         string `json:"profile_photo_url"`
-			Rating                  int    `json:"rating"`
-			RelativeTimeDescription string `json:"relative_time_description"`
-			Text                    string `json:"text"`
-		} `json:"reviews"`
-	} `json:"result"`
-}
-
-// Caché en memoria: las reseñas de Google casi no cambian de un día
-// a otro, y la Places API solo da 1,000 consultas gratis al mes para
-// el tier que incluye reviews — refrescar cada 6 horas te deja en unas
-// ~120 llamadas al mes (muy por debajo del límite gratis) sin importar
-// cuántas visitas reciba el sitio, porque todas leen del mismo caché.
-var (
-	googleReviewsCache      googleReviewsPayload
-	googleReviewsCacheAt    time.Time
-	googleReviewsCacheValid bool
-	googleReviewsMu         sync.Mutex
-)
-
-const googleReviewsCacheTTL = 6 * time.Hour
-
-// fetchGoogleReviewsFromAPI le pega al endpoint "Place Details" de la
-// Places API clásica pidiendo solo los campos que usamos (rating,
-// total de reseñas, url del perfil y hasta 5 reseñas — es el máximo
-// que Google regresa por este endpoint, no hay forma de pedir más).
-func fetchGoogleReviewsFromAPI() (googleReviewsPayload, error) {
-	apiKey := os.Getenv("GOOGLE_PLACES_API_KEY")
-	placeID := os.Getenv("GOOGLE_PLACE_ID")
-	if apiKey == "" || placeID == "" {
-		return googleReviewsPayload{}, fmt.Errorf("faltan GOOGLE_PLACES_API_KEY o GOOGLE_PLACE_ID")
-	}
-
-	endpoint := "https://maps.googleapis.com/maps/api/place/details/json" +
-		"?place_id=" + url.QueryEscape(placeID) +
-		"&fields=rating,user_ratings_total,url,reviews" +
-		"&language=es&reviews_no_translations=true" +
-		"&key=" + url.QueryEscape(apiKey)
-
-	client := &http.Client{Timeout: 8 * time.Second}
-	resp, err := client.Get(endpoint)
-	if err != nil {
-		return googleReviewsPayload{}, err
-	}
-	defer resp.Body.Close()
-
-	var parsed placesAPIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
-		return googleReviewsPayload{}, err
-	}
-	if parsed.Status != "OK" {
-		if parsed.ErrorMessage != "" {
-			return googleReviewsPayload{}, fmt.Errorf("places API status: %s (%s)", parsed.Status, parsed.ErrorMessage)
-		}
-		return googleReviewsPayload{}, fmt.Errorf("places API status: %s", parsed.Status)
-	}
-
-	out := googleReviewsPayload{
-		Rating:     parsed.Result.Rating,
-		Count:      parsed.Result.UserRatingsTotal,
-		ProfileURL: parsed.Result.URL,
-	}
-	for _, r := range parsed.Result.Reviews {
-		out.Reviews = append(out.Reviews, googleReviewOut{
-			Name:   r.AuthorName,
-			Date:   r.RelativeTimeDescription,
-			Rating: r.Rating,
-			Text:   r.Text,
-			Avatar: r.ProfilePhotoURL,
-		})
-	}
-	return out, nil
-}
-
-// buildGoogleReviewsJSON arma {{.GoogleReviewsJSON}} para el carrusel
-// de reseñas del index (mismo mecanismo que buildStoreProductsJSON:
-// un <script type="application/json"> que el JS del front lee).
-func buildGoogleReviewsJSON() template.JS {
-	googleReviewsMu.Lock()
-	defer googleReviewsMu.Unlock()
-
-	if googleReviewsCacheValid && time.Since(googleReviewsCacheAt) < googleReviewsCacheTTL {
-		b, _ := json.Marshal(googleReviewsCache)
-		return template.JS(b)
-	}
-
-	data, err := fetchGoogleReviewsFromAPI()
-	if err != nil {
-		log.Printf("reseñas de Google: %v", err)
-		if googleReviewsCacheValid {
-			// Prefiere mostrar la última respuesta buena (aunque esté
-			// desactualizada) antes que caer al demo por un fallo puntual.
-			b, _ := json.Marshal(googleReviewsCache)
-			return template.JS(b)
-		}
-		return template.JS("null")
-	}
-
-	googleReviewsCache = data
-	googleReviewsCacheAt = time.Now()
-	googleReviewsCacheValid = true
-
-	b, _ := json.Marshal(data)
-	return template.JS(b)
-}
-
 func loadTemplates() *template.Template {
 	funcs := template.FuncMap{
 		"fechaEs":     spanishDate,
@@ -303,7 +158,6 @@ func main() {
 	storage.Connect()
 
 	auth.InitStore()
-	auth.InitGoogleOAuth()
 
 	router := gin.Default()
 
@@ -314,13 +168,12 @@ func main() {
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", handlers.WithUser(c, gin.H{
-			"ActivePage":        "inicio",
-			"AdMainURL":         handlers.ActiveAdImage("main"),
-			"AdSide1URL":        handlers.ActiveAdImage("side1"),
-			"AdSide2URL":        handlers.ActiveAdImage("side2"),
-			"ProductsJSON":      buildStoreProductsJSON(),
-			"RecentPosts":       handlers.RecentBlogPosts(3),
-			"GoogleReviewsJSON": buildGoogleReviewsJSON(),
+			"ActivePage":   "inicio",
+			"AdMainURL":    handlers.ActiveAdImage("main"),
+			"AdSide1URL":   handlers.ActiveAdImage("side1"),
+			"AdSide2URL":   handlers.ActiveAdImage("side2"),
+			"ProductsJSON": buildStoreProductsJSON(),
+			"RecentPosts":  handlers.RecentBlogPosts(3),
 		}))
 	})
 
@@ -335,14 +188,6 @@ func main() {
 			"ActivePage": "registro",
 		})
 	})
-
-	// Login/registro con Google — un solo flujo para ambos botones (el
-	// de "Iniciar sesión" y el de "Registro" apuntan al mismo
-	// /auth/google): GoogleCallback decide solo si es cuenta nueva o
-	// existente. Fuera de /api porque es una navegación con redirects
-	// de verdad, no un fetch() que espere JSON.
-	router.GET("/auth/google", handlers.GoogleLogin)
-	router.GET("/auth/google/callback", handlers.GoogleCallback)
 
 	// Client panel views (templates/client/*.html) — protegidas: sin
 	// sesión de cliente, RequireAuth() manda a /iniciar-sesion.
@@ -363,8 +208,16 @@ func main() {
 				"ActivePage": "mis-pedidos",
 			}))
 		})
-		clientGroup.GET("/mi-perfil", handlers.MiPerfil)
-		clientGroup.GET("/mis-citas", handlers.MisCitas)
+		clientGroup.GET("/mi-perfil", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "mi-perfil.html", handlers.WithUser(c, gin.H{
+				"ActivePage": "mi-perfil",
+			}))
+		})
+		clientGroup.GET("/mis-citas", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "mis-citas.html", handlers.WithUser(c, gin.H{
+				"ActivePage": "mis-citas",
+			}))
+		})
 		clientGroup.GET("/configuracion", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "ajustes.html", handlers.WithUser(c, gin.H{
 				"ActivePage": "configuracion",
@@ -423,10 +276,16 @@ func main() {
 	// Receptionist panel (templates/receptionist/*.html) — mismo login
 	// y misma cookie que /admin (RequireAdminAuth), pero solo entra
 	// quien tenga sesión con role "admin" o "receptionist".
+	//
+	// ⚠️ /receptionist/citas está pendiente: necesito el handler real
+	// de citas (probablemente handlers/admin/citas.go o appointments.go)
+	// para reusar su lógica de datos con la plantilla propia de
+	// recepción en vez de la de admin. Por ahora NO está registrada —
+	// agrégala aquí en cuanto la tengamos:
+	//
+	//	receptionistGroup.GET("/citas", receptionistHandlers.Citas)
 	receptionistGroup := router.Group("/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
-	{
-		receptionistGroup.GET("/citas", receptionistHandlers.Citas)
-	}
+	_ = receptionistGroup
 
 	// Optometrist panel (templates/optometrist/*.html) — mismo login y
 	// misma cookie que /admin, pero solo entra role "admin" u
@@ -478,15 +337,7 @@ func main() {
 		apiOptometrist.GET("/examenes", handlers.ListEyeExams)
 		apiOptometrist.GET("/examenes/:id", handlers.GetEyeExam)
 		apiOptometrist.POST("/examenes", handlers.CreateEyeExam)
-		apiOptometrist.DELETE("/examenes/:id", handlers.DeleteEyeExam)
-		apiOptometrist.GET("/pacientes", handlers.SearchPatients)
 	}
-
-	// JSON de citas — a diferencia de "/admin/citas" (que renderiza
-	// HTML), esta la consumen páginas que solo necesitan los datos, como
-	// "Examen de la vista" para mostrar la próxima cita. Mismo rol que
-	// ya puede ver citas (citasStaff), no solo admin.
-	router.GET("/api/citas", handlers.RequireAdminAuth(), citasStaff, adminHandlers.ListAppointmentsJSON)
 
 	// Auth API — called from iniciar-sesion.js / registro.js
 	api := router.Group("/api")
@@ -501,7 +352,6 @@ func main() {
 		api.GET("/horarios", handlers.GetAgendaHours)
 		api.POST("/pedidos", handlers.CreatePedido)
 		api.GET("/estados", handlers.GetOrderStatuses)
-		api.GET("/rastreo", handlers.TrackOrder)
 	}
 
 	// Admin JSON API — called from pedidos.js to fill the Pedidos table
@@ -545,11 +395,18 @@ func main() {
 		apiClient.POST("/favorites", handlers.AddFavorite)
 		apiClient.DELETE("/favorites/:productId", handlers.DeleteFavorite)
 		apiClient.GET("/mis-pedidos", handlers.GetMyOrders)
-		apiClient.GET("/mis-citas", handlers.GetMyAppointments)
-		apiClient.PATCH("/mis-citas/:id/cancelar", handlers.CancelMyAppointment)
-		apiClient.PUT("/mi-perfil", handlers.UpdateMyProfile)
-		apiClient.PATCH("/mi-perfil/password", handlers.UpdateMyPassword)
-		apiClient.GET("/mis-examenes", handlers.GetMyEyeExams)
+	}
+
+	// SMS gateway — llamada por la app Android del celular que manda los
+	// códigos de verificación por SMS real (ver sms_gateway.go). No usa
+	// sesión de cliente/admin: se protege con la llave fija
+	// SMS_GATEWAY_KEY (header X-Gateway-Key), validada dentro de cada
+	// handler porque no es una persona la que llama, es el dispositivo.
+	gateway := router.Group("/api/gateway")
+	{
+		gateway.GET("/sms/siguiente", handlers.GetPendingSMS)
+		gateway.POST("/sms/:id/confirmar", handlers.ConfirmSMSSent)
+		gateway.POST("/sms/:id/fallido", handlers.ReportSMSFailed)
 	}
 
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
@@ -574,17 +431,6 @@ func main() {
 			"ProductsJSON": buildStoreProductsJSON(),
 		}))
 	})
-	// Registrada como ruta ESTÁTICA ("/eccomerce/probador-virtual.html", no
-	// ":producto") porque detalle-producto.js enlaza a este archivo con un
-	// href RELATIVO ("probador-virtual.html") — el navegador, parado en
-	// /eccomerce/detalle, lo resuelve exactamente a esta URL. Gin prioriza
-	// las rutas estáticas sobre ":producto" en el mismo nivel, así que
-	// ambas conviven sin conflicto.
-	router.GET("/eccomerce/probador-virtual.html", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "probador-virtual.html", handlers.WithUser(c, gin.H{
-			"ActivePage": "tienda",
-		}))
-	})
 
 	// Standalone pages (templates/pages/*.html)
 	router.GET("/blog", handlers.BlogList)
@@ -592,11 +438,6 @@ func main() {
 	router.GET("/agendar", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "agendar.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "agendar",
-		}))
-	})
-	router.GET("/rastreo", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "rastreo.html", handlers.WithUser(c, gin.H{
-			"ActivePage": "rastreo",
 		}))
 	})
 	router.GET("/carrito", func(c *gin.Context) {
