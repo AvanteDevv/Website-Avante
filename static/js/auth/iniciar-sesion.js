@@ -77,5 +77,25 @@ loginForm.addEventListener('submit', async (e) => {
   }
 });
 
-document.getElementById('googleBtn').addEventListener('click', () => showToast('Conecta tu cuenta de Google para continuar'));
+document.getElementById('googleBtn').addEventListener('click', () => {
+  window.location.href = '/auth/google';
+});
 document.getElementById('facebookBtn').addEventListener('click', () => showToast('Conecta tu cuenta de Facebook para continuar'));
+
+/* si venimos de vuelta de /auth/google/callback con un error, avisar */
+const GOOGLE_ERROR_MESSAGES = {
+  google: 'No se pudo iniciar sesión con Google. Intenta de nuevo.',
+  google_config: 'El login con Google no está disponible en este momento.',
+  google_cancelado: 'Cancelaste el inicio de sesión con Google.',
+  google_sin_verificar: 'Tu correo de Google no está verificado.',
+};
+(() => {
+  const params = new URLSearchParams(window.location.search);
+  const err = params.get('error');
+  if (err && GOOGLE_ERROR_MESSAGES[err]) {
+    showToast(GOOGLE_ERROR_MESSAGES[err]);
+    params.delete('error');
+    const rest = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''));
+  }
+})();

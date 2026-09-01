@@ -303,6 +303,7 @@ func main() {
 	storage.Connect()
 
 	auth.InitStore()
+	auth.InitGoogleOAuth()
 
 	router := gin.Default()
 
@@ -334,6 +335,14 @@ func main() {
 			"ActivePage": "registro",
 		})
 	})
+
+	// Login/registro con Google — un solo flujo para ambos botones (el
+	// de "Iniciar sesión" y el de "Registro" apuntan al mismo
+	// /auth/google): GoogleCallback decide solo si es cuenta nueva o
+	// existente. Fuera de /api porque es una navegación con redirects
+	// de verdad, no un fetch() que espere JSON.
+	router.GET("/auth/google", handlers.GoogleLogin)
+	router.GET("/auth/google/callback", handlers.GoogleCallback)
 
 	// Client panel views (templates/client/*.html) — protegidas: sin
 	// sesión de cliente, RequireAuth() manda a /iniciar-sesion.
