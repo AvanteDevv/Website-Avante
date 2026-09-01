@@ -159,6 +159,16 @@ func main() {
 
 	auth.InitStore()
 
+	// Cache de reseñas reales de Google (Places API New). Si faltan las
+	// env vars, seguimos sin truenar: el sitio cae en las reseñas de
+	// ejemplo (ver ToTemplateJS) y solo se loguea el aviso.
+	reviewsCache, err := handlers.NewReviewsCacheFromEnv(24 * time.Hour)
+	if err != nil {
+		log.Println("[google_reviews]", err, "— se usarán reseñas de ejemplo")
+	} else {
+		reviewsCache.StartBackgroundRefresh(24 * time.Hour)
+	}
+
 	router := gin.Default()
 
 	router.SetHTMLTemplate(loadTemplates())
@@ -167,13 +177,19 @@ func main() {
 	router.Static("/js", "./static/js")
 
 	router.GET("/", func(c *gin.Context) {
+		var reviewsData *handlers.GoogleReviewsData
+		if reviewsCache != nil {
+			reviewsData = reviewsCache.Get(c.Request.Context())
+		}
+
 		c.HTML(http.StatusOK, "index.html", handlers.WithUser(c, gin.H{
-			"ActivePage":   "inicio",
-			"AdMainURL":    handlers.ActiveAdImage("main"),
-			"AdSide1URL":   handlers.ActiveAdImage("side1"),
-			"AdSide2URL":   handlers.ActiveAdImage("side2"),
-			"ProductsJSON": buildStoreProductsJSON(),
-			"RecentPosts":  handlers.RecentBlogPosts(3),
+			"ActivePage":        "inicio",
+			"AdMainURL":         handlers.ActiveAdImage("main"),
+			"AdSide1URL":        handlers.ActiveAdImage("side1"),
+			"AdSide2URL":        handlers.ActiveAdImage("side2"),
+			"ProductsJSON":      buildStoreProductsJSON(),
+			"RecentPosts":       handlers.RecentBlogPosts(3),
+			"GoogleReviewsJSON": handlers.ToTemplateJS(reviewsData),
 		}))
 	})
 
