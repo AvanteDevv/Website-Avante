@@ -835,7 +835,7 @@ if(reviewsTrack){
   if(reviewsScoreNum) reviewsScoreNum.textContent = avgRating.toFixed(1);
   if(reviewsSummaryStars) reviewsSummaryStars.innerHTML = buildStars(avgRating);
   if(reviewsSummaryCount) reviewsSummaryCount.textContent = `${GOOGLE_DATA.count || GOOGLE_DATA.reviews.length} reseñas`;
-  if(reviewsSummaryLink) reviewsSummaryLink.href = GOOGLE_DATA.profileUrl || 'https://www.google.com/maps';
+  if(reviewsSummaryLink) reviewsSummaryLink.href = 'https://g.page/r/CV04GeTCOvAIEBM/review';
 
   reviewsTrack.innerHTML = GOOGLE_DATA.reviews.map((r) => {
     const initial = escapeHtml((r.name || '?').trim().charAt(0).toUpperCase() || '?');
