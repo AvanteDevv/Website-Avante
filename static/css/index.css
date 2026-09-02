@@ -1456,3 +1456,8 @@ form#contactForm .cf-field:last-of-type{ margin-bottom:0; }
   text-align:center; text-decoration:underline; text-underline-offset:3px;
 }
 .modal-resend:disabled{ color:var(--grey); text-decoration:none; cursor:default; }
+/* ===== Ocultar secciones: Promociones y Tienda en Línea (ecommerce) ===== */
+#promos,
+#shop{
+  display:none;
+}
