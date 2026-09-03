@@ -710,16 +710,6 @@ const cfTotal = cfSlides.length;
 let cfActive = Math.floor((cfTotal - 1) / 2);
 const cfCardWidth = cfSlides[0] ? cfSlides[0].getBoundingClientRect().width : 220;
 
-// Logos de marcas que se muestran como paginación del carrusel de
-// promociones, en vez de los puntos genéricos. Se repiten en ciclo si
-// hay más promos que logos (PROMOS es dinámico según el catálogo real).
-const BRAND_LOGOS = [
-  { name: 'Marca 1', img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3f4YNuNIaDMJwyAgZxuHgjWDKj3bRg0cUwZlW712_Fg&s=10' },
-  { name: 'Marca 2', img: 'https://media.fashionnetwork.com/cdn-cgi/image/fit=contain,width=1000,height=1000,format=auto/m/dec4/9ffd/972a/8390/af80/b1e1/8722/c49f/80ac/6b53/6b53.jpg' },
-  { name: 'Guess', img: 'https://1000logos.net/wp-content/uploads/2017/02/Guess-Logo.jpg' },
-  { name: 'Polaroid', img: 'https://upload.wikimedia.org/wikipedia/commons/2/2c/Polaroid_logo.svg' },
-  { name: 'Marca 5', img: 'https://m.media-amazon.com/images/S/stores-image-uploads-na-prod/b/AmazonStores/ATVPDKIKX0DER/031ebfd768431b0ae299cb497f123ebf.w752.h377.png' }
-];
 function buildDots(){
   cfDots.innerHTML = '';
   cfSlides.forEach((_, i) => {
@@ -727,8 +717,6 @@ function buildDots(){
     dot.type = 'button';
     dot.className = 'coverflow-dot' + (i === cfActive ? ' active' : '');
     dot.setAttribute('aria-label', 'Ir a la promoción ' + (i + 1));
-    const brand = BRAND_LOGOS[i % BRAND_LOGOS.length];
-    dot.innerHTML = `<img src="${brand.img}" alt="${brand.name}" loading="lazy">`;
     dot.addEventListener('click', () => cfGoTo(i));
     cfDots.appendChild(dot);
   });

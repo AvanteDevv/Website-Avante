@@ -376,6 +376,7 @@ func main() {
 		api.GET("/horarios", handlers.GetAgendaHours)
 		api.POST("/pedidos", handlers.CreatePedido)
 		api.GET("/estados", handlers.GetOrderStatuses)
+		api.GET("/rastreo", handlers.TrackOrder)
 	}
 
 	// Admin JSON API — called from pedidos.js to fill the Pedidos table
@@ -462,6 +463,11 @@ func main() {
 	router.GET("/agendar", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "agendar.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "agendar",
+		}))
+	})
+	router.GET("/rastreo", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "rastreo.html", handlers.WithUser(c, gin.H{
+			"ActivePage": "rastreo",
 		}))
 	})
 	router.GET("/carrito", func(c *gin.Context) {
