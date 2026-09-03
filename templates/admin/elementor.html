@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/static/css/admin/userbar.css">
 <link rel="stylesheet" href="/static/css/admin/sidebar.css">
 <link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+<link rel="stylesheet" href="/static/css/admin/productos.css">
 <link rel="stylesheet" href="/static/css/admin/elementor.css">
 </head>
 <body class="cuenta-body">
@@ -125,6 +126,62 @@
               <span class="elementor-social-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg></span>
               <input type="url" id="elWhatsapp" placeholder="https://wa.me/526622131792">
             </label>
+          </div>
+        </section>
+
+        <section class="panel elementor-panel">
+          <div class="panel-head panel-head-actions">
+            <div>
+              <h2>Carrusel de marcas</h2>
+              <p>Logos que se muestran en la franja de desplazamiento infinito, en el orden de esta lista</p>
+            </div>
+            <button type="button" class="btn thin" id="elCarouselAddBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Agregar logo
+            </button>
+          </div>
+
+          <div class="elementor-carousel-list" id="elCarouselList">
+            <p class="elementor-carousel-empty" id="elCarouselEmpty">Todavía no agregas ningún logo al carrusel.</p>
+          </div>
+
+          <div class="elementor-carousel-savebar">
+            <button type="button" class="btn solid" id="elCarouselSaveBtn">Guardar carrusel</button>
+            <span class="elementor-carousel-savedmsg" id="elCarouselSavedMsg">Carrusel guardado.</span>
+          </div>
+
+          <div class="elementor-carousel-picker" id="elCarouselPicker" hidden>
+            <div class="logo-mode-tabs" id="elCarouselModeTabs">
+              <button type="button" class="logo-mode-tab active" data-mode="upload">Subir nuevo</button>
+              <button type="button" class="logo-mode-tab" data-mode="existing">Usar uno existente</button>
+            </div>
+
+            <div id="elCarouselModeUpload">
+              <div class="ad-upload-drop" id="elCarouselDrop">
+                <img class="ad-upload-preview" id="elCarouselPreview" alt="" style="display:none;">
+                <div class="ad-upload-placeholder" id="elCarouselPlaceholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+                  <span>Arrastra una imagen o haz clic para subirla</span>
+                </div>
+                <input type="file" id="elCarouselInput" accept="image/png,image/jpeg,image/webp" hidden>
+              </div>
+              <label>Nombre de la marca <span class="admin-user-form-optional">(opcional, solo para identificarlo aquí)</span>
+                <input type="text" id="elCarouselBrandName" placeholder="Ej. Ray-Ban">
+              </label>
+              <div class="elementor-carousel-picker-actions">
+                <button type="button" class="btn thin" id="elCarouselConfirmUpload">Agregar a la lista</button>
+                <button type="button" class="elementor-btn-secondary" id="elCarouselCancelUpload">Cancelar</button>
+              </div>
+            </div>
+
+            <div id="elCarouselModeExisting" style="display:none;">
+              <div class="existing-logos-grid" id="elCarouselExistingGrid">
+                <p class="existing-logos-empty" id="elCarouselExistingEmpty" style="display:none;">Todavía no tienes ninguna marca con logo guardado.</p>
+              </div>
+              <div class="elementor-carousel-picker-actions">
+                <button type="button" class="elementor-btn-secondary" id="elCarouselCancelExisting">Cerrar</button>
+              </div>
+            </div>
           </div>
         </section>
 

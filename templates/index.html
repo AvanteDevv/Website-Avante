@@ -56,11 +56,17 @@
 
 <div class="cat-strip" id="catStrip">
   <div class="cat-track" id="catTrack">
+  {{if .CarruselMarcas}}
+  {{range .CarruselMarcas}}
+  <button class="cat-chip"><img class="brand-logo" src="{{.LogoURL}}" alt="{{.Brand}}" loading="lazy"></button>
+  {{end}}
+  {{else}}
   <button class="cat-chip"><img class="brand-logo" src="https://1000logos.net/wp-content/uploads/2017/02/Guess-Logo.jpg" alt="Guess" loading="lazy"></button>
   <button class="cat-chip"><img class="brand-logo" src="https://upload.wikimedia.org/wikipedia/commons/2/2c/Polaroid_logo.svg" alt="Polaroid" loading="lazy"></button>
   <button class="cat-chip"><img class="brand-logo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3f4YNuNIaDMJwyAgZxuHgjWDKj3bRg0cUwZlW712_Fg&s=10" alt="Ray-Ban" loading="lazy"></button>
   <button class="cat-chip"><img class="brand-logo" src="https://media.fashionnetwork.com/cdn-cgi/image/fit=contain,width=1000,height=1000,format=auto/m/dec4/9ffd/972a/8390/af80/b1e1/8722/c49f/80ac/6b53/6b53.jpg" alt="TOUS" loading="lazy"></button>
   <button class="cat-chip"><img class="brand-logo" src="https://m.media-amazon.com/images/S/stores-image-uploads-na-prod/b/AmazonStores/ATVPDKIKX0DER/031ebfd768431b0ae299cb497f123ebf.w752.h377.png" alt="Arnette" loading="lazy"></button>
+  {{end}}
   </div>
 </div>
 

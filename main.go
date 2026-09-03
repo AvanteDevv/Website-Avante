@@ -182,6 +182,11 @@ func main() {
 			reviewsData = reviewsCache.Get(c.Request.Context())
 		}
 
+		carruselMarcas, err := models.GetCarouselLogos()
+		if err != nil {
+			log.Println("[carrusel_marcas]", err, "— se usará el carrusel de ejemplo")
+		}
+
 		c.HTML(http.StatusOK, "index.html", handlers.WithUser(c, gin.H{
 			"ActivePage":        "inicio",
 			"AdMainURL":         handlers.ActiveAdImage("main"),
@@ -190,6 +195,7 @@ func main() {
 			"ProductsJSON":      buildStoreProductsJSON(),
 			"RecentPosts":       handlers.RecentBlogPosts(3),
 			"GoogleReviewsJSON": handlers.ToTemplateJS(reviewsData),
+			"CarruselMarcas":    carruselMarcas,
 		}))
 	})
 
@@ -398,6 +404,8 @@ func main() {
 		apiAdmin.PUT("/anuncios/:id", onlyAdmin, adminHandlers.UpdateAd)
 		apiAdmin.DELETE("/anuncios/:id", onlyAdmin, adminHandlers.DeleteAd)
 		apiAdmin.GET("/marcas", onlyAdmin, adminHandlers.ListBrands)
+		apiAdmin.GET("/carrusel-marcas", onlyAdmin, adminHandlers.GetCarouselLogos)
+		apiAdmin.POST("/carrusel-marcas", onlyAdmin, adminHandlers.SaveCarouselLogos)
 		apiAdmin.POST("/productos", onlyAdmin, adminHandlers.CreateProduct)
 		apiAdmin.PUT("/productos/:id", onlyAdmin, adminHandlers.UpdateProduct)
 		apiAdmin.DELETE("/productos/:id", onlyAdmin, adminHandlers.DeleteProduct)
@@ -438,6 +446,7 @@ func main() {
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
 	router.GET("/media/productos/*key", handlers.ServeProductImage)
 	router.GET("/media/logos/*key", handlers.ServeLogoImage)
+	router.GET("/media/carrusel/*key", handlers.ServeCarouselImage)
 	router.GET("/media/hero/:key", handlers.ServeHeroVideo)
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)

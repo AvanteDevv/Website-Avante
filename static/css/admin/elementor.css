@@ -103,6 +103,53 @@
 .elementor-social-icon svg{ width:16px; height:16px; }
 .elementor-social-label input{ flex:1; }
 
+/* ---------- carrusel de marcas ---------- */
+.elementor-carousel-list{
+  display:flex; flex-wrap:wrap; gap:10px; padding:16px 20px 4px;
+}
+.elementor-carousel-empty{ font-size:12.5px; color:var(--grey); padding:0 0 16px; }
+.elementor-carousel-tile{
+  position:relative; width:84px; display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding:10px 8px; border:1.5px solid var(--line); border-radius:12px; background:var(--white);
+}
+.elementor-carousel-tile img{ width:44px; height:44px; object-fit:contain; }
+.elementor-carousel-tile span{
+  font-size:10.5px; font-weight:700; color:var(--ink); text-align:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+}
+.elementor-carousel-remove{
+  position:absolute; top:-7px; right:-7px; width:20px; height:20px; border-radius:50%;
+  border:1.5px solid var(--line); background:var(--white); color:var(--grey);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.elementor-carousel-remove svg{ width:11px; height:11px; }
+.elementor-carousel-remove:hover{ background:#fdeceb; border-color:#e6564a; color:#e6564a; }
+
+.elementor-carousel-savebar{
+  display:flex; align-items:center; gap:14px; padding:4px 20px 18px;
+}
+.elementor-carousel-savedmsg{
+  display:none; font-size:12px; font-weight:700; color:#1f9d55;
+}
+.elementor-carousel-savedmsg.is-visible{ display:inline; }
+
+.elementor-carousel-picker{
+  margin:6px 20px 20px; padding:16px; border:1.5px solid var(--line); border-radius:14px; background:var(--blue-50);
+}
+.elementor-carousel-picker label{ display:flex; flex-direction:column; gap:6px; font-size:12.5px; font-weight:700; color:var(--ink); margin-top:12px; }
+.elementor-carousel-picker input[type="text"]{
+  font-family:inherit; font-size:13px; font-weight:500; color:var(--ink); background:var(--white);
+  border:1.5px solid var(--line); border-radius:10px; padding:9px 12px;
+}
+.elementor-carousel-picker-actions{ display:flex; gap:10px; margin-top:14px; }
+.elementor-btn-secondary{
+  padding:9px 16px; font-size:11px; font-weight:700; border-radius:10px; cursor:pointer;
+  background:var(--white); color:var(--grey); border:1.5px solid var(--line);
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.elementor-btn-secondary:hover{ background:var(--blue-50); color:var(--ink); }
+
 /* ---------- video del hero ---------- */
 .elementor-video-body{ padding:16px 20px 22px; display:flex; flex-direction:column; gap:10px; }
 
