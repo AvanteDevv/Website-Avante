@@ -166,31 +166,39 @@ regCodeSubmit.addEventListener('click', async () => {
 
 regCodeResend.addEventListener('click', async () => {
   regCodeResend.disabled = true;
-  const [nombre, ...resto] = pendingRegistration.name.split(/\s+/);
-  const sent = await sendVerificationCode(nombre, resto.join(' ') || nombre, pendingRegistration.celular);
+  const sent = await sendVerificationCode(pendingRegistration.nombre, pendingRegistration.apellido, pendingRegistration.celular);
   regCodeResend.disabled = false;
   regCodeError.textContent = sent ? 'Te reenviamos el código.' : 'No pudimos reenviar el código.';
 });
 
 registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const name = document.getElementById('regName');
+  const nombre = document.getElementById('regNombre');
+  const apellido = document.getElementById('regApellido');
   const email = document.getElementById('regEmail');
+  const fechaNacimiento = document.getElementById('regFechaNacimiento');
+  const direccion = document.getElementById('regDireccion');
   const pw1 = document.getElementById('regPassword');
   const pw2 = document.getElementById('regPassword2');
   const terms = document.getElementById('regTerms');
   let ok = true;
 
-  const nameField = name.closest('.field');
+  const nombreField = nombre.closest('.field');
+  const apellidoField = apellido.closest('.field');
   const emailField = email.closest('.field');
   const celularField = celularInput.closest('.field');
+  const fechaNacimientoField = fechaNacimiento.closest('.field');
+  const direccionField = direccion.closest('.field');
   const pw1Field = pw1.closest('.field');
   const pw2Field = pw2.closest('.field');
 
-  if(!name.checkValidity()){ markInvalid(nameField); ok = false; } else { clearInvalid(nameField); }
+  if(!nombre.checkValidity()){ markInvalid(nombreField); ok = false; } else { clearInvalid(nombreField); }
+  if(!apellido.checkValidity()){ markInvalid(apellidoField); ok = false; } else { clearInvalid(apellidoField); }
   if(!email.checkValidity()){ markInvalid(emailField); ok = false; } else { clearInvalid(emailField); }
   const celularDigits = celularInput.value.trim();
   if(!/^\d{10}$/.test(celularDigits)){ markInvalid(celularField); ok = false; } else { clearInvalid(celularField); }
+  if(!fechaNacimiento.checkValidity()){ markInvalid(fechaNacimientoField); ok = false; } else { clearInvalid(fechaNacimientoField); }
+  if(!direccion.checkValidity()){ markInvalid(direccionField); ok = false; } else { clearInvalid(direccionField); }
   if(!pw1.checkValidity()){ markInvalid(pw1Field); ok = false; } else { clearInvalid(pw1Field); }
   if(pw1.value !== pw2.value || !pw2.checkValidity()){ markInvalid(pw2Field, 'Las contraseñas no coinciden.'); ok = false; } else { clearInvalid(pw2Field); }
   if(!terms.checked){ ok = false; showToast('Debes aceptar los términos y condiciones'); }
@@ -199,12 +207,11 @@ registerForm.addEventListener('submit', async (e) => {
   registerSubmitBtn.disabled = true;
   registerSubmitBtn.textContent = 'Enviando código...';
 
-  const fullName = name.value.trim();
-  const [nombre, ...resto] = fullName.split(/\s+/);
-  const apellido = resto.join(' ') || nombre;
+  const nombreVal = nombre.value.trim();
+  const apellidoVal = apellido.value.trim();
   const celular = '+52' + celularDigits;
 
-  const sent = await sendVerificationCode(nombre, apellido, celular);
+  const sent = await sendVerificationCode(nombreVal, apellidoVal, celular);
 
   registerSubmitBtn.disabled = false;
   registerSubmitBtn.innerHTML = 'Crear cuenta <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
@@ -214,7 +221,15 @@ registerForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  pendingRegistration = { name: fullName, email: email.value.trim(), password: pw1.value, celular };
+  pendingRegistration = {
+    nombre: nombreVal,
+    apellido: apellidoVal,
+    email: email.value.trim(),
+    password: pw1.value,
+    celular,
+    fecha_nacimiento: fechaNacimiento.value,
+    direccion: direccion.value.trim()
+  };
   regCodePhoneLabel.textContent = '+52 ' + celularDigits;
   regCodeError.textContent = '';
   regCodeDigits.forEach(i => i.value = '');

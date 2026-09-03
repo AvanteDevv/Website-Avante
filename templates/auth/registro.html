@@ -67,12 +67,22 @@
       <div class="divider">o con tu correo</div>
 
         <form id="registerForm" novalidate>
-          <div>
-            <label class="field-label" for="regName">Nombre completo</label>
-            <div class="field">
-              <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
-              <input type="text" id="regName" name="name" placeholder="Tu nombre y apellido" autocomplete="name" required minlength="3">
-              <p class="field-error">Ingresa tu nombre completo.</p>
+          <div class="field-row-2">
+            <div>
+              <label class="field-label" for="regNombre">Nombre(s)</label>
+              <div class="field">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+                <input type="text" id="regNombre" name="nombre" placeholder="Tu nombre" autocomplete="given-name" required minlength="2">
+                <p class="field-error">Ingresa tu nombre.</p>
+              </div>
+            </div>
+            <div>
+              <label class="field-label" for="regApellido">Apellido(s)</label>
+              <div class="field">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+                <input type="text" id="regApellido" name="apellido" placeholder="Tu apellido" autocomplete="family-name" required minlength="2">
+                <p class="field-error">Ingresa tu apellido.</p>
+              </div>
             </div>
           </div>
 
@@ -93,6 +103,24 @@
               <p class="field-error">Ingresa un celular a 10 dígitos.</p>
             </div>
             <p class="field-hint">Te vamos a mandar un código de 4 dígitos para verificarlo.</p>
+          </div>
+
+          <div>
+            <label class="field-label" for="regFechaNacimiento">Fecha de nacimiento</label>
+            <div class="field">
+              <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+              <input type="date" id="regFechaNacimiento" name="fecha_nacimiento" autocomplete="bday" required>
+              <p class="field-error">Ingresa tu fecha de nacimiento.</p>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label" for="regDireccion">Dirección</label>
+            <div class="field">
+              <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="10" r="2.4"/></svg>
+              <input type="text" id="regDireccion" name="direccion" placeholder="Calle, número, colonia" autocomplete="street-address" required minlength="5">
+              <p class="field-error">Ingresa tu dirección.</p>
+            </div>
           </div>
 
           <div>

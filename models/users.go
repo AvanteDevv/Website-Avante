@@ -26,6 +26,18 @@ import (
 //
 //	ALTER TABLE users ADD COLUMN auth_provider VARCHAR(20) NOT NULL DEFAULT 'formulario';
 //
+// El registro público (/registro) ahora también pide apellido, fecha
+// de nacimiento y dirección — corre esto una vez si no las tienes:
+//
+//	ALTER TABLE users ADD COLUMN apellido VARCHAR(255) NOT NULL DEFAULT '';
+//	ALTER TABLE users ADD COLUMN fecha_nacimiento DATE NULL;
+//	ALTER TABLE users ADD COLUMN direccion VARCHAR(500) NOT NULL DEFAULT '';
+//
+// fecha_nacimiento va NULL-able a propósito: los usuarios creados
+// desde el panel admin (CreateUserByAdmin) o por Google
+// (CreateUserFromGoogle) no la traen, solo el registro público la
+// pide.
+//
 // Valores usados: 'cliente', 'optometrista', 'admin' — los mismos que
 // ofrece el <select> del modal "Nuevo usuario" en base-de-datos.html.
 //
@@ -43,6 +55,7 @@ import (
 type User struct {
 	ID           int64  `json:"id"`
 	Name         string `json:"name"`
+	Apellido     string `json:"apellido,omitempty"`
 	Email        string `json:"email"`
 	PasswordHash string `json:"-"`
 	Phone        string `json:"phone,omitempty"`
@@ -51,8 +64,24 @@ type User struct {
 	// "formulario" y "google" ya están activos. "microsoft" y
 	// "facebook" existen en el esquema para cuando esos logins existan
 	// de verdad, pero ningún código los asigna todavía.
-	AuthProvider string    `json:"auth_provider"`
-	CreatedAt    time.Time `json:"created_at"`
+	AuthProvider string `json:"auth_provider"`
+	// FechaNacimiento y Direccion solo las trae una cuenta creada por
+	// el registro público (Register en auth.go) — zero value / "" en
+	// las demás (admin, Google).
+	FechaNacimiento time.Time `json:"fecha_nacimiento,omitempty"`
+	Direccion       string    `json:"direccion,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+// FechaNacimientoValue regresa la fecha de nacimiento formateada para
+// precargar un <input type="date"> (formato "2006-01-02"), o "" si el
+// usuario no la tiene guardada (mismo criterio que PromoEndsAtValue en
+// product.go).
+func (u User) FechaNacimientoValue() string {
+	if u.FechaNacimiento.IsZero() {
+		return ""
+	}
+	return u.FechaNacimiento.Format("2006-01-02")
 }
 
 // ErrEmailTaken se devuelve cuando ya existe una cuenta con ese correo.
@@ -76,19 +105,20 @@ func EmailExists(email string) (bool, error) {
 // auth_provider "formulario" — es la que ya usa el registro público
 // (Register en auth.go). El hasheo con bcrypt se hace en el handler,
 // no aquí.
-func CreateUser(name, email, phone, passwordHash string) (*User, error) {
-	return createUser(name, email, phone, passwordHash, "cliente", "formulario")
+func CreateUser(nombre, apellido, email, phone, passwordHash string, fechaNacimiento time.Time, direccion string) (*User, error) {
+	return createUser(nombre, apellido, email, phone, passwordHash, "cliente", "formulario", fechaNacimiento, direccion)
 }
 
 // CreateUserByAdmin inserta un usuario con teléfono y rol elegidos
 // desde el panel de administración (modal "Nuevo usuario"). Siempre
 // queda como auth_provider "formulario": lo crea un admin a mano, no
-// llega por ningún login social.
+// llega por ningún login social. El modal de admin no pide apellido,
+// fecha de nacimiento ni dirección, así que quedan vacías/zero.
 func CreateUserByAdmin(name, email, phone, passwordHash, role string) (*User, error) {
 	if role == "" {
 		role = "cliente"
 	}
-	return createUser(name, email, phone, passwordHash, role, "formulario")
+	return createUser(name, "", email, phone, passwordHash, role, "formulario", time.Time{}, "")
 }
 
 // CreateUserFromGoogle inserta un usuario que llega por primera vez a
@@ -97,7 +127,9 @@ func CreateUserByAdmin(name, email, phone, passwordHash, role string) (*User, er
 // la cuenta jamás puede entrar por el formulario normal de
 // iniciar-sesion — solo por Google. El nombre y el correo vienen ya
 // verificados por Google (GoogleCallback solo llega aquí si
-// email_verified es true), así que se guardan tal cual.
+// email_verified es true), así que se guardan tal cual. Google no
+// entrega apellido por separado ni fecha de nacimiento/dirección,
+// quedan vacías/zero.
 func CreateUserFromGoogle(name, email string) (*User, error) {
 	randomBytes := make([]byte, 32)
 	if _, err := rand.Read(randomBytes); err != nil {
@@ -108,7 +140,7 @@ func CreateUserFromGoogle(name, email string) (*User, error) {
 		return nil, err
 	}
 
-	return createUser(name, email, "", string(hash), "cliente", "google")
+	return createUser(name, "", email, "", string(hash), "cliente", "google", time.Time{}, "")
 }
 
 // GetOrCreateGoogleUser es el punto de entrada que usa GoogleCallback:
@@ -128,9 +160,11 @@ func GetOrCreateGoogleUser(name, email string) (*User, error) {
 	return CreateUserFromGoogle(name, email)
 }
 
-func createUser(name, email, phone, passwordHash, role, authProvider string) (*User, error) {
+func createUser(name, apellido, email, phone, passwordHash, role, authProvider string, fechaNacimiento time.Time, direccion string) (*User, error) {
 	email = normalizeEmail(email)
 	name = strings.TrimSpace(name)
+	apellido = strings.TrimSpace(apellido)
+	direccion = strings.TrimSpace(direccion)
 
 	exists, err := EmailExists(email)
 	if err != nil {
@@ -140,9 +174,14 @@ func createUser(name, email, phone, passwordHash, role, authProvider string) (*U
 		return nil, ErrEmailTaken
 	}
 
+	var fechaNacimientoParam interface{}
+	if !fechaNacimiento.IsZero() {
+		fechaNacimientoParam = fechaNacimiento
+	}
+
 	result, err := db.DB.Exec(
-		"INSERT INTO users (name, email, password_hash, phone, role, auth_provider) VALUES (?, ?, ?, ?, ?, ?)",
-		name, email, passwordHash, phone, role, authProvider,
+		"INSERT INTO users (name, apellido, email, password_hash, phone, role, auth_provider, fecha_nacimiento, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		name, apellido, email, passwordHash, phone, role, authProvider, fechaNacimientoParam, direccion,
 	)
 	if err != nil {
 		return nil, err
@@ -153,7 +192,7 @@ func createUser(name, email, phone, passwordHash, role, authProvider string) (*U
 		return nil, err
 	}
 
-	return &User{ID: id, Name: name, Email: email, PasswordHash: passwordHash, Phone: phone, Role: role, AuthProvider: authProvider}, nil
+	return &User{ID: id, Name: name, Apellido: apellido, Email: email, PasswordHash: passwordHash, Phone: phone, Role: role, AuthProvider: authProvider, FechaNacimiento: fechaNacimiento, Direccion: direccion}, nil
 }
 
 // GetUserByEmail busca un usuario por correo. Devuelve ErrUserNotFound si
@@ -162,16 +201,20 @@ func GetUserByEmail(email string) (*User, error) {
 	email = normalizeEmail(email)
 
 	var u User
+	var fechaNacimiento sql.NullTime
 	err := db.DB.QueryRow(
-		"SELECT id, name, email, password_hash, phone, role, auth_provider, created_at FROM users WHERE email = ?",
+		"SELECT id, name, apellido, email, password_hash, phone, role, auth_provider, fecha_nacimiento, direccion, created_at FROM users WHERE email = ?",
 		email,
-	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.AuthProvider, &u.CreatedAt)
+	).Scan(&u.ID, &u.Name, &u.Apellido, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.AuthProvider, &fechaNacimiento, &u.Direccion, &u.CreatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
+	}
+	if fechaNacimiento.Valid {
+		u.FechaNacimiento = fechaNacimiento.Time
 	}
 
 	return &u, nil
@@ -181,16 +224,20 @@ func GetUserByEmail(email string) (*User, error) {
 // mostrar datos del usuario logueado, p. ej. en el panel de cliente).
 func GetUserByID(id int64) (*User, error) {
 	var u User
+	var fechaNacimiento sql.NullTime
 	err := db.DB.QueryRow(
-		"SELECT id, name, email, password_hash, phone, role, auth_provider, created_at FROM users WHERE id = ?",
+		"SELECT id, name, apellido, email, password_hash, phone, role, auth_provider, fecha_nacimiento, direccion, created_at FROM users WHERE id = ?",
 		id,
-	).Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.AuthProvider, &u.CreatedAt)
+	).Scan(&u.ID, &u.Name, &u.Apellido, &u.Email, &u.PasswordHash, &nullablePhone{&u.Phone}, &u.Role, &u.AuthProvider, &fechaNacimiento, &u.Direccion, &u.CreatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
+	}
+	if fechaNacimiento.Valid {
+		u.FechaNacimiento = fechaNacimiento.Time
 	}
 
 	return &u, nil

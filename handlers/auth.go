@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -16,10 +17,13 @@ import (
 // módulo declarado en tu go.mod (primera línea: "module xxxxx").
 
 type registerInput struct {
-	Name     string `json:"name" binding:"required,min=3"`
-	Email    string `json:"email" binding:"required,email"`
-	Celular  string `json:"celular" binding:"required"` // "+52XXXXXXXXXX", debe estar ya verificado
-	Password string `json:"password" binding:"required,min=8"`
+	Nombre          string `json:"nombre" binding:"required,min=2"`
+	Apellido        string `json:"apellido" binding:"required,min=2"`
+	Email           string `json:"email" binding:"required,email"`
+	Celular         string `json:"celular" binding:"required"` // "+52XXXXXXXXXX", debe estar ya verificado
+	Password        string `json:"password" binding:"required,min=8"`
+	FechaNacimiento string `json:"fecha_nacimiento" binding:"required"` // "2006-01-02" (input type="date")
+	Direccion       string `json:"direccion" binding:"required,min=5"`
 }
 
 type loginInput struct {
@@ -36,12 +40,18 @@ type loginInput struct {
 func Register(c *gin.Context) {
 	var input registerInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Revisa tu nombre, correo, celular y contraseña (mínimo 8 caracteres)."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Revisa tus datos: nombre, apellido, correo, celular, fecha de nacimiento, dirección y contraseña (mínimo 8 caracteres)."})
 		return
 	}
 
 	if !celularRe.MatchString(input.Celular) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Número de celular inválido."})
+		return
+	}
+
+	fechaNacimiento, err := time.Parse("2006-01-02", input.FechaNacimiento)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "La fecha de nacimiento no es válida."})
 		return
 	}
 
@@ -57,7 +67,11 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	user, err := models.CreateUser(input.Name, input.Email, input.Celular, string(hash))
+	// ⚠️ CreateUser necesita actualizarse para aceptar estos 3 parámetros
+	// nuevos (apellido, fechaNacimiento, direccion) y guardarlos —
+	// requiere columnas nuevas en la tabla users. No tengo models/user.go
+	// para hacer ese cambio yo mismo; súbelo si quieres que lo conecte.
+	user, err := models.CreateUser(input.Nombre, input.Apellido, input.Email, input.Celular, string(hash), fechaNacimiento, input.Direccion)
 	if errors.Is(err, models.ErrEmailTaken) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Ya existe una cuenta con ese correo."})
 		return
