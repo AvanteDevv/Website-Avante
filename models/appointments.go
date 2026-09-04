@@ -21,6 +21,16 @@ import (
 // Y para guardar el motivo cuando el cliente cancela su propia cita:
 //
 //	ALTER TABLE appointments ADD COLUMN cancel_reason VARCHAR(500) NULL;
+//
+// El formulario público (agendar.js) ahora también pide correo y un
+// cuestionario rápido antes del código de verificación — corre esto
+// una vez si no las tienes:
+//
+//	ALTER TABLE appointments ADD COLUMN correo VARCHAR(255) NOT NULL DEFAULT '';
+//	ALTER TABLE appointments ADD COLUMN cuestionario JSON NULL;
+//
+// cuestionario va NULL-able porque las citas agendadas antes de este
+// cambio no lo tienen.
 
 // Appointment represents a booking made from the public "Agenda tu cita"
 // section (agendar.html / agendar.js).
@@ -30,9 +40,14 @@ type Appointment struct {
 	Time         string    `json:"time"` // "HH:MM" — one of the fixed slots offered in agendar.js
 	Nombre       string    `json:"nombre"`
 	Apellido     string    `json:"apellido"`
-	Celular      string    `json:"celular"`                 // formato "+52XXXXXXXXXX", verificado por WhatsApp antes de agendar
+	Celular      string    `json:"celular"` // formato "+52XXXXXXXXXX", verificado por WhatsApp antes de agendar
+	Correo       string    `json:"correo,omitempty"`
 	Status       string    `json:"status"`                  // "pendiente" | "confirmada" | "cancelada"
 	CancelReason string    `json:"cancel_reason,omitempty"` // motivo que dio el cliente al cancelar — vacío si no se canceló, o si la canceló staff
+	// Cuestionario es el JSON crudo del cuestionario rápido (ver
+	// appointmentQuestionnaire en el handler CreateAppointment) — ""
+	// en citas agendadas antes de que existiera este cuestionario.
+	Cuestionario string `json:"cuestionario,omitempty"`
 	// UserID: la cuenta de cliente a la que quedó ligada esta cita — 0
 	// si la agendó alguien sin sesión iniciada. Expuesto en JSON (a
 	// diferencia de antes) porque "Examen de la vista" lo necesita para
@@ -53,19 +68,24 @@ type rowScanner interface {
 }
 
 // scanAppointmentRow escanea una fila con las columnas
-// "id, appt_date, appt_time, nombre, apellido, celular, status,
-// cancel_reason, user_id, created_at" (en ese orden) — la usan tanto
-// GetAllAppointments como GetAppointmentsByUser, para no repetir dos
-// veces el manejo de cancel_reason y user_id (nullable en la tabla,
+// "id, appt_date, appt_time, nombre, apellido, celular, correo,
+// cuestionario, status, cancel_reason, user_id, created_at" (en ese
+// orden) — la usan tanto GetAllAppointments como
+// GetAppointmentsByUser, para no repetir dos veces el manejo de
+// cancel_reason, cuestionario y user_id (nullable en la tabla,
 // string/int64 planos en el struct).
 func scanAppointmentRow(row rowScanner, a *Appointment) error {
 	var reason sql.NullString
+	var cuestionario sql.NullString
 	var userID sql.NullInt64
-	if err := row.Scan(&a.ID, &a.Date, &a.Time, &a.Nombre, &a.Apellido, &a.Celular, &a.Status, &reason, &userID, &a.CreatedAt); err != nil {
+	if err := row.Scan(&a.ID, &a.Date, &a.Time, &a.Nombre, &a.Apellido, &a.Celular, &a.Correo, &cuestionario, &a.Status, &reason, &userID, &a.CreatedAt); err != nil {
 		return err
 	}
 	if reason.Valid {
 		a.CancelReason = reason.String
+	}
+	if cuestionario.Valid {
+		a.Cuestionario = cuestionario.String
 	}
 	if userID.Valid {
 		a.UserID = userID.Int64
@@ -78,20 +98,24 @@ func scanAppointmentRow(row rowScanner, a *Appointment) error {
 // ConsumeVerification en otp.go) antes de llegar aquí, así que la cita
 // nace confirmada, no pendiente.
 //
+// cuestionarioJSON es el JSON ya serializado del cuestionario rápido
+// (el handler CreateAppointment lo arma con json.Marshal) — se guarda
+// tal cual en la columna cuestionario.
+//
 // userID es opcional: si la persona tenía sesión de cliente iniciada al
 // momento de agendar, pásalo (currentUserID/optionalUserID en el
 // handler); si agendó como invitada, pasa 0 y la cita queda sin dueño
 // (no aparecerá en ningún "Mis citas" — no hay forma de reclamarla
 // después, ya que solo se identificó por celular, no por cuenta).
-func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular string, userID int64) (*Appointment, error) {
+func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular, correo, cuestionarioJSON string, userID int64) (*Appointment, error) {
 	var userIDArg interface{}
 	if userID > 0 {
 		userIDArg = userID
 	}
 
 	result, err := db.DB.Exec(
-		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, status, user_id) VALUES (?, ?, ?, ?, ?, 'confirmada', ?)",
-		date.Format("2006-01-02"), apptTime, nombre, apellido, celular, userIDArg,
+		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, correo, cuestionario, status, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmada', ?)",
+		date.Format("2006-01-02"), apptTime, nombre, apellido, celular, correo, cuestionarioJSON, userIDArg,
 	)
 	if err != nil {
 		return nil, err
@@ -103,6 +127,7 @@ func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular strin
 	appt := &Appointment{
 		ID: id, Date: date, Time: apptTime,
 		Nombre: nombre, Apellido: apellido, Celular: celular,
+		Correo: correo, Cuestionario: cuestionarioJSON,
 		Status: "confirmada",
 	}
 	if userID > 0 {
@@ -116,7 +141,7 @@ func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular strin
 // primero — usado por el panel "Mis citas".
 func GetAppointmentsByUser(userID int64) ([]Appointment, error) {
 	rows, err := db.DB.Query(
-		"SELECT id, appt_date, appt_time, nombre, apellido, celular, status, cancel_reason, user_id, created_at FROM appointments WHERE user_id = ? ORDER BY appt_date DESC, appt_time DESC",
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, cuestionario, status, cancel_reason, user_id, created_at FROM appointments WHERE user_id = ? ORDER BY appt_date DESC, appt_time DESC",
 		userID,
 	)
 	if err != nil {
@@ -161,7 +186,7 @@ func CancelAppointmentByUser(id, userID int64, reason string) error {
 // first — used by the admin Citas panel.
 func GetAllAppointments() ([]Appointment, error) {
 	rows, err := db.DB.Query(
-		"SELECT id, appt_date, appt_time, nombre, apellido, celular, status, cancel_reason, user_id, created_at FROM appointments ORDER BY created_at DESC",
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, cuestionario, status, cancel_reason, user_id, created_at FROM appointments ORDER BY created_at DESC",
 	)
 	if err != nil {
 		return nil, err

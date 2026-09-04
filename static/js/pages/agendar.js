@@ -21,8 +21,16 @@ const apptContactForm = document.getElementById('apptContactForm');
 const apptNombre = document.getElementById('apptNombre');
 const apptApellido = document.getElementById('apptApellido');
 const apptCelular = document.getElementById('apptCelular');
+const apptCorreo = document.getElementById('apptCorreo');
 const apptContactError = document.getElementById('apptContactError');
 const apptContactSubmit = document.getElementById('apptContactSubmit');
+
+// --- Modal de cuestionario rápido (entre datos de contacto y código) ---
+const apptQuestModalOverlay = document.getElementById('apptQuestModalOverlay');
+const apptQuestModalClose = document.getElementById('apptQuestModalClose');
+const apptQuestForm = document.getElementById('apptQuestForm');
+const apptQuestError = document.getElementById('apptQuestError');
+const apptQuestSubmit = document.getElementById('apptQuestSubmit');
 
 // --- Modal de código de verificación ---
 const apptCodeModalOverlay = document.getElementById('apptCodeModalOverlay');
@@ -38,7 +46,8 @@ let viewYear = today.getFullYear();
 let viewMonth = today.getMonth();
 let selectedDate = null;
 let selectedTime = null;
-let contactData = { nombre: '', apellido: '', celular: '' };
+let contactData = { nombre: '', apellido: '', celular: '', correo: '' };
+let questionnaireData = null;
 let occupiedHours = [];
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -221,6 +230,20 @@ apptContactModalClose.addEventListener('click', closeApptContactModal);
 apptContactModalOverlay.addEventListener('click', (e) => { if(e.target === apptContactModalOverlay) closeApptContactModal(); });
 
 /* =========================================================
+   MODAL 1.5: CUESTIONARIO RÁPIDO (antes de verificar el código)
+   ========================================================= */
+function openQuestModal(){
+  apptQuestModalOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeQuestModal(){
+  apptQuestModalOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+apptQuestModalClose.addEventListener('click', closeQuestModal);
+apptQuestModalOverlay.addEventListener('click', (e) => { if(e.target === apptQuestModalOverlay) closeQuestModal(); });
+
+/* =========================================================
    MODAL 2: CÓDIGO DE VERIFICACIÓN (4 dígitos)
    ========================================================= */
 function openCodeModal(){
@@ -298,7 +321,7 @@ async function verifyCode(celular, codigo){
 
 // Regresa { ok, conflict } — conflict=true significa que alguien más
 // alcanzó a agendar esa misma hora justo antes (409 del backend).
-async function bookAppointment(dateObj, time, contact){
+async function bookAppointment(dateObj, time, contact, questionnaire){
   try{
     const res = await fetch('/api/agendar', {
       method: 'POST',
@@ -308,7 +331,9 @@ async function bookAppointment(dateObj, time, contact){
         time,
         nombre: contact.nombre,
         apellido: contact.apellido,
-        celular: contact.celular
+        celular: contact.celular,
+        correo: contact.correo,
+        cuestionario: questionnaire
       })
     });
     return { ok: res.ok, conflict: res.status === 409 };
@@ -330,12 +355,13 @@ apptSubmit.addEventListener('click', () => {
   }
 });
 
-apptContactForm.addEventListener('submit', async (e) => {
+apptContactForm.addEventListener('submit', (e) => {
   e.preventDefault();
 
   const nombre = apptNombre.value.trim();
   const apellido = apptApellido.value.trim();
   const celularDigits = apptCelular.value.trim();
+  const correo = apptCorreo.value.trim();
 
   if(!nombre || !apellido){
     apptContactError.textContent = 'Completa tu nombre y apellido.';
@@ -345,26 +371,67 @@ apptContactForm.addEventListener('submit', async (e) => {
     apptContactError.textContent = 'Ingresa un celular a 10 dígitos.';
     return;
   }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)){
+    apptContactError.textContent = 'Ingresa un correo válido.';
+    return;
+  }
 
   apptContactError.textContent = '';
-  apptContactSubmit.disabled = true;
-  apptContactSubmit.textContent = 'Enviando...';
+  contactData = { nombre, apellido, celular: '+52' + celularDigits, correo };
 
-  contactData = { nombre, apellido, celular: '+52' + celularDigits };
+  closeApptContactModal();
+  apptQuestError.textContent = '';
+  apptQuestForm.reset();
+  openQuestModal();
+});
+
+apptQuestForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const ultimoExamen = document.getElementById('questUltimoExamen').value;
+  const lentesArmazon = apptQuestForm.querySelector('input[name="lentes_armazon"]:checked');
+  const lentesContacto = apptQuestForm.querySelector('input[name="lentes_contacto"]:checked');
+
+  if(!ultimoExamen){
+    apptQuestError.textContent = 'Selecciona hace cuánto fue tu último examen de la vista.';
+    return;
+  }
+  if(!lentesArmazon || !lentesContacto){
+    apptQuestError.textContent = 'Indica si usas armazón y si usas lentes de contacto.';
+    return;
+  }
+
+  const usaGotitas = apptQuestForm.querySelector('input[name="usa_gotitas"]:checked');
+  const problemas = Array.from(apptQuestForm.querySelectorAll('input[name="problemas"]:checked')).map(i => i.value);
+  const enfermedades = Array.from(apptQuestForm.querySelectorAll('input[name="enfermedades"]:checked')).map(i => i.value);
+
+  questionnaireData = {
+    ultimo_examen: ultimoExamen,
+    lentes_armazon: lentesArmazon.value,
+    lentes_contacto: lentesContacto.value,
+    usa_gotitas: usaGotitas ? usaGotitas.value : '',
+    problemas,
+    enfermedades
+  };
+
+  apptQuestError.textContent = '';
+  apptQuestSubmit.disabled = true;
+  apptQuestSubmit.textContent = 'Enviando...';
+
   const sent = await sendVerificationCode(contactData);
 
-  apptContactSubmit.disabled = false;
-  apptContactSubmit.textContent = 'Enviar código por WhatsApp';
+  apptQuestSubmit.disabled = false;
+  apptQuestSubmit.textContent = 'Continuar';
 
   if(sent){
-    closeApptContactModal();
-    apptCodePhoneLabel.textContent = '+52 ' + celularDigits;
+    closeQuestModal();
+    apptCodePhoneLabel.textContent = '+52 ' + apptCelular.value.trim();
     apptCodeError.textContent = '';
     apptCodeDigits.forEach(i => i.value = '');
     openCodeModal();
     apptCodeDigits[0].focus();
   } else {
-    apptContactError.textContent = 'No pudimos enviar el código. Intenta de nuevo.';
+    apptQuestError.textContent = 'No pudimos enviar el código. Intenta de nuevo.';
   }
 });
 
@@ -387,7 +454,7 @@ apptCodeSubmit.addEventListener('click', async () => {
     return;
   }
 
-  const result = await bookAppointment(selectedDate, selectedTime, contactData);
+  const result = await bookAppointment(selectedDate, selectedTime, contactData, questionnaireData);
   apptCodeSubmit.disabled = false;
   apptCodeSubmit.textContent = 'Verificar y agendar';
 

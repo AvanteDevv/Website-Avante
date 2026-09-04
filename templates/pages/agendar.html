@@ -87,8 +87,84 @@
           <input type="tel" id="apptCelular" name="celular" inputmode="numeric" maxlength="10" placeholder="6621234567" autocomplete="tel-national" required>
         </div>
       </div>
+      <div class="modal-field">
+        <label for="apptCorreo">Correo electrónico</label>
+        <input type="email" id="apptCorreo" name="correo" placeholder="tu@correo.com" autocomplete="email" required>
+      </div>
       <p class="modal-form-error" id="apptContactError"></p>
-      <button type="submit" class="btn solid modal-ok" id="apptContactSubmit">Enviar código</button>
+      <button type="submit" class="btn solid modal-ok" id="apptContactSubmit">Continuar</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal 1.5: cuestionario rápido, antes de verificar el código -->
+<div class="modal-overlay" id="apptQuestModalOverlay">
+  <div class="modal-card modal-form-card modal-quest-card">
+    <button class="modal-close" id="apptQuestModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <h3>Un par de preguntas rápidas</h3>
+    <p>Nos ayuda a prepararte mejor tu cita.</p>
+    <form id="apptQuestForm" class="modal-form quest-form" novalidate>
+      <div class="quest-grid">
+        <div class="quest-col">
+          <div class="modal-field">
+            <label for="questUltimoExamen">¿Hace cuánto te hiciste tu último examen de la vista?*</label>
+            <select id="questUltimoExamen" name="ultimo_examen" required>
+              <option value="" selected disabled>Selecciona una opción</option>
+              <option value="menos_6_meses">Menos de 6 meses</option>
+              <option value="6_meses_1_anio">Entre 6 meses y 1 año</option>
+              <option value="1_2_anios">Entre 1 y 2 años</option>
+              <option value="mas_2_anios">Más de 2 años</option>
+              <option value="nunca">Nunca me he hecho uno</option>
+            </select>
+          </div>
+
+          <div class="quest-radio-block">
+            <span class="quest-radio-title">¿Utilizas lentes actualmente?*</span>
+            <div class="quest-radio-row">
+              <span class="quest-radio-label">Armazón:</span>
+              <label class="quest-radio"><input type="radio" name="lentes_armazon" value="si" required><span>Sí</span></label>
+              <label class="quest-radio"><input type="radio" name="lentes_armazon" value="no"><span>No</span></label>
+            </div>
+            <div class="quest-radio-row">
+              <span class="quest-radio-label">Contacto:</span>
+              <label class="quest-radio"><input type="radio" name="lentes_contacto" value="si" required><span>Sí</span></label>
+              <label class="quest-radio"><input type="radio" name="lentes_contacto" value="no"><span>No</span></label>
+            </div>
+          </div>
+
+          <div class="quest-radio-block">
+            <span class="quest-radio-subtitle">Tratamiento</span>
+            <div class="quest-radio-row">
+              <span class="quest-radio-label">¿Usas gotitas para los ojos?</span>
+              <label class="quest-radio"><input type="radio" name="usa_gotitas" value="si"><span>Sí</span></label>
+              <label class="quest-radio"><input type="radio" name="usa_gotitas" value="no"><span>No</span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="quest-col">
+          <div class="quest-check-block">
+            <span class="quest-radio-title">¿Tienes alguno de estos problemas en tus ojos?</span>
+            <span class="quest-check-hint">*Puedes elegir más de una opción</span>
+            <label class="quest-check"><input type="checkbox" name="problemas" value="fatiga_visual"><span>Fatiga visual al trabajar con la computadora</span></label>
+            <label class="quest-check"><input type="checkbox" name="problemas" value="mala_vision_lejana"><span>Mala visión lejana</span></label>
+            <label class="quest-check"><input type="checkbox" name="problemas" value="mala_vision_cercana"><span>Mala visión cercana</span></label>
+            <label class="quest-check"><input type="checkbox" name="problemas" value="sensibilidad_luz_solar"><span>Sensibilidad a la luz solar</span></label>
+            <label class="quest-check"><input type="checkbox" name="problemas" value="sensibilidad_luz_artificial"><span>Sensibilidad a la luz artificial</span></label>
+          </div>
+
+          <div class="quest-check-block">
+            <span class="quest-radio-title">¿Padeces alguna de estas enfermedades?</span>
+            <span class="quest-check-hint">*Puedes elegir más de una opción</span>
+            <label class="quest-check"><input type="checkbox" name="enfermedades" value="diabetes"><span>Diabetes</span></label>
+            <label class="quest-check"><input type="checkbox" name="enfermedades" value="hipertension"><span>Hipertensión</span></label>
+            <label class="quest-check"><input type="checkbox" name="enfermedades" value="cirugias_oculares"><span>Cirugías oculares</span></label>
+          </div>
+        </div>
+      </div>
+
+      <p class="modal-form-error" id="apptQuestError"></p>
+      <button type="submit" class="btn solid modal-ok" id="apptQuestSubmit">Continuar</button>
     </form>
   </div>
 </div>

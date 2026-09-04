@@ -526,3 +526,34 @@ footer{
   text-align:center; text-decoration:underline; text-underline-offset:3px;
 }
 .modal-resend:disabled{ color:var(--grey); text-decoration:none; cursor:default; }
+
+/* ---------- cuestionario rápido (modal 1.5) ---------- */
+.modal-quest-card{ max-width:720px; }
+.quest-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 36px; }
+@media (max-width:640px){ .quest-grid{ grid-template-columns:1fr; } }
+.quest-col{ display:flex; flex-direction:column; gap:20px; }
+
+.modal-field select{
+  width:100%; padding:12px 40px 12px 16px; font-size:14px; color:var(--ink);
+  background-color:var(--blue-50); border:1px solid var(--line); border-radius:12px;
+  appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236670A6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat:no-repeat; background-position:right 14px center; background-size:16px;
+  transition:border-color .2s var(--ease), background-color .2s var(--ease);
+}
+.modal-field select:focus{ outline:none; border-color:var(--blue-600); background-color:var(--white); }
+
+.quest-radio-block + .quest-radio-block{ margin-top:2px; }
+.quest-radio-title{ display:block; font-size:12.5px; font-weight:600; color:var(--ink); margin-bottom:10px; }
+.quest-radio-subtitle{ display:block; font-size:13.5px; font-weight:700; color:var(--ink); margin-bottom:8px; }
+.quest-radio-row{ display:flex; align-items:center; gap:16px; margin-bottom:9px; }
+.quest-radio-row:last-child{ margin-bottom:0; }
+.quest-radio-label{ min-width:68px; font-size:13px; font-weight:600; color:var(--grey); }
+.quest-radio{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink); cursor:pointer; }
+.quest-radio input{ width:16px; height:16px; accent-color:var(--blue-600); cursor:pointer; }
+
+.quest-check-block{ margin-bottom:4px; }
+.quest-check-hint{ display:block; font-size:11px; color:var(--grey); margin-bottom:10px; }
+.quest-check{ display:flex; align-items:flex-start; gap:9px; margin-bottom:9px; font-size:13px; color:var(--ink); line-height:1.4; cursor:pointer; }
+.quest-check:last-child{ margin-bottom:0; }
+.quest-check input{ width:16px; height:16px; margin-top:1px; flex-shrink:0; accent-color:var(--blue-600); cursor:pointer; }

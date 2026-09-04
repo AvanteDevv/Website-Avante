@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -126,12 +127,28 @@ func GetOccupiedHours(c *gin.Context) {
 // 4) Crear la cita (ahora exige verificación previa + datos de contacto)
 // ---------------------------------------------------------------------
 
+// appointmentQuestionnaire son las respuestas del cuestionario rápido
+// que agendar.js muestra entre los datos de contacto y el código de
+// verificación (ver quest-form en agendar.html). Se guarda tal cual
+// como JSON — son preguntas de distinta forma (select, sí/no,
+// multi-checkbox), no vale la pena una columna por cada una.
+type appointmentQuestionnaire struct {
+	UltimoExamen   string   `json:"ultimo_examen"`
+	LentesArmazon  string   `json:"lentes_armazon"`
+	LentesContacto string   `json:"lentes_contacto"`
+	UsaGotitas     string   `json:"usa_gotitas"`
+	Problemas      []string `json:"problemas"`
+	Enfermedades   []string `json:"enfermedades"`
+}
+
 type createAppointmentInput struct {
-	Date     string `json:"date" binding:"required"` // "2026-08-20"
-	Time     string `json:"time" binding:"required"` // "10:00"
-	Nombre   string `json:"nombre" binding:"required"`
-	Apellido string `json:"apellido" binding:"required"`
-	Celular  string `json:"celular" binding:"required"` // "+52XXXXXXXXXX", debe estar ya verificado
+	Date         string                   `json:"date" binding:"required"` // "2026-08-20"
+	Time         string                   `json:"time" binding:"required"` // "10:00"
+	Nombre       string                   `json:"nombre" binding:"required"`
+	Apellido     string                   `json:"apellido" binding:"required"`
+	Celular      string                   `json:"celular" binding:"required"` // "+52XXXXXXXXXX", debe estar ya verificado
+	Correo       string                   `json:"correo" binding:"required,email"`
+	Cuestionario appointmentQuestionnaire `json:"cuestionario"`
 }
 
 // optionalUserID revisa si quien está agendando tiene sesión de cliente
@@ -206,7 +223,21 @@ func CreateAppointment(c *gin.Context) {
 		}
 	}
 
-	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, userID); err != nil {
+	// El cuestionario se guarda tal cual como JSON (ver comentario en
+	// appointmentQuestionnaire) — si por lo que sea no se pudiera
+	// serializar, se guarda "{}" en vez de tumbar el agendado completo
+	// por eso.
+	cuestionarioJSON, err := json.Marshal(input.Cuestionario)
+	if err != nil {
+		cuestionarioJSON = []byte("{}")
+	}
+
+	// ⚠️ models.CreateAppointment necesita actualizarse para aceptar
+	// estos 2 parámetros nuevos (correo, cuestionarioJSON) y guardarlos
+	// — requiere columnas nuevas en la tabla de citas (correo VARCHAR,
+	// cuestionario JSON/TEXT). No tengo models/appointments.go para
+	// hacer ese cambio yo mismo; súbelo si quieres que lo conecte.
+	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, string(cuestionarioJSON), userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo agendar la cita. Intenta de nuevo."})
 		return
 	}
