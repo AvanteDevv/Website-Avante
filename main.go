@@ -17,6 +17,7 @@ import (
 	"avante-optics/handlers"
 	adminHandlers "avante-optics/handlers/admin"
 	"avante-optics/models"
+	"avante-optics/reminders"
 	"avante-optics/storage"
 )
 
@@ -156,6 +157,12 @@ func main() {
 	defer db.DB.Close()
 
 	storage.Connect()
+
+	// Recordatorios de citas por WhatsApp (24h y 1h antes) — corre en
+	// segundo plano cada 15 min. Si faltan las variables de entorno de
+	// WHATSAPP_*, cada envío individual falla y queda logueado, pero no
+	// tumba el servidor.
+	reminders.Start()
 
 	auth.InitStore()
 
