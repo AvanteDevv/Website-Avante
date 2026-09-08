@@ -49,6 +49,16 @@ let selectedTime = null;
 let contactData = { nombre: '', apellido: '', celular: '', correo: '' };
 let questionnaireData = null;
 let occupiedHours = [];
+// Citas propias del cliente, SOLO si tiene sesión de cliente iniciada —
+// esta página es pública, así que para un invitado esto se queda como
+// [] (el fetch truena con 401 y se ignora en silencio). Sirve para
+// distinguir "ya tienes una cita a esta hora" de "ocupada por alguien
+// más" en renderHours.
+let myAppointments = [];
+fetch('/api/mis-citas')
+  .then(res => res.ok ? res.json() : null)
+  .then(data => { if(data && Array.isArray(data.citas)) myAppointments = data.citas; })
+  .catch(() => { /* invitado sin sesión, o falló el fetch: se queda vacío */ });
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const WEEKDAYS_FULL = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
@@ -173,15 +183,30 @@ function showDayView(){
 
 function renderHours(){
   apptHourGrid.innerHTML = '';
+  const dateStr = selectedDate ? toDateOnly(selectedDate) : null;
+  const ownApptsOnThisDay = dateStr
+    ? myAppointments.filter(c => c.status !== 'cancelada' && c.date === dateStr)
+    : [];
+
   HOURS.forEach(t => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    const isOccupied = occupiedHours.includes(t);
-    btn.className = 'appt-hour' + (selectedTime === t ? ' active' : '') + (isOccupied ? ' occupied' : '');
-    btn.textContent = to12h(t);
-    if(isOccupied){
+
+    const ownApptHere = ownApptsOnThisDay.find(c => c.time === t);
+    const isOccupiedByOther = occupiedHours.includes(t) && !ownApptHere;
+    const isBlocked = !!ownApptHere || isOccupiedByOther;
+
+    btn.className = 'appt-hour' + (selectedTime === t ? ' active' : '') + (isBlocked ? ' occupied' : '');
+
+    let label = to12h(t);
+    if(ownApptHere) label += '<small>Ya tienes cita aquí</small>';
+
+    btn.innerHTML = '<svg class="appt-hour-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+      + '<span class="appt-hour-label">' + label + '</span>';
+
+    if(isBlocked){
       btn.disabled = true;
-      btn.title = 'Esta hora ya está ocupada';
+      btn.title = ownApptHere ? 'Ya tienes una cita agendada en este horario' : 'Esta hora ya está ocupada';
     } else {
       btn.addEventListener('click', () => {
         selectedTime = t;
