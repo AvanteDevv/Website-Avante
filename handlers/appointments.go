@@ -18,6 +18,7 @@ import (
 // declared in your go.mod (first line: "module xxxxx").
 
 var celularRe = regexp.MustCompile(`^\+52\d{10}$`) // +52 y 10 dígitos
+var emailRe = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 
 // ---------------------------------------------------------------------
 // 1) Enviar código de verificación
@@ -142,12 +143,16 @@ type appointmentQuestionnaire struct {
 }
 
 type createAppointmentInput struct {
-	Date         string                   `json:"date" binding:"required"` // "2026-08-20"
-	Time         string                   `json:"time" binding:"required"` // "10:00"
-	Nombre       string                   `json:"nombre" binding:"required"`
-	Apellido     string                   `json:"apellido" binding:"required"`
-	Celular      string                   `json:"celular" binding:"required"` // "+52XXXXXXXXXX", debe estar ya verificado
-	Correo       string                   `json:"correo" binding:"required,email"`
+	Date     string `json:"date" binding:"required"` // "2026-08-20"
+	Time     string `json:"time" binding:"required"` // "10:00"
+	Nombre   string `json:"nombre" binding:"required"`
+	Apellido string `json:"apellido" binding:"required"`
+	Celular  string `json:"celular" binding:"required"` // "+52XXXXXXXXXX", debe estar ya verificado
+	// Correo NO lleva binding:"required" a propósito: agendar.js (público)
+	// siempre lo manda, pero mis-citas.js (panel de cliente logueado) no
+	// lo pide — más abajo, si llega vacío y sí hay sesión de cliente, se
+	// completa solo con el correo que ya tiene guardado su cuenta.
+	Correo       string                   `json:"correo"`
 	Cuestionario appointmentQuestionnaire `json:"cuestionario"`
 }
 
@@ -209,6 +214,11 @@ func CreateAppointment(c *gin.Context) {
 		return
 	}
 
+	if input.Correo != "" && !emailRe.MatchString(input.Correo) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Correo inválido."})
+		return
+	}
+
 	// El celular debe haber sido verificado con el código de 4 dígitos
 	// justo antes de esto (ConsumeVerification lo borra al usarlo, así
 	// que un mismo código verificado no se puede reusar para 2 citas).
@@ -223,6 +233,16 @@ func CreateAppointment(c *gin.Context) {
 		}
 	}
 
+	// mis-citas.js (panel de cliente logueado) no pide correo en su
+	// formulario — como ya tiene sesión, se completa con el que ya
+	// tiene guardado en su cuenta. agendar.js (público) sí lo manda
+	// siempre, así que esto no le aplica.
+	if input.Correo == "" && userID > 0 {
+		if user, err := models.GetUserByID(userID); err == nil {
+			input.Correo = user.Email
+		}
+	}
+
 	// El cuestionario se guarda tal cual como JSON (ver comentario en
 	// appointmentQuestionnaire) — si por lo que sea no se pudiera
 	// serializar, se guarda "{}" en vez de tumbar el agendado completo
@@ -232,11 +252,6 @@ func CreateAppointment(c *gin.Context) {
 		cuestionarioJSON = []byte("{}")
 	}
 
-	// ⚠️ models.CreateAppointment necesita actualizarse para aceptar
-	// estos 2 parámetros nuevos (correo, cuestionarioJSON) y guardarlos
-	// — requiere columnas nuevas en la tabla de citas (correo VARCHAR,
-	// cuestionario JSON/TEXT). No tengo models/appointments.go para
-	// hacer ese cambio yo mismo; súbelo si quieres que lo conecte.
 	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, string(cuestionarioJSON), userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo agendar la cita. Intenta de nuevo."})
 		return

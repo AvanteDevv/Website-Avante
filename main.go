@@ -428,6 +428,9 @@ func main() {
 		apiClient.POST("/favorites", handlers.AddFavorite)
 		apiClient.DELETE("/favorites/:productId", handlers.DeleteFavorite)
 		apiClient.GET("/mis-pedidos", handlers.GetMyOrders)
+		apiClient.GET("/mis-citas", handlers.GetMyAppointments)
+		apiClient.POST("/mis-citas/:id/cancelar", handlers.CancelMyAppointment)
+		apiClient.POST("/mis-citas/:id/reagendar", handlers.RescheduleMyAppointment)
 	}
 
 	// SMS gateway — llamada por la app Android del celular que manda los

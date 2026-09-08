@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -55,6 +56,25 @@ type Appointment struct {
 	// volver a buscarla.
 	UserID    int64     `json:"userId,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+// MarshalJSON serializa Date como "YYYY-MM-DD" (sin hora ni zona) — el
+// formato que espera el frontend (agendar.js/mis-citas.js: parseApptDate
+// hace cita.date.split('-')). Sin este método, Go serializaría
+// time.Time con su formato completo RFC3339 ("2026-09-08T00:00:00Z"),
+// lo que rompe ese split(): el "día" que le toca a la fecha
+// ("08T00:00:00Z") no es un número válido, y el frontend caía siempre
+// al valor por defecto 1 — por eso TODAS las citas se veían como
+// "1 de [mes]" sin importar su fecha real.
+func (a Appointment) MarshalJSON() ([]byte, error) {
+	type alias Appointment // evita loop infinito al volver a marshalear
+	return json.Marshal(&struct {
+		Date string `json:"date"`
+		alias
+	}{
+		Date:  a.Date.Format("2006-01-02"),
+		alias: alias(a),
+	})
 }
 
 // ErrAppointmentNotFound is returned when no appointment matches the
@@ -244,6 +264,46 @@ func IsSlotBooked(date time.Time, apptTime string) (bool, error) {
 		return false, err
 	}
 	return cnt > 0, nil
+}
+
+// IsSlotBookedExcluding es igual que IsSlotBooked, pero ignora una cita
+// en particular — se usa al reagendar, para no marcar como "ocupado" el
+// mismo horario que ya tenía la propia cita que se está moviendo (si el
+// cliente vuelve a elegir la misma hora que ya tenía).
+func IsSlotBookedExcluding(date time.Time, apptTime string, excludeID int64) (bool, error) {
+	var cnt int
+	err := db.DB.QueryRow(
+		"SELECT COUNT(*) FROM appointments WHERE appt_date = ? AND appt_time = ? AND status != 'cancelada' AND id != ?",
+		date.Format("2006-01-02"), apptTime, excludeID,
+	).Scan(&cnt)
+	if err != nil {
+		return false, err
+	}
+	return cnt > 0, nil
+}
+
+// RescheduleAppointmentByUser cambia la fecha/hora de una cita — SOLO si
+// pertenece al cliente que la está reagendando (WHERE id=? AND
+// user_id=?), mismo criterio de seguridad que CancelAppointmentByUser.
+// No toca status ni pide verificar código de nuevo: es la MISMA cita
+// (mismo id), solo se mueve de horario — la sesión de cliente ya la
+// autentica.
+func RescheduleAppointmentByUser(id, userID int64, date time.Time, apptTime string) error {
+	result, err := db.DB.Exec(
+		"UPDATE appointments SET appt_date = ?, appt_time = ? WHERE id = ? AND user_id = ?",
+		date.Format("2006-01-02"), apptTime, id, userID,
+	)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrAppointmentNotFound
+	}
+	return nil
 }
 
 // UpdateAppointmentStatus changes a booking's status (e.g. to
