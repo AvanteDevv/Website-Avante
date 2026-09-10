@@ -240,7 +240,6 @@
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
     var id = btn.dataset.id;
-    if (btn.dataset.action === 'verify') updateStatus(id, 'verificada');
     if (btn.dataset.action === 'cancel') updateStatus(id, 'cancelada');
     if (btn.dataset.action === 'asistio') updateStatus(id, 'asistio');
     if (btn.dataset.action === 'no_asistio') updateStatus(id, 'no_asistio');
@@ -389,12 +388,11 @@
         }
       }
 
-      document.getElementById('calEventVerify').onclick = function(){ updateStatus(id, 'verificada'); };
       document.getElementById('calEventCancel').onclick = function(){ updateStatus(id, 'cancelada'); };
       document.getElementById('calEventAsistio').onclick = function(){ updateStatus(id, 'asistio'); };
       document.getElementById('calEventNoAsistio').onclick = function(){ updateStatus(id, 'no_asistio'); };
-      document.getElementById('calEventCliente').onclick = function(){ openClienteModal(id); };
-      document.getElementById('calEventDelete').onclick = function(){ deleteCita(id); };
+      document.getElementById('calEventCliente').onclick = function(){ closeEventModal(); openClienteModal(id); };
+      document.getElementById('calEventDelete').onclick = function(){ closeEventModal(); deleteCita(id); };
 
       eventModal.classList.add('open');
       document.body.style.overflow = 'hidden';

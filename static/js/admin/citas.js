@@ -157,7 +157,6 @@
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
     var id = btn.dataset.id;
-    if (btn.dataset.action === 'verify') updateStatus(id, 'verificada');
     if (btn.dataset.action === 'cancel') updateStatus(id, 'cancelada');
     if (btn.dataset.action === 'delete') deleteCita(id);
     closeAllMenus();
@@ -303,9 +302,8 @@
         }
       }
 
-      document.getElementById('calEventVerify').onclick = function(){ updateStatus(id, 'verificada'); };
       document.getElementById('calEventCancel').onclick = function(){ updateStatus(id, 'cancelada'); };
-      document.getElementById('calEventDelete').onclick = function(){ deleteCita(id); };
+      document.getElementById('calEventDelete').onclick = function(){ closeEventModal(); deleteCita(id); };
 
       eventModal.classList.add('open');
       document.body.style.overflow = 'hidden';

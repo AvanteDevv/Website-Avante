@@ -208,9 +208,16 @@ body.admin-body{
 .admin-search:hover{border-color:var(--accent-border);}
 .admin-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);}
 
-.admin-table-wrap{ overflow:visible; }
+.admin-table-wrap{
+  overflow-x:auto; -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+}
+.admin-table-wrap::-webkit-scrollbar{ height:6px; }
+.admin-table-wrap::-webkit-scrollbar-track{ background:transparent; }
+.admin-table-wrap::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
 table.admin-table{
   width:100%;
+  min-width:1280px;
   border-collapse:collapse;
   font-size:13.5px;
 }
@@ -280,7 +287,6 @@ body.citas-focus-mode .cuenta-sidebar,
 body.citas-focus-mode .admin-header,
 body.citas-focus-mode .admin-stats{ display:none !important; }
 body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
-body.citas-focus-mode .admin-panel{ min-height:calc(100vh - 40px); }
 @media (max-width: 720px){
   .admin-main{padding:24px 20px 100px;}
   .page-topbar-user .admin-user-info{display:none;}
@@ -660,10 +666,6 @@ body.citas-focus-mode .admin-panel{ min-height:calc(100vh - 40px); }
   display:flex; align-items:center; justify-content:center;
 }
 .cal-action-icon svg{ width:15px; height:15px; }
-
-.cal-action-verificar .cal-action-icon{ background:#dff3e4; color:#1f7a3d; }
-.cal-action-verificar:hover{ border-color:#9fdcb2; background:#f3fbf5; }
-body.dark .cal-action-verificar:hover{ border-color:#1f7a3d; background:rgba(46,204,113,.12); }
 
 .cal-action-cancel .cal-action-icon{ background:#fdf1d6; color:#8a6a12; }
 .cal-action-cancel:hover{ border-color:#f0d68f; background:#fffaf0; }
