@@ -244,10 +244,10 @@ table.admin-table{
   border-radius:100px;
 }
 .admin-badge.pendiente{background:#fdf1d6;color:#8a6a12;}
-.admin-badge.confirmada{background:#dff3e4;color:#1f7a3d;}
+.admin-badge.verificada{background:#dff3e4;color:#1f7a3d;}
 .admin-badge.cancelada{background:#fbe0e0;color:#a3231b;}
 body.dark .admin-badge.pendiente{ background:rgba(255,193,7,.16); color:#ffcf5c; }
-body.dark .admin-badge.confirmada{ background:rgba(46,204,113,.16); color:#6fe0a0; }
+body.dark .admin-badge.verificada{ background:rgba(46,204,113,.16); color:#6fe0a0; }
 body.dark .admin-badge.cancelada{ background:rgba(231,76,60,.16); color:#ff8b7d; }
 .admin-empty{
   display:none;
@@ -615,7 +615,7 @@ body.citas-focus-mode .admin-panel{ min-height:calc(100vh - 40px); }
   width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block;
 }
 .cal-dot.pendiente{ background:#c9962c; }
-.cal-dot.confirmada{ background:#1f9d55; }
+.cal-dot.verificada{ background:#1f9d55; }
 .cal-dot.cancelada{ background:#c0392b; }
 
 .cal-legend{
@@ -661,9 +661,9 @@ body.citas-focus-mode .admin-panel{ min-height:calc(100vh - 40px); }
 }
 .cal-action-icon svg{ width:15px; height:15px; }
 
-.cal-action-confirm .cal-action-icon{ background:#dff3e4; color:#1f7a3d; }
-.cal-action-confirm:hover{ border-color:#9fdcb2; background:#f3fbf5; }
-body.dark .cal-action-confirm:hover{ border-color:#1f7a3d; background:rgba(46,204,113,.12); }
+.cal-action-verificar .cal-action-icon{ background:#dff3e4; color:#1f7a3d; }
+.cal-action-verificar:hover{ border-color:#9fdcb2; background:#f3fbf5; }
+body.dark .cal-action-verificar:hover{ border-color:#1f7a3d; background:rgba(46,204,113,.12); }
 
 .cal-action-cancel .cal-action-icon{ background:#fdf1d6; color:#8a6a12; }
 .cal-action-cancel:hover{ border-color:#f0d68f; background:#fffaf0; }

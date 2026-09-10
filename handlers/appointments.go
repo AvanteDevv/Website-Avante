@@ -181,6 +181,11 @@ func optionalUserID(c *gin.Context) int64 {
 // iniciada en ese momento, la cita queda ligada a su cuenta (aparece en
 // su panel "Mis citas"); si no, queda solo identificada por celular,
 // igual que antes.
+//
+// Este flujo público sigue sin pedir fecha de nacimiento — solo se
+// captura cuando recepción crea la cita manualmente desde su panel
+// (ver handlers/admin: CreateAppointmentByStaff), así que aquí se le
+// pasa "" a models.CreateAppointment.
 func CreateAppointment(c *gin.Context) {
 	var input createAppointmentInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -252,7 +257,7 @@ func CreateAppointment(c *gin.Context) {
 		cuestionarioJSON = []byte("{}")
 	}
 
-	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, string(cuestionarioJSON), userID); err != nil {
+	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, "", string(cuestionarioJSON), userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo agendar la cita. Intenta de nuevo."})
 		return
 	}

@@ -37,8 +37,8 @@
       <div class="stat-card-wrap">
         <div class="stat-card-glow"></div>
         <div class="admin-stat-card">
-          <div class="num" id="citasStatConfirmadas">0</div>
-          <div class="label">Confirmadas</div>
+          <div class="num" id="citasStatVerificadas">0</div>
+          <div class="label">Verificadas</div>
         </div>
       </div>
       <div class="stat-card-wrap">
@@ -55,6 +55,7 @@
         <div class="admin-panel-head-row">
           <h2>Todas las citas</h2>
           <div class="admin-panel-head-actions">
+            <button type="button" class="btn solid small" id="crearCitaBtn">+ Crear cita</button>
             <button type="button" class="admin-icon-btn" id="citasFocusBtn" aria-label="Pantalla completa" title="Pantalla completa">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>
             </button>
@@ -98,7 +99,7 @@
           </thead>
           <tbody id="citasTableBody">
             {{range .Citas}}
-            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-celular="{{.Celular}}" data-cancel-reason="{{.CancelReason}}">
+            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-celular="{{.Celular}}" data-correo="{{.Correo}}" data-fecha-nacimiento="{{.FechaNacimiento}}" data-cuestionario="{{.Cuestionario}}" data-cancel-reason="{{.CancelReason}}">
               <td>{{.ID}}</td>
               <td class="cita-cliente">{{.Nombre}} {{.Apellido}}</td>
               <td class="cita-dia">{{fechaEs .Date}}</td>
@@ -111,11 +112,22 @@
                     <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
                   </button>
                   <div class="row-menu-dropdown">
-                    <button type="button" class="row-menu-item" data-action="confirm" data-id="{{.ID}}">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Confirmar
+                    <button type="button" class="row-menu-item" data-action="cliente" data-id="{{.ID}}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> Ver cliente
+                    </button>
+                    <div class="row-menu-sep"></div>
+                    <button type="button" class="row-menu-item" data-action="verify" data-id="{{.ID}}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Verificar
                     </button>
                     <button type="button" class="row-menu-item" data-action="cancel" data-id="{{.ID}}">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg> Cancelar
+                    </button>
+                    <div class="row-menu-sep"></div>
+                    <button type="button" class="row-menu-item" data-action="asistio" data-id="{{.ID}}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Asistió
+                    </button>
+                    <button type="button" class="row-menu-item" data-action="no_asistio" data-id="{{.ID}}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg> No asistió
                     </button>
                     <div class="row-menu-sep"></div>
                     <button type="button" class="row-menu-item delete" data-action="delete" data-id="{{.ID}}">
@@ -172,8 +184,10 @@
         <div class="cal-grid" id="calGrid"></div>
         <div class="cal-legend">
           <span><i class="cal-dot pendiente"></i> Pendiente</span>
-          <span><i class="cal-dot confirmada"></i> Confirmada</span>
+          <span><i class="cal-dot verificada"></i> Verificada</span>
           <span><i class="cal-dot cancelada"></i> Cancelada</span>
+          <span><i class="cal-dot asistio"></i> Asistió</span>
+          <span><i class="cal-dot no_asistio"></i> No asistió</span>
         </div>
       </div>
     </div>
@@ -215,18 +229,117 @@
       <p class="cal-event-reason" id="calEventReason" hidden></p>
 
       <div class="cal-event-actions">
-        <button type="button" class="cal-action cal-action-confirm" data-action="confirm" id="calEventConfirm">
+        <button type="button" class="cal-action cal-action-cliente" data-action="cliente" id="calEventCliente">
+          <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+          Ver cliente
+        </button>
+        <button type="button" class="cal-action cal-action-verificar" data-action="verify" id="calEventVerify">
           <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-          Confirmar cita
+          Verificar cita
         </button>
         <button type="button" class="cal-action cal-action-cancel" data-action="cancel" id="calEventCancel">
           <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></span>
           Cancelar cita
         </button>
+        <button type="button" class="cal-action cal-action-asistio" data-action="asistio" id="calEventAsistio">
+          <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+          Marcar asistió
+        </button>
+        <button type="button" class="cal-action cal-action-noasistio" data-action="no_asistio" id="calEventNoAsistio">
+          <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></span>
+          Marcar no asistió
+        </button>
         <button type="button" class="cal-action cal-action-delete" data-action="delete" id="calEventDelete">
           <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></span>
           Eliminar cita
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal-overlay" id="crearCitaModalOverlay">
+  <div class="admin-modal-card">
+    <div class="admin-modal-head">
+      <h3>Crear cita</h3>
+      <button type="button" class="admin-modal-close" id="crearCitaModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form id="crearCitaForm" class="staff-form" novalidate>
+        <div class="staff-form-row">
+          <label class="staff-field">
+            <span>Día</span>
+            <input type="date" id="crearCitaDate" name="date" required>
+          </label>
+          <label class="staff-field">
+            <span>Hora</span>
+            <select id="crearCitaTime" name="time" required></select>
+          </label>
+        </div>
+        <div class="staff-form-row">
+          <label class="staff-field">
+            <span>Nombre</span>
+            <input type="text" id="crearCitaNombre" name="nombre" required>
+          </label>
+          <label class="staff-field">
+            <span>Apellido</span>
+            <input type="text" id="crearCitaApellido" name="apellido" required>
+          </label>
+        </div>
+        <label class="staff-field">
+          <span>Celular</span>
+          <div class="staff-phone-row">
+            <span class="staff-phone-lada">+52</span>
+            <input type="tel" id="crearCitaCelular" name="celular" inputmode="numeric" maxlength="10" placeholder="6621234567" required>
+          </div>
+        </label>
+        <label class="staff-field">
+          <span>Correo (opcional)</span>
+          <input type="email" id="crearCitaCorreo" name="correo">
+        </label>
+        <label class="staff-field">
+          <span>Fecha de nacimiento (opcional)</span>
+          <input type="date" id="crearCitaNacimiento" name="fecha_nacimiento">
+        </label>
+        <label class="staff-field">
+          <span>Estado inicial</span>
+          <select id="crearCitaStatus" name="status">
+            <option value="verificada">Verificada</option>
+            <option value="pendiente">Pendiente</option>
+          </select>
+        </label>
+        <p class="staff-error" id="crearCitaError"></p>
+        <div class="staff-form-actions">
+          <button type="button" class="btn small" id="crearCitaCancel">Cancelar</button>
+          <button type="submit" class="btn small solid" id="crearCitaSubmit">Crear cita</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal-overlay" id="clienteDetalleModalOverlay">
+  <div class="admin-modal-card">
+    <div class="admin-modal-head">
+      <h3>Datos del cliente</h3>
+      <button type="button" class="admin-modal-close" id="clienteDetalleModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="cliente-detalle-grid">
+        <div class="cliente-detalle-row"><span>Nombre completo</span><strong id="clienteDetalleNombre"></strong></div>
+        <div class="cliente-detalle-row"><span>Celular</span><strong id="clienteDetalleCelular"></strong></div>
+        <div class="cliente-detalle-row"><span>Correo</span><strong id="clienteDetalleCorreo"></strong></div>
+        <div class="cliente-detalle-row"><span>Fecha de nacimiento</span><strong id="clienteDetalleNacimiento"></strong></div>
+        <div class="cliente-detalle-sep"></div>
+        <div class="cliente-detalle-row">
+          <span>Cuestionario inicial</span>
+          <div class="cliente-quest-list" id="clienteDetalleCuestionario"></div>
+          <strong id="clienteDetalleCuestionarioEmpty" class="is-empty">No llenó el cuestionario (cita creada desde recepción, o de antes de que existiera).</strong>
+        </div>
       </div>
     </div>
   </div>

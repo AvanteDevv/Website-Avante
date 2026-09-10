@@ -17,14 +17,14 @@
 
   /* ---------- estadísticas (sobre TODAS las filas, sin filtrar) ---------- */
   function renderStats(){
-    var confirmadas = allRows.filter(function(r){ return r.dataset.status === 'confirmada'; }).length;
+    var verificadas = allRows.filter(function(r){ return r.dataset.status === 'verificada'; }).length;
     var canceladas = allRows.filter(function(r){ return r.dataset.status === 'cancelada'; }).length;
 
     var totalEl = document.getElementById('citasStatTotal');
-    var confEl = document.getElementById('citasStatConfirmadas');
+    var confEl = document.getElementById('citasStatVerificadas');
     var cancEl = document.getElementById('citasStatCanceladas');
     if (totalEl) totalEl.textContent = allRows.length;
-    if (confEl) confEl.textContent = confirmadas;
+    if (confEl) confEl.textContent = verificadas;
     if (cancEl) cancEl.textContent = canceladas;
   }
 
@@ -157,7 +157,7 @@
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
     var id = btn.dataset.id;
-    if (btn.dataset.action === 'confirm') updateStatus(id, 'confirmada');
+    if (btn.dataset.action === 'verify') updateStatus(id, 'verificada');
     if (btn.dataset.action === 'cancel') updateStatus(id, 'cancelada');
     if (btn.dataset.action === 'delete') deleteCita(id);
     closeAllMenus();
@@ -303,7 +303,7 @@
         }
       }
 
-      document.getElementById('calEventConfirm').onclick = function(){ updateStatus(id, 'confirmada'); };
+      document.getElementById('calEventVerify').onclick = function(){ updateStatus(id, 'verificada'); };
       document.getElementById('calEventCancel').onclick = function(){ updateStatus(id, 'cancelada'); };
       document.getElementById('calEventDelete').onclick = function(){ deleteCita(id); };
 

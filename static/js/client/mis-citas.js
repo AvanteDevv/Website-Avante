@@ -76,13 +76,9 @@ function renderCitas(){
 
   listEl.innerHTML = appointments.map(cita => {
     const dateObj = parseApptDate(cita);
-    const statusLabel = { pendiente: 'Pendiente', confirmada: 'Confirmada', cancelada: 'Cancelada' }[cita.status] || cita.status;
-    const canModify = isCancelable(cita, dateObj);
-    const cancelBtn = canModify
+    const statusLabel = { pendiente: 'Pendiente', verificada: 'Verificada', cancelada: 'Cancelada', asistio: 'Asistió', no_asistio: 'No asistió' }[cita.status] || cita.status;
+    const cancelBtn = isCancelable(cita, dateObj)
       ? `<button type="button" class="btn small danger" data-cancel-id="${cita.id}">Cancelar</button>`
-      : '';
-    const rescheduleBtn = canModify
-      ? `<button type="button" class="btn small" data-reschedule-id="${cita.id}">Reagendar</button>`
       : '';
 
     return `
@@ -97,7 +93,6 @@ function renderCitas(){
         </div>
         <div class="appt-actions">
           <span class="status-badge ${cita.status}">${statusLabel}</span>
-          ${rescheduleBtn}
           ${cancelBtn}
         </div>
       </div>
@@ -106,13 +101,6 @@ function renderCitas(){
 
   listEl.querySelectorAll('[data-cancel-id]').forEach(btn => {
     btn.addEventListener('click', () => openCancelModal(btn.getAttribute('data-cancel-id')));
-  });
-  listEl.querySelectorAll('[data-reschedule-id]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.getAttribute('data-reschedule-id');
-      const cita = appointments.find(c => String(c.id) === String(id));
-      openAgendarWidget(id, cita ? { date: cita.date, time: cita.time } : null);
-    });
   });
 
   if(window.feather) feather.replace();
@@ -257,15 +245,6 @@ let selectedDate = null;
 let selectedTime = null;
 let contactData = { nombre: '', apellido: '', celular: '' };
 let occupiedHours = [];
-// rescheduleId: si no es null, el widget de agendar está en modo
-// "reagendar" — apptSubmit manda el nuevo día/hora a
-// /api/mis-citas/:id/reagendar en vez de abrir el flujo de datos de
-// contacto + código (esta cita ya existe y ya está verificada).
-let rescheduleId = null;
-// rescheduleOriginal: { date, time } de la cita que se está reagendando
-// (tal como ya la tenía) — se usa para distinguir SU hora actual de una
-// hora ocupada por alguien más al pintar la cuadrícula (renderHours).
-let rescheduleOriginal = null;
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const WEEKDAYS_FULL = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
@@ -319,24 +298,19 @@ function resetAgendarWidget(){
   showDayView();
 }
 
-function openAgendarWidget(rescheduleAppointmentId, original){
-  rescheduleId = rescheduleAppointmentId || null;
-  rescheduleOriginal = original || null;
+function openAgendarWidget(){
   resetAgendarWidget();
-  if(apptSubmit) apptSubmit.textContent = rescheduleId ? 'Confirmar nuevo horario' : 'Confirmar cita';
   agendarWidgetOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 function closeAgendarWidget(){
   agendarWidgetOverlay.classList.remove('open');
   document.body.style.overflow = '';
-  rescheduleId = null;
-  rescheduleOriginal = null;
 }
 
-if(openAgendarBtn) openAgendarBtn.addEventListener('click', () => openAgendarWidget());
+if(openAgendarBtn) openAgendarBtn.addEventListener('click', openAgendarWidget);
 document.querySelectorAll('[data-action="open-agendar"]').forEach(btn => {
-  btn.addEventListener('click', () => openAgendarWidget());
+  btn.addEventListener('click', openAgendarWidget);
 });
 if(agendarWidgetClose) agendarWidgetClose.addEventListener('click', closeAgendarWidget);
 if(agendarWidgetOverlay){
@@ -431,45 +405,15 @@ function showDayView(){
 
 function renderHours(){
   apptHourGrid.innerHTML = '';
-  const dateStr = selectedDate ? toDateOnly(selectedDate) : null;
-  // Todas las citas propias (no canceladas) que caen en el día que se
-  // está viendo — sirve tanto para "Agendar nueva cita" (¿ya tengo una
-  // cita a esta hora?) como para "Reagendar" (¿cuál de estas horas es
-  // justo la cita que estoy moviendo?).
-  const ownApptsOnThisDay = dateStr
-    ? appointments.filter(c => c.status !== 'cancelada' && c.date === dateStr)
-    : [];
-
   HOURS.forEach(t => {
     const btn = document.createElement('button');
     btn.type = 'button';
-
-    const ownApptHere = ownApptsOnThisDay.find(c => c.time === t);
-    // Es la MISMA cita que se está reagendando: sigue siendo
-    // clickeable (reagendar a la misma hora es válido) y se marca como
-    // "Tu hora actual". Cualquier OTRA cita propia en ese horario (o
-    // en el flujo de agendar una nueva desde cero) sí bloquea, porque
-    // dos citas propias a la misma hora no tiene sentido.
-    const isBeingRescheduled = !!(ownApptHere && rescheduleId && String(ownApptHere.id) === String(rescheduleId));
-    const isOwnOtherAppt = !!(ownApptHere && !isBeingRescheduled);
-    const isOccupiedByOther = occupiedHours.includes(t) && !ownApptHere;
-    const isBlocked = isOwnOtherAppt || isOccupiedByOther;
-
-    btn.className = 'appt-hour'
-      + (selectedTime === t ? ' active' : '')
-      + (isBlocked ? ' occupied' : '')
-      + (isBeingRescheduled && selectedTime !== t ? ' current' : '');
-
-    let label = to12h(t);
-    if(isBeingRescheduled) label += '<small>Tu hora actual</small>';
-    else if(isOwnOtherAppt) label += '<small>Ya tienes cita aquí</small>';
-
-    btn.innerHTML = '<svg class="appt-hour-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
-      + '<span class="appt-hour-label">' + label + '</span>';
-
-    if(isBlocked){
+    const isOccupied = occupiedHours.includes(t);
+    btn.className = 'appt-hour' + (selectedTime === t ? ' active' : '') + (isOccupied ? ' occupied' : '');
+    btn.textContent = to12h(t);
+    if(isOccupied){
       btn.disabled = true;
-      btn.title = isOwnOtherAppt ? 'Ya tienes una cita agendada en este horario' : 'Esta hora ya está ocupada';
+      btn.title = 'Esta hora ya está ocupada';
     } else {
       btn.addEventListener('click', () => {
         selectedTime = t;
@@ -495,17 +439,21 @@ function openApptModal(text){
   apptModalOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+function closeApptModal(){
+  apptModalOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+apptModalClose.addEventListener('click', closeApptModal);
+apptModalOverlay.addEventListener('click', (e) => { if(e.target === apptModalOverlay) closeApptModal(); });
 
-// Cuando la cita se agendó con éxito, al cerrar este modal — sin
-// importar cómo (botón "Listo", la ✕, o click afuera) — se cierra
-// también el widget y se refresca la lista de citas de la página
+// Cuando la cita se agendó con éxito, al cerrar este modal ("Listo") se
+// cierra también el widget y se refresca la lista de citas de la página
 // (loadMyAppointments/renderStats/renderCitas viven en mis-citas.js,
 // cargado antes que este archivo, así que están disponibles como
 // funciones globales).
 let bookingSucceeded = false;
-function closeApptModal(){
-  apptModalOverlay.classList.remove('open');
-  document.body.style.overflow = '';
+apptModalOk.addEventListener('click', () => {
+  closeApptModal();
   if(bookingSucceeded){
     bookingSucceeded = false;
     closeAgendarWidget();
@@ -516,11 +464,6 @@ function closeApptModal(){
       });
     }
   }
-}
-apptModalClose.addEventListener('click', closeApptModal);
-apptModalOverlay.addEventListener('click', (e) => { if(e.target === apptModalOverlay) closeApptModal(); });
-apptModalOk.addEventListener('click', () => {
-  closeApptModal();
 });
 
 /* =========================================================
@@ -637,54 +580,14 @@ async function bookAppointment(dateObj, time, contact){
 /* =========================================================
    FLUJO COMPLETO: día/hora -> datos de contacto -> código -> agendar
    ========================================================= */
-apptSubmit.addEventListener('click', async () => {
-  if(!(selectedDate && selectedTime)){
+apptSubmit.addEventListener('click', () => {
+  if(selectedDate && selectedTime){
+    apptContactError.textContent = '';
+    apptContactForm.reset();
+    openApptContactModal();
+  } else {
     openApptModal('Por favor selecciona un día y una hora antes de confirmar.');
-    return;
   }
-
-  if(rescheduleId){
-    const idToReschedule = rescheduleId;
-    apptSubmit.disabled = true;
-    apptSubmit.textContent = 'Guardando...';
-
-    try{
-      const res = await fetch(`/api/mis-citas/${encodeURIComponent(idToReschedule)}/reagendar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: toDateOnly(selectedDate), time: selectedTime })
-      });
-      const data = await res.json().catch(() => ({}));
-
-      apptSubmit.disabled = false;
-      apptSubmit.textContent = 'Confirmar nuevo horario';
-
-      if(res.ok){
-        closeAgendarWidget();
-        await loadMyAppointments();
-        renderStats();
-        renderCitas();
-        openApptModal('Tu cita quedó reagendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '.');
-      } else if(res.status === 409){
-        selectedTime = null;
-        apptDetailTime.textContent = 'Por definir';
-        await loadOccupiedHours(selectedDate);
-        renderHours();
-        openApptModal(data.error || 'Justo se agendó esa hora — elige otra disponible.');
-      } else {
-        openApptModal(data.error || 'No pudimos reagendar tu cita. Intenta de nuevo.');
-      }
-    } catch(e){
-      apptSubmit.disabled = false;
-      apptSubmit.textContent = 'Confirmar nuevo horario';
-      openApptModal('No pudimos conectar con el servidor. Intenta de nuevo.');
-    }
-    return;
-  }
-
-  apptContactError.textContent = '';
-  apptContactForm.reset();
-  openApptContactModal();
 });
 
 apptContactForm.addEventListener('submit', async (e) => {

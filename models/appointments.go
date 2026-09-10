@@ -32,19 +32,31 @@ import (
 //
 // cuestionario va NULL-able porque las citas agendadas antes de este
 // cambio no lo tienen.
+//
+// Para el panel de recepción (crear cita manual + revisar datos del
+// cliente) también se agrega fecha de nacimiento. Se guarda como texto
+// "YYYY-MM-DD" (igual que appt_date en el frontend), no como DATE, para
+// no complicar el scan con otro sql.NullTime — nadie hace aritmética de
+// fechas con este campo, solo se muestra:
+//
+//	ALTER TABLE appointments ADD COLUMN fecha_nacimiento VARCHAR(10) NULL;
 
 // Appointment represents a booking made from the public "Agenda tu cita"
 // section (agendar.html / agendar.js).
 type Appointment struct {
-	ID           int64     `json:"id"`
-	Date         time.Time `json:"date"` // day only, stored as SQL DATE
-	Time         string    `json:"time"` // "HH:MM" — one of the fixed slots offered in agendar.js
-	Nombre       string    `json:"nombre"`
-	Apellido     string    `json:"apellido"`
-	Celular      string    `json:"celular"` // formato "+52XXXXXXXXXX", verificado por WhatsApp antes de agendar
-	Correo       string    `json:"correo,omitempty"`
-	Status       string    `json:"status"`                  // "pendiente" | "confirmada" | "cancelada"
-	CancelReason string    `json:"cancel_reason,omitempty"` // motivo que dio el cliente al cancelar — vacío si no se canceló, o si la canceló staff
+	ID       int64     `json:"id"`
+	Date     time.Time `json:"date"` // day only, stored as SQL DATE
+	Time     string    `json:"time"` // "HH:MM" — one of the fixed slots offered in agendar.js
+	Nombre   string    `json:"nombre"`
+	Apellido string    `json:"apellido"`
+	Celular  string    `json:"celular"` // formato "+52XXXXXXXXXX", verificado por WhatsApp antes de agendar
+	Correo   string    `json:"correo,omitempty"`
+	// FechaNacimiento va como texto "YYYY-MM-DD" — "" en citas de antes
+	// de que existiera este campo, o en las que se agendaron desde el
+	// flujo público (que todavía no lo pide).
+	FechaNacimiento string `json:"fecha_nacimiento,omitempty"`
+	Status          string `json:"status"`                  // "pendiente" | "verificada" | "cancelada" | "asistio" | "no_asistio"
+	CancelReason    string `json:"cancel_reason,omitempty"` // motivo que dio el cliente al cancelar — vacío si no se canceló, o si la canceló staff
 	// Cuestionario es el JSON crudo del cuestionario rápido (ver
 	// appointmentQuestionnaire en el handler CreateAppointment) — ""
 	// en citas agendadas antes de que existiera este cuestionario.
@@ -96,13 +108,17 @@ type rowScanner interface {
 // string/int64 planos en el struct).
 func scanAppointmentRow(row rowScanner, a *Appointment) error {
 	var reason sql.NullString
+	var fechaNacimiento sql.NullString
 	var cuestionario sql.NullString
 	var userID sql.NullInt64
-	if err := row.Scan(&a.ID, &a.Date, &a.Time, &a.Nombre, &a.Apellido, &a.Celular, &a.Correo, &cuestionario, &a.Status, &reason, &userID, &a.CreatedAt); err != nil {
+	if err := row.Scan(&a.ID, &a.Date, &a.Time, &a.Nombre, &a.Apellido, &a.Celular, &a.Correo, &fechaNacimiento, &cuestionario, &a.Status, &reason, &userID, &a.CreatedAt); err != nil {
 		return err
 	}
 	if reason.Valid {
 		a.CancelReason = reason.String
+	}
+	if fechaNacimiento.Valid {
+		a.FechaNacimiento = fechaNacimiento.String
 	}
 	if cuestionario.Valid {
 		a.Cuestionario = cuestionario.String
@@ -113,10 +129,10 @@ func scanAppointmentRow(row rowScanner, a *Appointment) error {
 	return nil
 }
 
-// CreateAppointment inserts a new booking with status "confirmada" — el
+// CreateAppointment inserts a new booking with status "verificada" — el
 // número de celular ya pasó por la verificación de código (ver
 // ConsumeVerification en otp.go) antes de llegar aquí, así que la cita
-// nace confirmada, no pendiente.
+// nace verificada, no pendiente.
 //
 // cuestionarioJSON es el JSON ya serializado del cuestionario rápido
 // (el handler CreateAppointment lo arma con json.Marshal) — se guarda
@@ -127,15 +143,19 @@ func scanAppointmentRow(row rowScanner, a *Appointment) error {
 // handler); si agendó como invitada, pasa 0 y la cita queda sin dueño
 // (no aparecerá en ningún "Mis citas" — no hay forma de reclamarla
 // después, ya que solo se identificó por celular, no por cuenta).
-func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular, correo, cuestionarioJSON string, userID int64) (*Appointment, error) {
+func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular, correo, fechaNacimiento, cuestionarioJSON string, userID int64) (*Appointment, error) {
 	var userIDArg interface{}
 	if userID > 0 {
 		userIDArg = userID
 	}
+	var fechaNacimientoArg interface{}
+	if fechaNacimiento != "" {
+		fechaNacimientoArg = fechaNacimiento
+	}
 
 	result, err := db.DB.Exec(
-		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, correo, cuestionario, status, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmada', ?)",
-		date.Format("2006-01-02"), apptTime, nombre, apellido, celular, correo, cuestionarioJSON, userIDArg,
+		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'verificada', ?)",
+		date.Format("2006-01-02"), apptTime, nombre, apellido, celular, correo, fechaNacimientoArg, cuestionarioJSON, userIDArg,
 	)
 	if err != nil {
 		return nil, err
@@ -147,8 +167,8 @@ func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular, corr
 	appt := &Appointment{
 		ID: id, Date: date, Time: apptTime,
 		Nombre: nombre, Apellido: apellido, Celular: celular,
-		Correo: correo, Cuestionario: cuestionarioJSON,
-		Status: "confirmada",
+		Correo: correo, FechaNacimiento: fechaNacimiento, Cuestionario: cuestionarioJSON,
+		Status: "verificada",
 	}
 	if userID > 0 {
 		appt.UserID = userID
@@ -156,12 +176,53 @@ func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular, corr
 	return appt, nil
 }
 
+// CreateAppointmentByStaff inserta una cita creada manualmente desde el
+// panel de recepción/admin (botón "Crear cita") — a diferencia de
+// CreateAppointment (flujo público de agendar.js/mis-citas.js), NO pasa
+// por verificación de código SMS: quien la crea ya es personal
+// autenticado del panel, así que no hace falta confirmar el celular del
+// cliente. Tampoco lleva cuestionario (eso solo lo llena el cliente en
+// el flujo público) ni user_id (no hay sesión de cliente involucrada;
+// si el cliente ya tiene cuenta y quieres ligarla, tendría que
+// reagendar/agendar él mismo desde su panel).
+//
+// status: si viene vacío, nace "verificada" (igual que las públicas) —
+// normalmente se crea así porque el cliente ya llamó o se presentó
+// directamente a agendar.
+func CreateAppointmentByStaff(date time.Time, apptTime, nombre, apellido, celular, correo, fechaNacimiento, status string) (*Appointment, error) {
+	if status == "" {
+		status = "verificada"
+	}
+	var fechaNacimientoArg interface{}
+	if fechaNacimiento != "" {
+		fechaNacimientoArg = fechaNacimiento
+	}
+
+	result, err := db.DB.Exec(
+		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		date.Format("2006-01-02"), apptTime, nombre, apellido, celular, correo, fechaNacimientoArg, status,
+	)
+	if err != nil {
+		return nil, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	return &Appointment{
+		ID: id, Date: date, Time: apptTime,
+		Nombre: nombre, Apellido: apellido, Celular: celular,
+		Correo: correo, FechaNacimiento: fechaNacimiento,
+		Status: status,
+	}, nil
+}
+
 // GetAppointmentsByUser devuelve las citas ligadas a la cuenta de un
 // cliente (las que agendó estando ya logueado), más próximas/recientes
 // primero — usado por el panel "Mis citas".
 func GetAppointmentsByUser(userID int64) ([]Appointment, error) {
 	rows, err := db.DB.Query(
-		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, cuestionario, status, cancel_reason, user_id, created_at FROM appointments WHERE user_id = ? ORDER BY appt_date DESC, appt_time DESC",
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, cancel_reason, user_id, created_at FROM appointments WHERE user_id = ? ORDER BY appt_date DESC, appt_time DESC",
 		userID,
 	)
 	if err != nil {
@@ -206,7 +267,7 @@ func CancelAppointmentByUser(id, userID int64, reason string) error {
 // first — used by the admin Citas panel.
 func GetAllAppointments() ([]Appointment, error) {
 	rows, err := db.DB.Query(
-		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, cuestionario, status, cancel_reason, user_id, created_at FROM appointments ORDER BY created_at DESC",
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, cancel_reason, user_id, created_at FROM appointments ORDER BY created_at DESC",
 	)
 	if err != nil {
 		return nil, err
@@ -307,7 +368,7 @@ func RescheduleAppointmentByUser(id, userID int64, date time.Time, apptTime stri
 }
 
 // UpdateAppointmentStatus changes a booking's status (e.g. to
-// "confirmada" when the admin approves it).
+// "verificada" when the admin approves it).
 func UpdateAppointmentStatus(id int64, status string) error {
 	result, err := db.DB.Exec("UPDATE appointments SET status = ? WHERE id = ?", status, id)
 	if err != nil {

@@ -206,6 +206,12 @@ func main() {
 		}))
 	})
 
+	// Mapa del Bazar Cultural — plantilla suelta en templates/ (junto a
+	// index.html), sin layout ni datos del sitio: es una vista aparte.
+	router.GET("/bazar.html", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "bazar.html", gin.H{})
+	})
+
 	router.GET("/iniciar-sesion", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "iniciar-sesion.html", gin.H{
 			"ActivePage": "iniciar-sesion",
@@ -291,6 +297,7 @@ func main() {
 		adminGroup.GET("/blogs/nuevo", onlyAdmin, adminHandlers.NewBlogForm)
 		adminGroup.GET("/blogs/:id/editar", onlyAdmin, adminHandlers.EditBlogForm)
 		adminGroup.GET("/citas", citasStaff, adminHandlers.Appointments)
+		adminGroup.POST("/citas", citasStaff, adminHandlers.CreateAppointmentByStaff)
 		adminGroup.PATCH("/citas/:id/estado", citasStaff, adminHandlers.UpdateAppointmentStatus)
 		adminGroup.DELETE("/citas/:id", citasStaff, adminHandlers.DeleteAppointment)
 		adminGroup.GET("/configuracion", onlyAdmin, adminHandlers.Settings)

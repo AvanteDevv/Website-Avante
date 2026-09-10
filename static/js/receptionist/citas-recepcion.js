@@ -18,14 +18,14 @@
 
   /* ---------- estadísticas (sobre TODAS las filas, sin filtrar) ---------- */
   function renderStats(){
-    var confirmadas = allRows.filter(function(r){ return r.dataset.status === 'confirmada'; }).length;
+    var verificadas = allRows.filter(function(r){ return r.dataset.status === 'verificada'; }).length;
     var canceladas = allRows.filter(function(r){ return r.dataset.status === 'cancelada'; }).length;
 
     var totalEl = document.getElementById('citasStatTotal');
-    var confEl = document.getElementById('citasStatConfirmadas');
+    var confEl = document.getElementById('citasStatVerificadas');
     var cancEl = document.getElementById('citasStatCanceladas');
     if (totalEl) totalEl.textContent = allRows.length;
-    if (confEl) confEl.textContent = confirmadas;
+    if (confEl) confEl.textContent = verificadas;
     if (cancEl) cancEl.textContent = canceladas;
   }
 
@@ -106,6 +106,88 @@
     });
   }
 
+  /* ---------- Modal: ver datos del cliente ---------- */
+  var clienteModalOverlay = document.getElementById('clienteDetalleModalOverlay');
+  var clienteModalClose = document.getElementById('clienteDetalleModalClose');
+
+  // Etiquetas legibles para las respuestas del cuestionario rápido que
+  // llena el cliente en el flujo público (ver appointmentQuestionnaire
+  // en handlers/appointments.go) — se guarda como JSON crudo en
+  // data-cuestionario, aquí solo se pinta bonito.
+  var QUEST_LABELS = {
+    ultimo_examen: 'Último examen de la vista',
+    lentes_armazon: '¿Usa lentes con armazón?',
+    lentes_contacto: '¿Usa lentes de contacto?',
+    usa_gotitas: '¿Usa gotas para los ojos?',
+    problemas: 'Problemas visuales',
+    enfermedades: 'Enfermedades relacionadas'
+  };
+
+  function fillClienteField(id, value){
+    var el = document.getElementById(id);
+    if (!el) return;
+    var v = (value || '').trim();
+    el.textContent = v || 'No proporcionado';
+    el.classList.toggle('is-empty', !v);
+  }
+
+  function openClienteModal(id){
+    if (!clienteModalOverlay) return;
+    var row = tbody.querySelector('tr[data-id="' + id + '"]');
+    if (!row) return;
+
+    var nombreCompleto = row.dataset.nombre ? row.dataset.nombre.trim() : '';
+    fillClienteField('clienteDetalleNombre', nombreCompleto);
+    fillClienteField('clienteDetalleCelular', row.dataset.celular);
+    fillClienteField('clienteDetalleCorreo', row.dataset.correo);
+    fillClienteField('clienteDetalleNacimiento', row.dataset.fechaNacimiento);
+
+    var questWrap = document.getElementById('clienteDetalleCuestionario');
+    var questEmpty = document.getElementById('clienteDetalleCuestionarioEmpty');
+    if (questWrap) {
+      questWrap.innerHTML = '';
+      var raw = row.dataset.cuestionario;
+      var parsed = null;
+      if (raw) {
+        try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
+      }
+      var hasAnswers = parsed && Object.keys(parsed).some(function(k){
+        var v = parsed[k];
+        return Array.isArray(v) ? v.length > 0 : !!v;
+      });
+      if (questEmpty) questEmpty.style.display = hasAnswers ? 'none' : 'block';
+      if (hasAnswers) {
+        Object.keys(QUEST_LABELS).forEach(function(key){
+          if (!(key in parsed)) return;
+          var val = parsed[key];
+          var text = Array.isArray(val) ? val.join(', ') : val;
+          if (!text) return;
+          var item = document.createElement('div');
+          item.className = 'cliente-quest-item';
+          var label = document.createElement('span');
+          label.textContent = QUEST_LABELS[key];
+          var strong = document.createElement('strong');
+          strong.textContent = text;
+          item.appendChild(label);
+          item.appendChild(strong);
+          questWrap.appendChild(item);
+        });
+      }
+    }
+
+    clienteModalOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeClienteModal(){
+    if (!clienteModalOverlay) return;
+    clienteModalOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  if (clienteModalOverlay) {
+    clienteModalClose && clienteModalClose.addEventListener('click', closeClienteModal);
+    clienteModalOverlay.addEventListener('click', function(e){ if (e.target === clienteModalOverlay) closeClienteModal(); });
+  }
+
   /* ---------- Modal: eliminar cita ---------- */
   var deleteOverlay = document.getElementById('deleteCitaModalOverlay');
   var deleteClose = document.getElementById('deleteCitaModalClose');
@@ -158,9 +240,12 @@
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
     var id = btn.dataset.id;
-    if (btn.dataset.action === 'confirm') updateStatus(id, 'confirmada');
+    if (btn.dataset.action === 'verify') updateStatus(id, 'verificada');
     if (btn.dataset.action === 'cancel') updateStatus(id, 'cancelada');
+    if (btn.dataset.action === 'asistio') updateStatus(id, 'asistio');
+    if (btn.dataset.action === 'no_asistio') updateStatus(id, 'no_asistio');
     if (btn.dataset.action === 'delete') deleteCita(id);
+    if (btn.dataset.action === 'cliente') openClienteModal(id);
     closeAllMenus();
   });
 
@@ -304,8 +389,11 @@
         }
       }
 
-      document.getElementById('calEventConfirm').onclick = function(){ updateStatus(id, 'confirmada'); };
+      document.getElementById('calEventVerify').onclick = function(){ updateStatus(id, 'verificada'); };
       document.getElementById('calEventCancel').onclick = function(){ updateStatus(id, 'cancelada'); };
+      document.getElementById('calEventAsistio').onclick = function(){ updateStatus(id, 'asistio'); };
+      document.getElementById('calEventNoAsistio').onclick = function(){ updateStatus(id, 'no_asistio'); };
+      document.getElementById('calEventCliente').onclick = function(){ openClienteModal(id); };
       document.getElementById('calEventDelete').onclick = function(){ deleteCita(id); };
 
       eventModal.classList.add('open');
@@ -502,6 +590,130 @@
 
   document.addEventListener('keydown', function(e){
     if (e.key === 'Escape' && document.body.classList.contains('citas-focus-mode')) setFocusMode(false);
+  });
+})();
+
+/* =========================================================
+   MODAL: CREAR CITA (recepción/admin)
+   Día/hora en selects simples (no calendario tipo Doctoralia,
+   porque quien la crea ya sabe qué día y hora quiere) + los
+   mismos datos que pide agendar.js, más fecha de nacimiento y
+   el estado inicial. No pide código de verificación — POST
+   /admin/citas (CreateAppointmentByStaff) ya está protegido por
+   sesión de staff, igual que /admin/citas/:id/estado y DELETE.
+   ========================================================= */
+(function(){
+  var openBtn = document.getElementById('crearCitaBtn');
+  var overlay = document.getElementById('crearCitaModalOverlay');
+  var closeBtn = document.getElementById('crearCitaModalClose');
+  var cancelBtn = document.getElementById('crearCitaCancel');
+  var form = document.getElementById('crearCitaForm');
+  var errorEl = document.getElementById('crearCitaError');
+  var submitBtn = document.getElementById('crearCitaSubmit');
+  var timeSelect = document.getElementById('crearCitaTime');
+  var dateInput = document.getElementById('crearCitaDate');
+  if (!openBtn || !overlay || !form) return;
+
+  var HOURS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30'];
+
+  function toTimeStr(mins){ return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0'); }
+  function toMinutes(t){ var p = t.split(':').map(Number); return p[0] * 60 + p[1]; }
+  function to12h(t){
+    var p = t.split(':').map(Number), h = p[0], m = p[1];
+    var period = h >= 12 ? 'PM' : 'AM';
+    var hh = h % 12; if (hh === 0) hh = 12;
+    return hh + ':' + String(m).padStart(2, '0') + ' ' + period;
+  }
+
+  function loadHours(){
+    return fetch('/api/horarios').then(function(res){
+      if (!res.ok) return;
+      return res.json();
+    }).then(function(data){
+      if (data && data.open && data.close) {
+        var slots = [];
+        for (var m = toMinutes(data.open); m <= toMinutes(data.close); m += 30) slots.push(toTimeStr(m));
+        HOURS = slots;
+      }
+    }).catch(function(){ /* se queda con el horario por defecto */ });
+  }
+
+  function fillTimeSelect(){
+    timeSelect.innerHTML = HOURS.map(function(t){ return '<option value="' + t + '">' + to12h(t) + '</option>'; }).join('');
+  }
+
+  var today = new Date();
+  var todayISO = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  if (dateInput) dateInput.min = todayISO;
+
+  function openModal(){
+    form.reset();
+    if (dateInput) dateInput.value = todayISO;
+    if (errorEl) errorEl.textContent = '';
+    fillTimeSelect();
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(){
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  openBtn.addEventListener('click', function(){
+    loadHours().then(openModal);
+  });
+  closeBtn && closeBtn.addEventListener('click', closeModal);
+  cancelBtn && cancelBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) closeModal(); });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+
+    var nombre = document.getElementById('crearCitaNombre').value.trim();
+    var apellido = document.getElementById('crearCitaApellido').value.trim();
+    var celularDigits = document.getElementById('crearCitaCelular').value.trim();
+    var correo = document.getElementById('crearCitaCorreo').value.trim();
+    var nacimiento = document.getElementById('crearCitaNacimiento').value;
+    var status = document.getElementById('crearCitaStatus').value;
+    var date = dateInput.value;
+    var time = timeSelect.value;
+
+    if (!date || !time) { errorEl.textContent = 'Selecciona día y hora.'; return; }
+    if (!nombre || !apellido) { errorEl.textContent = 'Completa nombre y apellido.'; return; }
+    if (!/^\d{10}$/.test(celularDigits)) { errorEl.textContent = 'Ingresa un celular a 10 dígitos.'; return; }
+    if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { errorEl.textContent = 'El correo no es válido.'; return; }
+
+    errorEl.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creando...';
+
+    fetch('/admin/citas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: date,
+        time: time,
+        nombre: nombre,
+        apellido: apellido,
+        celular: '+52' + celularDigits,
+        correo: correo,
+        fecha_nacimiento: nacimiento,
+        status: status
+      })
+    }).then(function(res){
+      if (res.status === 409) {
+        return res.json().then(function(data){ throw new Error(data.error || 'Esa hora ya está ocupada.'); });
+      }
+      if (!res.ok) {
+        return res.json().then(function(data){ throw new Error(data.error || 'No se pudo crear la cita.'); });
+      }
+      window.location.reload();
+    }).catch(function(err){
+      errorEl.textContent = err.message || 'No se pudo crear la cita. Intenta de nuevo.';
+    }).finally(function(){
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Crear cita';
+    });
   });
 })();
 

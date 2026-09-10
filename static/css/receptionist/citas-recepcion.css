@@ -246,11 +246,15 @@ table.admin-table{
   border-radius:100px;
 }
 .admin-badge.pendiente{background:#fdf1d6;color:#8a6a12;}
-.admin-badge.confirmada{background:#dff3e4;color:#1f7a3d;}
+.admin-badge.verificada{background:#dff3e4;color:#1f7a3d;}
 .admin-badge.cancelada{background:#fbe0e0;color:#a3231b;}
+.admin-badge.asistio{background:var(--blue-100);color:var(--blue-700);}
+.admin-badge.no_asistio{background:#eee;color:#6b6b6b;}
 body.dark .admin-badge.pendiente{ background:rgba(255,193,7,.16); color:#ffcf5c; }
-body.dark .admin-badge.confirmada{ background:rgba(46,204,113,.16); color:#6fe0a0; }
+body.dark .admin-badge.verificada{ background:rgba(46,204,113,.16); color:#6fe0a0; }
 body.dark .admin-badge.cancelada{ background:rgba(231,76,60,.16); color:#ff8b7d; }
+body.dark .admin-badge.asistio{ background:rgba(137,146,255,.20); color:#b7bcff; }
+body.dark .admin-badge.no_asistio{ background:rgba(255,255,255,.08); color:#b9b9b9; }
 .admin-empty{
   display:none;
   text-align:center;
@@ -617,8 +621,10 @@ body.citas-focus-mode .admin-panel{ min-height:calc(100vh - 40px); }
   width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block;
 }
 .cal-dot.pendiente{ background:#c9962c; }
-.cal-dot.confirmada{ background:#1f9d55; }
+.cal-dot.verificada{ background:#1f9d55; }
 .cal-dot.cancelada{ background:#c0392b; }
+.cal-dot.asistio{ background:var(--blue-600); }
+.cal-dot.no_asistio{ background:#9a9a9a; }
 
 .cal-legend{
   display:flex; gap:20px; margin-top:18px; padding-top:16px; border-top:1px solid var(--line);
@@ -663,9 +669,9 @@ body.citas-focus-mode .admin-panel{ min-height:calc(100vh - 40px); }
 }
 .cal-action-icon svg{ width:15px; height:15px; }
 
-.cal-action-confirm .cal-action-icon{ background:#dff3e4; color:#1f7a3d; }
-.cal-action-confirm:hover{ border-color:#9fdcb2; background:#f3fbf5; }
-body.dark .cal-action-confirm:hover{ border-color:#1f7a3d; background:rgba(46,204,113,.12); }
+.cal-action-verificar .cal-action-icon{ background:#dff3e4; color:#1f7a3d; }
+.cal-action-verificar:hover{ border-color:#9fdcb2; background:#f3fbf5; }
+body.dark .cal-action-verificar:hover{ border-color:#1f7a3d; background:rgba(46,204,113,.12); }
 
 .cal-action-cancel .cal-action-icon{ background:#fdf1d6; color:#8a6a12; }
 .cal-action-cancel:hover{ border-color:#f0d68f; background:#fffaf0; }
@@ -676,3 +682,52 @@ body.dark .cal-action-cancel:hover{ border-color:#8a6a12; background:rgba(255,19
 .cal-action-delete:hover{ border-color:#f0a8a8; background:#fdf3f3; }
 body.dark .cal-action-delete:hover{ border-color:#a3231b; background:rgba(231,76,60,.12); }
 body.dark .cal-action-delete{ color:#ff8b7d; }
+
+.cal-action-asistio .cal-action-icon{ background:var(--blue-100); color:var(--blue-700); }
+.cal-action-asistio:hover{ border-color:var(--blue-300); background:var(--blue-50); }
+body.dark .cal-action-asistio:hover{ border-color:var(--accent-border); background:rgba(137,146,255,.12); }
+
+.cal-action-noasistio .cal-action-icon{ background:#ececec; color:#6b6b6b; }
+.cal-action-noasistio:hover{ border-color:#cfcfcf; background:#f6f6f6; }
+body.dark .cal-action-noasistio:hover{ border-color:#666; background:rgba(255,255,255,.06); }
+
+.cal-action-cliente .cal-action-icon{ background:var(--accent-soft); color:var(--accent); }
+.cal-action-cliente:hover{ border-color:var(--accent-border); background:var(--accent-soft); }
+
+/* =========================================================
+   MODAL: CREAR CITA (recepción/admin)
+   ========================================================= */
+.staff-form{ display:flex; flex-direction:column; gap:14px; }
+.staff-form-row{ display:flex; gap:12px; }
+.staff-form-row .staff-field{ flex:1; min-width:0; }
+.staff-field{ display:flex; flex-direction:column; gap:6px; }
+.staff-field span{ font-size:11.5px; font-weight:700; letter-spacing:.3px; color:var(--muted); text-transform:uppercase; }
+.staff-field input,
+.staff-field select{
+  border:1px solid var(--line); border-radius:12px; padding:11px 13px;
+  font-family:var(--sans); font-size:13.5px; color:var(--ink); background:var(--white);
+  transition:border-color .18s var(--ease), background .18s var(--ease);
+}
+.staff-field input:focus,
+.staff-field select:focus{ outline:none; border-color:var(--accent); background:var(--accent-soft); }
+.staff-phone-row{ display:flex; align-items:center; gap:8px; }
+.staff-phone-lada{
+  flex-shrink:0; padding:11px 12px; border-radius:12px; border:1px solid var(--line);
+  background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:13px;
+}
+.staff-error{ font-size:12.5px; color:#e2554a; min-height:16px; }
+.staff-form-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:4px; }
+
+/* =========================================================
+   MODAL: DATOS DEL CLIENTE (solo lectura)
+   ========================================================= */
+.cliente-detalle-grid{ display:flex; flex-direction:column; gap:14px; }
+.cliente-detalle-row{ display:flex; flex-direction:column; gap:3px; }
+.cliente-detalle-row span{ font-size:11px; font-weight:700; letter-spacing:.3px; color:var(--muted); text-transform:uppercase; }
+.cliente-detalle-row strong{ font-size:14px; font-weight:600; color:var(--ink); }
+.cliente-detalle-row strong.is-empty{ color:var(--muted); font-weight:500; font-style:italic; }
+.cliente-detalle-sep{ height:1px; background:var(--line); margin:2px 0; }
+.cliente-quest-list{ display:flex; flex-direction:column; gap:10px; }
+.cliente-quest-item{ display:flex; flex-direction:column; gap:2px; }
+.cliente-quest-item span{ font-size:12px; color:var(--muted); }
+.cliente-quest-item strong{ font-size:13.5px; font-weight:600; color:var(--ink); }
