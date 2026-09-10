@@ -251,8 +251,8 @@
     { id:5, x:577.1, y:594.0 }
   ];
 
-  var STORAGE_KEY = 'bazar-puestos-v2';
-  var MINE_KEY = 'mi-puesto-v2';
+  var MINE_KEY = 'bazar-mi-puesto-v1';
+  var API = '/api/bazar';
 
   var DEFAULT_NOMBRE = 'María Fernanda López Duarte';
   function genExpediente(id){ return '2222' + String(id).padStart(4, '0'); }
@@ -323,26 +323,61 @@
     el.classList.add('pulse');
   }
 
+  function loadMineLocal(){
+    try{
+      var raw = localStorage.getItem(MINE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+  function saveMineLocal(){
+    try{
+      if(mine){ localStorage.setItem(MINE_KEY, JSON.stringify(mine)); }
+      else{ localStorage.removeItem(MINE_KEY); }
+    }catch(e){}
+  }
+
   async function loadState(){
     try{
-      var res = await window.storage.get(STORAGE_KEY, true);
-      state = JSON.parse(res.value);
+      var res = await fetch(API + '/puestos');
+      if(!res.ok) throw new Error('bad response');
+      state = await res.json();
     }catch(e){
       state = defaultState();
-      try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), true); }catch(e2){}
     }
-    try{
-      var mres = await window.storage.get(MINE_KEY, false);
-      mine = JSON.parse(mres.value);
-    }catch(e){
-      mine = null;
+    mine = loadMineLocal();
+    if(mine){
+      var st = state[mine.id];
+      if(!st || !st.ocupado){ mine = null; saveMineLocal(); }
     }
   }
 
-  async function saveShared(){ await window.storage.set(STORAGE_KEY, JSON.stringify(state), true); }
-  async function saveMine(){
-    if(mine){ await window.storage.set(MINE_KEY, JSON.stringify(mine), false); }
-    else{ try{ await window.storage.delete(MINE_KEY, false); }catch(e){} }
+  async function reservarPuesto(id, nombre, expediente, previousId){
+    var res = await fetch(API + '/reservar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: String(id),
+        nombre: nombre,
+        expediente: expediente,
+        previousId: previousId ? String(previousId) : null
+      })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if(data.puestos){ state = data.puestos; }
+    if(!res.ok){ throw new Error(data.error || 'No se pudo reservar el puesto.'); }
+    return data;
+  }
+
+  async function liberarPuesto(id){
+    var res = await fetch(API + '/liberar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: String(id) })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if(data.puestos){ state = data.puestos; }
+    if(!res.ok){ throw new Error(data.error || 'No se pudo liberar el puesto.'); }
+    return data;
   }
 
   function openOverlay(html){
@@ -426,15 +461,14 @@
       btn.textContent = isMove ? 'Moviendo…' : 'Reservando…';
       var previousId = isMove ? mine.id : null;
       try{
-        if(previousId){ state[previousId] = { ocupado:false, nombre:null, expediente:null }; }
-        state[id] = { ocupado:true, nombre:nombre, expediente:expediente };
-        await saveShared();
+        await reservarPuesto(id, nombre, expediente, previousId);
         mine = { id:id, nombre:nombre, expediente:expediente };
-        await saveMine();
+        saveMineLocal();
         renderPines();
         openConfirmModal(id, nombre, expediente, isMove);
       }catch(err){
-        showToast('No se pudo guardar. Intenta de nuevo.', true);
+        renderPines();
+        showToast(err.message || 'No se pudo guardar. Intenta de nuevo.', true);
         btn.disabled = false;
         btn.textContent = isMove ? 'Cambiar a este puesto' : 'Reservar puesto';
       }
@@ -481,15 +515,15 @@
       var btn = this;
       btn.disabled = true; btn.textContent = 'Liberando…';
       try{
-        state[id] = { ocupado:false, nombre:null, expediente:null };
-        await saveShared();
+        await liberarPuesto(id);
         mine = null;
-        await saveMine();
+        saveMineLocal();
         renderPines();
         closeOverlay();
         showToast('Liberaste el puesto ' + id + '.');
       }catch(err){
-        showToast('No se pudo liberar. Intenta de nuevo.', true);
+        renderPines();
+        showToast(err.message || 'No se pudo liberar. Intenta de nuevo.', true);
         btn.disabled = false; btn.textContent = 'Liberar puesto';
       }
     });
@@ -499,6 +533,19 @@
     await loadState();
     renderPines();
     mapStatus.classList.add('hidden');
+    setInterval(async function(){
+      if(overlay.classList.contains('show')) return;
+      try{
+        var res = await fetch(API + '/puestos');
+        if(!res.ok) return;
+        state = await res.json();
+        if(mine){
+          var st = state[mine.id];
+          if(!st || !st.ocupado){ mine = null; saveMineLocal(); }
+        }
+        renderPines();
+      }catch(e){}
+    }, 8000);
   })();
 
 })();

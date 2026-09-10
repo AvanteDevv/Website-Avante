@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -124,6 +125,35 @@ func buildStoreProductsJSON() template.JS {
 	return template.JS(b)
 }
 
+// bazarPuesto es el estado de un lugar del mapa del Bazar Cultural
+// (ver /bazar.html). Por ahora vive solo en memoria del proceso —
+// se reinicia si el servidor se reinicia. Si más adelante quieres que
+// sobreviva reinicios/despliegues, cambia bazarState por una tabla en
+// la BD (models) y estos tres handlers por consultas a ella.
+type bazarPuesto struct {
+	Ocupado    bool   `json:"ocupado"`
+	Nombre     string `json:"nombre,omitempty"`
+	Expediente string `json:"expediente,omitempty"`
+}
+
+var (
+	bazarMu    sync.Mutex
+	bazarState = map[string]*bazarPuesto{
+		"1": {}, "2": {}, "3": {}, "4": {}, "5": {},
+	}
+)
+
+// bazarSnapshot copia el estado actual para mandarlo como JSON sin
+// exponer los punteros internos (y sin tener el mutex tomado mientras
+// gin serializa la respuesta).
+func bazarSnapshot() map[string]bazarPuesto {
+	out := make(map[string]bazarPuesto, len(bazarState))
+	for k, v := range bazarState {
+		out[k] = *v
+	}
+	return out
+}
+
 func loadTemplates() *template.Template {
 	funcs := template.FuncMap{
 		"fechaEs":     spanishDate,
@@ -211,6 +241,74 @@ func main() {
 	router.GET("/bazar.html", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "bazar.html", gin.H{})
 	})
+
+	// API del mapa del Bazar Cultural — sin auth (no hay login todavía,
+	// ver aviso en bazar.html). Estado compartido en memoria (bazarState).
+	bazarAPI := router.Group("/api/bazar")
+	{
+		bazarAPI.GET("/puestos", func(c *gin.Context) {
+			bazarMu.Lock()
+			defer bazarMu.Unlock()
+			c.JSON(http.StatusOK, bazarSnapshot())
+		})
+
+		bazarAPI.POST("/reservar", func(c *gin.Context) {
+			var body struct {
+				ID         string  `json:"id"`
+				Nombre     string  `json:"nombre"`
+				Expediente string  `json:"expediente"`
+				PreviousID *string `json:"previousId"`
+			}
+			if err := c.ShouldBindJSON(&body); err != nil || body.ID == "" || body.Nombre == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Faltan datos para reservar."})
+				return
+			}
+
+			bazarMu.Lock()
+			defer bazarMu.Unlock()
+
+			target, ok := bazarState[body.ID]
+			if !ok {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Ese puesto no existe."})
+				return
+			}
+			if target.Ocupado {
+				c.JSON(http.StatusConflict, gin.H{
+					"error":   "Ese puesto ya está ocupado.",
+					"puestos": bazarSnapshot(),
+				})
+				return
+			}
+			if body.PreviousID != nil {
+				if prev, ok := bazarState[*body.PreviousID]; ok {
+					*prev = bazarPuesto{}
+				}
+			}
+			*target = bazarPuesto{Ocupado: true, Nombre: body.Nombre, Expediente: body.Expediente}
+			c.JSON(http.StatusOK, gin.H{"puestos": bazarSnapshot()})
+		})
+
+		bazarAPI.POST("/liberar", func(c *gin.Context) {
+			var body struct {
+				ID string `json:"id"`
+			}
+			if err := c.ShouldBindJSON(&body); err != nil || body.ID == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Falta el id del puesto."})
+				return
+			}
+
+			bazarMu.Lock()
+			defer bazarMu.Unlock()
+
+			target, ok := bazarState[body.ID]
+			if !ok {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Ese puesto no existe."})
+				return
+			}
+			*target = bazarPuesto{}
+			c.JSON(http.StatusOK, gin.H{"puestos": bazarSnapshot()})
+		})
+	}
 
 	router.GET("/iniciar-sesion", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "iniciar-sesion.html", gin.H{
