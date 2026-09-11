@@ -268,7 +268,8 @@
         id: row.dataset.id,
         status: row.dataset.status,
         date: row.dataset.date,   // "YYYY-MM-DD"
-        time: row.dataset.time || ''
+        time: row.dataset.time || '',
+        nombre: row.dataset.nombre ? row.dataset.nombre.trim() : ''
       };
     }).filter(function(ev){ return !!ev.date; });
   }
@@ -284,11 +285,11 @@
     function isoDate(y, m, d){ return y + '-' + pad(m + 1) + '-' + pad(d); }
     function todayISO(){ var t = new Date(); return isoDate(t.getFullYear(), t.getMonth(), t.getDate()); }
 
-    var expandedDate = null;
+    var byDate = {};
 
     function renderCalendar(){
       var events = eventsFromRows();
-      var byDate = {};
+      byDate = {};
       events.forEach(function(ev){
         (byDate[ev.date] = byDate[ev.date] || []).push(ev);
       });
@@ -327,12 +328,12 @@
         html += '<div class="cal-day' + (outside ? ' is-outside' : '') + (isToday ? ' is-today' : '') + '">';
         html += '<span class="cal-day-num">' + dayNum + '</span>';
         html += '<div class="cal-day-events">';
-        var shown = (cellISO === expandedDate) ? dayEvents : dayEvents.slice(0, 3);
+        var shown = dayEvents.slice(0, 3);
         shown.forEach(function(ev){
           html += '<button type="button" class="cal-event-chip" data-event-id="' + ev.id + '">' +
                   '<i class="cal-dot ' + ev.status + '"></i><span class="chip-label">' + (ev.time || '') + '</span></button>';
         });
-        if (dayEvents.length > 3 && cellISO !== expandedDate) {
+        if (dayEvents.length > 3) {
           html += '<button type="button" class="cal-day-more" data-more-date="' + cellISO + '">+' + (dayEvents.length - 3) + ' más</button>';
         }
         html += '</div></div>';
@@ -404,14 +405,43 @@
     eventModalClose && eventModalClose.addEventListener('click', closeEventModal);
     eventModal && eventModal.addEventListener('click', function(e){ if (e.target === eventModal) closeEventModal(); });
 
+    var dayModal = document.getElementById('dayEventsModalOverlay');
+    var dayModalClose = document.getElementById('dayEventsModalClose');
+    var dayModalTitle = document.getElementById('dayEventsModalTitle');
+    var dayList = document.getElementById('dayEventsList');
+
+    function openDayModal(cellISO){
+      var dayEvents = byDate[cellISO] || [];
+      var parts = cellISO.split('-').map(Number);
+      dayModalTitle.textContent = parts[2] + ' de ' + MESES[parts[1] - 1] + ' de ' + parts[0];
+      dayList.innerHTML = dayEvents.map(function(ev){
+        return '<button type="button" class="day-events-item" data-event-id="' + ev.id + '">' +
+               '<i class="cal-dot ' + ev.status + '"></i>' +
+               '<span class="day-events-time">' + (ev.time || '') + '</span>' +
+               '<span class="day-events-name">' + (ev.nombre || '') + '</span>' +
+               '</button>';
+      }).join('');
+      dayModal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeDayModal(){
+      dayModal.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    dayModalClose && dayModalClose.addEventListener('click', closeDayModal);
+    dayModal && dayModal.addEventListener('click', function(e){ if (e.target === dayModal) closeDayModal(); });
+    dayList && dayList.addEventListener('click', function(e){
+      var item = e.target.closest('[data-event-id]');
+      if (!item) return;
+      closeDayModal();
+      openEventModal(item.dataset.eventId);
+    });
+
     calGrid.addEventListener('click', function(e){
       var chip = e.target.closest('[data-event-id]');
       if (chip) { openEventModal(chip.dataset.eventId); return; }
       var more = e.target.closest('[data-more-date]');
-      if (more) {
-        expandedDate = more.dataset.moreDate;
-        renderCalendar();
-      }
+      if (more) { openDayModal(more.dataset.moreDate); }
     });
 
     renderCalendar();

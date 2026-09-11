@@ -740,6 +740,28 @@ body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
 }
 .cal-day-more:hover{ color:var(--accent-hover); }
 
+/* ---------- Modal: lista de citas del día ---------- */
+.day-events-list{
+  display:flex; flex-direction:column; gap:8px; max-height:360px; overflow-y:auto;
+  scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+}
+.day-events-list::-webkit-scrollbar{ width:6px; }
+.day-events-list::-webkit-scrollbar-track{ background:transparent; }
+.day-events-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+.day-events-item{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  padding:11px 13px; border-radius:12px; border:1.5px solid var(--line); background:var(--white);
+  font-family:var(--sans); cursor:pointer;
+  transition:background .16s var(--ease), border-color .16s var(--ease);
+}
+.day-events-item:hover{ background:var(--blue-50); border-color:var(--blue-300); }
+.day-events-item .cal-dot{ width:8px; height:8px; }
+.day-events-item .day-events-time{ font-size:13px; font-weight:700; color:var(--ink); flex-shrink:0; }
+.day-events-item .day-events-name{
+  font-size:12.5px; color:var(--muted); flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
 .cal-dot{
   width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block;
 }
