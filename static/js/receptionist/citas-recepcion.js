@@ -592,13 +592,14 @@
 })();
 
 /* =========================================================
-   MODAL: CREAR CITA (recepción/admin)
-   Día/hora en selects simples (no calendario tipo Doctoralia,
-   porque quien la crea ya sabe qué día y hora quiere) + los
-   mismos datos que pide agendar.js, más fecha de nacimiento y
-   el estado inicial. No pide código de verificación — POST
-   /admin/citas (CreateAppointmentByStaff) ya está protegido por
-   sesión de staff, igual que /admin/citas/:id/estado y DELETE.
+   MODAL: CREAR CITA (recepción)
+   Día → cb-datepicker (calendario), Hora → time-picker, Estado
+   inicial → admin-role-select: los tres widgets "animados" que
+   ya usa el resto del sitio (crear-blog.js / configuracion.js),
+   en vez de <input type=date>/<select> nativos.
+   No pide código de verificación — POST /admin/citas
+   (CreateAppointmentByStaff) ya está protegido por sesión de
+   staff, igual que /admin/citas/:id/estado y DELETE.
    ========================================================= */
 (function(){
   var openBtn = document.getElementById('crearCitaBtn');
@@ -608,20 +609,24 @@
   var form = document.getElementById('crearCitaForm');
   var errorEl = document.getElementById('crearCitaError');
   var submitBtn = document.getElementById('crearCitaSubmit');
-  var timeSelect = document.getElementById('crearCitaTime');
-  var dateInput = document.getElementById('crearCitaDate');
+  var dateHidden = document.getElementById('crearCitaDate');
+  var timeHidden = document.getElementById('crearCitaTime');
+  var statusHidden = document.getElementById('crearCitaStatus');
   if (!openBtn || !overlay || !form) return;
 
+  var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var HOURS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30'];
 
   function toTimeStr(mins){ return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0'); }
   function toMinutes(t){ var p = t.split(':').map(Number); return p[0] * 60 + p[1]; }
   function to12h(t){
     var p = t.split(':').map(Number), h = p[0], m = p[1];
-    var period = h >= 12 ? 'PM' : 'AM';
+    var period = h >= 12 ? 'p.m.' : 'a.m.';
     var hh = h % 12; if (hh === 0) hh = 12;
     return hh + ':' + String(m).padStart(2, '0') + ' ' + period;
   }
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function iso(y, m, d){ return y + '-' + pad(m + 1) + '-' + pad(d); }
 
   function loadHours(){
     return fetch('/api/horarios').then(function(res){
@@ -636,23 +641,288 @@
     }).catch(function(){ /* se queda con el horario por defecto */ });
   }
 
-  function fillTimeSelect(){
-    timeSelect.innerHTML = HOURS.map(function(t){ return '<option value="' + t + '">' + to12h(t) + '</option>'; }).join('');
-  }
-
   var today = new Date();
-  var todayISO = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-  if (dateInput) dateInput.min = todayISO;
+  var todayISO = iso(today.getFullYear(), today.getMonth(), today.getDate());
 
+  /* ---------- widgets compartidos: abrir uno cierra los demás ---------- */
+  function closeAllPickers(){
+    document.querySelectorAll('#crearCitaForm .time-picker.is-open, #crearCitaForm .cb-datepicker.is-open, #crearCitaForm .admin-role-select.is-open, #crearCitaForm .staff-lada-select.is-open')
+      .forEach(function(p){ p.classList.remove('is-open'); });
+  }
+  document.addEventListener('click', closeAllPickers);
+
+  /* ---------- Hora: time-picker ---------- */
+  var timePicker = document.getElementById('crearCitaTimePicker');
+  var timeBtn = document.getElementById('crearCitaTimeBtn');
+  var timeLabel = document.getElementById('crearCitaTimeLabel');
+  var timeMenu = document.getElementById('crearCitaTimeMenu');
+
+  function fillTimeMenu(){
+    timeMenu.innerHTML = HOURS.map(function(t){
+      return '<button type="button" class="time-picker-option' + (t === timeHidden.value ? ' active' : '') + '" data-time="' + t + '">' + to12h(t) + '</button>';
+    }).join('');
+  }
+  function setTime(t){
+    timeHidden.value = t;
+    timeLabel.textContent = to12h(t);
+    timeMenu.querySelectorAll('.time-picker-option').forEach(function(opt){
+      opt.classList.toggle('active', opt.dataset.time === t);
+    });
+  }
+  timeBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (timePicker.classList.contains('is-open')) { timePicker.classList.remove('is-open'); return; }
+    closeAllPickers();
+    timePicker.classList.add('is-open');
+    var active = timeMenu.querySelector('.time-picker-option.active');
+    if (active) active.scrollIntoView({ block: 'center' });
+  });
+  timeMenu.addEventListener('click', function(e){
+    var opt = e.target.closest('.time-picker-option');
+    if (!opt) return;
+    setTime(opt.dataset.time);
+    timePicker.classList.remove('is-open');
+  });
+
+  /* ---------- Día: cb-datepicker ---------- */
+  var datePicker = document.getElementById('crearCitaDatePicker');
+  var dateBtn = document.getElementById('crearCitaDateBtn');
+  var dateLabel = document.getElementById('crearCitaDateLabel');
+  var dateGrid = document.getElementById('crearCitaDateGrid');
+  var dateMonthLabel = document.getElementById('crearCitaDateMonthLabel');
+  var viewYear, viewMonth;
+
+  function renderDateGrid(){
+    dateMonthLabel.textContent = MESES[viewMonth] + ' de ' + viewYear;
+
+    var firstOfMonth = new Date(viewYear, viewMonth, 1);
+    var startOffset = firstOfMonth.getDay();
+    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    var daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+    var totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+    var html = '';
+    for (var i = 0; i < totalCells; i++) {
+      var dayNum, cellYear = viewYear, cellMonth = viewMonth, outside = false;
+      if (i < startOffset) { dayNum = daysInPrevMonth - (startOffset - 1 - i); cellMonth -= 1; outside = true; }
+      else if (i >= startOffset + daysInMonth) { dayNum = i - (startOffset + daysInMonth) + 1; cellMonth += 1; outside = true; }
+      else { dayNum = i - startOffset + 1; }
+      if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
+      if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
+      var cellISO = iso(cellYear, cellMonth, dayNum);
+      var cls = 'cb-datepicker-day';
+      if (outside) cls += ' is-outside';
+      if (cellISO === todayISO) cls += ' is-today';
+      if (cellISO === dateHidden.value) cls += ' is-selected';
+      if (cellISO < todayISO) cls += ' is-disabled';
+      html += '<button type="button" class="' + cls + '" data-iso="' + cellISO + '">' + dayNum + '</button>';
+    }
+    dateGrid.innerHTML = html;
+  }
+  function setDate(y, m, d){
+    dateHidden.value = iso(y, m, d);
+    dateLabel.textContent = pad(d) + '/' + pad(m + 1) + '/' + y;
+  }
+  document.getElementById('crearCitaDatePrev').addEventListener('click', function(e){
+    e.stopPropagation();
+    viewMonth -= 1; if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; } renderDateGrid();
+  });
+  document.getElementById('crearCitaDateNext').addEventListener('click', function(e){
+    e.stopPropagation();
+    viewMonth += 1; if (viewMonth > 11) { viewMonth = 0; viewYear += 1; } renderDateGrid();
+  });
+  document.getElementById('crearCitaDateToday').addEventListener('click', function(e){
+    e.stopPropagation();
+    viewYear = today.getFullYear(); viewMonth = today.getMonth();
+    setDate(today.getFullYear(), today.getMonth(), today.getDate());
+    renderDateGrid();
+  });
+  dateGrid.addEventListener('click', function(e){
+    var day = e.target.closest('.cb-datepicker-day');
+    if (!day || day.classList.contains('is-disabled')) return;
+    var parts = day.dataset.iso.split('-').map(Number);
+    setDate(parts[0], parts[1] - 1, parts[2]);
+    datePicker.classList.remove('is-open');
+    renderDateGrid();
+  });
+  dateBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (datePicker.classList.contains('is-open')) { datePicker.classList.remove('is-open'); return; }
+    closeAllPickers();
+    renderDateGrid();
+    datePicker.classList.add('is-open');
+  });
+
+  /* ---------- Lada del celular: +52 / +1 ---------- */
+  var ladaWrap = document.getElementById('crearCitaLadaWrap');
+  var ladaBtn = document.getElementById('crearCitaLadaBtn');
+  var ladaLabel = document.getElementById('crearCitaLadaLabel');
+  var ladaMenu = document.getElementById('crearCitaLadaMenu');
+  var selectedLada = '+52';
+  ladaBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (ladaWrap.classList.contains('is-open')) { ladaWrap.classList.remove('is-open'); return; }
+    closeAllPickers();
+    ladaWrap.classList.add('is-open');
+  });
+  ladaMenu.addEventListener('click', function(e){
+    var opt = e.target.closest('.admin-role-option');
+    if (!opt) return;
+    selectedLada = opt.dataset.lada;
+    ladaLabel.textContent = selectedLada;
+    ladaMenu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.toggle('active', o === opt); });
+    ladaWrap.classList.remove('is-open');
+  });
+
+  /* ---------- Fecha de nacimiento: cb-datepicker con salto rápido de año ---------- */
+  var nacPicker = document.getElementById('crearCitaNacimientoPicker');
+  var nacBtn = document.getElementById('crearCitaNacimientoBtn');
+  var nacLabel = document.getElementById('crearCitaNacimientoLabel');
+  var nacGrid = document.getElementById('crearCitaNacimientoGrid');
+  var nacHidden = document.getElementById('crearCitaNacimiento');
+  var nacYearWrap = document.getElementById('crearCitaNacimientoYearWrap');
+  var nacYearBtn = document.getElementById('crearCitaNacimientoMonthYearBtn');
+  var nacYearMenu = document.getElementById('crearCitaNacimientoYearMenu');
+  var nacViewYear, nacViewMonth;
+
+  function renderNacimientoGrid(){
+    nacYearBtn.textContent = MESES[nacViewMonth] + ' de ' + nacViewYear;
+
+    var firstOfMonth = new Date(nacViewYear, nacViewMonth, 1);
+    var startOffset = firstOfMonth.getDay();
+    var daysInMonth = new Date(nacViewYear, nacViewMonth + 1, 0).getDate();
+    var daysInPrevMonth = new Date(nacViewYear, nacViewMonth, 0).getDate();
+    var totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+    var html = '';
+    for (var i = 0; i < totalCells; i++) {
+      var dayNum, cellYear = nacViewYear, cellMonth = nacViewMonth, outside = false;
+      if (i < startOffset) { dayNum = daysInPrevMonth - (startOffset - 1 - i); cellMonth -= 1; outside = true; }
+      else if (i >= startOffset + daysInMonth) { dayNum = i - (startOffset + daysInMonth) + 1; cellMonth += 1; outside = true; }
+      else { dayNum = i - startOffset + 1; }
+      if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
+      if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
+      var cellISO = iso(cellYear, cellMonth, dayNum);
+      var cls = 'cb-datepicker-day';
+      if (outside) cls += ' is-outside';
+      if (cellISO === todayISO) cls += ' is-today';
+      if (cellISO === nacHidden.value) cls += ' is-selected';
+      if (cellISO > todayISO) cls += ' is-disabled';
+      html += '<button type="button" class="' + cls + '" data-iso="' + cellISO + '">' + dayNum + '</button>';
+    }
+    nacGrid.innerHTML = html;
+  }
+  function setNacimiento(y, m, d){
+    nacHidden.value = iso(y, m, d);
+    nacLabel.textContent = pad(d) + '/' + pad(m + 1) + '/' + y;
+  }
+  function fillNacYearMenu(){
+    var years = [];
+    for (var y = today.getFullYear(); y >= today.getFullYear() - 100; y--) years.push(y);
+    nacYearMenu.innerHTML = years.map(function(y){
+      return '<button type="button" class="time-picker-option' + (y === nacViewYear ? ' active' : '') + '" data-year="' + y + '">' + y + '</button>';
+    }).join('');
+  }
+  nacYearBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (nacYearWrap.classList.contains('is-open')) { nacYearWrap.classList.remove('is-open'); return; }
+    fillNacYearMenu();
+    nacYearWrap.classList.add('is-open');
+    var active = nacYearMenu.querySelector('.time-picker-option.active');
+    if (active) active.scrollIntoView({ block: 'center' });
+  });
+  nacYearMenu.addEventListener('click', function(e){
+    e.stopPropagation();
+    var opt = e.target.closest('.time-picker-option');
+    if (!opt) return;
+    nacViewYear = parseInt(opt.dataset.year, 10);
+    nacYearWrap.classList.remove('is-open');
+    renderNacimientoGrid();
+  });
+  document.getElementById('crearCitaNacimientoPrev').addEventListener('click', function(e){
+    e.stopPropagation();
+    nacYearWrap.classList.remove('is-open');
+    nacViewMonth -= 1; if (nacViewMonth < 0) { nacViewMonth = 11; nacViewYear -= 1; } renderNacimientoGrid();
+  });
+  document.getElementById('crearCitaNacimientoNext').addEventListener('click', function(e){
+    e.stopPropagation();
+    nacYearWrap.classList.remove('is-open');
+    nacViewMonth += 1; if (nacViewMonth > 11) { nacViewMonth = 0; nacViewYear += 1; } renderNacimientoGrid();
+  });
+  document.getElementById('crearCitaNacimientoClear').addEventListener('click', function(e){
+    e.stopPropagation();
+    nacHidden.value = '';
+    nacLabel.textContent = 'dd/mm/aaaa';
+    renderNacimientoGrid();
+  });
+  nacGrid.addEventListener('click', function(e){
+    var day = e.target.closest('.cb-datepicker-day');
+    if (!day || day.classList.contains('is-disabled')) return;
+    var parts = day.dataset.iso.split('-').map(Number);
+    setNacimiento(parts[0], parts[1] - 1, parts[2]);
+    nacPicker.classList.remove('is-open');
+    renderNacimientoGrid();
+  });
+  nacBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (nacPicker.classList.contains('is-open')) { nacPicker.classList.remove('is-open'); return; }
+    closeAllPickers();
+    nacViewYear = nacHidden.value ? Number(nacHidden.value.split('-')[0]) : today.getFullYear();
+    nacViewMonth = nacHidden.value ? Number(nacHidden.value.split('-')[1]) - 1 : today.getMonth();
+    renderNacimientoGrid();
+    nacPicker.classList.add('is-open');
+  });
+
+  /* ---------- Estado inicial: admin-role-select ---------- */
+  var statusWrap = document.getElementById('crearCitaStatusWrap');
+  var statusBtn = document.getElementById('crearCitaStatusBtn');
+  var statusLabel = document.getElementById('crearCitaStatusLabel');
+  var statusMenu = document.getElementById('crearCitaStatusMenu');
+  statusBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (statusWrap.classList.contains('is-open')) { statusWrap.classList.remove('is-open'); return; }
+    closeAllPickers();
+    statusWrap.classList.add('is-open');
+  });
+  statusMenu.addEventListener('click', function(e){
+    var opt = e.target.closest('.admin-role-option');
+    if (!opt) return;
+    statusHidden.value = opt.dataset.value;
+    statusLabel.textContent = opt.textContent;
+    statusMenu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.toggle('active', o === opt); });
+    statusWrap.classList.remove('is-open');
+  });
+
+  /* ---------- abrir / cerrar el modal ---------- */
   function openModal(){
     form.reset();
-    if (dateInput) dateInput.value = todayISO;
-    if (errorEl) errorEl.textContent = '';
-    fillTimeSelect();
+    errorEl.textContent = '';
+
+    viewYear = today.getFullYear();
+    viewMonth = today.getMonth();
+    setDate(today.getFullYear(), today.getMonth(), today.getDate());
+    renderDateGrid();
+
+    fillTimeMenu();
+    timeHidden.value = '';
+    timeLabel.textContent = '—';
+
+    statusHidden.value = 'verificada';
+    statusLabel.textContent = 'Verificada';
+    statusMenu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.toggle('active', o.dataset.value === 'verificada'); });
+
+    selectedLada = '+52';
+    ladaLabel.textContent = '+52';
+    ladaMenu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.toggle('active', o.dataset.lada === '+52'); });
+
+    nacHidden.value = '';
+    nacLabel.textContent = 'dd/mm/aaaa';
+
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
   function closeModal(){
+    closeAllPickers();
     overlay.classList.remove('open');
     document.body.style.overflow = '';
   }
@@ -672,9 +942,9 @@
     var celularDigits = document.getElementById('crearCitaCelular').value.trim();
     var correo = document.getElementById('crearCitaCorreo').value.trim();
     var nacimiento = document.getElementById('crearCitaNacimiento').value;
-    var status = document.getElementById('crearCitaStatus').value;
-    var date = dateInput.value;
-    var time = timeSelect.value;
+    var status = statusHidden.value;
+    var date = dateHidden.value;
+    var time = timeHidden.value;
 
     if (!date || !time) { errorEl.textContent = 'Selecciona día y hora.'; return; }
     if (!nombre || !apellido) { errorEl.textContent = 'Completa nombre y apellido.'; return; }
@@ -693,7 +963,7 @@
         time: time,
         nombre: nombre,
         apellido: apellido,
-        celular: '+52' + celularDigits,
+        celular: selectedLada + celularDigits,
         correo: correo,
         fecha_nacimiento: nacimiento,
         status: status

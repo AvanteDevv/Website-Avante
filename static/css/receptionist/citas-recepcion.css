@@ -336,9 +336,11 @@ body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
 }
 .admin-panel-head-row{
   display:flex; align-items:center; gap:14px;
+  min-width:0;
 }
-.admin-panel-head-row:first-child{ justify-content:space-between; }
+.admin-panel-head-row:first-child{ justify-content:space-between; flex-wrap:wrap; }
 .admin-panel-head-row:last-child .search-box{ flex:1; max-width:none; }
+.admin-panel-head-actions{ min-width:0; flex-shrink:0; }
 @media (max-width:560px){
   .admin-panel-head-row:last-child{ flex-direction:column; align-items:stretch; }
   .view-switch{ justify-content:center; }
@@ -423,12 +425,18 @@ body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
 
 /* Neutraliza cualquier scroll interno que venga de sidebar.css/userbar.css
    en el contenedor principal — con la paginación ya no hace falta scroll,
-   la página debe crecer normal. */
+   la página debe crecer normal. También forzamos min-width:0: .cuenta-shell
+   es flex (sidebar + contenido), y sin esto el hijo flex no se encoge por
+   debajo del ancho de su contenido — como la tabla es ancha, todo el
+   layout se estiraba en vez de dejar que .admin-table-wrap scrolleara por
+   dentro (eso era el "espacio en blanco" al hacer scroll vertical).*/
 .cuenta-main, .admin-main{
   height:auto !important;
   max-height:none !important;
   overflow:visible !important;
+  min-width:0 !important;
 }
+.admin-panel, #citasTableView, .admin-table-wrap{ min-width:0; }
 
 /* ===========================================================
    Modal: Horario de citas (antes vivía en Configuración)
@@ -490,7 +498,7 @@ body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
   font-size:12.5px; font-weight:600; color:var(--muted);
 }
 
-.time-picker{ position:relative; width:190px; }
+.time-picker{ position:relative; width:100%; }
 .time-picker-trigger{
   width:100%; display:flex; align-items:center; gap:10px;
   font-family:var(--sans); font-size:14px; font-weight:600; color:var(--ink);
@@ -534,6 +542,115 @@ body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
 }
 .time-picker-option:hover{ background:var(--blue-50); color:var(--blue-700); }
 .time-picker-option.active{ background:var(--blue-600); color:var(--on-accent); }
+
+/* ---------- date-picker (calendario) ---------- */
+.cb-datepicker{ position:relative; width:100%; }
+.cb-datepicker-trigger{
+  width:100%; display:flex; align-items:center; gap:10px;
+  font-family:var(--sans); font-size:14px; font-weight:600; color:var(--ink);
+  padding:11px 14px; border:1.5px solid var(--line); border-radius:12px;
+  background:var(--white);
+  transition:border-color .3s var(--ease), box-shadow .3s var(--ease), transform .3s var(--ease);
+}
+.cb-datepicker-trigger:hover{ border-color:var(--blue-300); }
+.cb-datepicker-trigger svg:first-child{ width:16px; height:16px; color:var(--muted); flex-shrink:0; }
+.cb-datepicker-value{ flex:1; text-align:left; }
+.cb-datepicker.is-open .cb-datepicker-trigger{ border-color:var(--blue-600); box-shadow:0 0 0 5px var(--blue-100); transform:translateY(-1px); }
+.cb-datepicker.is-open .time-picker-caret{ transform:rotate(180deg); }
+
+.cb-datepicker-menu{
+  position:absolute; top:calc(100% + 8px); left:0; z-index:130; width:280px;
+  background:var(--white); border:1px solid var(--line); border-radius:16px;
+  box-shadow:var(--shadow-lg);
+  padding:14px;
+  opacity:0; transform:translateY(-10px) scale(.95); transform-origin:top left;
+  pointer-events:none;
+  transition:opacity .3s cubic-bezier(.22,1.4,.36,1), transform .3s cubic-bezier(.22,1.4,.36,1);
+}
+.cb-datepicker.is-open .cb-datepicker-menu{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+
+.cb-datepicker-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.cb-datepicker-nav span{ font-size:12.5px; font-weight:700; color:var(--ink); text-transform:capitalize; }
+.cb-datepicker-nav > button{
+  width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  border:none; background:none; color:var(--muted); cursor:pointer;
+  transition:background .2s var(--ease), color .2s var(--ease);
+}
+.cb-datepicker-nav > button svg{ width:14px; height:14px; }
+.cb-datepicker-nav > button:hover{ background:var(--blue-50); color:var(--blue-600); }
+
+.cb-datepicker-yearpicker{ position:relative; }
+.cb-datepicker-navlabel{
+  font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--ink);
+  text-transform:capitalize; border:none; background:none; cursor:pointer;
+  padding:5px 9px; border-radius:8px;
+  transition:background .2s var(--ease), color .2s var(--ease);
+}
+.cb-datepicker-navlabel:hover{ background:var(--blue-50); color:var(--blue-600); }
+.cb-datepicker-yearmenu{ left:0; right:auto; width:110px; max-height:190px; }
+
+.cb-datepicker-weekdays{ display:grid; grid-template-columns:repeat(7, 1fr); margin-bottom:4px; }
+.cb-datepicker-weekdays span{
+  text-align:center; font-size:9.5px; font-weight:700; letter-spacing:.03em;
+  text-transform:uppercase; color:var(--muted);
+}
+
+.cb-datepicker-grid{ display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; }
+.cb-datepicker-day{
+  width:100%; aspect-ratio:1; border-radius:9px; border:none; background:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--sans); font-size:12px; font-weight:600; color:var(--ink);
+  transition:background .16s var(--ease), color .16s var(--ease);
+}
+.cb-datepicker-day:hover{ background:var(--blue-50); }
+.cb-datepicker-day.is-outside{ color:var(--line); }
+.cb-datepicker-day.is-today{ color:var(--blue-600); }
+.cb-datepicker-day.is-selected{ background:var(--blue-600); color:var(--on-accent); }
+.cb-datepicker-day.is-disabled{ color:var(--line); cursor:not-allowed; pointer-events:none; }
+
+.cb-datepicker-actions{
+  display:flex; justify-content:flex-end; margin-top:10px; padding-top:10px; border-top:1px solid var(--line);
+}
+.cb-datepicker-actions button{
+  font-family:var(--sans); font-size:12px; font-weight:700; color:var(--blue-600);
+  border:none; background:none; cursor:pointer;
+  transition:color .2s var(--ease);
+}
+.cb-datepicker-actions button:hover{ color:var(--blue-700); }
+
+/* ---------- dropdown "normal" (Estado inicial, etc.) ---------- */
+.admin-role-select{ position:relative; width:100%; }
+.admin-role-select-btn{
+  width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  font-family:var(--sans); font-size:14px; font-weight:600; color:var(--ink);
+  padding:11px 14px; border:1.5px solid var(--line); border-radius:12px;
+  background:var(--white); text-align:left; cursor:pointer;
+  transition:border-color .3s var(--ease), box-shadow .3s var(--ease), transform .3s var(--ease);
+}
+.admin-role-select-btn:hover{ border-color:var(--blue-300); }
+.admin-role-select-btn svg{ width:14px; height:14px; color:var(--muted); flex-shrink:0; transition:transform .3s var(--ease); }
+.admin-role-select.is-open .admin-role-select-btn{ border-color:var(--blue-600); box-shadow:0 0 0 5px var(--blue-100); transform:translateY(-1px); }
+.admin-role-select.is-open .admin-role-select-btn svg{ transform:rotate(180deg); }
+
+.admin-role-select-menu{
+  position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:130;
+  background:var(--white); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow-lg);
+  padding:6px;
+  opacity:0; transform:translateY(-10px) scale(.95); transform-origin:top;
+  pointer-events:none;
+  transition:opacity .3s cubic-bezier(.22,1.4,.36,1), transform .3s cubic-bezier(.22,1.4,.36,1);
+}
+.admin-role-select.is-open .admin-role-select-menu{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+.admin-role-option{
+  display:block; width:100%; text-align:left;
+  padding:9px 12px; border-radius:9px; border:none; background:none;
+  font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink);
+  cursor:pointer;
+  transition:background .16s var(--ease), color .16s var(--ease);
+}
+.admin-role-option:hover{ background:var(--blue-50); color:var(--blue-700); }
+.admin-role-option.active{ background:var(--blue-600); color:var(--on-accent); }
 
 .settings-hint{ font-size:12.5px; color:var(--muted); margin-top:16px; line-height:1.6; }
 
@@ -713,10 +830,20 @@ body.dark .cal-action-noasistio:hover{ border-color:#666; background:rgba(255,25
 .staff-field input:focus,
 .staff-field select:focus{ outline:none; border-color:var(--accent); background:var(--accent-soft); }
 .staff-phone-row{ display:flex; align-items:center; gap:8px; }
-.staff-phone-lada{
-  flex-shrink:0; padding:11px 12px; border-radius:12px; border:1px solid var(--line);
-  background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:13px;
+.staff-lada-select{ position:relative; flex-shrink:0; }
+.staff-lada-btn{
+  display:flex; align-items:center; gap:6px;
+  padding:11px 12px; border-radius:12px; border:1.5px solid var(--line);
+  background:var(--accent-soft); color:var(--accent); font-family:var(--sans); font-weight:700; font-size:13px;
+  cursor:pointer;
+  transition:border-color .3s var(--ease), box-shadow .3s var(--ease), transform .3s var(--ease);
 }
+.staff-lada-btn:hover{ border-color:var(--blue-300); }
+.staff-lada-btn svg{ width:12px; height:12px; flex-shrink:0; transition:transform .3s var(--ease); }
+.staff-lada-select.is-open .staff-lada-btn{ border-color:var(--blue-600); box-shadow:0 0 0 5px var(--blue-100); transform:translateY(-1px); }
+.staff-lada-select.is-open .staff-lada-btn svg{ transform:rotate(180deg); }
+.staff-lada-menu{ width:170px; left:0; right:auto; }
+.staff-lada-select.is-open .staff-lada-menu{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
 .staff-error{ font-size:12.5px; color:#e2554a; min-height:16px; }
 .staff-form-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:4px; }
 

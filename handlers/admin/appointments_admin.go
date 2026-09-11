@@ -97,7 +97,13 @@ func DeleteAppointment(c *gin.Context) {
 // Crear cita manualmente desde recepción/admin
 // ---------------------------------------------------------------------
 
-var staffCelularRe = regexp.MustCompile(`^\+52\d{10}$`)
+// A diferencia del flujo público (celularRe en handlers/appointments.go,
+// que solo acepta +52 porque el SMS de verificación se manda por esa vía),
+// aquí sí se admite +1 (EE. UU./Canadá) además de +52 — el widget de
+// "Crear cita" en recepción deja elegir la lada, y como no pasa por
+// verificación SMS, no hay ninguna dependencia de proveedor que lo
+// restrinja a México.
+var staffCelularRe = regexp.MustCompile(`^\+(52|1)\d{10}$`)
 
 type createAppointmentByStaffInput struct {
 	Date            string `json:"date" binding:"required"` // "2026-08-20"

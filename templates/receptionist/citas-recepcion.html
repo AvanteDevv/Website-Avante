@@ -272,11 +272,38 @@
         <div class="staff-form-row">
           <label class="staff-field">
             <span>Día</span>
-            <input type="date" id="crearCitaDate" name="date" required>
+            <div class="cb-datepicker" id="crearCitaDatePicker">
+              <button type="button" class="cb-datepicker-trigger" id="crearCitaDateBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <span class="cb-datepicker-value" id="crearCitaDateLabel">dd/mm/aaaa</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="cb-datepicker-menu" id="crearCitaDateMenu">
+                <div class="cb-datepicker-nav">
+                  <button type="button" id="crearCitaDatePrev" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                  <span id="crearCitaDateMonthLabel">—</span>
+                  <button type="button" id="crearCitaDateNext" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                </div>
+                <div class="cb-datepicker-weekdays"><span>do</span><span>lu</span><span>ma</span><span>mi</span><span>ju</span><span>vi</span><span>sá</span></div>
+                <div class="cb-datepicker-grid" id="crearCitaDateGrid"></div>
+                <div class="cb-datepicker-actions">
+                  <button type="button" id="crearCitaDateToday">Hoy</button>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="crearCitaDate" name="date" required>
           </label>
           <label class="staff-field">
             <span>Hora</span>
-            <select id="crearCitaTime" name="time" required></select>
+            <div class="time-picker" id="crearCitaTimePicker">
+              <button type="button" class="time-picker-trigger" id="crearCitaTimeBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                <span class="time-picker-value" id="crearCitaTimeLabel">—</span>
+                <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="time-picker-menu" id="crearCitaTimeMenu"></div>
+            </div>
+            <input type="hidden" id="crearCitaTime" name="time" required>
           </label>
         </div>
         <div class="staff-form-row">
@@ -292,7 +319,16 @@
         <label class="staff-field">
           <span>Celular</span>
           <div class="staff-phone-row">
-            <span class="staff-phone-lada">+52</span>
+            <div class="staff-lada-select" id="crearCitaLadaWrap">
+              <button type="button" class="staff-lada-btn" id="crearCitaLadaBtn">
+                <span id="crearCitaLadaLabel">+52</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="admin-role-select-menu staff-lada-menu" id="crearCitaLadaMenu">
+                <button type="button" class="admin-role-option active" data-lada="+52">+52 México</button>
+                <button type="button" class="admin-role-option" data-lada="+1">+1 EE. UU. / Canadá</button>
+              </div>
+            </div>
             <input type="tel" id="crearCitaCelular" name="celular" inputmode="numeric" maxlength="10" placeholder="6621234567" required>
           </div>
         </label>
@@ -302,14 +338,43 @@
         </label>
         <label class="staff-field">
           <span>Fecha de nacimiento (opcional)</span>
-          <input type="date" id="crearCitaNacimiento" name="fecha_nacimiento">
+          <div class="cb-datepicker" id="crearCitaNacimientoPicker">
+            <button type="button" class="cb-datepicker-trigger" id="crearCitaNacimientoBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <span class="cb-datepicker-value" id="crearCitaNacimientoLabel">dd/mm/aaaa</span>
+              <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="cb-datepicker-menu" id="crearCitaNacimientoMenu">
+              <div class="cb-datepicker-nav">
+                <button type="button" id="crearCitaNacimientoPrev" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                <div class="cb-datepicker-yearpicker time-picker" id="crearCitaNacimientoYearWrap">
+                  <button type="button" class="cb-datepicker-navlabel" id="crearCitaNacimientoMonthYearBtn">—</button>
+                  <div class="time-picker-menu cb-datepicker-yearmenu" id="crearCitaNacimientoYearMenu"></div>
+                </div>
+                <button type="button" id="crearCitaNacimientoNext" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+              </div>
+              <div class="cb-datepicker-weekdays"><span>do</span><span>lu</span><span>ma</span><span>mi</span><span>ju</span><span>vi</span><span>sá</span></div>
+              <div class="cb-datepicker-grid" id="crearCitaNacimientoGrid"></div>
+              <div class="cb-datepicker-actions">
+                <button type="button" id="crearCitaNacimientoClear">Borrar</button>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="crearCitaNacimiento" name="fecha_nacimiento">
         </label>
         <label class="staff-field">
           <span>Estado inicial</span>
-          <select id="crearCitaStatus" name="status">
-            <option value="verificada">Verificada</option>
-            <option value="pendiente">Pendiente</option>
-          </select>
+          <div class="admin-role-select" id="crearCitaStatusWrap">
+            <button type="button" class="admin-role-select-btn" id="crearCitaStatusBtn" aria-haspopup="true" aria-expanded="false">
+              <span id="crearCitaStatusLabel">Verificada</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="admin-role-select-menu" id="crearCitaStatusMenu">
+              <button type="button" class="admin-role-option active" data-value="verificada">Verificada</button>
+              <button type="button" class="admin-role-option" data-value="pendiente">Pendiente</button>
+            </div>
+          </div>
+          <input type="hidden" id="crearCitaStatus" name="status" value="verificada">
         </label>
         <p class="staff-error" id="crearCitaError"></p>
         <div class="staff-form-actions">

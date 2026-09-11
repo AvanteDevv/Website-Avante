@@ -418,11 +418,20 @@ body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
 /* Neutraliza cualquier scroll interno que venga de sidebar.css/userbar.css
    en el contenedor principal — con la paginación ya no hace falta scroll,
    la página debe crecer normal. */
+/* Neutraliza cualquier scroll interno que venga de sidebar.css/userbar.css
+   en el contenedor principal — con la paginación ya no hace falta scroll,
+   la página debe crecer normal. También forzamos min-width:0: .cuenta-shell
+   es flex (sidebar + contenido), y sin esto el hijo flex no se encoge por
+   debajo del ancho de su contenido — como la tabla es ancha, todo el
+   layout se estiraba en vez de dejar que .admin-table-wrap scrolleara por
+   dentro (eso era el "espacio en blanco" al hacer scroll vertical).*/
 .cuenta-main, .admin-main{
   height:auto !important;
   max-height:none !important;
   overflow:visible !important;
+  min-width:0 !important;
 }
+.admin-panel, #citasTableView, .admin-table-wrap{ min-width:0; }
 
 /* ===========================================================
    Modal: Horario de citas (antes vivía en Configuración)
