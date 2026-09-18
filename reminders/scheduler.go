@@ -1,16 +1,22 @@
 // Package reminders corre en segundo plano y manda los recordatorios
-// automáticos de citas por WhatsApp (24h antes y 1h antes), usando
+// automáticos de citas por WhatsApp (24h antes y 2h antes), usando
 // plantillas ya aprobadas por Meta — ver whatsapp/client.go.
 //
 // Requiere, además de las variables de entorno de whatsapp/client.go:
 //
 //	WHATSAPP_TEMPLATE_REMINDER_24H — nombre EXACTO de la plantilla aprobada para el recordatorio de 24h
-//	WHATSAPP_TEMPLATE_REMINDER_1H  — nombre EXACTO de la plantilla aprobada para el recordatorio de 1h
+//	WHATSAPP_TEMPLATE_REMINDER_2H  — nombre EXACTO de la plantilla aprobada para el recordatorio de 2h
 //	WHATSAPP_TEMPLATE_LANG         — código de idioma con el que se aprobaron (ej. "es_MX"); default "es_MX"
 //
 // Si dejas alguna de las dos variables de plantilla vacía, ese
 // recordatorio específico simplemente se salta (útil mientras solo
 // tienes UNA de las dos plantillas aprobada).
+//
+// ⚠️ Los nombres internos de abajo (GetAppointmentsForReminder1h,
+// MarkReminder1hSent, etc. en models/) se dejaron tal cual con "1h" —
+// solo se cambió la ventana real a 2 horas — para no tener que tocar
+// el esquema de la base de datos. Si en algún momento quieres
+// renombrarlos por prolijidad, es un find-and-replace sin lógica nueva.
 package reminders
 
 import (
@@ -65,7 +71,7 @@ func Start() {
 
 func runOnce() {
 	sendWindow(24*time.Hour, os.Getenv("WHATSAPP_TEMPLATE_REMINDER_24H"), models.GetAppointmentsForReminder24h, models.MarkReminder24hSent)
-	sendWindow(1*time.Hour, os.Getenv("WHATSAPP_TEMPLATE_REMINDER_1H"), models.GetAppointmentsForReminder1h, models.MarkReminder1hSent)
+	sendWindow(2*time.Hour, os.Getenv("WHATSAPP_TEMPLATE_REMINDER_2H"), models.GetAppointmentsForReminder1h, models.MarkReminder1hSent)
 }
 
 func sendWindow(

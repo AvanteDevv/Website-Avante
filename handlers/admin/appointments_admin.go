@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -10,10 +11,32 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"avante-optics/models"
+	"avante-optics/whatsapp"
 )
 
 // ⚠️ Adjust "avante-optics" in the import above to match the module name
 // declared in your go.mod (first line: "module xxxxx").
+
+// monthsEs / formatFechaEs / formatHour12 duplicados a propósito de
+// reminders/scheduler.go y handlers/appointments.go — mismo criterio
+// que ahí: es más simple repetir estas 2 funciones chiquitas que hacer
+// que este paquete dependa de otro solo por eso.
+var monthsEs = [...]string{
+	"enero", "febrero", "marzo", "abril", "mayo", "junio",
+	"julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+}
+
+func formatFechaEs(d time.Time) string {
+	return fmt.Sprintf("%d de %s", d.Day(), monthsEs[d.Month()-1])
+}
+
+func formatHour12(hhmm string) string {
+	t, err := time.Parse("15:04", hhmm)
+	if err != nil {
+		return hhmm
+	}
+	return t.Format("3:04 PM")
+}
 
 // Appointments renders the admin panel with real bookings pulled live
 // from MySQL — every booking made through /api/agendar shows up here.
@@ -72,6 +95,27 @@ func UpdateAppointmentStatus(c *gin.Context) {
 	if err := models.UpdateAppointmentStatus(id, input.Status); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar la cita."})
 		return
+	}
+
+	// Avisos por WhatsApp para los cambios de estado que le interesan al
+	// cliente: "no_asistio" (invita a reagendar) y "cancelada" (cubre
+	// cuando recepción/admin cancela manualmente desde su panel — el
+	// cliente cancelando desde "Mis citas" pasa por otra ruta, ver
+	// models.CancelAppointmentByUser). Se busca la cita completa después
+	// de actualizarla porque el body del PATCH solo trae el status
+	// nuevo, no celular/nombre/fecha/hora.
+	if input.Status == "no_asistio" || input.Status == "cancelada" {
+		if appt, err := models.GetAppointmentByID(id); err == nil {
+			fecha := formatFechaEs(appt.Date)
+			hora := formatHour12(appt.Time)
+			if input.Status == "no_asistio" {
+				whatsapp.NotifyNoShow(appt.Celular, appt.Nombre, fecha, hora)
+			} else {
+				whatsapp.NotifyCancelled(appt.Celular, appt.Nombre, fecha, hora)
+			}
+		} else {
+			log.Println("admin.UpdateAppointmentStatus: no se pudo obtener la cita para notificar por WhatsApp:", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Cita actualizada."})
@@ -157,6 +201,8 @@ func CreateAppointmentByStaff(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear la cita."})
 		return
 	}
+
+	whatsapp.NotifyBooked(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Cita creada."})
 }

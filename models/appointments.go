@@ -217,6 +217,27 @@ func CreateAppointmentByStaff(date time.Time, apptTime, nombre, apellido, celula
 	}, nil
 }
 
+// GetAppointmentByID busca una cita por su id. La usa
+// admin.UpdateAppointmentStatus para poder avisar por WhatsApp
+// (celular, nombre, fecha, hora) cuando el estado cambia a
+// "no_asistio" o "cancelada" — hasta ahora no había forma de traer una
+// sola cita completa por id, solo listados (GetAllAppointments /
+// GetAppointmentsByUser).
+func GetAppointmentByID(id int64) (*Appointment, error) {
+	row := db.DB.QueryRow(
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, cancel_reason, user_id, created_at FROM appointments WHERE id = ?",
+		id,
+	)
+	var a Appointment
+	if err := scanAppointmentRow(row, &a); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrAppointmentNotFound
+		}
+		return nil, err
+	}
+	return &a, nil
+}
+
 // GetAppointmentsByUser devuelve las citas ligadas a la cuenta de un
 // cliente (las que agendó estando ya logueado), más próximas/recientes
 // primero — usado por el panel "Mis citas".

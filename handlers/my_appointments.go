@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"avante-optics/models"
+	"avante-optics/whatsapp"
 )
 
 // GetMyAppointments devuelve las citas ligadas a la cuenta del cliente
@@ -63,6 +64,15 @@ func CancelMyAppointment(c *gin.Context) {
 		log.Println("CancelMyAppointment: error al cancelar:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cancelar la cita. Intenta de nuevo."})
 		return
+	}
+
+	// CancelAppointmentByUser solo regresa error, no la cita — se vuelve
+	// a pedir completa (celular, nombre, fecha, hora) para poder avisar
+	// por WhatsApp. Si por lo que sea ya no se encuentra (no debería
+	// pasar, se acaba de actualizar), simplemente no se manda el aviso
+	// en vez de tumbar la cancelación, que ya quedó guardada.
+	if appt, err := models.GetAppointmentByID(id); err == nil {
+		whatsapp.NotifyCancelled(appt.Celular, appt.Nombre, formatFechaEs(appt.Date), formatHour12(appt.Time))
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Cita cancelada."})
@@ -120,6 +130,13 @@ func RescheduleMyAppointment(c *gin.Context) {
 		log.Println("RescheduleMyAppointment: error al reagendar:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo reagendar la cita. Intenta de nuevo."})
 		return
+	}
+
+	// Igual que en CancelMyAppointment: RescheduleAppointmentByUser solo
+	// regresa error, así que se vuelve a pedir la cita completa (ya con
+	// la fecha/hora nueva) para poder avisar por WhatsApp.
+	if appt, err := models.GetAppointmentByID(id); err == nil {
+		whatsapp.NotifyRescheduled(appt.Celular, appt.Nombre, formatFechaEs(appt.Date), formatHour12(appt.Time))
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Cita reagendada."})

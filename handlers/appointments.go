@@ -12,7 +12,28 @@ import (
 
 	"avante-optics/auth"
 	"avante-optics/models"
+	"avante-optics/whatsapp"
 )
+
+// monthsEs / formatFechaEs / formatHour12 están duplicados a propósito
+// de reminders/scheduler.go — son un par de funciones chiquitas y así
+// este paquete no depende de reminders solo para formatear un texto.
+var monthsEs = [...]string{
+	"enero", "febrero", "marzo", "abril", "mayo", "junio",
+	"julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+}
+
+func formatFechaEs(d time.Time) string {
+	return fmt.Sprintf("%d de %s", d.Day(), monthsEs[d.Month()-1])
+}
+
+func formatHour12(hhmm string) string {
+	t, err := time.Parse("15:04", hhmm)
+	if err != nil {
+		return hhmm
+	}
+	return t.Format("3:04 PM")
+}
 
 // ⚠️ Adjust "avante-optics" in the import above to match the module name
 // declared in your go.mod (first line: "module xxxxx").
@@ -261,6 +282,8 @@ func CreateAppointment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo agendar la cita. Intenta de nuevo."})
 		return
 	}
+
+	whatsapp.NotifyBooked(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Cita agendada correctamente."})
 }
