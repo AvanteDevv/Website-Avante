@@ -557,6 +557,16 @@ func main() {
 		gateway.POST("/sms/:id/fallido", handlers.ReportSMSFailed)
 	}
 
+	// Webhook de WhatsApp Cloud API (Meta) — pública, sin sesión: Meta la
+	// llama directo. GET es el "handshake" de verificación que hace Meta
+	// UNA VEZ al guardar la configuración en el panel de developers
+	// (compara ?hub.verify_token= contra WHATSAPP_WEBHOOK_VERIFY_TOKEN);
+	// POST recibe los eventos reales después de eso (por ahora solo se
+	// loguean, ver handlers/webhook.go — no hace falta procesarlos para
+	// los recordatorios/avisos de citas, que son puro envío saliente).
+	router.GET("/webhook/whatsapp", handlers.VerifyWebhook)
+	router.POST("/webhook/whatsapp", handlers.ReceiveWebhookEvent)
+
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
 	router.GET("/media/productos/*key", handlers.ServeProductImage)
