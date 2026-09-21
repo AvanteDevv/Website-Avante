@@ -1406,11 +1406,11 @@ form#contactForm .cf-field:last-of-type{ margin-bottom:0; }
 }
 .page-blink::before{
   top:0;
-  background:radial-gradient(ellipse 55vw 28vh at 50% 100%, transparent 55%, rgba(0,0,0,.55) 78%, var(--ink) 100%);
+  background:radial-gradient(ellipse 50vw 25vh at 50% 100%, transparent 99%, var(--ink) 100%);
 }
 .page-blink::after{
   bottom:0;
-  background:radial-gradient(ellipse 55vw 28vh at 50% 0%, transparent 55%, rgba(0,0,0,.55) 78%, var(--ink) 100%);
+  background:radial-gradient(ellipse 50vw 25vh at 50% 0%, transparent 99%, var(--ink) 100%);
 }
 /* Estado inicial: cerrado (párpados traslapados cubriendo todo) */
 .page-blink::before{ transform:translateY(0); }
