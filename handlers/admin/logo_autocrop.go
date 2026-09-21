@@ -6,7 +6,19 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
+
+	"golang.org/x/image/webp"
 )
+
+// ⚠️ Requiere la dependencia golang.org/x/image (para decodificar WEBP,
+// que la librería estándar de Go no trae). Corre en tu proyecto:
+//
+//	go get golang.org/x/image/webp
+//	go mod tidy
+//
+// Esto va a agregar golang.org/x/image a tu go.mod/go.sum. No hace
+// falta instalar nada más — el decodificador es puro Go, sin cgo ni
+// binarios externos.
 
 // logoCropPadding es el margen que se deja alrededor del contenido real
 // detectado (8%, mismo criterio que se usó a mano al recortar los logos
@@ -80,14 +92,13 @@ func expandWithPadding(bbox, bounds image.Rectangle, padding float64) image.Rect
 // margen — mismo resultado que el recorte manual que se hizo antes con
 // PIL para TOUS/MaxMara/TOM FORD/GUESS, pero automático en cada subida.
 //
-// Soporta PNG y JPG/JPEG (los dos formatos más comunes para logos). Si
-// el formato no se puede decodificar (p. ej. WEBP, que la librería
-// estándar de Go no soporta sin una dependencia extra), o si algo falla
-// al procesar, regresa los bytes originales sin tocar — la subida NUNCA
-// se rompe por esto, en el peor caso el logo simplemente no se recorta.
+// Soporta PNG, JPG/JPEG y WEBP. Si algo falla al decodificar o procesar
+// la imagen, regresa los bytes originales sin tocar — la subida NUNCA se
+// rompe por esto, en el peor caso el logo simplemente no se recorta.
 //
 // Siempre regresa PNG cuando sí logra recortar (para no perder la
-// transparencia si el original la traía).
+// transparencia si el original la traía) — incluso si el original era
+// WEBP, así que el logo terminará guardado como .png en el bucket.
 func autoCropLogoContent(data []byte, ext string) (out []byte, outExt string, err error) {
 	var src image.Image
 	switch ext {
@@ -95,6 +106,8 @@ func autoCropLogoContent(data []byte, ext string) (out []byte, outExt string, er
 		src, err = png.Decode(bytes.NewReader(data))
 	case ".jpg", ".jpeg":
 		src, err = jpeg.Decode(bytes.NewReader(data))
+	case ".webp":
+		src, err = webp.Decode(bytes.NewReader(data))
 	default:
 		return data, ext, nil
 	}

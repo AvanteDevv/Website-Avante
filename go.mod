@@ -11,6 +11,7 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/crypto v0.54.0
+	golang.org/x/image v0.46.0
 	golang.org/x/oauth2 v0.36.0
 )
 
