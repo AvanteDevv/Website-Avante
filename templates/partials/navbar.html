@@ -8,7 +8,9 @@
   <div class="nav-side nav-left">
     <nav>
       <a href="/" class="{{if eq .ActivePage "inicio"}}active{{end}}" data-edit-id="navbar-link-inicio" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Inicio">Inicio</a>
+      {{if not .OcultarNavTienda}}
       <a href="/eccomerce" class="{{if eq .ActivePage "tienda"}}active{{end}}" data-edit-id="navbar-link-tienda" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Tienda">Tienda</a>
+      {{end}}
       <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}" data-edit-id="navbar-link-blog" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Blog">Blog</a>
       <a href="/agendar" class="{{if eq .ActivePage "agendar"}}active{{end}}" data-edit-id="navbar-link-agendar" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Agendar">Agendar</a>
       {{if .LoggedIn}}
@@ -111,7 +113,9 @@
   <!-- menu completo, solo visible en movil (el desplegable) -->
   <nav id="mainNav">
     <a href="/" class="{{if eq .ActivePage "inicio"}}active{{end}}" data-edit-id="navbar-link-inicio" data-edit-text="true" data-edit-href="true">Inicio</a>
+    {{if not .OcultarNavTienda}}
     <a href="/eccomerce" class="{{if eq .ActivePage "tienda"}}active{{end}}" data-edit-id="navbar-link-tienda" data-edit-text="true" data-edit-href="true">Tienda</a>
+    {{end}}
     <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}" data-edit-id="navbar-link-blog" data-edit-text="true" data-edit-href="true">Blog</a>
     <a href="/agendar" data-edit-id="navbar-link-agendar" data-edit-text="true" data-edit-href="true">Agendar</a>
     <a href="/rastreo">Rastreo</a>

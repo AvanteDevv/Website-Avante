@@ -361,11 +361,15 @@
     formData.append('faq', JSON.stringify(collectFaqItems()));
     if (selectedFile) formData.append('video', selectedFile);
 
-    /* ---------- visibilidad: navbar + secciones del index ---------- */
-    formData.append('ocultar_nav_tienda', isChecked('elHideNavTienda'));
-    formData.append('ocultar_seccion_promos', isChecked('elHideSectionPromos'));
-    formData.append('ocultar_seccion_anuncios', isChecked('elHideSectionAds'));
-    formData.append('ocultar_seccion_tienda', isChecked('elHideSectionShop'));
+    /* ---------- visibilidad: navbar + secciones del index ----------
+       Los toggles se muestran "activos" = elemento visible en el sitio
+       (checked por defecto); se desactivan a mano para ocultarlo. El
+       backend guarda lo contrario (ocultar_* = true), por eso se manda
+       negado aquí. */
+    formData.append('ocultar_nav_tienda', !isChecked('elHideNavTienda'));
+    formData.append('ocultar_seccion_promos', !isChecked('elHideSectionPromos'));
+    formData.append('ocultar_seccion_anuncios', !isChecked('elHideSectionAds'));
+    formData.append('ocultar_seccion_tienda', !isChecked('elHideSectionShop'));
 
     saveBtn.disabled = true;
     fetch('/api/admin/elementor', { method: 'POST', body: formData })

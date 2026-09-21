@@ -224,15 +224,23 @@ func main() {
 			log.Println("[carrusel_marcas]", err, "— se usará el carrusel de ejemplo")
 		}
 
+		elementorSettings, err := models.GetElementorSettings()
+		if err != nil {
+			log.Println("[elementor]", err, "— no se pudieron cargar los toggles de visibilidad")
+		}
+
 		c.HTML(http.StatusOK, "index.html", handlers.WithUser(c, gin.H{
-			"ActivePage":        "inicio",
-			"AdMainURL":         handlers.ActiveAdImage("main"),
-			"AdSide1URL":        handlers.ActiveAdImage("side1"),
-			"AdSide2URL":        handlers.ActiveAdImage("side2"),
-			"ProductsJSON":      buildStoreProductsJSON(),
-			"RecentPosts":       handlers.RecentBlogPosts(3),
-			"GoogleReviewsJSON": handlers.ToTemplateJS(reviewsData),
-			"CarruselMarcas":    carruselMarcas,
+			"ActivePage":             "inicio",
+			"AdMainURL":              handlers.ActiveAdImage("main"),
+			"AdSide1URL":             handlers.ActiveAdImage("side1"),
+			"AdSide2URL":             handlers.ActiveAdImage("side2"),
+			"ProductsJSON":           buildStoreProductsJSON(),
+			"RecentPosts":            handlers.RecentBlogPosts(3),
+			"GoogleReviewsJSON":      handlers.ToTemplateJS(reviewsData),
+			"CarruselMarcas":         carruselMarcas,
+			"OcultarSeccionPromos":   elementorSettings.OcultarSeccionPromos,
+			"OcultarSeccionAnuncios": elementorSettings.OcultarSeccionAnuncios,
+			"OcultarSeccionTienda":   elementorSettings.OcultarSeccionTienda,
 		}))
 	})
 
