@@ -95,7 +95,13 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
   height:64px; padding:0 8px;
 }
 .brand-logo{
-  max-height:36px; max-width:120px; width:auto; height:auto;
+  /* Altura fija (no max-height) para que el trazo del texto —no el
+     lienzo de la imagen— mida siempre lo mismo. Esto solo funciona
+     si cada logo viene recortado al ras de su contenido (sin
+     márgenes en blanco internos); max-width es solo un tope de
+     seguridad para nombres muy largos, no debe activarse con los
+     anchos normales de una marca. */
+  height:22px; width:auto; max-width:140px;
   object-fit:contain;
   filter:grayscale(1); opacity:.55;
   transition:filter .25s var(--ease), opacity .25s var(--ease), transform .25s var(--ease);
