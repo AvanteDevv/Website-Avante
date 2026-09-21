@@ -1,8 +1,10 @@
 package admin
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -56,6 +58,15 @@ func GetCarouselLogos(c *gin.Context) {
 // carrusel-photos/ en el bucket — carpeta propia, separada de logos/
 // (la de los productos), porque estos logos no están ligados a ningún
 // producto en particular.
+//
+// Antes de subirlo, recorta el espacio en blanco/transparente interno
+// del logo (ver logo_autocrop.go) para que todos queden del mismo
+// tamaño visual en la franja, sin depender de que cada logo venga bien
+// recortado de fábrica — mismo resultado que el recorte manual que se
+// hizo antes con TOUS/MaxMara/TOM FORD/GUESS, ahora automático en cada
+// subida. Si el recorte no se puede hacer (formato no soportado, p. ej.
+// WEBP, o cualquier error), se sube la imagen tal cual llegó — nunca se
+// rompe la subida por esto.
 func uploadCarouselLogo(c *gin.Context, fh *multipart.FileHeader) (string, error) {
 	ext := strings.ToLower(filepath.Ext(fh.Filename))
 	if !allowedProductImageExt[ext] {
@@ -68,13 +79,28 @@ func uploadCarouselLogo(c *gin.Context, fh *multipart.FileHeader) (string, error
 	}
 	defer file.Close()
 
-	contentType := fh.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
+	raw, err := io.ReadAll(file)
+	if err != nil {
+		return "", fmt.Errorf("no se pudo leer la imagen")
 	}
 
-	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-	if err := storage.UploadObject(c.Request.Context(), "carrusel-photos/"+filename, file, fh.Size, contentType); err != nil {
+	processed, finalExt, procErr := autoCropLogoContent(raw, ext)
+	if procErr != nil {
+		// No se pudo recortar (imagen corrupta, formato raro, etc.) —
+		// se sube la original sin recortar en vez de fallar la subida.
+		processed, finalExt = raw, ext
+	}
+
+	contentType := "image/png"
+	if finalExt != ".png" {
+		contentType = fh.Header.Get("Content-Type")
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+	}
+
+	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), finalExt)
+	if err := storage.UploadObject(c.Request.Context(), "carrusel-photos/"+filename, bytes.NewReader(processed), int64(len(processed)), contentType); err != nil {
 		return "", fmt.Errorf("no se pudo subir el logo al bucket")
 	}
 	return filename, nil
