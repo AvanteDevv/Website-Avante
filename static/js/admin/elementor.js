@@ -11,6 +11,13 @@
 
   var selectedFile = null;
 
+  /* Lee un checkbox de visibilidad por id; si el elemento no existe
+     (otra pestaña, versión vieja del HTML) regresa false sin tronar. */
+  function isChecked(id){
+    var el = document.getElementById(id);
+    return !!(el && el.checked);
+  }
+
   function showFile(file){
     if (!file) return;
     selectedFile = file;
@@ -353,6 +360,12 @@
     formData.append('whatsapp', document.getElementById('elWhatsapp').value);
     formData.append('faq', JSON.stringify(collectFaqItems()));
     if (selectedFile) formData.append('video', selectedFile);
+
+    /* ---------- visibilidad: navbar + secciones del index ---------- */
+    formData.append('ocultar_nav_tienda', isChecked('elHideNavTienda'));
+    formData.append('ocultar_seccion_promos', isChecked('elHideSectionPromos'));
+    formData.append('ocultar_seccion_anuncios', isChecked('elHideSectionAds'));
+    formData.append('ocultar_seccion_tienda', isChecked('elHideSectionShop'));
 
     saveBtn.disabled = true;
     fetch('/api/admin/elementor', { method: 'POST', body: formData })

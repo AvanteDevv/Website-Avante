@@ -39,6 +39,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
         Index
       </button>
+      <button type="button" class="elementor-tab" data-tab="navbar" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        Navbar
+      </button>
       <button type="button" class="elementor-tab" data-tab="faq" role="tab" aria-selected="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4.2"/><line x1="12" y1="17.2" x2="12" y2="17.3"/></svg>
         Preguntas frecuentes
@@ -58,6 +62,47 @@
 
       <!-- ===== columna izquierda: formularios ===== -->
       <div class="elementor-forms">
+
+        <section class="panel elementor-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Visibilidad de secciones</h2>
+              <p>Oculta secciones completas de la página de inicio, sin borrar su contenido</p>
+            </div>
+          </div>
+          <div class="elementor-toggle-list">
+            <label class="elementor-toggle-row">
+              <span class="elementor-toggle-row-text">
+                <strong>Sección de promociones</strong>
+                <small>El carrusel giratorio de piezas con descuento</small>
+              </span>
+              <span class="elementor-toggle">
+                <input type="checkbox" id="elHideSectionPromos">
+                <span class="elementor-toggle-slider"></span>
+              </span>
+            </label>
+            <label class="elementor-toggle-row">
+              <span class="elementor-toggle-row-text">
+                <strong>Anuncios</strong>
+                <small>Los banners de anuncios destacados</small>
+              </span>
+              <span class="elementor-toggle">
+                <input type="checkbox" id="elHideSectionAds">
+                <span class="elementor-toggle-slider"></span>
+              </span>
+            </label>
+            <label class="elementor-toggle-row">
+              <span class="elementor-toggle-row-text">
+                <strong>Tienda en línea</strong>
+                <small>La cuadrícula de productos del catálogo</small>
+              </span>
+              <span class="elementor-toggle">
+                <input type="checkbox" id="elHideSectionShop">
+                <span class="elementor-toggle-slider"></span>
+              </span>
+            </label>
+          </div>
+        </section>
 
         <section class="panel elementor-panel">
           <div class="panel-head">
@@ -301,6 +346,30 @@
               <textarea class="elFaqAnswer" rows="3">Las piezas en promoción no son acumulables con otros cupones, pero sí puedes combinarlas con el envío gratis en pedidos elegibles.</textarea>
             </label>
           </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== tab: navbar ===== -->
+    <div class="elementor-tabpanel" data-tabpanel="navbar" hidden>
+      <section class="panel elementor-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Visibilidad del menú</h2>
+            <p>Oculta elementos del menú de navegación del sitio público</p>
+          </div>
+        </div>
+        <div class="elementor-toggle-list">
+          <label class="elementor-toggle-row">
+            <span class="elementor-toggle-row-text">
+              <strong>Palabra "Tienda"</strong>
+              <small>Oculta el enlace a la tienda en el menú de navegación</small>
+            </span>
+            <span class="elementor-toggle">
+              <input type="checkbox" id="elHideNavTienda">
+              <span class="elementor-toggle-slider"></span>
+            </span>
+          </label>
         </div>
       </section>
     </div>
