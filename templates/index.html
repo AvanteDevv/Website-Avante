@@ -69,6 +69,58 @@
   {{end}}
   </div>
 </div>
+<section class="strip" id="reviews">
+  <div class="section-head reveal-blur">
+    <div class="eyebrow"><svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>Opiniones<svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg></div>
+    <h2>Lo que dicen en Google</h2>
+    <p>Reseñas reales de clientes que nos visitaron en tienda.</p>
+  </div>
+
+  <div class="reviews-summary reveal-rise">
+    <div class="reviews-summary-brand">
+      <img class="google-g" src="https://upload.wikimedia.org/wikipedia/commons/a/aa/Google_Maps_icon_%282020%29.svg" alt="Google Maps" aria-hidden="true">
+      <span>Google</span>
+    </div>
+    <div class="reviews-summary-score">
+      <span class="reviews-score-num" id="reviewsScoreNum">4.9</span>
+      <div class="reviews-stars" id="reviewsSummaryStars"></div>
+      <span class="reviews-summary-count" id="reviewsSummaryCount">128 reseñas</span>
+    </div>
+    <a class="btn reviews-summary-cta" id="reviewsSummaryLink" href="https://g.page/r/CV04GeTCOvAIEBM/review" target="_blank" rel="noopener">Escribir una reseña</a>
+  </div>
+
+  <div class="reviews-carousel-wrap reveal-rise">
+    <button class="reviews-arrow" id="reviewsPrev" aria-label="Reseña anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div class="reviews-track" id="reviewsTrack"></div>
+    <button class="reviews-arrow" id="reviewsNext" aria-label="Siguiente reseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+  </div>
+  <div class="reviews-dots" id="reviewsDots"></div>
+</section>
+
+<section class="strip" id="location">
+  <div class="section-head reveal-blur">
+    <div class="eyebrow"><svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>Ubicación<svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg></div>
+    <h2>Encuéntranos</h2>
+    <p>Visítanos en cualquiera de nuestras sucursales.</p>
+  </div>
+  <div class="location-tabs" id="locationTabs">
+    <button type="button" class="location-tab active" data-branch="hermosillo">Hermosillo</button>
+    <button type="button" class="location-tab" data-branch="nogales">Nogales</button>
+    <button type="button" class="location-tab" data-branch="empalme">Empalme</button>
+  </div>
+  <div class="location-card reveal-rise">
+    <iframe class="location-map" id="locationMap" src="https://www.google.com/maps?q=Luis+Donaldo+Colosio+69,+Centro,+Hermosillo,+Sonora,+83000&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Ubicación de Avante Optics"></iframe>
+    <div class="location-chip">
+      <div class="location-chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="10" r="2.4"/></svg></div>
+      <div class="location-chip-text">
+        <strong id="locationChipName">Avante Optics — Hermosillo</strong>
+        <span id="locationChipAddress">Luis Donaldo Colosio #69, Col. Centro, Hermosillo, Son.</span>
+      </div>
+      <a class="location-chip-link" id="locationChipLink" href="https://www.google.com/maps/dir/?api=1&destination=Luis+Donaldo+Colosio+69,+Centro,+Hermosillo,+Sonora,+83000" target="_blank" rel="noopener">Cómo llegar</a>
+    </div>
+  </div>
+</section>
+
 
 <section class="strip" id="ads">
   <div class="section-head reveal-blur">
@@ -215,57 +267,7 @@
   </div>
 </section>
 
-<section class="strip" id="location">
-  <div class="section-head reveal-blur">
-    <div class="eyebrow"><svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>Ubicación<svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg></div>
-    <h2>Encuéntranos</h2>
-    <p>Visítanos en cualquiera de nuestras sucursales.</p>
-  </div>
-  <div class="location-tabs" id="locationTabs">
-    <button type="button" class="location-tab active" data-branch="hermosillo">Hermosillo</button>
-    <button type="button" class="location-tab" data-branch="nogales">Nogales</button>
-    <button type="button" class="location-tab" data-branch="empalme">Empalme</button>
-  </div>
-  <div class="location-card reveal-rise">
-    <iframe class="location-map" id="locationMap" src="https://www.google.com/maps?q=Luis+Donaldo+Colosio+69,+Centro,+Hermosillo,+Sonora,+83000&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Ubicación de Avante Optics"></iframe>
-    <div class="location-chip">
-      <div class="location-chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="10" r="2.4"/></svg></div>
-      <div class="location-chip-text">
-        <strong id="locationChipName">Avante Optics — Hermosillo</strong>
-        <span id="locationChipAddress">Luis Donaldo Colosio #69, Col. Centro, Hermosillo, Son.</span>
-      </div>
-      <a class="location-chip-link" id="locationChipLink" href="https://www.google.com/maps/dir/?api=1&destination=Luis+Donaldo+Colosio+69,+Centro,+Hermosillo,+Sonora,+83000" target="_blank" rel="noopener">Cómo llegar</a>
-    </div>
-  </div>
-</section>
 
-<section class="strip" id="reviews">
-  <div class="section-head reveal-blur">
-    <div class="eyebrow"><svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>Opiniones<svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg></div>
-    <h2>Lo que dicen en Google</h2>
-    <p>Reseñas reales de clientes que nos visitaron en tienda.</p>
-  </div>
-
-  <div class="reviews-summary reveal-rise">
-    <div class="reviews-summary-brand">
-      <img class="google-g" src="https://upload.wikimedia.org/wikipedia/commons/a/aa/Google_Maps_icon_%282020%29.svg" alt="Google Maps" aria-hidden="true">
-      <span>Google</span>
-    </div>
-    <div class="reviews-summary-score">
-      <span class="reviews-score-num" id="reviewsScoreNum">4.9</span>
-      <div class="reviews-stars" id="reviewsSummaryStars"></div>
-      <span class="reviews-summary-count" id="reviewsSummaryCount">128 reseñas</span>
-    </div>
-    <a class="btn reviews-summary-cta" id="reviewsSummaryLink" href="https://g.page/r/CV04GeTCOvAIEBM/review" target="_blank" rel="noopener">Escribir una reseña</a>
-  </div>
-
-  <div class="reviews-carousel-wrap reveal-rise">
-    <button class="reviews-arrow" id="reviewsPrev" aria-label="Reseña anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <div class="reviews-track" id="reviewsTrack"></div>
-    <button class="reviews-arrow" id="reviewsNext" aria-label="Siguiente reseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
-  </div>
-  <div class="reviews-dots" id="reviewsDots"></div>
-</section>
 
 <section class="strip" id="faq">
   <div class="section-head reveal-blur">
