@@ -518,6 +518,8 @@ func main() {
 		apiAdmin.GET("/marcas", onlyAdmin, adminHandlers.ListBrands)
 		apiAdmin.GET("/carrusel-marcas", onlyAdmin, adminHandlers.GetCarouselLogos)
 		apiAdmin.POST("/carrusel-marcas", onlyAdmin, adminHandlers.SaveCarouselLogos)
+		apiAdmin.GET("/elementor", onlyAdmin, adminHandlers.GetElementorSettings)
+		apiAdmin.POST("/elementor", onlyAdmin, adminHandlers.SaveElementorSettings)
 		apiAdmin.POST("/productos", onlyAdmin, adminHandlers.CreateProduct)
 		apiAdmin.PUT("/productos/:id", onlyAdmin, adminHandlers.UpdateProduct)
 		apiAdmin.DELETE("/productos/:id", onlyAdmin, adminHandlers.DeleteProduct)
