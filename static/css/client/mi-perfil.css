@@ -143,6 +143,8 @@ body.cuenta-body{
 }
 .pill-option.soon.active{ opacity:1; }
 .pill-option.soon.active .pill-soon-tag{ background:rgba(255,255,255,.2); color:var(--white); }
+/* El logo de Google se pierde sobre el azul activo: se le pone un círculo blanco detrás */
+.pill-google.active svg{ background:#fff; border-radius:50%; padding:3px; width:21px; height:21px; margin:-3px 0; }
 
 @media (max-width:520px){
   .cuenta-header h1{ font-size:26px; }
