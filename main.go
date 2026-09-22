@@ -197,6 +197,15 @@ func main() {
 
 	auth.InitStore()
 
+	// Login/registro con Google — lee GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+	// y GOOGLE_REDIRECT_URL (por eso va después de godotenv.Load). Si falta
+	// alguna, el botón de Google regresa a /iniciar-sesion?error=google_config
+	// en vez de tumbar el servidor.
+	auth.InitGoogleOAuth()
+	if auth.GoogleOAuthConfig == nil {
+		log.Println("[google_oauth] faltan GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URL — login con Google deshabilitado")
+	}
+
 	// Cache de reseñas reales de Google (Places API New). Si faltan las
 	// env vars, seguimos sin truenar: el sitio cae en las reseñas de
 	// ejemplo (ver ToTemplateJS) y solo se loguea el aviso.
@@ -330,6 +339,13 @@ func main() {
 			"ActivePage": "registro",
 		})
 	})
+
+	// Login/registro con Google (handlers/auth_google.go) — públicas, sin
+	// RequireAuth: el usuario todavía no tiene sesión cuando llega aquí.
+	// La URL del callback debe coincidir EXACTO con GOOGLE_REDIRECT_URL y
+	// con la "URI de redireccionamiento autorizada" en Google Cloud Console.
+	router.GET("/auth/google", handlers.GoogleLogin)
+	router.GET("/auth/google/callback", handlers.GoogleCallback)
 
 	// Client panel views (templates/client/*.html) — protegidas: sin
 	// sesión de cliente, RequireAuth() manda a /iniciar-sesion.
