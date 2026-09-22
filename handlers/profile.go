@@ -47,10 +47,17 @@ func MiPerfil(c *gin.Context) {
 		return
 	}
 
+	// Cuentas creadas antes de que existiera la columna auth_provider
+	// pueden venir vacías: esas se registraron por formulario.
+	provider := user.AuthProvider
+	if provider == "" {
+		provider = "formulario"
+	}
+
 	c.HTML(http.StatusOK, "mi-perfil.html", WithUser(c, gin.H{
 		"ActivePage":       "mi-perfil",
 		"UserPhone":        user.Phone,
-		"UserAuthProvider": user.AuthProvider,
+		"UserAuthProvider": provider,
 	}))
 }
 

@@ -366,16 +366,8 @@ func main() {
 				"ActivePage": "mis-pedidos",
 			}))
 		})
-		clientGroup.GET("/mi-perfil", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "mi-perfil.html", handlers.WithUser(c, gin.H{
-				"ActivePage": "mi-perfil",
-			}))
-		})
-		clientGroup.GET("/mis-citas", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "mis-citas.html", handlers.WithUser(c, gin.H{
-				"ActivePage": "mis-citas",
-			}))
-		})
+		clientGroup.GET("/mi-perfil", handlers.MiPerfil)
+		clientGroup.GET("/mis-citas", handlers.MisCitas)
 		clientGroup.GET("/configuracion", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "ajustes.html", handlers.WithUser(c, gin.H{
 				"ActivePage": "configuracion",
@@ -570,6 +562,8 @@ func main() {
 		apiClient.GET("/mis-citas", handlers.GetMyAppointments)
 		apiClient.POST("/mis-citas/:id/cancelar", handlers.CancelMyAppointment)
 		apiClient.POST("/mis-citas/:id/reagendar", handlers.RescheduleMyAppointment)
+		apiClient.PUT("/mi-perfil", handlers.UpdateMyProfile)
+		apiClient.PATCH("/mi-perfil/password", handlers.UpdateMyPassword)
 	}
 
 	// SMS gateway — llamada por la app Android del celular que manda los

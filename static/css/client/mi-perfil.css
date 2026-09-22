@@ -144,7 +144,7 @@ body.cuenta-body{
 .pill-option.soon.active{ opacity:1; }
 .pill-option.soon.active .pill-soon-tag{ background:rgba(255,255,255,.2); color:var(--white); }
 /* El logo de Google se pierde sobre el azul activo: se le pone un círculo blanco detrás */
-.pill-google.active svg{ background:#fff; border-radius:50%; padding:3px; width:21px; height:21px; margin:-3px 0; }
+.pill-google.active svg:first-child{ background:#fff; border-radius:50%; padding:3px; width:21px; height:21px; margin:-3px 0; }
 
 @media (max-width:520px){
   .cuenta-header h1{ font-size:26px; }
@@ -156,3 +156,6 @@ body.cuenta-body{
 .empty-state{ text-align:center; padding:64px 24px 72px; color:var(--grey); }
 .empty-state svg{ width:44px; height:44px; color:var(--blue-300); margin:0 auto 16px; }
 .empty-state p{ font-size:13.5px; line-height:1.7; max-width:380px; margin:0 auto; }
+/* Palomita en la opción con la que se registró la persona */
+.pill-option .pill-check{ display:none; width:13px; height:13px; margin-left:2px; }
+.pill-option.active .pill-check{ display:block; }
