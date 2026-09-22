@@ -1090,21 +1090,32 @@ document.getElementById('trackBtn').addEventListener('click', () => { window.loc
   var bubbleText = document.getElementById('heroBubbleText');
   if(!bubbleText) return;
 
+  /* Cada frase puede traer un link opcional (href): cuando lo trae, se
+     muestra como <a> dentro del globo (mismo estilo del texto, pero
+     clickeable) en vez de texto plano. */
   var phrases = [
-    'Bienvenido a Avante Optics',
-    'Revisa tu pedido aquí',
-    'Agenda tu cita en segundos',
-    'Encuentra tus lentes ideales',
-    '¿Necesitas ayuda? Aquí estoy'
+    { text: 'Bienvenido a Avante Optics' },
+    { text: 'Revisa tu pedido aquí', href: '/rastreo' },
+    { text: 'Agenda tu cita en segundos', href: '/agendar' },
+    { text: 'Encuentra tus lentes ideales' },
+    { text: '¿Necesitas ayuda? Aquí estoy' }
   ];
   var i = 0;
+
+  function renderPhrase(phrase){
+    if(phrase.href){
+      bubbleText.innerHTML = '<a class="hero-bubble-link" href="' + phrase.href + '">' + phrase.text + '</a>';
+    } else {
+      bubbleText.textContent = phrase.text;
+    }
+  }
 
   setInterval(function(){
     bubbleText.classList.add('is-swapping');
     setTimeout(function(){
       i = (i + 1) % phrases.length;
-      bubbleText.textContent = phrases[i];
+      renderPhrase(phrases[i]);
       bubbleText.classList.remove('is-swapping');
-    }, 350);
-  }, 3200);
+    }, 550);
+  }, 5200);
 })();
