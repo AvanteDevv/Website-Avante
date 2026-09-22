@@ -2,26 +2,59 @@ package handlers
 
 import (
 	"database/sql"
+	"html/template"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 
 	"avante-optics/db"
 )
 
+// PublicBlogTag es una etiqueta asignada a una entrada publicada.
+type PublicBlogTag struct {
+	Name string
+	Slug string
+}
+
 // PublicBlogPost es lo que ve el sitio público — solo entradas con
 // status='publicado' y cuya fecha de publicación ya llegó.
 type PublicBlogPost struct {
-	ID           int
-	Title        string
-	Excerpt      string
-	Content      string
-	ImageURL     string
-	Author       string
-	CategorySlug string
-	CategoryName string
-	PublishedAt  time.Time
+	ID            int
+	Title         string
+	Excerpt       string
+	Content       string
+	ContentHTML   template.HTML // Content ya marcado como HTML confiable (lo escribe el admin)
+	ImageURL      string
+	Author        string
+	AuthorInitial string
+	CategorySlug  string
+	CategoryName  string
+	PublishedAt   time.Time
+	ReadMinutes   int
+	Tags          []PublicBlogTag
+}
+
+var publicHTMLTagRe = regexp.MustCompile(`<[^>]*>`)
+
+// readingMinutes estima el tiempo de lectura (~200 palabras por minuto).
+func readingMinutes(html string) int {
+	words := len(strings.Fields(publicHTMLTagRe.ReplaceAllString(html, " ")))
+	m := (words + 199) / 200
+	if m < 1 {
+		m = 1
+	}
+	return m
+}
+
+func authorInitial(name string) string {
+	for _, r := range strings.TrimSpace(name) {
+		return string(unicode.ToUpper(r))
+	}
+	return "A"
 }
 
 func fetchPublishedBlogPosts() ([]PublicBlogPost, error) {
@@ -47,10 +80,35 @@ func fetchPublishedBlogPosts() ([]PublicBlogPost, error) {
 			continue
 		}
 		p.Author = author.String
+		if p.Author == "" {
+			p.Author = "Equipo de Avante Optics"
+		}
 		p.ImageURL = "/media/blog/" + imageKey
 		posts = append(posts, p)
 	}
 	return posts, nil
+}
+
+func fetchPostTags(postID int) []PublicBlogTag {
+	rows, err := db.DB.Query(`
+		SELECT t.name, t.slug
+		FROM blog_post_tags pt
+		JOIN blog_tags t ON t.id = pt.tag_id
+		WHERE pt.post_id = ?
+		ORDER BY t.name
+	`, postID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var tags []PublicBlogTag
+	for rows.Next() {
+		var t PublicBlogTag
+		if rows.Scan(&t.Name, &t.Slug) == nil {
+			tags = append(tags, t)
+		}
+	}
+	return tags
 }
 
 // RecentBlogPosts regresa hasta `limit` entradas publicadas más
@@ -67,7 +125,6 @@ func RecentBlogPosts(limit int) []PublicBlogPost {
 	return posts
 }
 
-// BlogList — GET /blog
 // blogCategoryOption es una categoría para el filtro del sidebar —
 // solo las que de verdad tienen alguna entrada publicada.
 type blogCategoryOption struct {
@@ -75,6 +132,7 @@ type blogCategoryOption struct {
 	Name string
 }
 
+// BlogList — GET /blog
 func BlogList(c *gin.Context) {
 	posts, err := fetchPublishedBlogPosts()
 	data := gin.H{"ActivePage": "blog"}
@@ -120,22 +178,58 @@ func BlogDetail(c *gin.Context) {
 		return
 	}
 	p.Author = author.String
+	if p.Author == "" {
+		p.Author = "Equipo de Avante Optics"
+	}
+	p.AuthorInitial = authorInitial(p.Author)
 	p.ImageURL = "/media/blog/" + imageKey
+	// El contenido sale del editor del panel admin (solo admins escriben aquí),
+	// así que se renderiza como HTML en vez de escaparse.
+	p.ContentHTML = template.HTML(p.Content)
+	p.ReadMinutes = readingMinutes(p.Content)
+	p.Tags = fetchPostTags(p.ID)
 
-	related, _ := fetchPublishedBlogPosts()
-	var relatedList []PublicBlogPost
-	for _, r := range related {
-		if r.ID != p.ID {
-			relatedList = append(relatedList, r)
+	all, _ := fetchPublishedBlogPosts()
+
+	// Anterior = la publicada justo antes (más vieja); Siguiente = la más nueva.
+	var prev, next *PublicBlogPost
+	for i := range all {
+		if all[i].ID != p.ID {
+			continue
 		}
-		if len(relatedList) == 3 {
+		if i+1 < len(all) {
+			v := all[i+1]
+			prev = &v
+		}
+		if i > 0 {
+			v := all[i-1]
+			next = &v
+		}
+		break
+	}
+
+	// Relacionados: primero de la misma categoría, luego el resto, máx. 3.
+	var related []PublicBlogPost
+	for _, r := range all {
+		if r.ID != p.ID && r.CategorySlug == p.CategorySlug && len(related) < 3 {
+			related = append(related, r)
+		}
+	}
+	for _, r := range all {
+		if len(related) >= 3 {
 			break
 		}
+		if r.ID == p.ID || r.CategorySlug == p.CategorySlug {
+			continue
+		}
+		related = append(related, r)
 	}
 
 	c.HTML(http.StatusOK, "blog-detalle.html", WithUser(c, gin.H{
 		"ActivePage": "blog",
 		"Post":       p,
-		"Related":    relatedList,
+		"Prev":       prev,
+		"Next":       next,
+		"Related":    related,
 	}))
 }

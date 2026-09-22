@@ -3,126 +3,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cómo elegir el armazón perfecto para tu tipo de rostro — Blog Avante Optics</title>
+{{if .NotFound}}
+<title>Entrada no encontrada — Blog Avante Optics</title>
+{{else}}
+<title>{{.Post.Title}} — Blog Avante Optics</title>
+<meta name="description" content="{{.Post.Excerpt}}">
+<meta property="og:title" content="{{.Post.Title}}">
+<meta property="og:description" content="{{.Post.Excerpt}}">
+<meta property="og:type" content="article">
+{{end}}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/partials/navbar.css">
+<link rel="stylesheet" href="/static/css/partials/footer.css">
 <link rel="stylesheet" href="/static/css/pages/blog-detalle.css">
 </head>
 <body>
+
+{{template "navbar" .}}
+
+{{if .NotFound}}
+
+<section class="post-notfound">
+  <div class="eyebrow">
+    <svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>
+    Blog
+    <svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>
+  </div>
+  <h1>No encontramos esta entrada</h1>
+  <p>Puede que se haya movido o que todavía no esté publicada.</p>
+  <a href="/blog" class="btn solid">Ver todas las entradas</a>
+</section>
+
+{{else}}
 
 <div class="read-progress"><div class="read-progress-bar" id="readProgressBar"></div></div>
 
 <article>
 
   <nav class="post-breadcrumb" aria-label="Migas de pan">
-    <a href="#">Inicio</a>
+    <a href="/">Inicio</a>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
-    <a href="#">Blog</a>
+    <a href="/blog">Blog</a>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
-    <span class="current">Cómo elegir el armazón perfecto para tu tipo de rostro</span>
+    <span class="current">{{.Post.Title}}</span>
   </nav>
 
-  <header class="post-header reveal-blur">
+  <div class="post-header reveal-blur">
     <div class="eyebrow">
       <svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>
-      <a href="#" class="post-cat-pill">Guías</a>
+      <a href="/blog" class="post-cat-pill">{{.Post.CategoryName}}</a>
       <svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>
     </div>
-    <h1>Cómo elegir el armazón perfecto para tu <em>tipo de rostro</em></h1>
-    <p class="post-lede">Una guía práctica para identificar la forma de tu rostro y encontrar los lentes que realmente te favorecen — sin adivinar y sin probarte veinte modelos.</p>
+    <h1>{{.Post.Title}}</h1>
 
     <div class="post-meta-row">
       <div class="post-author-mini">
-        <img class="post-avatar" src="https://i.pravatar.cc/80?img=47" alt="Daniela Ruiz">
+        <span class="post-avatar post-avatar-initial" aria-hidden="true">{{.Post.AuthorInitial}}</span>
         <div>
-          <div class="post-author-name">Daniela Ruiz</div>
-          <div class="post-author-role">Optometrista & Content Lead</div>
+          <div class="post-author-name">{{.Post.Author}}</div>
+          <div class="post-author-role">Avante Optics</div>
         </div>
       </div>
       <span class="post-meta-sep"></span>
       <span class="post-meta-info">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="3"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-        8 de agosto, 2026
+        {{fechaEs .Post.PublishedAt}}
       </span>
       <span class="post-meta-sep"></span>
       <span class="post-meta-info">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg>
-        6 min de lectura
+        {{.Post.ReadMinutes}} min de lectura
       </span>
     </div>
-  </header>
+  </div>
 
   <div class="post-cover reveal-rise">
     <div class="post-cover-frame">
-      <img src="https://images.unsplash.com/photo-1591076482161-42ce6da69f67?q=80&w=1600&auto=format&fit=crop" alt="Persona probándose lentes frente a un espejo">
+      <img src="{{.Post.ImageURL}}" alt="{{.Post.Title}}">
     </div>
   </div>
 
   <div class="post-layout">
 
     <div class="post-body reveal-rise" id="postBody">
-      <p>Elegir un armazón no debería sentirse como una apuesta. Existen reglas simples —basadas en proporción y contraste— que te ayudan a acotar las opciones antes de siquiera pisar la tienda. En esta guía repasamos las cinco formas de rostro más comunes y qué tipo de montura equilibra cada una.</p>
+      <div class="post-content">{{.Post.ContentHTML}}</div>
 
-      <h2>1. Identifica tu forma de rostro</h2>
-      <p>Antes de mirar catálogos, obsérvate frente al espejo con el cabello hacia atrás. Fíjate en tres cosas: el ancho de tu frente, el ancho de tu mandíbula y la longitud de tu rostro. Esa relación es la que define si eres ovalado, redondo, cuadrado, corazón o alargado.</p>
-
-      <blockquote><p>La regla de oro no es "seguir la moda", sino buscar contraste: un rostro anguloso se equilibra con líneas suaves, y uno redondeado se define con líneas rectas.</p></blockquote>
-
-      <h3>Rostro ovalado</h3>
-      <p>Es la forma más versátil: casi cualquier armazón funciona. Aun así, evita monturas demasiado grandes que rompan la proporción natural de tus facciones.</p>
-
-      <h3>Rostro redondo</h3>
-      <p>Busca líneas angulares —cuadradas o rectangulares— que aporten estructura y alarguen visualmente el rostro. Evita los armazones circulares, que acentúan la redondez.</p>
-
-      <figure>
-        <img src="https://images.unsplash.com/photo-1577803645773-f96470509666?q=80&w=1400&auto=format&fit=crop" alt="Distintos tipos de armazones sobre una mesa">
-        <figcaption>Comparativa de siluetas: redonda, cuadrada, aviador y ojo de gato.</figcaption>
-      </figure>
-
-      <h2>2. Material y color según tu tono de piel</h2>
-      <p>Una vez definida la forma, el color del armazón es lo que hace que los lentes luzcan intencionales y no accidentales. Como regla general:</p>
-      <ul>
-        <li>Tonos de piel cálidos: dorado, carey, café y verde oliva.</li>
-        <li>Tonos de piel fríos: plata, negro, azul marino y gris grafito.</li>
-        <li>Piel neutra: prácticamente cualquier color funciona, incluidos los tonos vibrantes.</li>
-      </ul>
-      <p>El acetato mate suele ser más versátil para el día a día, mientras que el metal ligero funciona mejor si buscas un perfil discreto.</p>
-
-      <h2>3. La prueba final antes de decidir</h2>
-      <p>Antes de comprar, revisa estos tres puntos con el armazón puesto:</p>
-      <ol>
-        <li>Las cejas deben verse justo por encima o alineadas con el borde superior del armazón.</li>
-        <li>El ancho del armazón no debe exceder el ancho de tu rostro en su punto más ancho.</li>
-        <li>El puente debe apoyar sin dejar marcas ni resbalar en los primeros segundos.</li>
-      </ol>
-      <p>Si cumple los tres puntos, tienes un candidato serio. Si dudas entre dos modelos, pide siempre una segunda opinión — nuestro equipo en tienda puede ayudarte a decidir en minutos con la <code>graduación</code> exacta de tu receta.</p>
-
+      {{if .Post.Tags}}
       <div class="post-tags">
-        <a href="#" class="post-tag">#guía de compra</a>
-        <a href="#" class="post-tag">#armazones</a>
-        <a href="#" class="post-tag">#estilo</a>
+        {{range .Post.Tags}}
+        <span class="post-tag">#{{.Name}}</span>
+        {{end}}
       </div>
+      {{end}}
 
-      <div class="post-author-card">
-        <img src="https://i.pravatar.cc/120?img=47" alt="Daniela Ruiz">
-        <div>
-          <div class="post-author-card-name">Daniela Ruiz</div>
-          <div class="post-author-card-role">Optometrista & Content Lead</div>
-          <p class="post-author-card-bio">Óptica certificada con más de 8 años de experiencia en salud visual. Escribe sobre cuidado ocular, tendencias en armazones y todo lo que ayuda a la comunidad de Avante Optics a ver —y verse— mejor.</p>
-        </div>
-      </div>
-
+      {{if or .Prev .Next}}
       <div class="post-adjacent">
-        <a href="#" class="prev">
+        {{if .Prev}}
+        <a href="/blog/{{.Prev.ID}}" class="prev">
           <span class="dir-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 6 9 12 15 18"></polyline></svg>Anterior</span>
-          <span class="post-adjacent-title">5 señales de que necesitas cambiar tu graduación</span>
+          <span class="post-adjacent-title">{{.Prev.Title}}</span>
         </a>
-        <a href="#" class="next">
+        {{else}}
+        <span></span>
+        {{end}}
+        {{if .Next}}
+        <a href="/blog/{{.Next.ID}}" class="next">
           <span class="dir-label">Siguiente<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 6 15 12 9 18"></polyline></svg></span>
-          <span class="post-adjacent-title">Lentes con filtro azul: qué son y quién los necesita</span>
+          <span class="post-adjacent-title">{{.Next.Title}}</span>
         </a>
+        {{end}}
       </div>
+      {{end}}
     </div>
 
     <aside class="post-sidebar reveal-rise">
@@ -130,15 +123,27 @@
         <h4>Compartir</h4>
         <div class="post-share-icons">
           <a class="wa" id="shareWa" href="#" target="_blank" rel="noopener" aria-label="Compartir por WhatsApp">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg>
           </a>
+          <button class="ms share-copy-btn" id="shareMs" type="button" aria-label="Compartir por Messenger" data-app="Messenger">
+            <span class="copied-tip">Enlace copiado</span>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.14.26.35.27.57l.05 1.78c.02.57.61.94 1.13.71l1.98-.87c.17-.08.36-.09.54-.05.91.25 1.87.38 2.89.38 5.64 0 10-4.13 10-9.7S17.64 2 12 2Zm6 7.46-2.94 4.67c-.47.73-1.47.92-2.17.4l-2.34-1.76a.6.6 0 0 0-.72 0l-3.16 2.4c-.42.32-.97-.18-.69-.63l2.94-4.67c.47-.73 1.47-.92 2.17-.4l2.34 1.76a.6.6 0 0 0 .72 0l3.16-2.4c.42-.32.97.18.69.63Z"/></svg>
+          </button>
+          <button class="ig share-copy-btn" id="shareIg" type="button" aria-label="Compartir en Instagram" data-app="Instagram">
+            <span class="copied-tip">Copiado — pégalo en Instagram</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg>
+          </button>
+          <button class="tt share-copy-btn" id="shareTt" type="button" aria-label="Compartir en TikTok" data-app="TikTok">
+            <span class="copied-tip">Copiado — pégalo en TikTok</span>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48Z"/></svg>
+          </button>
           <a class="fb" id="shareFb" href="#" target="_blank" rel="noopener" aria-label="Compartir en Facebook">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.7c0-.9.3-1.6 1.6-1.6h1.7V4.2C16.5 4.1 15.4 4 14.2 4c-2.5 0-4.3 1.5-4.3 4.4v2.4H7.2v3.2h2.7v8h3.6Z"/></svg>
           </a>
           <a class="x" id="shareX" href="#" target="_blank" rel="noopener" aria-label="Compartir en X">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 3H21l-6.6 7.6L22.2 21h-6.5l-5-6.6-5.8 6.6H2.7l7-8.1L2 3h6.6l4.6 6.1L18.9 3Zm-1.1 16.2h1.2L7.3 4.7H6l11.8 14.5Z"/></svg>
           </a>
-          <button class="link" id="shareCopy" type="button" aria-label="Copiar enlace">
+          <button class="link share-copy-btn" id="shareCopy" type="button" aria-label="Copiar enlace">
             <span class="copied-tip">¡Copiado!</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.4l2-2a5 5 0 0 0-7-7l-1.2 1.1"></path><path d="M14 11a5 5 0 0 0-7.5-.4l-2 2a5 5 0 0 0 7 7l1.1-1.1"></path></svg>
           </button>
@@ -152,7 +157,7 @@
 
       <div class="post-cta-box">
         <p>¿Buscas tus próximos lentes? Agenda tu revisión visual en Avante Optics.</p>
-        <a href="#" class="btn solid">Agendar cita</a>
+        <a href="/" class="btn solid">Agendar cita</a>
       </div>
     </aside>
 
@@ -160,6 +165,7 @@
 
 </article>
 
+{{if .Related}}
 <section class="post-related">
   <div class="post-related-head reveal-blur">
     <div class="eyebrow">
@@ -170,47 +176,40 @@
     <h2>Quizás también te interese</h2>
   </div>
   <div class="blog-grid">
+    {{range .Related}}
     <article class="blog-card reveal-rise">
-      <a href="#" class="blog-photo">
-        <img src="https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?q=80&w=900&auto=format&fit=crop" alt="Persona revisando su vista">
-        <span class="blog-date-pill">2 ago, 2026</span>
+      <a href="/blog/{{.ID}}" class="blog-photo">
+        <img src="{{.ImageURL}}" alt="{{.Title}}">
+        <span class="blog-date-pill">{{fechaEs .PublishedAt}}</span>
       </a>
       <div class="blog-body">
-        <h3><a href="#">5 señales de que necesitas cambiar tu graduación</a></h3>
-        <p>Dolores de cabeza, entrecerrar los ojos o borrosidad al final del día pueden ser más que cansancio.</p>
-        <div class="blog-meta">Por Daniela Ruiz · 2 ago, 2026</div>
-        <a href="#" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
+        <h3><a href="/blog/{{.ID}}">{{.Title}}</a></h3>
+        <p>{{.Excerpt}}</p>
+        <div class="blog-meta">Por {{.Author}} · {{fechaEs .PublishedAt}}</div>
+        <a href="/blog/{{.ID}}" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
       </div>
     </article>
-    <article class="blog-card reveal-rise">
-      <a href="#" class="blog-photo">
-        <img src="https://images.unsplash.com/photo-1591076482161-42ce6da69f67?q=80&w=900&auto=format&fit=crop" alt="Lentes con filtro de luz azul">
-        <span class="blog-date-pill">14 jul, 2026</span>
-      </a>
-      <div class="blog-body">
-        <h3><a href="#">Lentes con filtro azul: qué son y quién los necesita</a></h3>
-        <p>No todo mundo los necesita, pero para ciertos estilos de vida pueden marcar la diferencia real.</p>
-        <div class="blog-meta">Por Equipo Avante · 14 jul, 2026</div>
-        <a href="#" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
-      </div>
-    </article>
-    <article class="blog-card reveal-rise">
-      <a href="#" class="blog-photo">
-        <img src="https://images.unsplash.com/photo-1508296695146-257a814070b4?q=80&w=900&auto=format&fit=crop" alt="Tienda de lentes Avante Optics">
-        <span class="blog-date-pill">30 jun, 2026</span>
-      </a>
-      <div class="blog-body">
-        <h3><a href="#">Así cuidamos cada armazón antes de llegar a tu vitrina</a></h3>
-        <p>Un vistazo detrás de cámaras a nuestro proceso de control de calidad, sucursal por sucursal.</p>
-        <div class="blog-meta">Por Equipo Avante · 30 jun, 2026</div>
-        <a href="#" class="blog-link">Leer más <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
-      </div>
-    </article>
+    {{end}}
   </div>
 </section>
+{{end}}
 
-<div class="blog-cta"><a href="#" class="btn">Volver al blog</a></div>
+<div class="blog-cta"><a href="/blog" class="btn">Volver al blog</a></div>
+
+{{end}}
+
+{{template "footer" .}}
+
+<a href="https://wa.me/526620000000?text=Hola%2C%20me%20gustar%C3%ADa%20m%C3%A1s%20informaci%C3%B3n" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contáctanos por WhatsApp">
+  <span class="whatsapp-float-ring"></span>
+  <span class="whatsapp-float-ring delay"></span>
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg>
+  <span class="whatsapp-float-tip">Escríbenos por WhatsApp</span>
+</a>
 
 <script src="/static/js/pages/blog-detalle.js"></script>
+<script src="/static/js/partials/footer.js"></script>
+<script src="/static/js/partials/navbar.js"></script>
+<script src="/static/js/partials/page-blink.js"></script>
 </body>
 </html>

@@ -19,21 +19,66 @@
   /* ---------- compartir ---------- */
   const pageUrl = window.location.href;
   const pageTitle = document.title;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
   const wa = document.getElementById('shareWa');
   const fb = document.getElementById('shareFb');
   const x  = document.getElementById('shareX');
-  const copyBtn = document.getElementById('shareCopy');
   if(wa) wa.href = 'https://wa.me/?text=' + encodeURIComponent(pageTitle + ' ' + pageUrl);
   if(fb) fb.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(pageUrl);
   if(x)  x.href  = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(pageUrl) + '&text=' + encodeURIComponent(pageTitle);
-  if(copyBtn){
-    copyBtn.addEventListener('click', function(){
-      navigator.clipboard.writeText(pageUrl).then(function(){
-        copyBtn.classList.add('is-copied');
-        setTimeout(function(){ copyBtn.classList.remove('is-copied'); }, 1800);
+
+  function copyLink(btn){
+    const done = function(){
+      btn.classList.add('is-copied');
+      setTimeout(function(){ btn.classList.remove('is-copied'); }, 2200);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(pageUrl).then(done).catch(done);
+    } else {
+      const tmp = document.createElement('textarea');
+      tmp.value = pageUrl;
+      document.body.appendChild(tmp);
+      tmp.select();
+      try { document.execCommand('copy'); } catch(e) { /* ignorado */ }
+      tmp.remove();
+      done();
+    }
+  }
+
+  // Menú nativo del teléfono (deja elegir Instagram, TikTok, etc.).
+  // Si no existe o el usuario lo cancela sin compartir, se copia el enlace.
+  function nativeShareOrCopy(btn){
+    if(isMobile && navigator.share){
+      navigator.share({ title: pageTitle, url: pageUrl }).catch(function(err){
+        if(err && err.name !== 'AbortError') copyLink(btn);
       });
+      return;
+    }
+    copyLink(btn);
+  }
+
+  // Messenger: en celular abre la app directo; en computadora copia el
+  // enlace y abre messenger.com para pegarlo en el chat.
+  const ms = document.getElementById('shareMs');
+  if(ms){
+    ms.addEventListener('click', function(){
+      if(isMobile){
+        window.location.href = 'fb-messenger://share/?link=' + encodeURIComponent(pageUrl);
+        return;
+      }
+      copyLink(ms);
+      window.open('https://www.messenger.com/', '_blank', 'noopener');
     });
   }
+
+  ['shareIg', 'shareTt'].forEach(function(id){
+    const btn = document.getElementById(id);
+    if(btn) btn.addEventListener('click', function(){ nativeShareOrCopy(btn); });
+  });
+
+  const copyBtn = document.getElementById('shareCopy');
+  if(copyBtn) copyBtn.addEventListener('click', function(){ copyLink(copyBtn); });
 
   /* ---------- tabla de contenidos generada desde h2/h3 ---------- */
   const tocBox = document.getElementById('postToc');
