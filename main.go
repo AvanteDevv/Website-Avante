@@ -172,6 +172,7 @@ func loadTemplates() *template.Template {
 	tmpl = template.Must(tmpl.ParseGlob("templates/optometrist/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/ecommerce/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/pages/*.html"))
+	tmpl = template.Must(tmpl.ParseGlob("templates/legal/*.html"))
 	return tmpl
 }
 
@@ -612,6 +613,16 @@ func main() {
 	router.GET("/rastreo", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "rastreo.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "rastreo",
+		}))
+	})
+	router.GET("/aviso-privacidad", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "aviso-privacidad.html", handlers.WithUser(c, gin.H{
+			"ActivePage": "aviso-privacidad",
+		}))
+	})
+	router.GET("/terminos-condiciones", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "terminos-condiciones.html", handlers.WithUser(c, gin.H{
+			"ActivePage": "terminos-condiciones",
 		}))
 	})
 	router.GET("/carrito", func(c *gin.Context) {
