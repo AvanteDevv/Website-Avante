@@ -10,6 +10,25 @@
 <link rel="stylesheet" href="/css/partials/navbar.css">
 <link rel="stylesheet" href="/css/partials/footer.css">
 <link rel="stylesheet" href="/css/auth/registro.css">
+<style>
+/* Opción "mándamelo por correo" del modal de verificación — mismos
+   estilos que .modal-code-divider / .modal-email-option de agendar.css.
+   Si prefieres, muévelos a registro.css. */
+.auth-code-divider{
+  display:flex; align-items:center; gap:12px; margin:18px 0 14px;
+  font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--grey);
+}
+.auth-code-divider::before, .auth-code-divider::after{ content:''; flex:1; height:1px; background:var(--line); }
+.auth-email-option{
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  width:100%; padding:13px 16px; border:1.5px solid var(--line); border-radius:100px;
+  font-size:12.5px; font-weight:600; color:var(--ink); background:var(--white); cursor:pointer;
+  transition:border-color .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
+}
+.auth-email-option svg{ width:16px; height:16px; flex-shrink:0; color:var(--blue-500); }
+.auth-email-option:hover{ border-color:var(--blue-300, var(--blue-500)); background:var(--blue-50); color:var(--blue-700); }
+.auth-email-option:disabled{ opacity:.6; cursor:default; }
+</style>
 </head>
 <body>
 
@@ -62,7 +81,7 @@
 <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
 <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.580z"/>
 </svg>Google</button>
-        <button type="button" class="social-btn" id="facebookBtn"><svg viewBox="0 0 24 24" fill="#1877F2"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12"/></svg>Facebook</button>
+        <button type="button" class="social-btn" id="appleBtn"><svg viewBox="0 0 24 24" fill="#000"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Apple</button>
       </div>
       <div class="divider">o con tu correo</div>
 
@@ -147,7 +166,7 @@
 
           <label class="auth-check">
             <input type="checkbox" name="terms" id="regTerms" required>
-            <span>Acepto los <a class="link-inline" href="/terminos-condiciones" target="_blank" rel="noopener">Términos y condiciones</a> y el <a class="link-inline" href="/aviso-privacidad" target="_blank" rel="noopener">Aviso de privacidad</a> de Avante Optics.</span>
+            <span>Acepto los <a class="link-inline" href="#">Términos y condiciones</a> y el <a class="link-inline" href="#">Aviso de privacidad</a> de Avante Optics.</span>
           </label>
 
           <button type="submit" class="btn solid auth-submit">Crear cuenta <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
@@ -175,6 +194,13 @@
     <p class="auth-modal-error" id="regCodeError"></p>
     <button type="button" class="btn solid auth-submit" id="regCodeSubmit">Verificar y crear cuenta</button>
     <button type="button" class="auth-code-resend" id="regCodeResend">¿No te llegó? Reenviar código</button>
+
+    <div class="auth-code-divider"><span>o</span></div>
+
+    <button type="button" class="auth-email-option" id="regCodeEmail">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+      Tampoco me llegó por SMS — mándamelo por correo
+    </button>
   </div>
 </div>
 

@@ -17,6 +17,7 @@ import (
 	"avante-optics/db"
 	"avante-optics/handlers"
 	adminHandlers "avante-optics/handlers/admin"
+	"avante-optics/mailer"
 	"avante-optics/models"
 	"avante-optics/reminders"
 	"avante-optics/storage"
@@ -204,6 +205,13 @@ func main() {
 	auth.InitGoogleOAuth()
 	if auth.GoogleOAuthConfig == nil {
 		log.Println("[google_oauth] faltan GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URL — login con Google deshabilitado")
+	}
+
+	// Correo (códigos de verificación por email) — lee SMTP_USER/SMTP_PASS.
+	// Si faltan, el botón "mándamelo por correo" responde con error pero
+	// el resto del sitio sigue funcionando.
+	if !mailer.Enabled() {
+		log.Println("[mailer] faltan SMTP_USER/SMTP_PASS — envío de códigos por correo deshabilitado")
 	}
 
 	// Cache de reseñas reales de Google (Places API New). Si faltan las
@@ -506,6 +514,7 @@ func main() {
 		api.POST("/admin/iniciar-sesion", handlers.AdminLogin)
 		api.POST("/agendar", handlers.CreateAppointment)
 		api.POST("/agendar/codigo", handlers.SendVerificationCode)
+		api.POST("/agendar/codigo-correo", handlers.SendVerificationCodeByEmail)
 		api.POST("/agendar/verificar", handlers.VerifyCode)
 		api.GET("/horarios/ocupadas", handlers.GetOccupiedHours)
 		api.GET("/horarios", handlers.GetAgendaHours)

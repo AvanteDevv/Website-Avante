@@ -66,6 +66,7 @@ const regCodeDigits = Array.from(document.querySelectorAll('.auth-code-digit'));
 const regCodeError = document.getElementById('regCodeError');
 const regCodeSubmit = document.getElementById('regCodeSubmit');
 const regCodeResend = document.getElementById('regCodeResend');
+const regCodeEmail = document.getElementById('regCodeEmail');
 let pendingRegistration = null; // { name, email, password, celular }
 
 function openRegCodeModal(){
@@ -108,6 +109,16 @@ async function sendVerificationCode(nombre, apellido, celular){
     });
     return res.ok;
   } catch(e){ return false; }
+}
+async function sendVerificationCodeByEmail(nombre, apellido, celular, correo){
+  try{
+    const res = await fetch('/api/agendar/codigo-correo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, apellido, celular, correo })
+    });
+    const body = await res.json().catch(() => ({}));
+    return { ok: res.ok, error: body.error };
+  } catch(e){ return { ok: false }; }
 }
 async function verifyCode(celular, codigo){
   try{
@@ -169,6 +180,21 @@ regCodeResend.addEventListener('click', async () => {
   const sent = await sendVerificationCode(pendingRegistration.nombre, pendingRegistration.apellido, pendingRegistration.celular);
   regCodeResend.disabled = false;
   regCodeError.textContent = sent ? 'Te reenviamos el código.' : 'No pudimos reenviar el código.';
+});
+
+regCodeEmail.addEventListener('click', async () => {
+  if(!pendingRegistration) return;
+  regCodeEmail.disabled = true;
+  regCodeError.textContent = '';
+  const p = pendingRegistration;
+  const sent = await sendVerificationCodeByEmail(p.nombre, p.apellido, p.celular, p.email);
+  regCodeEmail.disabled = false;
+  if(sent.ok){
+    regCodePhoneLabel.textContent = p.email;
+    regCodeError.textContent = 'Te enviamos el código a tu correo. Revisa también la carpeta de spam.';
+  } else {
+    regCodeError.textContent = sent.error || 'No pudimos enviarlo por correo. Intenta de nuevo.';
+  }
 });
 
 registerForm.addEventListener('submit', async (e) => {
@@ -240,20 +266,27 @@ registerForm.addEventListener('submit', async (e) => {
 document.getElementById('googleBtn').addEventListener('click', () => {
   window.location.href = '/auth/google';
 });
-document.getElementById('facebookBtn').addEventListener('click', () => showToast('Conecta tu cuenta de Facebook para continuar'));
+document.getElementById('appleBtn').addEventListener('click', () => {
+  window.location.href = '/auth/apple';
+});
 
-/* si venimos de vuelta de /auth/google/callback con un error, avisar */
-const GOOGLE_ERROR_MESSAGES = {
+/* si venimos de vuelta de /auth/google/callback o /auth/apple/callback con un error, avisar */
+const OAUTH_ERROR_MESSAGES = {
   google: 'No se pudo crear tu cuenta con Google. Intenta de nuevo.',
   google_config: 'El registro con Google no está disponible en este momento.',
   google_cancelado: 'Cancelaste el registro con Google.',
   google_sin_verificar: 'Tu correo de Google no está verificado.',
+  apple: 'No se pudo crear tu cuenta con Apple. Intenta de nuevo.',
+  apple_config: 'El registro con Apple no está disponible en este momento.',
+  apple_cancelado: 'Cancelaste el registro con Apple.',
+  apple_sin_correo: 'Apple no compartió tu correo. Intenta de nuevo y permite compartirlo.',
+  apple_sin_verificar: 'Tu correo de Apple no está verificado.',
 };
 (() => {
   const params = new URLSearchParams(window.location.search);
   const err = params.get('error');
-  if (err && GOOGLE_ERROR_MESSAGES[err]) {
-    showToast(GOOGLE_ERROR_MESSAGES[err]);
+  if (err && OAUTH_ERROR_MESSAGES[err]) {
+    showToast(OAUTH_ERROR_MESSAGES[err]);
     params.delete('error');
     const rest = params.toString();
     window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''));

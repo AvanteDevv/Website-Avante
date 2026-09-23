@@ -40,6 +40,7 @@ const apptCodeDigits = Array.from(document.querySelectorAll('.modal-code-digit')
 const apptCodeError = document.getElementById('apptCodeError');
 const apptCodeSubmit = document.getElementById('apptCodeSubmit');
 const apptCodeResend = document.getElementById('apptCodeResend');
+const apptCodeEmail = document.getElementById('apptCodeEmail');
 
 const today = new Date(); today.setHours(0,0,0,0);
 let viewYear = today.getFullYear();
@@ -331,6 +332,22 @@ async function sendVerificationCode(data){
   }
 }
 
+// Mismo código, pero enviado al correo que la persona escribió en "Tus
+// datos". Se verifica igual con /api/agendar/verificar (por celular).
+async function sendVerificationCodeByEmail(data){
+  try{
+    const res = await fetch('/api/agendar/codigo-correo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: data.nombre, apellido: data.apellido, celular: data.celular, correo: data.correo })
+    });
+    const body = await res.json().catch(() => ({}));
+    return { ok: res.ok, error: body.error };
+  } catch(e){
+    return { ok: false };
+  }
+}
+
 async function verifyCode(celular, codigo){
   try{
     const res = await fetch('/api/agendar/verificar', {
@@ -504,6 +521,21 @@ apptCodeResend.addEventListener('click', async () => {
   apptCodeResend.disabled = false;
   apptCodeError.textContent = sent ? 'Te reenviamos el código.' : 'No pudimos reenviar el código.';
 });
+
+if(apptCodeEmail){
+  apptCodeEmail.addEventListener('click', async () => {
+    apptCodeEmail.disabled = true;
+    apptCodeError.textContent = '';
+    const sent = await sendVerificationCodeByEmail(contactData);
+    apptCodeEmail.disabled = false;
+    if(sent.ok){
+      apptCodePhoneLabel.textContent = contactData.correo;
+      apptCodeError.textContent = 'Te enviamos el código a tu correo. Revisa también la carpeta de spam.';
+    } else {
+      apptCodeError.textContent = sent.error || 'No pudimos enviarlo por correo. Intenta de nuevo.';
+    }
+  });
+}
 
 (async function initAgenda(){
   await loadAgendaHours();

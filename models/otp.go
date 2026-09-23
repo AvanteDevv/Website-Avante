@@ -26,6 +26,9 @@ type otpEntry struct {
 	ExpiresAt  time.Time
 	Verified   bool
 	VerifiedAt time.Time
+	// LastEmailAt: última vez que se mandó este código por correo — para
+	// no dejar que alguien use el botón para spamear un correo ajeno.
+	LastEmailAt time.Time
 }
 
 var (
@@ -40,6 +43,9 @@ const (
 
 var ErrInvalidOrExpiredCode = errors.New("código inválido o expirado")
 var ErrNotVerified = errors.New("número no verificado")
+var ErrEmailCooldown = errors.New("espera un momento antes de volver a pedir el código por correo")
+
+const otpEmailCooldown = 30 * time.Second
 
 // generateCode crea un código de 4 dígitos (0000-9999) con crypto/rand.
 func generateCode() (string, error) {
@@ -113,4 +119,36 @@ func ConsumeVerification(celular string) error {
 
 	delete(otpStore, celular)
 	return nil
+}
+
+// CodeForEmail regresa el código que se debe mandar por correo para ese
+// celular. Si ya hay uno vigente (el que se acaba de mandar por SMS), se
+// reutiliza EL MISMO — así da igual si le llega primero el SMS o el
+// correo, cualquiera de los dos sirve en VerifyCode. Si no hay uno
+// vigente (expiró o nunca se pidió), genera uno nuevo con SaveCode.
+func CodeForEmail(celular, nombre, apellido string) (string, error) {
+	otpMutex.Lock()
+	entry, ok := otpStore[celular]
+	if ok && !entry.Verified && time.Now().Before(entry.ExpiresAt) {
+		if time.Since(entry.LastEmailAt) < otpEmailCooldown {
+			otpMutex.Unlock()
+			return "", ErrEmailCooldown
+		}
+		entry.LastEmailAt = time.Now()
+		code := entry.Code
+		otpMutex.Unlock()
+		return code, nil
+	}
+	otpMutex.Unlock()
+
+	code, err := SaveCode(celular, nombre, apellido)
+	if err != nil {
+		return "", err
+	}
+	otpMutex.Lock()
+	if e, ok := otpStore[celular]; ok {
+		e.LastEmailAt = time.Now()
+	}
+	otpMutex.Unlock()
+	return code, nil
 }
