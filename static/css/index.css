@@ -331,6 +331,57 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
 @media (prefers-reduced-motion: reduce){
   .hero-bubble{ animation:none; }
 }
+
+/* =========================================================
+   HERO — MÓVIL (≤760px)
+   En escritorio el texto y el gato van lado a lado; en móvil eso
+   apretaba el título contra la izquierda y el gato/globo se salían
+   por la derecha. Aquí se apila todo en una sola columna centrada:
+   título → botones → redes → globo → gato.
+   ========================================================= */
+@media (max-width:760px){
+  .hero{
+    flex-direction:column;
+    min-height:0;
+    padding:30px 22px 36px;
+    gap:6px;
+  }
+  .hero-text{ padding:12px 0 0; max-width:420px; }
+  .hero-text h1{ font-size:clamp(34px, 10vw, 44px); line-height:1.08; }
+
+  .hero-text h1 em.focus-word{
+    --focus-w: clamp(190px, 52vw, 236px);
+    --focus-mask-w: clamp(46px, 12.5vw, 56px);
+  }
+
+  .cta-row{
+    flex-direction:column; align-items:stretch;
+    gap:12px; margin:28px auto 0; max-width:320px;
+  }
+  .cta-row .btn{ width:100%; padding:15px 20px; }
+
+  .socials{ gap:14px; margin-top:24px; }
+  .socials a{ width:46px; height:46px; }
+  .socials svg{ width:20px; height:20px; }
+
+  .eye-slot{ margin-top:8px; flex-direction:column; }
+  .hero-video-stage{ display:flex; flex-direction:column; align-items:center; }
+  .hero-video{ max-width:210px; }
+
+  .hero-bubble{
+    position:relative; top:auto; left:auto;
+    margin:0 auto 12px; max-width:min(280px, 88vw);
+    padding:11px 18px; text-align:center;
+  }
+  .hero-bubble-text{ font-size:13px; }
+  /* colita apuntando hacia abajo, al gato */
+  .hero-bubble-tail{ display:block; left:50%; margin-left:-9px; }
+}
+@media (max-width:360px){
+  .hero{ padding:22px 16px 30px; }
+  .hero-text h1{ font-size:32px; }
+  .hero-video{ max-width:180px; }
+}
 .eye{
   width:332px; height:332px;
   transform:translate(-50%, -50%);

@@ -25,10 +25,22 @@
   transition:background .2s var(--ease), transform .2s var(--ease);
 }
 .promo-cta:hover{ background:var(--blue-50); transform:translateY(-1px); }
+.promo-lead, .promo-main{ display:inline-flex; align-items:center; gap:6px; }
+
+/* Móvil: una sola línea — solo "Examen de la vista sin costo." + botón.
+   La frase "Ver mejor empieza aquí" + el icono se ocultan porque en
+   pantallas angostas partían el texto en dos columnas feas. */
 @media (max-width:640px){
-  .promo-bar{ padding:8px 14px; gap:8px; }
-  .promo-bar p{ font-size:11px; white-space:normal; text-align:center; }
+  .promo-bar{ padding:7px 14px; gap:10px; justify-content:space-between; }
+  .promo-bar p{ font-size:11.5px; min-width:0; }
+  .promo-lead{ display:none; }
+  .promo-main{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
   .promo-cta{ padding:5px 12px; font-size:10px; flex-shrink:0; }
+}
+@media (max-width:360px){
+  .promo-bar{ padding:7px 10px; gap:8px; }
+  .promo-bar p{ font-size:10.5px; }
+  .promo-cta{ padding:5px 10px; font-size:9.5px; letter-spacing:.02em; }
 }
 
 .header-outer{
