@@ -37,9 +37,11 @@
         <span class="hero-bubble-text" id="heroBubbleText">Bienvenido a Avante Optics</span>
         <span class="hero-bubble-tail"></span>
       </div>
-      <video class="hero-video" autoplay muted loop playsinline preload="auto">
-        <source src="/media/hero/gatito-saludando.webm" type="video/webm">
-      </video>
+      <!-- WebP animado en vez de <video>: iPhone no respeta la transparencia
+           de WebM (se veía fondo negro) y con "Modo de bajo consumo" bloquea
+           el autoplay (salía el botón de reproducir). Una imagen animada no
+           tiene ninguno de los dos problemas. -->
+      <img class="hero-video" src="/media/hero/gatito-saludando.webp" alt="Gatito de Avante Optics saludando" decoding="async" fetchpriority="high">
     </div>
   </div>
 </section>

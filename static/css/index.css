@@ -334,10 +334,7 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
 
 /* =========================================================
    HERO — MÓVIL (≤760px)
-   En escritorio el texto y el gato van lado a lado; en móvil eso
-   apretaba el título contra la izquierda y el gato/globo se salían
-   por la derecha. Aquí se apila todo en una sola columna centrada:
-   título → botones → redes → globo → gato.
+   Una sola columna centrada: título → botones → redes → globo → gato.
    ========================================================= */
 @media (max-width:760px){
   .hero{
@@ -374,7 +371,6 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
     padding:11px 18px; text-align:center;
   }
   .hero-bubble-text{ font-size:13px; }
-  /* colita apuntando hacia abajo, al gato */
   .hero-bubble-tail{ display:block; left:50%; margin-left:-9px; }
 }
 @media (max-width:360px){
@@ -382,6 +378,8 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
   .hero-text h1{ font-size:32px; }
   .hero-video{ max-width:180px; }
 }
+
+
 .eye{
   width:332px; height:332px;
   transform:translate(-50%, -50%);
