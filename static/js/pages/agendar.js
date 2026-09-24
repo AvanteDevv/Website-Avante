@@ -1,3 +1,25 @@
+/* =========================================================
+   SCROLL REVEAL — va primero a propósito: si algo más abajo
+   llegara a fallar, el título y el calendario igual aparecen
+   (antes estaba al final y un error dejaba la página en blanco).
+   ========================================================= */
+(function(){
+const revealEls = document.querySelectorAll('.reveal-blur, .reveal-rise');
+if('IntersectionObserver' in window){
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  revealEls.forEach(el => revealObserver.observe(el));
+} else {
+  revealEls.forEach(el => el.classList.add('is-visible'));
+}
+})();
+
 const apptDayNum = document.getElementById('apptDayNum');
 const apptWeekday = document.getElementById('apptWeekday');
 const apptDetailTime = document.getElementById('apptDetailTime');
@@ -233,9 +255,20 @@ function openApptModal(text){
   apptModalOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+// Solo cuando la cita SÍ quedó agendada: al cerrar el modal (o a los
+// pocos segundos, si no lo cierra) se regresa al inicio. Los otros usos
+// de este modal (avisos de error) no redirigen.
+let redirectHomeOnClose = false;
+let redirectHomeTimer = null;
+const REDIRECT_HOME_MS = 5000;
+
 function closeApptModal(){
   apptModalOverlay.classList.remove('open');
   document.body.style.overflow = '';
+  if(redirectHomeOnClose){
+    clearTimeout(redirectHomeTimer);
+    window.location.href = '/';
+  }
 }
 apptModalClose.addEventListener('click', closeApptModal);
 apptModalOk.addEventListener('click', closeApptModal);
@@ -502,7 +535,9 @@ apptCodeSubmit.addEventListener('click', async () => {
 
   if(result.ok){
     closeCodeModal();
+    redirectHomeOnClose = true;
     openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
+    redirectHomeTimer = setTimeout(() => { window.location.href = '/'; }, REDIRECT_HOME_MS);
   } else if(result.conflict){
     closeCodeModal();
     selectedTime = null;
@@ -542,21 +577,3 @@ if(apptCodeEmail){
   apptSideMonthYear.textContent = formatMonthYear(today);
   renderCalendar();
 })();
-
-/* =========================================================
-   SCROLL REVEAL
-   ========================================================= */
-const revealEls = document.querySelectorAll('.reveal-blur, .reveal-rise');
-if('IntersectionObserver' in window){
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if(entry.isIntersecting){
-        entry.target.classList.add('is-visible');
-        revealObserver.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.12 });
-  revealEls.forEach(el => revealObserver.observe(el));
-} else {
-  revealEls.forEach(el => el.classList.add('is-visible'));
-}
