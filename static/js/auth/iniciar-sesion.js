@@ -80,7 +80,9 @@ loginForm.addEventListener('submit', async (e) => {
 document.getElementById('googleBtn').addEventListener('click', () => {
   window.location.href = '/auth/google';
 });
-document.getElementById('facebookBtn').addEventListener('click', () => showToast('Conecta tu cuenta de Facebook para continuar'));
+// Sign in with Apple queda pendiente (necesita la cuenta de Apple Developer).
+// Cuando esté configurado, cambia esto por: window.location.href = '/auth/apple';
+document.getElementById('appleBtn').addEventListener('click', () => showToast('Muy pronto podrás iniciar sesión con Apple.'));
 
 /* si venimos de vuelta de /auth/google/callback con un error, avisar */
 const GOOGLE_ERROR_MESSAGES = {
