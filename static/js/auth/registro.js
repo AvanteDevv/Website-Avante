@@ -1,16 +1,6 @@
 const EYE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
 const EYE_OFF_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 20c-7 0-11-8-11-8a19 19 0 0 1 5-5.9M9.9 5.2A10.6 10.6 0 0 1 12 5c7 0 11 7 11 7a19.2 19.2 0 0 1-3.1 4.1M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg>`;
 
-const menuBtn = document.getElementById('menuBtn');
-const navEl = document.getElementById('mainNav');
-if(menuBtn && navEl){
-  menuBtn.addEventListener('click', () => {
-    menuBtn.classList.toggle('active');
-    navEl.classList.toggle('nav-open');
-  });
-}
-
-
 /* mostrar / ocultar contraseña */
 document.querySelectorAll('.field-toggle').forEach(btn => {
   btn.addEventListener('click', () => {
