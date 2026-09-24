@@ -282,13 +282,17 @@ footer{
    ========================================================= */
 .modal-overlay{
   position:fixed; inset:0; z-index:200; background:rgba(8,24,72,.5); backdrop-filter:blur(4px);
-  display:flex; align-items:center; justify-content:center; padding:20px;
+  display:flex; align-items:flex-start; justify-content:center; padding:20px;
   opacity:0; pointer-events:none; transition:opacity .35s var(--ease);
+  /* Si el modal es más alto que la pantalla (el cuestionario en celular),
+     el propio overlay hace scroll. margin:auto en .modal-card lo sigue
+     centrando cuando sí cabe. */
+  overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
 }
 .modal-overlay.open{ opacity:1; pointer-events:auto; }
 .modal-card{
   background:var(--white); border:1px solid var(--line); border-radius:24px; padding:44px; max-width:400px; width:100%;
-  text-align:center; position:relative;
+  text-align:center; position:relative; margin:auto 0; flex-shrink:0;
   opacity:0; transform:scale(.92) translateY(14px);
   transition:transform .45s cubic-bezier(.22,1.4,.36,1), opacity .35s var(--ease);
 }
@@ -478,3 +482,11 @@ footer{
 .quest-check{ display:flex; align-items:flex-start; gap:9px; margin-bottom:9px; font-size:13px; color:var(--ink); line-height:1.4; cursor:pointer; }
 .quest-check:last-child{ margin-bottom:0; }
 .quest-check input{ width:16px; height:16px; margin-top:1px; flex-shrink:0; accent-color:var(--blue-600); cursor:pointer; }
+/* ---------- modales en celular ---------- */
+@media (max-width:640px){
+  .modal-overlay{ padding:16px 12px; }
+  .modal-card{ padding:32px 22px 26px; border-radius:20px; }
+  .modal-quest-card .quest-grid{ gap:20px; }
+  .modal-code-row{ gap:10px; }
+  .modal-code-digit{ width:48px; height:56px; }
+}
