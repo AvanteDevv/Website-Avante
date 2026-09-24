@@ -291,7 +291,57 @@ apptContactModalOverlay.addEventListener('click', (e) => { if(e.target === apptC
 /* =========================================================
    MODAL 1.5: CUESTIONARIO RÁPIDO (antes de verificar el código)
    ========================================================= */
+/* ---------- onboarding paso a paso ---------- */
+const questSteps = Array.from(apptQuestForm.querySelectorAll('.quest-step'));
+const questBack = document.getElementById('questBack');
+const questNext = document.getElementById('questNext');
+const questCount = document.getElementById('questCount');
+const questProgressBar = document.getElementById('questProgressBar');
+let questIndex = 0;
+
+function questStepValid(stepEl){
+  const req = (stepEl.dataset.required || '').split(',').filter(Boolean);
+  return req.every(name => apptQuestForm.querySelector('input[name="' + name + '"]:checked'));
+}
+function showQuestStep(i, back){
+  questIndex = Math.max(0, Math.min(i, questSteps.length - 1));
+  questSteps.forEach((el, k) => {
+    el.classList.toggle('is-active', k === questIndex);
+    el.classList.toggle('is-back', k === questIndex && !!back);
+  });
+  const last = questIndex === questSteps.length - 1;
+  questCount.textContent = 'Paso ' + (questIndex + 1) + ' de ' + questSteps.length;
+  questProgressBar.style.width = ((questIndex + 1) / questSteps.length * 100) + '%';
+  questBack.hidden = questIndex === 0;
+  questNext.hidden = last;
+  apptQuestSubmit.hidden = !last;
+  apptQuestError.textContent = '';
+  apptQuestModalOverlay.scrollTop = 0;
+}
+function questGoNext(){
+  const step = questSteps[questIndex];
+  if(!questStepValid(step)){
+    apptQuestError.textContent = step.dataset.step === '2' ? 'Responde las dos preguntas para continuar.' : 'Elige una opción para continuar.';
+    return;
+  }
+  showQuestStep(questIndex + 1);
+}
+questNext.addEventListener('click', questGoNext);
+questBack.addEventListener('click', () => showQuestStep(questIndex - 1, true));
+
+// Preguntas de una sola respuesta: al elegir, avanza sola (con una
+// pausita para que se vea marcada). Las de varias respuestas no.
+apptQuestForm.addEventListener('change', (e) => {
+  if(e.target.type !== 'radio') return;
+  apptQuestError.textContent = '';
+  const step = questSteps[questIndex];
+  if(questIndex < questSteps.length - 1 && questStepValid(step)){
+    setTimeout(() => { if(questSteps[questIndex] === step) showQuestStep(questIndex + 1); }, 320);
+  }
+});
+
 function openQuestModal(){
+  showQuestStep(0);
   apptQuestModalOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -463,16 +513,16 @@ apptContactForm.addEventListener('submit', (e) => {
 apptQuestForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const ultimoExamen = document.getElementById('questUltimoExamen').value;
+  const ultimoExamenEl = apptQuestForm.querySelector('input[name="ultimo_examen"]:checked');
+  const ultimoExamen = ultimoExamenEl ? ultimoExamenEl.value : '';
   const lentesArmazon = apptQuestForm.querySelector('input[name="lentes_armazon"]:checked');
   const lentesContacto = apptQuestForm.querySelector('input[name="lentes_contacto"]:checked');
 
-  if(!ultimoExamen){
-    apptQuestError.textContent = 'Selecciona hace cuánto fue tu último examen de la vista.';
-    return;
-  }
-  if(!lentesArmazon || !lentesContacto){
-    apptQuestError.textContent = 'Indica si usas armazón y si usas lentes de contacto.';
+  // Por si se saltó algo obligatorio, regresa a ese paso.
+  const missing = questSteps.findIndex(step => !questStepValid(step));
+  if(missing !== -1){
+    showQuestStep(missing, true);
+    apptQuestError.textContent = 'Te faltó responder esta pregunta.';
     return;
   }
 

@@ -490,3 +490,56 @@ footer{
   .modal-code-row{ gap:10px; }
   .modal-code-digit{ width:48px; height:56px; }
 }
+/* =========================================================
+   CUESTIONARIO — onboarding paso a paso (modal 1.5)
+   Una pregunta por pantalla, barra de progreso arriba y
+   opciones como tarjetas grandes (fáciles de tocar en celular).
+   ========================================================= */
+.modal-quest-card{ max-width:460px; }
+.quest-top{ margin:0 26px 22px 0; }
+.quest-count{ display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--blue-600); margin-bottom:10px; }
+.quest-progress{ height:6px; border-radius:100px; background:var(--blue-50); overflow:hidden; }
+.quest-progress-bar{ height:100%; width:20%; border-radius:100px; background:var(--blue-600); transition:width .45s var(--ease); }
+
+.quest-form{ margin-top:0; }
+.quest-step{ display:none; text-align:left; }
+.quest-step.is-active{ display:block; animation:questIn .35s var(--ease); }
+.quest-step.is-back{ animation-name:questInBack; }
+@keyframes questIn{ from{ opacity:0; transform:translateX(18px); } to{ opacity:1; transform:none; } }
+@keyframes questInBack{ from{ opacity:0; transform:translateX(-18px); } to{ opacity:1; transform:none; } }
+.quest-step h3{ font-size:21px; line-height:1.25; text-align:left; }
+.quest-step-hint{ margin:6px 0 18px !important; font-size:13px !important; color:var(--grey); text-align:left !important; }
+
+.qopt-list{ display:flex; flex-direction:column; gap:10px; }
+.qopt-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.qopt-group{ margin-bottom:16px; }
+.qopt-group:last-child{ margin-bottom:0; }
+.qopt-group-label{ display:block; font-size:12.5px; font-weight:700; color:var(--ink); margin-bottom:8px; }
+
+.qopt{ position:relative; display:block; cursor:pointer; }
+.qopt input{ position:absolute; opacity:0; pointer-events:none; }
+.qopt-box{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:14px 16px; border:1.5px solid var(--line); border-radius:14px; background:var(--white);
+  font-size:14px; font-weight:600; color:var(--ink);
+  transition:border-color .18s var(--ease), background .18s var(--ease), transform .18s var(--ease);
+}
+.qopt-text{ display:flex; flex-direction:column; gap:2px; }
+.qopt-text small{ font-size:11.5px; font-weight:500; color:var(--grey); }
+.qopt:hover .qopt-box{ border-color:var(--blue-300); }
+.qopt input:focus-visible + .qopt-box{ box-shadow:0 0 0 3px var(--blue-100); }
+.qopt-check{ width:18px; height:18px; flex-shrink:0; color:var(--white); background:var(--line); border-radius:50%; padding:3px; opacity:.6; transition:background .18s var(--ease), opacity .18s var(--ease); }
+.qopt input:checked + .qopt-box{ border-color:var(--blue-600); background:var(--blue-50); }
+.qopt input:checked + .qopt-box .qopt-check{ background:var(--blue-600); opacity:1; }
+.qopt:active .qopt-box{ transform:scale(.985); }
+.qopt-row .qopt-box{ justify-content:center; }
+.qopt-row .qopt-check{ display:none; }
+
+.quest-nav{ display:flex; gap:10px; margin-top:6px; }
+.quest-nav .btn{ flex:1; padding:14px 18px; margin-top:0; }
+.quest-back{ flex:0 0 auto !important; }
+.quest-back[hidden], .quest-next[hidden], .quest-submit[hidden]{ display:none; }
+@media (max-width:640px){
+  .quest-step h3{ font-size:19px; }
+  .qopt-box{ padding:13px 14px; }
+}
