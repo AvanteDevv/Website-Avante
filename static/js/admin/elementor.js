@@ -300,8 +300,12 @@
     .then(function(res){ return res.json(); })
     .then(function(data){
       if (!Array.isArray(data)) return;
+      // type 'current': logos que YA están en el carrusel (carrusel-photos/).
+      // No son 'existing' (esos vienen del catálogo, logos/ + products.logo_key)
+      // — si se mandaran como 'existente', el backend los buscaría en
+      // products y respondería 400.
       carouselItems = data.map(function(l){
-        return { type: 'existing', logoKey: l.logoKey, logoUrl: l.logoUrl, brand: l.brand };
+        return { type: 'current', logoKey: l.logoKey, logoUrl: l.logoUrl, brand: l.brand };
       });
       renderCarouselList();
     })
@@ -320,6 +324,8 @@
           formData.append('carrusel_nuevo', item.file);
           formData.append('carrusel_nuevo_marca', item.brand || '');
           orden.push({ tipo: 'nuevo' });
+        } else if (item.type === 'current'){
+          orden.push({ tipo: 'actual', logoKey: item.logoKey });
         } else {
           formData.append('carrusel_existente', item.logoKey);
           orden.push({ tipo: 'existente', logoKey: item.logoKey });
@@ -329,14 +335,33 @@
 
       elCarouselSaveBtn.disabled = true;
       fetch('/api/admin/carrusel-marcas', { method: 'POST', body: formData })
-        .then(function(res){ if (!res.ok) throw new Error('request failed'); })
-        .then(function(){
+        .then(function(res){
+          return res.json().catch(function(){ return {}; }).then(function(data){
+            if (!res.ok) throw new Error(data.error || 'No se pudo guardar el carrusel. Intenta de nuevo.');
+            return data;
+          });
+        })
+        .then(function(data){
+          // Lo recién guardado ya vive en carrusel-photos/: se recarga como
+          // 'current' para que un segundo guardado no vuelva a subirlo.
+          if (data && data.ok){
+            fetch('/api/admin/carrusel-marcas')
+              .then(function(r){ return r.json(); })
+              .then(function(list){
+                if (!Array.isArray(list)) return;
+                carouselItems = list.map(function(l){
+                  return { type: 'current', logoKey: l.logoKey, logoUrl: l.logoUrl, brand: l.brand };
+                });
+                renderCarouselList();
+              })
+              .catch(function(){});
+          }
           if (elCarouselSavedMsg){
             elCarouselSavedMsg.classList.add('is-visible');
             setTimeout(function(){ elCarouselSavedMsg.classList.remove('is-visible'); }, 3000);
           }
         })
-        .catch(function(){ alert('No se pudo guardar el carrusel. Intenta de nuevo.'); })
+        .catch(function(err){ alert(err && err.message ? err.message : 'No se pudo guardar el carrusel. Intenta de nuevo.'); })
         .finally(function(){ elCarouselSaveBtn.disabled = false; });
     });
   }

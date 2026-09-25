@@ -36,6 +36,8 @@ import (
 //
 //	{"tipo":"nuevo"}                          -> el siguiente archivo de carrusel_nuevo
 //	{"tipo":"existente","logoKey":"..."}      -> un logo ya usado en el catálogo
+//	{"tipo":"actual","logoKey":"..."}         -> un logo que YA está en el carrusel
+//	                                             (carrusel-photos/), se conserva tal cual
 type carouselOrderItem struct {
 	Tipo    string `json:"tipo"`
 	LogoKey string `json:"logoKey"`
@@ -142,6 +144,18 @@ func SaveCarouselLogos(c *gin.Context) {
 	}
 	existingKeysForm := c.PostFormArray("carrusel_existente")
 
+	// Logos que ya están guardados en el carrusel: las entradas "actual"
+	// solo pueden referirse a estos (no se aceptan keys arbitrarias).
+	currentLogos, err := models.GetCarouselLogos()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer el carrusel actual."})
+		return
+	}
+	currentByKey := make(map[string]models.CarouselLogo, len(currentLogos))
+	for _, l := range currentLogos {
+		currentByKey[l.LogoKey] = l
+	}
+
 	final := make([]models.CarouselLogo, 0, len(orden))
 	newIdx, existingIdx := 0, 0
 
@@ -165,6 +179,14 @@ func SaveCarouselLogos(c *gin.Context) {
 				return
 			}
 			final = append(final, models.CarouselLogo{LogoKey: key, Brand: brand})
+
+		case "actual":
+			cur, ok := currentByKey[item.LogoKey]
+			if !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Uno de los logos del carrusel ya no existe, recarga la página."})
+				return
+			}
+			final = append(final, models.CarouselLogo{LogoKey: cur.LogoKey, Brand: cur.Brand})
 
 		case "existente":
 			logoKey := item.LogoKey
