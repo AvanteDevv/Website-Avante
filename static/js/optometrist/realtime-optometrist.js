@@ -1,5 +1,5 @@
 /* =========================================================
-   STAFF — Conexión en tiempo real (WebSocket /ws/staff)
+   OPTOMETRÍA — Conexión en tiempo real (WebSocket /ws/staff)
    Una sola conexión por pestaña. Los demás scripts (campanita,
    chat, notificaciones) se suscriben así:
 
@@ -207,6 +207,17 @@
       el.appendChild(text);
       stack.appendChild(el);
 
+      // Acción al tocar el toast sin recargar la página (p. ej. abrir el
+      // chat del que llegó el mensaje en la misma pantalla).
+      if (opts.onClick) {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', function (e) {
+          e.preventDefault();
+          opts.onClick();
+          if (el.parentNode) el.parentNode.removeChild(el);
+        });
+      }
+
       // Máximo 3 a la vez.
       while (stack.children.length > 3) stack.removeChild(stack.firstChild);
 
@@ -216,7 +227,7 @@
       }, opts.duration || 6000);
     },
 
-    // Globito de no leídos del link "Chat" en el sidebar.
+    // Globito de mensajes sin leer del link "Comunicación" en el sidebar.
     setChatBadge: function (n) {
       document.querySelectorAll('[data-chat-unread]').forEach(function (el) {
         el.textContent = n > 99 ? '99+' : String(n);

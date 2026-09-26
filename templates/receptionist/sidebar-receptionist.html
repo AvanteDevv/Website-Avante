@@ -21,6 +21,9 @@
   <nav class="cuenta-nav-group">
     <span class="cuenta-nav-blob" aria-hidden="true"></span>
     <a href="/receptionist/citas" class="cuenta-nav-link{{if eq .ActivePage "receptionist-citas"}} active{{end}}"><i data-feather="calendar"></i><span>Citas</span><span class="cuenta-nav-tooltip">Citas</span></a>
+    {{if and .StaffRoleKey (eq .StaffRoleKey "receptionist")}}
+    <a href="/receptionist/comunicacion" class="cuenta-nav-link{{if eq .ActivePage "receptionist-comunicacion"}} active{{end}}"><i data-feather="message-circle"></i><span>Comunicación</span><span class="cuenta-nav-badge" data-chat-unread hidden></span><span class="cuenta-nav-tooltip">Comunicación</span></a>
+    {{end}}
   </nav>
 
   <div class="cuenta-nav-divider"></div>

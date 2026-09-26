@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comunicación — Recepción · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+<link rel="stylesheet" href="/static/css/receptionist/comunicacion-recepcion.css">
+</head>
+<body class="cuenta-body">
+
+{{template "receptionist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "receptionist-sidebar" .}}
+
+  <main class="cuenta-main com-page" id="comPage" data-me="{{.StaffKey}}">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Comunicación</h1>
+        <p>Avisos de la administración y chat con el equipo.</p>
+      </div>
+      <div class="com-tabs" id="comTabs" role="tablist">
+        <button type="button" class="com-tab active" data-tab="avisos" role="tab" aria-selected="true">Avisos <span class="com-tab-badge" data-tab-badge="avisos" hidden></span></button>
+        <button type="button" class="com-tab" data-tab="chats" role="tab" aria-selected="false">Chats <span class="com-tab-badge" data-tab-badge="chats" hidden></span></button>
+        <button type="button" class="com-tab" data-tab="grupos" role="tab" aria-selected="false">Grupos de chat <span class="com-tab-badge" data-tab-badge="grupos" hidden></span></button>
+      </div>
+    </div>
+
+    <!-- ===================== AVISOS ===================== -->
+    <section class="panel com-view" id="comViewAvisos">
+      <div class="panel-head">
+        <div>
+          <h2>Avisos</h2>
+          <p id="avisosSubtitle">Cargando…</p>
+        </div>
+        <div class="avisos-head-actions">
+          <div class="filter-pills" id="avisosFilters">
+            <button type="button" class="filter-pill active" data-filter="todos">Todos</button>
+            <button type="button" class="filter-pill" data-filter="no-leidos">Sin leer</button>
+          </div>
+          <button type="button" class="avisos-readall" id="avisosReadAll" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-5-5"/><path d="M22 10l-7.5 7.5L13 16"/></svg>
+            Marcar todos como leídos
+          </button>
+        </div>
+      </div>
+      <div class="avisos-list" id="avisosList"></div>
+      <p class="avisos-empty" id="avisosEmpty">Cargando…</p>
+    </section>
+
+    <!-- ===================== CHATS / GRUPOS ===================== -->
+    <section class="chat-app com-view" id="comViewChat" hidden>
+      <aside class="chat-side">
+        <div class="chat-side-head">
+          <div class="search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="chatSearch" placeholder="Buscar chat o persona…" autocomplete="off">
+            </div>
+          </div>
+          <div class="chat-subtabs" id="chatSubTabs">
+            <button type="button" class="filter-pill active" data-sub="recientes">Recientes</button>
+            <button type="button" class="filter-pill" data-sub="contactos">Contactos</button>
+          </div>
+        </div>
+        <div class="chat-list" id="chatList" role="list">
+          <p class="chat-list-empty">Cargando…</p>
+        </div>
+        <div class="chat-conn" id="chatConn" hidden>
+          <span class="chat-conn-dot"></span> Reconectando…
+        </div>
+      </aside>
+
+      <section class="chat-thread">
+        <div class="chat-placeholder" id="chatPlaceholder">
+          <div class="chat-placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          </div>
+          <h3 id="chatPlaceholderTitle">Tus chats</h3>
+          <p id="chatPlaceholderText">Elige un chat de la lista o busca a alguien en Contactos para empezar a platicar.</p>
+        </div>
+
+        <header class="chat-thread-head" id="chatHead" hidden>
+          <button type="button" class="chat-back" id="chatBack" aria-label="Volver a la lista">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="chat-avatar" id="chatHeadAvatar"></span>
+          <div class="chat-head-text">
+            <div class="chat-head-title" id="chatHeadTitle"></div>
+            <div class="chat-head-sub" id="chatHeadSub"></div>
+          </div>
+        </header>
+
+        <div class="chat-messages" id="chatMessages" hidden aria-live="polite"></div>
+
+        <form class="chat-composer" id="chatComposer" hidden autocomplete="off">
+          <textarea id="chatInput" rows="1" maxlength="4000" placeholder="Escribe un mensaje"></textarea>
+          <button type="submit" class="chat-send" id="chatSend" aria-label="Enviar" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </form>
+      </section>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script defer src="/static/js/receptionist/comunicacion-recepcion.js"></script>
+</body>
+</html>

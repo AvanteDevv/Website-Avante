@@ -1,10 +1,7 @@
 {{define "admin-userbar"}}
 <script>(function(){try{if(localStorage.getItem('avanteTheme')==='dark')document.body.classList.add('dark');}catch(e){}})();</script>
-{{$role := ""}}{{if .StaffRoleKey}}{{$role = .StaffRoleKey}}{{end}}
 <div class="header-outer">
 <header class="userbar-row">
-  {{/* Campanita de avisos: solo para quien los recibe (no el admin). */}}
-  {{if or (eq $role "employee") (eq $role "receptionist") (eq $role "optometrist")}}{{template "staff-bell" .}}{{end}}
   <div class="userbar" id="userbar">
     <button type="button" class="userbar-trigger">
       <span class="userbar-avatar">{{if .StaffInitials}}{{.StaffInitials}}{{else}}AD{{end}}</span>
@@ -19,25 +16,12 @@
           <div class="email">{{if .StaffEmail}}{{.StaffEmail}}{{else}}admin@avanteoptics.mx{{end}}</div>
         </div>
       </div>
-      {{if eq $role "employee"}}
-        <a href="/staff/notificaciones" class="userbar-menu-link{{if eq .ActivePage "staff-notificaciones"}} active{{end}}"><i data-feather="bell"></i>Notificaciones</a>
-        <a href="/staff/chat" class="userbar-menu-link{{if eq .ActivePage "staff-chat"}} active{{end}}"><i data-feather="message-circle"></i>Chat</a>
-      {{else if eq $role "receptionist"}}
-        <a href="/receptionist/citas" class="userbar-menu-link{{if eq .ActivePage "receptionist-citas"}} active{{end}}"><i data-feather="calendar"></i>Citas</a>
-        <a href="/staff/chat" class="userbar-menu-link{{if eq .ActivePage "staff-chat"}} active{{end}}"><i data-feather="message-circle"></i>Chat</a>
-        <a href="/staff/notificaciones" class="userbar-menu-link{{if eq .ActivePage "staff-notificaciones"}} active{{end}}"><i data-feather="bell"></i>Notificaciones</a>
-      {{else if eq $role "optometrist"}}
-        <a href="/optometrist/historial-clinico" class="userbar-menu-link{{if eq .ActivePage "optometrist-historial"}} active{{end}}"><i data-feather="clipboard"></i>Historial clínico</a>
-        <a href="/staff/chat" class="userbar-menu-link{{if eq .ActivePage "staff-chat"}} active{{end}}"><i data-feather="message-circle"></i>Chat</a>
-        <a href="/staff/notificaciones" class="userbar-menu-link{{if eq .ActivePage "staff-notificaciones"}} active{{end}}"><i data-feather="bell"></i>Notificaciones</a>
-      {{else}}
         <a href="/admin/dashboard" class="userbar-menu-link{{if eq .ActivePage "admin-dashboard"}} active{{end}}"><i data-feather="grid"></i>Resumen</a>
         <a href="/admin/citas" class="userbar-menu-link{{if eq .ActivePage "admin-citas"}} active{{end}}"><i data-feather="calendar"></i>Citas</a>
         <a href="/admin/pedidos" class="userbar-menu-link{{if eq .ActivePage "admin-pedidos"}} active{{end}}"><i data-feather="shopping-bag"></i>Pedidos</a>
         <a href="/admin/base-de-datos" class="userbar-menu-link{{if eq .ActivePage "admin-base-de-datos"}} active{{end}}"><i data-feather="database"></i>Base de datos</a>
         <a href="/admin/comunicacion" class="userbar-menu-link{{if eq .ActivePage "admin-comunicacion"}} active{{end}}"><i data-feather="send"></i>Comunicación</a>
         <a href="/admin/configuracion" class="userbar-menu-link{{if eq .ActivePage "admin-configuracion"}} active{{end}}"><i data-feather="settings"></i>Configuración</a>
-      {{end}}
       <div class="userbar-menu-divider"></div>
       <a href="/" class="userbar-menu-link"><i data-feather="home"></i>Volver al sitio</a>
       <a href="/admin/logout" class="userbar-menu-link logout"><i data-feather="log-out"></i>Cerrar sesión</a>

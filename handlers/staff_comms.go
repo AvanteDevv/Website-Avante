@@ -46,18 +46,44 @@ func CurrentStaff(c *gin.Context) models.StaffRef { return currentStaff(c) }
    Páginas
    ========================================================= */
 
-// StaffNotificationsPage — GET /staff/notificaciones
-func StaffNotificationsPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "staff-notificaciones.html", WithStaff(c, gin.H{
-		"ActivePage": "staff-notificaciones",
+// Cada rol tiene su propia página de Comunicación (Avisos · Chats ·
+// Grupos de chat), con su HTML/CSS/JS separado:
+//
+//	GET /employee/comunicacion      -> comunicacion-empleado.html
+//	GET /receptionist/comunicacion  -> comunicacion-recepcion.html
+//	GET /optometrist/comunicacion   -> comunicacion-optometrista.html
+
+// EmployeeCommunicationPage — GET /employee/comunicacion
+func EmployeeCommunicationPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "comunicacion-empleado.html", WithStaff(c, gin.H{
+		"ActivePage": "employee-comunicacion",
 	}))
 }
 
-// StaffChatPage — GET /staff/chat
-func StaffChatPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "staff-chat.html", WithStaff(c, gin.H{
-		"ActivePage": "staff-chat",
+// ReceptionistCommunicationPage — GET /receptionist/comunicacion
+func ReceptionistCommunicationPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "comunicacion-recepcion.html", WithStaff(c, gin.H{
+		"ActivePage": "receptionist-comunicacion",
 	}))
+}
+
+// OptometristCommunicationPage — GET /optometrist/comunicacion
+func OptometristCommunicationPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "comunicacion-optometrista.html", WithStaff(c, gin.H{
+		"ActivePage": "optometrist-comunicacion",
+	}))
+}
+
+// StaffCommunicationRedirect — GET /staff/comunicacion
+// Link genérico que usan la campanita y los toasts (no saben en qué
+// rol estás): manda a la página de Comunicación de tu rol, conservando
+// ?tab= y ?c= (el chat a abrir).
+func StaffCommunicationRedirect(c *gin.Context) {
+	target := "/" + currentStaff(c).Role + "/comunicacion"
+	if q := c.Request.URL.RawQuery; q != "" {
+		target += "?" + q
+	}
+	c.Redirect(http.StatusFound, target)
 }
 
 /* =========================================================

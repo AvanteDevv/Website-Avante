@@ -171,8 +171,8 @@ func loadTemplates() *template.Template {
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth-admin/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/receptionist/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/optometrist/*.html"))
-	// Chat interno + avisos (recepción / optometría / empleado).
-	tmpl = template.Must(tmpl.ParseGlob("templates/staff/*.html"))
+	// Panel del empleado (Comunicación: avisos + chats + grupos).
+	tmpl = template.Must(tmpl.ParseGlob("templates/employee/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/ecommerce/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/pages/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/legal/*.html"))
@@ -441,11 +441,14 @@ func main() {
 	// Mismo login y misma cookie que /admin.
 	commsStaff := handlers.RequireRole(handlers.CommsRoles...)
 
-	staffGroup := router.Group("/staff", handlers.RequireAdminAuth(), commsStaff)
+	// Página de Comunicación de cada rol (Avisos · Chats · Grupos de chat).
+	employeeGroup := router.Group("/employee", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleEmployee))
 	{
-		staffGroup.GET("/notificaciones", handlers.StaffNotificationsPage)
-		staffGroup.GET("/chat", handlers.StaffChatPage)
+		employeeGroup.GET("/comunicacion", handlers.EmployeeCommunicationPage)
 	}
+
+	// Link genérico de la campanita/toasts: redirige a /<rol>/comunicacion.
+	router.GET("/staff/comunicacion", handlers.RequireAdminAuth(), commsStaff, handlers.StaffCommunicationRedirect)
 
 	apiStaff := router.Group("/api/staff", handlers.RequireAdminAuth(), commsStaff)
 	{
@@ -469,6 +472,8 @@ func main() {
 	// quien tenga sesión con role "admin" o "receptionist".
 	receptionistGroup := router.Group("/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
 	{
+		// Comunicación: solo recepción (el admin no chatea ni recibe avisos).
+		receptionistGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleReceptionist), handlers.ReceptionistCommunicationPage)
 		receptionistGroup.GET("/citas", func(c *gin.Context) {
 			appointments, err := models.GetAllAppointments()
 			if err != nil {
@@ -493,6 +498,8 @@ func main() {
 	// historial clínico ni de examen de la vista todavía.
 	optometristGroup := router.Group("/optometrist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleOptometrist))
 	{
+		// Comunicación: solo optometría (el admin no chatea ni recibe avisos).
+		optometristGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleOptometrist), handlers.OptometristCommunicationPage)
 		optometristGroup.GET("/historial-clinico", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "historial-clinico.html", handlers.WithStaff(c, gin.H{
 				"ActivePage": "optometrist-historial",

@@ -1,0 +1,59 @@
+{{define "optometrist-userbar"}}
+<script>(function(){try{if(localStorage.getItem('avanteTheme')==='dark')document.body.classList.add('dark');}catch(e){}})();</script>
+<div class="header-outer">
+<header class="userbar-row">
+  {{/* Campanita de avisos del admin + conexión en tiempo real. Solo
+       con sesión de este rol: el admin también entra a estas páginas
+       pero no recibe avisos ni chatea.
+       CSS/JS propios del rol: static/css/optometrist/bell-optometrist.css,
+       static/js/optometrist/realtime-optometrist.js y static/js/optometrist/bell-optometrist.js. */}}
+  {{if and .StaffRoleKey (eq .StaffRoleKey "optometrist")}}
+  <link rel="stylesheet" href="/static/css/optometrist/bell-optometrist.css">
+  <div class="staff-bell" id="staffBell" data-me="{{.StaffKey}}">
+    <button type="button" class="staff-bell-btn" id="staffBellBtn" aria-label="Avisos" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="staff-bell-count" id="staffBellCount" hidden>0</span>
+    </button>
+    <div class="staff-bell-menu" id="staffBellMenu" role="dialog" aria-label="Avisos">
+      <div class="staff-bell-head">
+        <strong>Avisos</strong>
+        <button type="button" class="staff-bell-readall" id="staffBellReadAll">Marcar todos como leídos</button>
+      </div>
+      <div class="staff-bell-list" id="staffBellList">
+        <p class="staff-bell-empty">Cargando…</p>
+      </div>
+      <a href="/optometrist/comunicacion" class="staff-bell-all">Ver todos los avisos</a>
+    </div>
+  </div>
+  <div class="staff-toast-stack" id="staffToastStack" aria-live="polite"></div>
+  <script defer src="/static/js/optometrist/realtime-optometrist.js"></script>
+  <script defer src="/static/js/optometrist/bell-optometrist.js"></script>
+  {{end}}
+  <div class="userbar" id="userbar">
+    <button type="button" class="userbar-trigger">
+      <span class="userbar-avatar">{{.StaffInitials}}</span>
+      <span class="userbar-name">{{.StaffName}}</span>
+      <svg class="userbar-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div class="userbar-menu">
+      <div class="userbar-menu-head">
+        <span class="userbar-avatar">{{.StaffInitials}}</span>
+        <div>
+          <div class="name">{{.StaffName}}</div>
+          <div class="email">{{.StaffRole}}</div>
+          <div class="email">{{.StaffEmail}}</div>
+        </div>
+      </div>
+        <a href="/optometrist/historial-clinico" class="userbar-menu-link{{if eq .ActivePage "optometrist-historial"}} active{{end}}"><i data-feather="file-text"></i>Historial clínico</a>
+        <a href="/optometrist/examen-vista" class="userbar-menu-link{{if eq .ActivePage "optometrist-examen"}} active{{end}}"><i data-feather="eye"></i>Examen de la vista</a>
+        {{if and .StaffRoleKey (eq .StaffRoleKey "optometrist")}}
+        <a href="/optometrist/comunicacion" class="userbar-menu-link{{if eq .ActivePage "optometrist-comunicacion"}} active{{end}}"><i data-feather="message-circle"></i>Comunicación</a>
+        {{end}}
+      <div class="userbar-menu-divider"></div>
+      <a href="/" class="userbar-menu-link"><i data-feather="home"></i>Volver al sitio</a>
+      <a href="/admin/logout" class="userbar-menu-link logout"><i data-feather="log-out"></i>Cerrar sesión</a>
+    </div>
+  </div>
+</header>
+</div>
+{{end}}

@@ -104,7 +104,7 @@ func AdminLogin(c *gin.Context) {
 	// 4) Empleado
 	if e, err := models.GetEmployeeByEmail(input.Email); err == nil {
 		if bcrypt.CompareHashAndPassword([]byte(e.PasswordHash), []byte(input.Password)) == nil {
-			finishStaffLogin(c, RoleEmployee, e.ID, e.Name, e.Email, "/staff/notificaciones")
+			finishStaffLogin(c, RoleEmployee, e.ID, e.Name, e.Email, "/employee/comunicacion")
 			return
 		}
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
