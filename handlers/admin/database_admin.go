@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"avante-optics/db"
+	"avante-optics/handlers"
 )
 
 // ⚠️ Adjust "avante-optics" in the import above to match the module name
@@ -27,7 +28,7 @@ type userRow struct {
 	Email     string
 	Phone     string
 	CreatedAt time.Time
-	Role      string // "cliente" | "admin" | "optometrist" | "receptionist"
+	Role      string // "cliente" | "admin" | "optometrist" | "receptionist" | "employee"
 	Initials  string
 	// DividerLabel viene vacío casi siempre. Se llena solo en la
 	// primera fila de una sección nueva ("Empleados" al pasar de
@@ -55,20 +56,23 @@ func Database(c *gin.Context) {
 		UNION ALL
 		SELECT id, name, email, '' AS phone, created_at, 'receptionist' AS role
 		FROM receptionists
+		UNION ALL
+		SELECT id, name, email, '' AS phone, created_at, 'employee' AS role
+		FROM employees
 		ORDER BY
 			CASE
 				WHEN role = 'admin' THEN 0
-				WHEN role IN ('optometrist', 'receptionist') THEN 1
+				WHEN role IN ('optometrist', 'receptionist', 'employee') THEN 1
 				ELSE 2
 			END,
 			created_at DESC
 	`)
 	if err != nil {
 		log.Printf("admin.Database: error querying users: %v", err)
-		c.HTML(http.StatusOK, "base-de-datos.html", gin.H{
+		c.HTML(http.StatusOK, "base-de-datos.html", handlers.WithStaff(c, gin.H{
 			"ActivePage": "admin-base-de-datos",
 			"DBError":    "No se pudieron cargar los usuarios en este momento.",
-		})
+		}))
 		return
 	}
 	defer rows.Close()
@@ -103,7 +107,7 @@ func Database(c *gin.Context) {
 		switch role {
 		case "admin":
 			return "Administradores"
-		case "optometrist", "receptionist":
+		case "optometrist", "receptionist", "employee":
 			return "Empleados"
 		default:
 			return "Clientes"
@@ -118,14 +122,14 @@ func Database(c *gin.Context) {
 		prevSection = section
 	}
 
-	c.HTML(http.StatusOK, "base-de-datos.html", gin.H{
+	c.HTML(http.StatusOK, "base-de-datos.html", handlers.WithStaff(c, gin.H{
 		"ActivePage":    "admin-base-de-datos",
 		"Usuarios":      usuarios,
 		"TotalUsuarios": len(usuarios),
 		"TotalClientes": totalClientes,
 		"TotalStaff":    totalStaff,
 		"NuevosEsteMes": nuevosEsteMes,
-	})
+	}))
 }
 
 // initials extracts 1-2 letters from a full name for the row's circular

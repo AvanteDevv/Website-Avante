@@ -285,6 +285,8 @@ body.dark .role-badge.admin{ background:var(--blue-600); color:var(--on-accent);
 body.dark .role-badge.optometrist{ background:#0f6fa8; color:var(--on-accent); }
 .role-badge.receptionist{ background:#F3E8FF; color:#7a2fbf; }
 body.dark .role-badge.receptionist{ background:#7a2fbf; color:var(--on-accent); }
+.role-badge.employee{ background:#E6F6EC; color:#1f7a3d; }
+body.dark .role-badge.employee{ background:#1f7a3d; color:var(--on-accent); }
 
 .admin-modal-overlay{
   position:fixed; inset:0;

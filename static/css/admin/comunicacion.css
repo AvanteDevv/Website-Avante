@@ -1,0 +1,151 @@
+/* ===========================================================
+   Avante Optics — Admin — Comunicación (avisos + grupos)
+   Se apoya en base-de-datos.css (tokens, .panel, tabla,
+   .filter-pill, modales, .btn). Aquí solo lo propio.
+   =========================================================== */
+
+.com-tabs .filter-pill{ padding:9px 18px; }
+.com-view[hidden]{ display:none; }
+.com-view{ display:flex; flex-direction:column; gap:22px; }
+
+/* ---------- Formulario ---------- */
+.com-form{ display:flex; flex-direction:column; gap:16px; }
+.com-compose .com-form{ padding:20px 24px 24px; }
+.com-field{ display:flex; flex-direction:column; gap:7px; position:relative; }
+.com-field > span{ font-size:12px; font-weight:600; color:var(--ink); }
+.com-field > span em{ font-style:normal; font-weight:400; color:var(--grey); }
+.com-field[hidden]{ display:none; }
+.com-field input,
+.com-field textarea{
+  border:1.5px solid var(--line); border-radius:12px;
+  padding:11px 14px; font-family:var(--sans); font-size:13.5px; color:var(--ink);
+  background:var(--white); outline:none; resize:vertical;
+  transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.com-field textarea{ min-height:96px; line-height:1.5; }
+.com-field input:focus,
+.com-field textarea:focus{ border-color:var(--blue-300); box-shadow:0 0 0 4px var(--blue-50); }
+.com-counter{ align-self:flex-end; font-size:11px; color:var(--grey); }
+
+/* Audiencia: 3 tarjetas-botón */
+.com-audience{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+.com-audience-opt{
+  display:flex; align-items:center; gap:10px;
+  padding:13px 14px; border-radius:14px; border:1.5px solid var(--line);
+  background:var(--white); font-size:13px; font-weight:600; color:var(--grey); text-align:left;
+  transition:border-color .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
+}
+.com-audience-opt svg{ width:18px; height:18px; flex-shrink:0; }
+.com-audience-opt:hover{ border-color:var(--blue-300); color:var(--ink); }
+.com-audience-opt.active{ border-color:var(--blue-600); background:var(--blue-50); color:var(--blue-700); }
+@media (max-width:640px){ .com-audience{ grid-template-columns:1fr; } }
+
+.com-role-pills{ display:flex; gap:8px; flex-wrap:wrap; }
+
+.com-reach{ font-size:12.5px; color:var(--grey); }
+.com-reach strong{ color:var(--ink); }
+.com-form-actions{ display:flex; justify-content:flex-end; gap:10px; }
+.com-form-actions .btn svg{ width:14px; height:14px; }
+.com-compose .com-form-actions .btn{ padding:12px 28px; }
+
+/* ---------- Selector de personas (checklist con buscador) ---------- */
+.com-picker{
+  border:1.5px solid var(--line); border-radius:14px; overflow:hidden;
+  background:var(--white);
+}
+.com-picker-top{
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-bottom:1px solid var(--line);
+}
+.com-picker-top svg{ width:15px; height:15px; color:var(--blue-600); flex-shrink:0; }
+.com-picker-top input{
+  flex:1; min-width:0; border:none; outline:none; background:none;
+  font-family:var(--sans); font-size:13px; color:var(--ink);
+}
+.com-picker-count{ font-size:11.5px; font-weight:700; color:var(--blue-700); white-space:nowrap; }
+.com-picker-list{
+  max-height:260px; overflow-y:auto; padding:6px;
+  scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+}
+.com-picker-list::-webkit-scrollbar{ width:6px; }
+.com-picker-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+.com-picker-group{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 8px 4px; font-size:10.5px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--grey);
+}
+.com-picker-group button{
+  font-size:11px; font-weight:700; letter-spacing:0; text-transform:none; color:var(--blue-600);
+  padding:2px 6px; border-radius:6px;
+}
+.com-picker-group button:hover{ background:var(--blue-50); }
+.com-picker-item{
+  display:flex; align-items:center; gap:11px; padding:8px; border-radius:10px; cursor:pointer;
+  transition:background .16s var(--ease);
+}
+.com-picker-item:hover{ background:var(--blue-50); }
+.com-picker-item input{ position:absolute; opacity:0; pointer-events:none; }
+.com-check{
+  width:20px; height:20px; border-radius:6px; flex-shrink:0;
+  border:1.5px solid var(--line); background:var(--white);
+  display:flex; align-items:center; justify-content:center; color:transparent;
+  transition:background .16s var(--ease), border-color .16s var(--ease), color .16s var(--ease);
+}
+.com-check svg{ width:13px; height:13px; }
+.com-picker-item input:checked + .com-check{ background:var(--blue-600); border-color:var(--blue-600); color:var(--on-accent); }
+.com-picker-item input:focus-visible + .com-check{ box-shadow:0 0 0 3px var(--blue-100); }
+.com-picker-item .userbar-avatar{ width:30px; height:30px; font-size:11px; }
+.com-picker-name{ font-size:13px; font-weight:600; color:var(--ink); }
+.com-picker-email{ font-size:11px; color:var(--grey); }
+.com-picker-empty{ padding:20px; text-align:center; font-size:12.5px; color:var(--grey); }
+
+/* ---------- Tablas ---------- */
+.com-table-wrap{ overflow-x:auto; }
+table.com-table{ min-width:720px; }
+.com-aviso-title{ font-weight:700; color:var(--ink); }
+.com-aviso-body{
+  font-size:12px; color:var(--grey); margin-top:2px; max-width:340px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.com-audience-badge{
+  display:inline-flex; align-items:center; font-size:10.5px; font-weight:700;
+  letter-spacing:.03em; text-transform:uppercase; padding:5px 11px; border-radius:100px;
+  background:var(--blue-100); color:var(--blue-700); white-space:nowrap;
+}
+.com-audience-badge.role-receptionist{ background:#F3E8FF; color:#7a2fbf; }
+.com-audience-badge.role-optometrist{ background:#E3F3FF; color:#0f6fa8; }
+.com-audience-badge.role-employee{ background:#E6F6EC; color:#1f7a3d; }
+.com-audience-badge.selected{ background:var(--line); color:var(--ink); }
+body.dark .com-audience-badge{ background:var(--blue-600); color:var(--on-accent); }
+
+.com-progress{ display:flex; align-items:center; gap:10px; min-width:130px; }
+.com-progress-bar{ flex:1; height:6px; border-radius:100px; background:var(--line); overflow:hidden; }
+.com-progress-bar span{ display:block; height:100%; border-radius:100px; background:#1f9d55; }
+.com-progress-text{ font-size:12px; font-weight:600; color:var(--ink); white-space:nowrap; }
+
+.com-members{ display:flex; align-items:center; }
+.com-members .userbar-avatar{
+  width:28px; height:28px; font-size:10.5px; border:2px solid var(--white); margin-left:-7px;
+}
+.com-members .userbar-avatar:first-child{ margin-left:0; }
+.com-members-more{ font-size:11.5px; font-weight:700; color:var(--grey); margin-left:8px; }
+
+.com-row-actions{ display:flex; gap:6px; }
+.com-empty{ text-align:center; padding:44px 24px 52px; font-size:13px; color:var(--grey); line-height:1.7; }
+.com-empty[hidden]{ display:none; }
+.com-new-btn svg{ width:14px; height:14px; }
+
+/* ---------- Modales ---------- */
+.com-modal-card{ max-width:480px; }
+.com-readers{ display:flex; flex-direction:column; gap:4px; }
+.com-reader{
+  display:flex; align-items:center; gap:11px; padding:9px 4px;
+  border-bottom:1px solid var(--line);
+}
+.com-reader:last-child{ border-bottom:none; }
+.com-reader .userbar-avatar{ width:30px; height:30px; font-size:11px; }
+.com-reader-name{ flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--ink); }
+.com-reader-role{ display:block; font-size:11px; font-weight:400; color:var(--grey); }
+.com-reader-status{ font-size:11.5px; font-weight:700; white-space:nowrap; }
+.com-reader-status.read{ color:#1f7a3d; }
+.com-reader-status.pending{ color:var(--grey); }

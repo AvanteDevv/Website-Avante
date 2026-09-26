@@ -29,7 +29,7 @@
     return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 
-  // "staff" agrupa admin + optometrist + receptionist — todo lo que
+  // "staff" agrupa admin + optometrist + receptionist + employee — todo lo que
   // no sea "cliente" — así el filtro es la misma división de dos
   // grupos que ya se ve en el dropdown de rol del modal.
   function rowMatches(row) {
@@ -186,7 +186,7 @@
 
 /* ---------- Modal: Ver usuario / Editar usuario ---------- */
 (function () {
-  var ROLE_LABELS = { cliente: 'Cliente', admin: 'Administrador', optometrist: 'Optometrista', receptionist: 'Recepcionista' };
+  var ROLE_LABELS = { cliente: 'Cliente', admin: 'Administrador', optometrist: 'Optometrista', receptionist: 'Recepcionista', employee: 'Empleado' };
   function roleLabelOf(role) { return ROLE_LABELS[role] || role; }
 
   // Lee los datos ya renderizados en la fila — no hace falta otra
@@ -335,10 +335,10 @@
     var lastName = document.getElementById('newUserLastName').value.trim();
     var role = document.getElementById('newUserRole').value;
 
-    // Cliente, recepcionista y optometrista son personas: se exige
+    // Cliente, recepcionista, optometrista y empleado son personas: se exige
     // apellido(s). Admin se deja libre porque a veces es una cuenta
     // de marca (p. ej. "Avante-Admin").
-    var NAME_REQUIRES_LASTNAME = ['cliente', 'receptionist', 'optometrist'];
+    var NAME_REQUIRES_LASTNAME = ['cliente', 'receptionist', 'optometrist', 'employee'];
     if (NAME_REQUIRES_LASTNAME.indexOf(role) !== -1 && !lastName) {
       if (errorEl) errorEl.textContent = 'Escribe el apellido.';
       return;
@@ -389,11 +389,11 @@
   function closeRoleMenu() { wrap.classList.remove('is-open'); roleBtn.setAttribute('aria-expanded', 'false'); }
   function openRoleMenu() { wrap.classList.add('is-open'); roleBtn.setAttribute('aria-expanded', 'true'); }
 
-  // Cliente, recepcionista y optometrista son personas: se les pide
+  // Cliente, recepcionista, optometrista y empleado son personas: se les pide
   // apellido(s). Admin se deja libre (a veces es una cuenta de marca,
   // p. ej. "Avante-Admin") — mismo criterio que valida el submit del
   // formulario y el backend.
-  var NAME_REQUIRES_LASTNAME = ['cliente', 'receptionist', 'optometrist'];
+  var NAME_REQUIRES_LASTNAME = ['cliente', 'receptionist', 'optometrist', 'employee'];
   function updateLastNameRequirement(role) {
     var requires = NAME_REQUIRES_LASTNAME.indexOf(role) !== -1;
     if (lastNameInput) lastNameInput.required = requires;

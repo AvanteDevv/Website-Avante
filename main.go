@@ -171,6 +171,8 @@ func loadTemplates() *template.Template {
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth-admin/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/receptionist/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/optometrist/*.html"))
+	// Chat interno + avisos (recepción / optometría / empleado).
+	tmpl = template.Must(tmpl.ParseGlob("templates/staff/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/ecommerce/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/pages/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/legal/*.html"))
@@ -430,7 +432,37 @@ func main() {
 				"ActivePage": "admin-pedidos",
 			})
 		})
+		// Avisos al staff + grupos de chat (solo admin).
+		adminGroup.GET("/comunicacion", onlyAdmin, adminHandlers.Communication)
 	}
+
+	// Chat interno + avisos — recepción, optometría y empleados. El admin
+	// NO entra aquí (él manda avisos y arma grupos desde /admin/comunicacion).
+	// Mismo login y misma cookie que /admin.
+	commsStaff := handlers.RequireRole(handlers.CommsRoles...)
+
+	staffGroup := router.Group("/staff", handlers.RequireAdminAuth(), commsStaff)
+	{
+		staffGroup.GET("/notificaciones", handlers.StaffNotificationsPage)
+		staffGroup.GET("/chat", handlers.StaffChatPage)
+	}
+
+	apiStaff := router.Group("/api/staff", handlers.RequireAdminAuth(), commsStaff)
+	{
+		apiStaff.GET("/avisos", handlers.ListMyAnnouncements)
+		apiStaff.POST("/avisos/leer-todos", handlers.MarkAllMyAnnouncementsRead)
+		apiStaff.POST("/avisos/:id/leido", handlers.MarkMyAnnouncementRead)
+
+		apiStaff.GET("/chat", handlers.ChatBootstrap)
+		apiStaff.GET("/chat/no-leidos", handlers.ChatUnreadCount)
+		apiStaff.POST("/chat/directo", handlers.OpenDirectChat)
+		apiStaff.GET("/chat/conversaciones/:id/mensajes", handlers.ListChatMessages)
+		apiStaff.POST("/chat/conversaciones/:id/mensajes", handlers.SendChatMessage)
+		apiStaff.POST("/chat/conversaciones/:id/leido", handlers.MarkChatRead)
+	}
+
+	// WebSocket: mensajes, avisos y "en línea" en tiempo real.
+	router.GET("/ws/staff", handlers.RequireAdminAuth(), commsStaff, handlers.StaffWebSocket)
 
 	// Receptionist panel (templates/receptionist/*.html) — mismo login
 	// y misma cookie que /admin (RequireAdminAuth), pero solo entra
@@ -556,6 +588,17 @@ func main() {
 		apiAdmin.DELETE("/blog-categorias/:id", onlyAdmin, adminHandlers.DeleteBlogCategory)
 		apiAdmin.POST("/blog-etiquetas", onlyAdmin, adminHandlers.CreateBlogTag)
 		apiAdmin.DELETE("/blog-etiquetas/:id", onlyAdmin, adminHandlers.DeleteBlogTag)
+
+		// Comunicación interna (avisos + grupos de chat)
+		apiAdmin.GET("/comunicacion/directorio", onlyAdmin, adminHandlers.CommsDirectory)
+		apiAdmin.GET("/avisos", onlyAdmin, adminHandlers.ListAnnouncements)
+		apiAdmin.POST("/avisos", onlyAdmin, adminHandlers.CreateAnnouncement)
+		apiAdmin.GET("/avisos/:id/lecturas", onlyAdmin, adminHandlers.AnnouncementReaders)
+		apiAdmin.DELETE("/avisos/:id", onlyAdmin, adminHandlers.DeleteAnnouncement)
+		apiAdmin.GET("/chat/grupos", onlyAdmin, adminHandlers.ListChatGroups)
+		apiAdmin.POST("/chat/grupos", onlyAdmin, adminHandlers.CreateChatGroup)
+		apiAdmin.PUT("/chat/grupos/:id", onlyAdmin, adminHandlers.UpdateChatGroup)
+		apiAdmin.DELETE("/chat/grupos/:id", onlyAdmin, adminHandlers.DeleteChatGroup)
 	}
 
 	// Client JSON API — llamada desde index.js / ecommerce.js (el corazón

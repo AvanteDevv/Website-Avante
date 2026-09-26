@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,14 +25,26 @@ type createUserInput struct {
 	Role     string `json:"role" binding:"required"`
 }
 
+// requiresFullName indica si el rol corresponde a una persona (y por
+// lo tanto se exige nombre(s) + apellido(s)). Admin se deja libre
+// porque a veces es una cuenta de marca (p. ej. "Avante-Admin").
+func requiresFullName(role string) bool {
+	switch role {
+	case "cliente", handlers.RoleReceptionist, handlers.RoleOptometrist, handlers.RoleEmployee:
+		return true
+	}
+	return false
+}
+
 // CreateUser crea un usuario o una cuenta de staff desde el modal
 // "Nuevo usuario" del panel de administración — POST /api/admin/usuarios.
 //
 // El rol decide en qué tabla se inserta: "cliente" va a `users`
-// (models.CreateUserByAdmin); "admin", "receptionist" y "optometrist"
-// van a sus tablas propias (models.CreateAdmin / CreateReceptionist /
-// CreateOptometrist) — son identidades de staff separadas, no un
-// permiso extra sobre `users` (ver auth_admin.go).
+// (models.CreateUserByAdmin); "admin", "receptionist", "optometrist" y
+// "employee" van a sus tablas propias (models.CreateAdmin /
+// CreateReceptionist / CreateOptometrist / CreateEmployee) — son
+// identidades de staff separadas, no un permiso extra sobre `users`
+// (ver auth_admin.go).
 func CreateUser(c *gin.Context) {
 	var input createUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -39,14 +52,9 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Cliente, recepcionista y optometrista son personas: se exige
-	// nombre(s) + apellido(s) (al menos 2 palabras). Admin se deja
-	// libre porque a veces es una cuenta de marca (p. ej. "Avante-Admin").
-	if input.Role == "cliente" || input.Role == handlers.RoleReceptionist || input.Role == handlers.RoleOptometrist {
-		if len(strings.Fields(input.Name)) < 2 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe nombre(s) y apellido(s) completos."})
-			return
-		}
+	if requiresFullName(input.Role) && len(strings.Fields(input.Name)) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe nombre(s) y apellido(s) completos."})
+		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -94,6 +102,19 @@ func CreateUser(c *gin.Context) {
 		}
 		c.JSON(http.StatusCreated, o)
 		return
+
+	case handlers.RoleEmployee:
+		e, err := models.CreateEmployee(input.Name, input.Email, string(hash))
+		if errors.Is(err, models.ErrEmployeeEmailTaken) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Ya existe una cuenta de empleado con ese correo."})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear la cuenta de empleado."})
+			return
+		}
+		c.JSON(http.StatusCreated, e)
+		return
 	}
 
 	// Cualquier otro valor (incluido "cliente") cae aquí — cliente sigue
@@ -124,7 +145,7 @@ type updateUserInput struct {
 // actual no se toca (así el modal de "Editar" puede dejarla en blanco).
 //
 // El rol viaja en el body pero NUNCA se usa para cambiar de tabla —
-// solo para saber en cuál de las 4 ya está la cuenta. Cambiar el rol
+// solo para saber en cuál de las 5 ya está la cuenta. Cambiar el rol
 // de alguien implicaría borrar de una tabla y crear en otra (con todo
 // lo que eso arrastra: sesiones activas, historiales, etc.), así que
 // el modal de edición ni siquiera deja tocarlo.
@@ -192,6 +213,18 @@ func UpdateUser(c *gin.Context) {
 			}
 		}
 
+	case handlers.RoleEmployee:
+		if err := models.UpdateEmployee(id, input.Name, input.Email); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Cuenta de empleado no encontrada."})
+			return
+		}
+		if passwordHash != "" {
+			if err := models.UpdateEmployeePassword(id, passwordHash); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Usuario actualizado, pero no se pudo cambiar la contraseña."})
+				return
+			}
+		}
+
 	default:
 		// "cliente" y cualquier otro valor caen aquí — tabla `users`,
 		// tal como ya funcionaba.
@@ -211,10 +244,10 @@ func UpdateUser(c *gin.Context) {
 }
 
 // DeleteUser elimina un usuario o cuenta de staff — DELETE
-// /api/admin/usuarios/:id?role=admin|receptionist|optometrist|cliente.
+// /api/admin/usuarios/:id?role=admin|receptionist|optometrist|employee|cliente.
 // El rol viene por query param (no por body, un DELETE normalmente no
 // lleva uno) porque el mismo id se repite entre tablas — sin el rol
-// no hay forma de saber cuál de las 4 borrar.
+// no hay forma de saber cuál de las 5 borrar.
 func DeleteUser(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -233,11 +266,19 @@ func DeleteUser(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar la cuenta de recepción."})
 			return
 		}
+		purgeComms(handlers.RoleReceptionist, id)
 	case handlers.RoleOptometrist:
 		if err := models.DeleteOptometrist(id); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar la cuenta de optometrista."})
 			return
 		}
+		purgeComms(handlers.RoleOptometrist, id)
+	case handlers.RoleEmployee:
+		if err := models.DeleteEmployee(id); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar la cuenta de empleado."})
+			return
+		}
+		purgeComms(handlers.RoleEmployee, id)
 	default:
 		if err := models.DeleteUser(id); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado."})
@@ -246,4 +287,12 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Usuario eliminado."})
+}
+
+// purgeComms saca a la cuenta borrada de grupos/chats y avisos. Si falla
+// solo se loguea: la cuenta ya se borró y eso es lo importante.
+func purgeComms(role string, id int64) {
+	if err := models.PurgeStaffComms(role, id); err != nil {
+		log.Printf("admin.DeleteUser: no se pudo limpiar chat/avisos de %s:%d: %v", role, id, err)
+	}
 }

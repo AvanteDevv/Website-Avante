@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comunicación — Admin · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+<link rel="stylesheet" href="/static/css/admin/comunicacion.css">
+</head>
+<body class="cuenta-body">
+
+{{template "admin-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "admin-sidebar" .}}
+
+  <main class="cuenta-main">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Comunicación</h1>
+        <p>Manda avisos al equipo (recepción, optometría y empleados) y organiza los grupos de chat.</p>
+      </div>
+      <div class="filter-pills com-tabs" id="comTabs">
+        <button type="button" class="filter-pill active" data-tab="avisos">Avisos</button>
+        <button type="button" class="filter-pill" data-tab="grupos">Grupos de chat</button>
+      </div>
+    </div>
+
+    <!-- ===================== AVISOS ===================== -->
+    <div class="com-view" id="viewAvisos">
+      <section class="panel com-compose">
+        <div class="panel-head">
+          <div>
+            <h2>Nuevo aviso</h2>
+            <p>Llega al momento a la campanita de cada persona.</p>
+          </div>
+        </div>
+        <form class="com-form" id="avisoForm" novalidate>
+          <label class="com-field">
+            <span>Título</span>
+            <input type="text" id="avisoTitle" maxlength="150" placeholder="Ej. Convivio mañana a las 2 p.m.">
+          </label>
+          <label class="com-field">
+            <span>Mensaje <em>(opcional)</em></span>
+            <textarea id="avisoBody" rows="4" maxlength="2000" placeholder="Detalles del aviso…"></textarea>
+            <small class="com-counter"><span id="avisoBodyCount">0</span> / 2000</small>
+          </label>
+
+          <div class="com-field">
+            <span>¿Para quién?</span>
+            <div class="com-audience" id="avisoAudience">
+              <button type="button" class="com-audience-opt active" data-audience="all">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Todo el equipo
+              </button>
+              <button type="button" class="com-audience-opt" data-audience="role">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                Por rol
+              </button>
+              <button type="button" class="com-audience-opt" data-audience="selected">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                Personas específicas
+              </button>
+            </div>
+          </div>
+
+          <div class="com-field" id="avisoRoleField" hidden>
+            <span>Rol</span>
+            <div class="com-role-pills" id="avisoRoles">
+              <button type="button" class="filter-pill active" data-role="receptionist">Recepción</button>
+              <button type="button" class="filter-pill" data-role="optometrist">Optometría</button>
+              <button type="button" class="filter-pill" data-role="employee">Empleados</button>
+            </div>
+          </div>
+
+          <div class="com-field" id="avisoPeopleField" hidden>
+            <span>Personas</span>
+            <div class="com-picker" id="avisoPicker"></div>
+          </div>
+
+          <p class="com-reach" id="avisoReach"></p>
+          <p class="admin-user-form-error" id="avisoError"></p>
+          <div class="com-form-actions">
+            <button type="submit" class="btn solid" id="avisoSubmit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Enviar aviso
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Avisos enviados</h2>
+            <p id="avisosSentCount">Cargando…</p>
+          </div>
+        </div>
+        <div class="table-wrap com-table-wrap">
+          <table class="users-table com-table">
+            <thead>
+              <tr>
+                <th>Aviso</th>
+                <th>Para</th>
+                <th>Enviado</th>
+                <th>Leído</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="avisosSentBody"></tbody>
+          </table>
+        </div>
+        <p class="com-empty" id="avisosSentEmpty" hidden>Todavía no has enviado avisos.</p>
+      </section>
+    </div>
+
+    <!-- ===================== GRUPOS ===================== -->
+    <div class="com-view" id="viewGrupos" hidden>
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Grupos de chat</h2>
+            <p id="gruposCount">Cargando…</p>
+          </div>
+          <button type="button" class="btn thin com-new-btn" id="newGroupBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Nuevo grupo
+          </button>
+        </div>
+        <div class="table-wrap com-table-wrap">
+          <table class="users-table com-table">
+            <thead>
+              <tr>
+                <th>Grupo</th>
+                <th>Integrantes</th>
+                <th>Creado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="gruposBody"></tbody>
+          </table>
+        </div>
+        <p class="com-empty" id="gruposEmpty" hidden>Todavía no hay grupos. Crea uno para que el equipo platique junto (p. ej. “Todo el equipo” o “Turno de la tarde”).</p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: grupo (crear / editar) -->
+<div class="admin-modal-overlay" id="groupModalOverlay">
+  <div class="admin-modal-card com-modal-card">
+    <div class="admin-modal-head">
+      <h3 id="groupModalTitle">Nuevo grupo</h3>
+      <button type="button" class="admin-modal-close" id="groupModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="com-form" id="groupForm" novalidate>
+        <label class="com-field">
+          <span>Nombre del grupo</span>
+          <input type="text" id="groupName" maxlength="80" placeholder="Ej. Todo el equipo">
+        </label>
+        <div class="com-field">
+          <span>Integrantes</span>
+          <div class="com-picker" id="groupPicker"></div>
+        </div>
+        <p class="admin-user-form-error" id="groupError"></p>
+        <div class="com-form-actions">
+          <button type="button" class="btn small" id="groupCancel">Cancelar</button>
+          <button type="submit" class="btn small solid" id="groupSubmit">Crear grupo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: quién leyó un aviso -->
+<div class="admin-modal-overlay" id="readersModalOverlay">
+  <div class="admin-modal-card">
+    <div class="admin-modal-head">
+      <h3 id="readersModalTitle">Lecturas</h3>
+      <button type="button" class="admin-modal-close" id="readersModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="com-readers" id="readersList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: confirmar eliminar (aviso o grupo) -->
+<div class="admin-modal-overlay" id="confirmModalOverlay">
+  <div class="admin-modal-card admin-modal-card--sm">
+    <div class="admin-modal-head">
+      <h3 id="confirmModalTitle">Eliminar</h3>
+      <button type="button" class="admin-modal-close" id="confirmModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="admin-confirm-text" id="confirmText"></p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="confirmCancel">Cancelar</button>
+        <button type="button" class="btn small danger" id="confirmOk">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/admin/comunicacion.js"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -16,17 +17,18 @@ import (
 // el nombre del módulo en tu go.mod (primera línea: "module xxxxx").
 //
 // Separado de auth.go a propósito: la autenticación de staff (admin /
-// recepción / optometría) no es "login de cliente + un permiso extra",
-// es un flujo distinto (sin registro público, tablas propias, cookie
-// de sesión propia). Mantenerlo en su propio archivo evita que un bug
-// en el login de cliente arrastre al de staff, o viceversa.
+// recepción / optometría / empleado) no es "login de cliente + un
+// permiso extra", es un flujo distinto (sin registro público, tablas
+// propias, cookie de sesión propia). Mantenerlo en su propio archivo
+// evita que un bug en el login de cliente arrastre al de staff, o
+// viceversa.
 //
-// Las tres cuentas (admin, recepción, optometría) comparten el MISMO
-// formulario de login y la MISMA cookie de sesión (AdminSessionName)
-// — es un solo panel de entrada. Lo que cambia es la tabla en la que
-// vive cada cuenta: son identidades separadas (Admin / Receptionist /
-// Optometrist, cada una en su propio archivo de modelo), no una sola
-// tabla con una columna de rol.
+// Las cuatro cuentas (admin, recepción, optometría, empleado) comparten
+// el MISMO formulario de login y la MISMA cookie de sesión
+// (AdminSessionName) — es un solo panel de entrada. Lo que cambia es la
+// tabla en la que vive cada cuenta: son identidades separadas (Admin /
+// Receptionist / Optometrist / Employee, cada una en su propio archivo
+// de modelo), no una sola tabla con una columna de rol.
 
 // Roles válidos para la sesión de staff — usa estas constantes en
 // RequireRole(...) en vez de escribir el string a mano.
@@ -34,6 +36,7 @@ const (
 	RoleAdmin        = "admin"
 	RoleReceptionist = "receptionist"
 	RoleOptometrist  = "optometrist"
+	RoleEmployee     = "employee"
 )
 
 type adminLoginInput struct {
@@ -41,15 +44,16 @@ type adminLoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// AdminLogin valida credenciales contra las tres tablas de staff, en
-// este orden: admins -> receptionists -> optometrists. La primera que
-// tenga ese correo (y cuya contraseña haga match) es la que arranca
-// sesión. Un correo solo debería existir en una de las tres tablas a
-// la vez — tú controlas eso al crear las cuentas, aquí no se valida.
+// AdminLogin valida credenciales contra las cuatro tablas de staff, en
+// este orden: admins -> receptionists -> optometrists -> employees. La
+// primera que tenga ese correo (y cuya contraseña haga match) es la que
+// arranca sesión. Un correo solo debería existir en una de las cuatro
+// tablas a la vez — tú controlas eso al crear las cuentas, aquí no se
+// valida.
 //
-// A propósito NO existe un registro público para ninguna de las tres:
-// el primer admin se crea con cmd/seedadmin; las cuentas de recepción
-// y optometría se crean desde una pantalla del propio panel ya
+// A propósito NO existe un registro público para ninguna: el primer
+// admin se crea con cmd/seedadmin; las cuentas de recepción, optometría
+// y empleado se crean desde una pantalla del propio panel ya
 // autenticado como admin.
 func AdminLogin(c *gin.Context) {
 	var input adminLoginInput
@@ -97,13 +101,26 @@ func AdminLogin(c *gin.Context) {
 		return
 	}
 
-	// No apareció en ninguna de las tres tablas.
+	// 4) Empleado
+	if e, err := models.GetEmployeeByEmail(input.Email); err == nil {
+		if bcrypt.CompareHashAndPassword([]byte(e.PasswordHash), []byte(input.Password)) == nil {
+			finishStaffLogin(c, RoleEmployee, e.ID, e.Name, e.Email, "/staff/notificaciones")
+			return
+		}
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
+		return
+	} else if !errors.Is(err, models.ErrEmployeeNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error del servidor. Intenta de nuevo."})
+		return
+	}
+
+	// No apareció en ninguna de las cuatro tablas.
 	c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
 }
 
 // finishStaffLogin arranca la sesión y responde el JSON de éxito —
-// compartido por las tres ramas de AdminLogin para no repetir la
-// misma respuesta tres veces.
+// compartido por las ramas de AdminLogin para no repetir la misma
+// respuesta en cada una.
 func finishStaffLogin(c *gin.Context, role string, id int64, name string, email string, redirect string) {
 	if err := startStaffSession(c, role, id, name, email); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo iniciar sesión. Intenta de nuevo."})
@@ -117,7 +134,7 @@ func finishStaffLogin(c *gin.Context, role string, id int64, name string, email 
 
 // AdminLogout cierra la sesión de staff (cookie AdminSessionName,
 // no toca la sesión de cliente si hubiera una activa en el mismo navegador).
-// Sirve para las tres cuentas por igual — es la misma cookie.
+// Sirve para todas las cuentas de staff por igual — es la misma cookie.
 func AdminLogout(c *gin.Context) {
 	session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
 	session.Options.MaxAge = -1
@@ -126,7 +143,7 @@ func AdminLogout(c *gin.Context) {
 }
 
 // RequireAdminAuth protege las rutas del panel de staff — cualquiera
-// de los tres roles pasa esta capa, siempre y cuando tenga sesión
+// de los roles de staff pasa esta capa, siempre y cuando tenga sesión
 // activa. Úsalo así en main.go:
 //
 //	admin := router.Group("/admin", handlers.RequireAdminAuth())
@@ -214,6 +231,8 @@ func roleLabel(role string) string {
 		return "Recepción"
 	case RoleOptometrist:
 		return "Optometrista"
+	case RoleEmployee:
+		return "Empleado"
 	default:
 		return role
 	}
@@ -251,8 +270,8 @@ func staffInitialsOf(name string) string {
 }
 
 // WithStaff agrega el nombre, rol, correo e iniciales de la cuenta de
-// staff logueada (admin/recepción/optometría) a los datos que le
-// pasas a una plantilla — así el userbar puede mostrar quién es de
+// staff logueada (admin/recepción/optometría/empleado) a los datos que
+// le pasas a una plantilla — así el userbar puede mostrar quién es de
 // verdad en vez de un texto fijo. Úsalo en vez de armar el gin.H a
 // mano en cada ruta:
 //
@@ -272,6 +291,16 @@ func WithStaff(c *gin.Context, data gin.H) gin.H {
 
 	data["StaffName"] = name
 	data["StaffRole"] = roleLabel(role)
+	// Rol interno ("admin", "employee", …) para que sidebar/userbar
+	// decidan qué links mostrar sin comparar contra la etiqueta en español.
+	data["StaffRoleKey"] = role
+	// Llave única "rol:id" (los ids se repiten entre tablas de staff) —
+	// el chat la usa para saber cuáles mensajes son tuyos.
+	if idVal, ok := c.Get("staff_id"); ok {
+		if id, ok := idVal.(int64); ok {
+			data["StaffKey"] = role + ":" + strconv.FormatInt(id, 10)
+		}
+	}
 	data["StaffEmail"] = email
 	data["StaffInitials"] = staffInitialsOf(name)
 	return data
