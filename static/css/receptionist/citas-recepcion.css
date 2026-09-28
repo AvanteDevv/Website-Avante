@@ -874,14 +874,18 @@ body.dark .cal-action-noasistio:hover{ border-color:#666; background:rgba(255,25
    ========================================================= */
 .cliente-detalle-grid{ display:flex; flex-direction:column; gap:14px; }
 .cliente-detalle-row{ display:flex; flex-direction:column; gap:3px; }
-.cliente-detalle-row span{ font-size:11px; font-weight:700; letter-spacing:.3px; color:var(--muted); text-transform:uppercase; }
-.cliente-detalle-row strong{ font-size:14px; font-weight:600; color:var(--ink); }
-.cliente-detalle-row strong.is-empty{ color:var(--muted); font-weight:500; font-style:italic; }
+.cliente-detalle-row > span{ font-size:11px; font-weight:700; letter-spacing:.3px; color:var(--muted); text-transform:uppercase; }
+.cliente-detalle-row > strong{ font-size:14px; font-weight:600; color:var(--ink); }
+.cliente-detalle-row > strong.is-empty{ color:var(--muted); font-weight:500; font-style:italic; }
 .cliente-detalle-sep{ height:1px; background:var(--line); margin:2px 0; }
-.cliente-quest-list{ display:flex; flex-direction:column; gap:10px; }
-.cliente-quest-item{ display:flex; flex-direction:column; gap:2px; }
-.cliente-quest-item span{ font-size:12px; color:var(--muted); }
-.cliente-quest-item strong{ font-size:13.5px; font-weight:600; color:var(--ink); }
+/* Cuestionario: el título de la sección separado de las preguntas,
+   y cada pregunta en minúsculas normales (no hereda el uppercase) */
+.cliente-detalle-row:has(> .cliente-quest-list) > span{ margin-bottom:10px; }
+.cliente-quest-list{ display:flex; flex-direction:column; gap:12px; padding-left:12px; border-left:2px solid var(--line); }
+.cliente-quest-list:empty{ display:none; }
+.cliente-quest-item{ display:flex; flex-direction:column; gap:3px; }
+.cliente-quest-item span{ font-size:12.5px; font-weight:500; color:var(--muted); text-transform:none; letter-spacing:0; }
+.cliente-quest-item strong{ font-size:14px; font-weight:600; color:var(--ink); }
 /* ===========================================================
    Switch de 3 vistas: Día / Calendario / Tabla
    (los 3 botones del mismo ancho para que la píldora se deslice
