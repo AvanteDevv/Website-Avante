@@ -882,3 +882,91 @@ body.dark .cal-action-noasistio:hover{ border-color:#666; background:rgba(255,25
 .cliente-quest-item{ display:flex; flex-direction:column; gap:2px; }
 .cliente-quest-item span{ font-size:12px; color:var(--muted); }
 .cliente-quest-item strong{ font-size:13.5px; font-weight:600; color:var(--ink); }
+/* ===========================================================
+   Switch de 3 vistas: Día / Calendario / Tabla
+   (los 3 botones del mismo ancho para que la píldora se deslice
+   exacto de uno a otro)
+   =========================================================== */
+.view-switch--3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:0; }
+.view-switch--3 .view-switch-btn{ justify-content:center; }
+.view-switch--3 .view-switch-glow{ width:calc((100% - 6px) / 3); }
+.view-switch--3.on-calendario .view-switch-glow{ transform:translateX(100%); }
+.view-switch--3.on-tabla .view-switch-glow{ transform:translateX(200%); }
+
+/* ===========================================================
+   Vista de día: solo las citas del día elegido
+   =========================================================== */
+.day-view{ padding:20px 24px 26px; }
+.day-view-label{ min-width:0; text-transform:none; }
+.day-view-label::first-letter{ text-transform:uppercase; }
+.day-view-today{
+  font-size:10.5px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+  padding:4px 10px; border-radius:100px; background:var(--accent); color:#fff;
+}
+.day-view-today[hidden]{ display:none; }
+.day-view-toolbar-right{ display:flex; align-items:center; gap:12px; }
+.day-view-count{ font-size:12.5px; font-weight:600; color:var(--muted); }
+
+.day-view-summary{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.day-view-summary:empty{ display:none; }
+.day-view-chip{
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:12px; font-weight:600; color:var(--ink);
+  padding:6px 12px; border-radius:100px; background:var(--accent-soft);
+}
+
+.day-view-list{ display:flex; flex-direction:column; gap:8px; }
+.day-view-empty{
+  text-align:center; padding:48px 20px; border-radius:var(--radius-md);
+  border:1.5px dashed var(--line); color:var(--muted); font-size:13.5px;
+}
+
+.day-item{
+  display:flex; align-items:center; gap:14px; width:100%; text-align:left;
+  padding:14px 16px; border-radius:var(--radius-sm);
+  border:1.5px solid var(--line); background:var(--white);
+  font-family:var(--sans); cursor:pointer;
+  transition:border-color .2s var(--ease), background .2s var(--ease), transform .16s var(--ease), opacity .2s var(--ease);
+  animation:dayItemIn .3s var(--ease) backwards;
+}
+.day-item:hover{ border-color:var(--accent-border); background:var(--accent-soft); transform:translateX(2px); }
+.day-item.is-past{ opacity:.55; }
+.day-item.is-past:hover{ opacity:1; }
+@keyframes dayItemIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce){ .day-item{ animation:none; } }
+
+.day-item-time{
+  font-family:'Fraunces', serif; font-weight:600; font-size:18px; color:var(--ink);
+  min-width:58px; flex-shrink:0;
+}
+.day-item-bar{ width:4px; align-self:stretch; border-radius:4px; background:var(--line); flex-shrink:0; }
+.day-item.status-pendiente .day-item-bar{ background:#c9962c; }
+.day-item.status-verificada .day-item-bar{ background:#1f9d55; }
+.day-item.status-cancelada .day-item-bar{ background:#c0392b; }
+.day-item.status-asistio .day-item-bar{ background:var(--blue-600); }
+.day-item.status-no_asistio .day-item-bar{ background:#9a9a9a; }
+.day-item.status-cancelada .day-item-info strong{ text-decoration:line-through; text-decoration-color:rgba(192,57,43,.6); }
+
+.day-item-info{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.day-item-info strong{ font-size:14px; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.day-item-info small{ font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.day-item-right{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.day-item-right .admin-badge{ text-transform:none; }
+.day-item-next{
+  font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+  padding:5px 10px; border-radius:100px; color:var(--accent); background:var(--accent-soft);
+  border:1px solid var(--accent-border);
+}
+
+@media (max-width:560px){
+  .day-view{ padding:16px 14px 20px; }
+  .day-item{ gap:10px; padding:12px; }
+  .day-item-time{ font-size:15px; min-width:46px; }
+  .day-item-right .day-item-next{ display:none; }
+  .view-switch--3 .view-switch-btn{ padding:9px 10px; }
+}
+
+/* Clic en un día del calendario del mes lleva a la vista de día */
+.cal-day[data-date]:not(.is-outside){ cursor:pointer; }
+.cal-day[data-date]:not(.is-outside):hover{ border-color:var(--accent-border); }

@@ -325,7 +325,7 @@
         var dayEvents = byDate[cellISO] || [];
         var isToday = cellISO === todayStr;
 
-        html += '<div class="cal-day' + (outside ? ' is-outside' : '') + (isToday ? ' is-today' : '') + '">';
+        html += '<div class="cal-day' + (outside ? ' is-outside' : '') + (isToday ? ' is-today' : '') + '" data-date="' + cellISO + '">';
         html += '<span class="cal-day-num">' + dayNum + '</span>';
         html += '<div class="cal-day-events">';
         var shown = dayEvents.slice(0, 3);
@@ -437,32 +437,186 @@
       openEventModal(item.dataset.eventId);
     });
 
+    /* =======================================================
+       VISTA DE DÍA
+       Solo las citas del día elegido (hoy por defecto), en orden
+       de hora. Flechas para moverse día por día, "Hoy" para
+       regresar, y respeta el buscador. Clic en una cita abre el
+       mismo modal de detalle que el calendario. También se llega
+       aquí dando clic en un día del calendario del mes.
+       ======================================================= */
+    var DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var STATUS_LABELS = { pendiente: 'Pendiente', verificada: 'Verificada', cancelada: 'Cancelada', asistio: 'Asistió', no_asistio: 'No asistió' };
+    var dvView = document.getElementById('citasDayView');
+    var dvLabel = document.getElementById('dayViewLabel');
+    var dvToday = document.getElementById('dayViewTodayTag');
+    var dvCount = document.getElementById('dayViewCount');
+    var dvSummary = document.getElementById('dayViewSummary');
+    var dvList = document.getElementById('dayViewList');
+    var dvDate = todayISO();
+
+    function shiftISO(iso, delta){
+      var p = iso.split('-').map(Number);
+      var d = new Date(p[0], p[1] - 1, p[2] + delta);
+      return isoDate(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    function nowHHMM(){ var t = new Date(); return pad(t.getHours()) + ':' + pad(t.getMinutes()); }
+
+    function renderDay(){
+      if (!dvView) return;
+      var term = searchTerm.toLowerCase().trim();
+      var rows = allRows.filter(function(r){ return r.dataset.date === dvDate; })
+        .filter(function(r){ return !term || r.textContent.toLowerCase().indexOf(term) !== -1; })
+        .sort(function(a, b){ return (a.dataset.time || '').localeCompare(b.dataset.time || ''); });
+
+      var p = dvDate.split('-').map(Number);
+      var d = new Date(p[0], p[1] - 1, p[2]);
+      var todayStr = todayISO();
+      var label = DIAS[d.getDay()] + ' ' + d.getDate() + ' de ' + MESES[d.getMonth()];
+      if (d.getFullYear() !== new Date().getFullYear()) label += ' de ' + d.getFullYear();
+      dvLabel.textContent = label;
+      dvToday.hidden = dvDate !== todayStr;
+      dvCount.textContent = rows.length === 1 ? '1 cita' : rows.length + ' citas';
+
+      // Resumen por estado
+      dvSummary.innerHTML = '';
+      var counts = {};
+      rows.forEach(function(r){ counts[r.dataset.status] = (counts[r.dataset.status] || 0) + 1; });
+      Object.keys(STATUS_LABELS).forEach(function(st){
+        if (!counts[st]) return;
+        var chip = document.createElement('span');
+        chip.className = 'day-view-chip';
+        var dot = document.createElement('i');
+        dot.className = 'cal-dot ' + st;
+        chip.appendChild(dot);
+        chip.appendChild(document.createTextNode(counts[st] + ' ' + STATUS_LABELS[st].toLowerCase()));
+        dvSummary.appendChild(chip);
+      });
+
+      dvList.innerHTML = '';
+      if (!rows.length) {
+        var empty = document.createElement('div');
+        empty.className = 'day-view-empty';
+        empty.textContent = term ? 'Ninguna cita de este día coincide con tu búsqueda.' : 'No hay citas para este día.';
+        dvList.appendChild(empty);
+        return;
+      }
+
+      // Hoy: las que ya pasaron se ven tenues y se marca la siguiente.
+      var isToday = dvDate === todayStr;
+      var isPastDay = dvDate < todayStr;
+      var now = nowHHMM();
+      var nextMarked = false;
+
+      rows.forEach(function(row){
+        var st = row.dataset.status;
+        var time = row.dataset.time || '';
+        var past = isPastDay || (isToday && time < now);
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'day-item status-' + st + (past ? ' is-past' : '');
+        item.dataset.eventId = row.dataset.id;
+
+        var timeEl = document.createElement('span');
+        timeEl.className = 'day-item-time';
+        timeEl.textContent = time;
+
+        var bar = document.createElement('span');
+        bar.className = 'day-item-bar';
+
+        var info = document.createElement('span');
+        info.className = 'day-item-info';
+        var name = document.createElement('strong');
+        name.textContent = (row.dataset.nombre || '').trim() || 'Sin nombre';
+        var sub = document.createElement('small');
+        var bits = [];
+        if (row.dataset.celular) bits.push(row.dataset.celular);
+        if (row.dataset.correo) bits.push(row.dataset.correo);
+        sub.textContent = bits.join(' · ');
+        info.appendChild(name);
+        if (bits.length) info.appendChild(sub);
+
+        var right = document.createElement('span');
+        right.className = 'day-item-right';
+        if (isToday && !past && !nextMarked && st !== 'cancelada') {
+          nextMarked = true;
+          var next = document.createElement('span');
+          next.className = 'day-item-next';
+          next.textContent = 'Siguiente';
+          right.appendChild(next);
+        }
+        var badge = document.createElement('span');
+        badge.className = 'admin-badge ' + st;
+        badge.textContent = STATUS_LABELS[st] || st;
+        right.appendChild(badge);
+
+        item.appendChild(timeEl);
+        item.appendChild(bar);
+        item.appendChild(info);
+        item.appendChild(right);
+        dvList.appendChild(item);
+      });
+    }
+
+    function openDayView(iso){
+      dvDate = iso;
+      setCitasView('dia');
+    }
+
+    if (dvView) {
+      document.getElementById('dayViewPrev').addEventListener('click', function(){ dvDate = shiftISO(dvDate, -1); renderDay(); });
+      document.getElementById('dayViewNext').addEventListener('click', function(){ dvDate = shiftISO(dvDate, 1); renderDay(); });
+      document.getElementById('dayViewTodayBtn').addEventListener('click', function(){ dvDate = todayISO(); renderDay(); });
+      dvList.addEventListener('click', function(e){
+        var item = e.target.closest('[data-event-id]');
+        if (item) openEventModal(item.dataset.eventId);
+      });
+      if (searchInput) searchInput.addEventListener('input', function(){ if (!dvView.hidden) renderDay(); });
+      // Si la página se queda abierta, refresca "Siguiente" cada minuto.
+      setInterval(function(){ if (!dvView.hidden && dvDate === todayISO()) renderDay(); }, 60000);
+    }
+
     calGrid.addEventListener('click', function(e){
       var chip = e.target.closest('[data-event-id]');
       if (chip) { openEventModal(chip.dataset.eventId); return; }
       var more = e.target.closest('[data-more-date]');
-      if (more) { openDayModal(more.dataset.moreDate); }
+      if (more) { openDayModal(more.dataset.moreDate); return; }
+      // Clic en cualquier otra parte del día: abrir ese día en la vista de Día.
+      var cell = e.target.closest('.cal-day[data-date]');
+      if (cell) openDayView(cell.dataset.date);
     });
 
     renderCalendar();
   }
 
-  /* ---------- switch Tabla / Calendario ---------- */
+  /* ---------- switch Día / Calendario / Tabla (Día es la predeterminada) ---------- */
   var viewSwitch = document.getElementById('citasViewSwitch');
   var tableView = document.getElementById('citasTableView');
   var calendarView = document.getElementById('citasCalendarView');
-  if (viewSwitch && tableView && calendarView) {
+  var dayViewEl = document.getElementById('citasDayView');
+
+  function setCitasView(view){
+    if (!viewSwitch) return;
+    viewSwitch.querySelectorAll('.view-switch-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.view === view);
+    });
+    viewSwitch.classList.toggle('on-calendario', view === 'calendario');
+    viewSwitch.classList.toggle('on-tabla', view === 'tabla');
+    if (tableView) tableView.hidden = view !== 'tabla';
+    if (dayViewEl) dayViewEl.hidden = view !== 'dia';
+    if (calendarView) calendarView.hidden = view !== 'calendario';
+    if (view === 'calendario' && calGrid) renderCalendar();
+    if (view === 'dia' && calGrid) renderDay();
+  }
+
+  if (viewSwitch) {
     viewSwitch.addEventListener('click', function(e){
       var btn = e.target.closest('.view-switch-btn');
-      if (!btn) return;
-      viewSwitch.querySelectorAll('.view-switch-btn').forEach(function(b){ b.classList.remove('active'); });
-      btn.classList.add('active');
-      var isCal = btn.dataset.view === 'calendario';
-      viewSwitch.classList.toggle('on-calendario', isCal);
-      tableView.hidden = isCal;
-      calendarView.hidden = !isCal;
-      if (isCal && calGrid) renderCalendar();
+      if (btn) setCitasView(btn.dataset.view);
     });
+    // Pinta la vista con la que arranca la página (la marcada "active" en el HTML).
+    var initialBtn = viewSwitch.querySelector('.view-switch-btn.active');
+    if (initialBtn && initialBtn.dataset.view === 'dia') setCitasView('dia');
   }
 })();
 

@@ -471,7 +471,7 @@
     renderCalendar();
   }
 
-  /* ---------- switch Tabla / Día / Calendario ---------- */
+  /* ---------- switch Día / Calendario / Tabla (Día es la predeterminada) ---------- */
   var viewSwitch = document.getElementById('citasViewSwitch');
   var tableView = document.getElementById('citasTableView');
   var calendarView = document.getElementById('citasCalendarView');
@@ -482,8 +482,8 @@
     viewSwitch.querySelectorAll('.view-switch-btn').forEach(function(b){
       b.classList.toggle('active', b.dataset.view === view);
     });
-    viewSwitch.classList.toggle('on-dia', view === 'dia');
     viewSwitch.classList.toggle('on-calendario', view === 'calendario');
+    viewSwitch.classList.toggle('on-tabla', view === 'tabla');
     if (tableView) tableView.hidden = view !== 'tabla';
     if (dayViewEl) dayViewEl.hidden = view !== 'dia';
     if (calendarView) calendarView.hidden = view !== 'calendario';

@@ -686,15 +686,15 @@ body.dark .cal-action-cancel:hover{ border-color:#8a6a12; background:rgba(255,19
 body.dark .cal-action-delete:hover{ border-color:#a3231b; background:rgba(231,76,60,.12); }
 body.dark .cal-action-delete{ color:#ff8b7d; }
 /* ===========================================================
-   Switch de 3 vistas: Tabla / Día / Calendario
+   Switch de 3 vistas: Día / Calendario / Tabla
    (los 3 botones del mismo ancho para que la píldora se deslice
    exacto de uno a otro)
    =========================================================== */
 .view-switch--3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:0; }
 .view-switch--3 .view-switch-btn{ justify-content:center; }
 .view-switch--3 .view-switch-glow{ width:calc((100% - 6px) / 3); }
-.view-switch--3.on-dia .view-switch-glow{ transform:translateX(100%); }
-.view-switch--3.on-calendario .view-switch-glow{ transform:translateX(200%); }
+.view-switch--3.on-calendario .view-switch-glow{ transform:translateX(100%); }
+.view-switch--3.on-tabla .view-switch-glow{ transform:translateX(200%); }
 
 /* ===========================================================
    Vista de día: solo las citas del día elegido

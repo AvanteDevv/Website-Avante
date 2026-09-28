@@ -66,17 +66,17 @@
         <div class="admin-panel-head-row">
           <div class="view-switch view-switch--3" id="citasViewSwitch">
             <span class="view-switch-glow" id="citasViewGlow"></span>
-            <button type="button" class="view-switch-btn active" data-view="tabla">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-              Tabla
-            </button>
-            <button type="button" class="view-switch-btn" data-view="dia">
+            <button type="button" class="view-switch-btn active" data-view="dia">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h4"/></svg>
               Día
             </button>
             <button type="button" class="view-switch-btn" data-view="calendario">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
               Calendario
+            </button>
+            <button type="button" class="view-switch-btn" data-view="tabla">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              Tabla
             </button>
           </div>
           <div class="search-box">
@@ -89,7 +89,7 @@
         </div>
       </div>
 
-      <div id="citasTableView">
+      <div id="citasTableView" hidden>
       <div class="admin-table-wrap">
         <table class="admin-table">
           <thead>
@@ -165,7 +165,7 @@
       </div>
       </div><!-- /citasTableView -->
 
-      <div id="citasDayView" class="day-view" hidden>
+      <div id="citasDayView" class="day-view">
         <div class="cal-toolbar">
           <div class="cal-toolbar-nav">
             <button type="button" class="page-arrow" id="dayViewPrev" aria-label="Día anterior">
