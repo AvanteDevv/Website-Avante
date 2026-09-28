@@ -123,6 +123,41 @@
     enfermedades: 'Enfermedades relacionadas'
   };
 
+  // Texto que ve el cliente en agendar.html para cada valor guardado.
+  var QUEST_VALUE_LABELS = {
+    menos_6_meses: 'Menos de 6 meses',
+    '6_meses_1_anio': 'Entre 6 meses y 1 año',
+    '1_2_anios': 'Entre 1 y 2 años',
+    mas_2_anios: 'Más de 2 años',
+    nunca: 'Nunca me he hecho uno',
+    si: 'Sí',
+    no: 'No',
+    fatiga_visual: 'Fatiga visual (al trabajar con la computadora)',
+    mala_vision_lejana: 'Mala visión lejana',
+    mala_vision_cercana: 'Mala visión cercana',
+    sensibilidad_luz_solar: 'Sensibilidad a la luz solar',
+    sensibilidad_luz_artificial: 'Sensibilidad a la luz artificial',
+    diabetes: 'Diabetes',
+    hipertension: 'Hipertensión',
+    cirugias_oculares: 'Cirugías oculares',
+    ninguno: 'Ninguno',
+    ninguna: 'Ninguna'
+  };
+
+  // Traduce un valor crudo; si no está en el mapa, quita guiones bajos
+  // y pone mayúscula inicial para que nunca salga "algo_asi".
+  function questValueLabel(v) {
+    if (v === null || v === undefined) return '';
+    var raw = String(v).trim();
+    if (!raw) return '';
+    var key = raw.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(QUEST_VALUE_LABELS, key)) {
+      return QUEST_VALUE_LABELS[key];
+    }
+    var txt = raw.replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  }
+
   function fillClienteField(id, value){
     var el = document.getElementById(id);
     if (!el) return;
@@ -160,7 +195,9 @@
         Object.keys(QUEST_LABELS).forEach(function(key){
           if (!(key in parsed)) return;
           var val = parsed[key];
-          var text = Array.isArray(val) ? val.join(', ') : val;
+          var text = Array.isArray(val)
+            ? (val.map(questValueLabel).filter(Boolean).join(', ') || 'Ninguno')
+            : questValueLabel(val);
           if (!text) return;
           var item = document.createElement('div');
           item.className = 'cliente-quest-item';
