@@ -3,9 +3,8 @@
 <div class="header-outer">
 <header class="userbar-row">
   {{/* Campanita de avisos del admin + conexión en tiempo real.
-       CSS/JS propios del rol: static/css/employee/bell-employee.css,
-       static/js/employee/realtime-employee.js y static/js/employee/bell-employee.js. */}}
-  <link rel="stylesheet" href="/static/css/employee/bell-employee.css">
+       Sus estilos y su JS viven en userbar-employee.css y
+       userbar-employee.js (los mismos que ya carga cada página). */}}
   <div class="staff-bell" id="staffBell" data-me="{{.StaffKey}}">
     <button type="button" class="staff-bell-btn" id="staffBellBtn" aria-label="Avisos" aria-haspopup="true" aria-expanded="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -23,8 +22,6 @@
     </div>
   </div>
   <div class="staff-toast-stack" id="staffToastStack" aria-live="polite"></div>
-  <script defer src="/static/js/employee/realtime-employee.js"></script>
-  <script defer src="/static/js/employee/bell-employee.js"></script>
   <div class="userbar" id="userbar">
     <button type="button" class="userbar-trigger">
       <span class="userbar-avatar">{{.StaffInitials}}</span>
