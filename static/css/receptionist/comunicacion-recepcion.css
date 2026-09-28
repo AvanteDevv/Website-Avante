@@ -237,6 +237,17 @@ body.dark .chat-messages{ background:rgba(255,255,255,.02); }
 
 .chat-msg{ display:flex; flex-direction:column; max-width:72%; align-self:flex-start; margin-top:2px; }
 .chat-msg.is-mine{ align-self:flex-end; align-items:flex-end; }
+
+/* Entrada de mensaje nuevo (enviado o recibido): sube un poco y crece
+   desde la esquina de su lado, como en WhatsApp. Solo se aplica al
+   mensaje recién llegado, no al historial. */
+.chat-msg.is-new{ animation:chatMsgIn .34s cubic-bezier(.22,1.3,.36,1) both; transform-origin:bottom left; }
+.chat-msg.is-mine.is-new{ transform-origin:bottom right; }
+@keyframes chatMsgIn{
+  from{ opacity:0; transform:translateY(12px) scale(.9); }
+  to{ opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion:reduce){ .chat-msg.is-new{ animation:none; } }
 .chat-msg.starts-run{ margin-top:10px; }
 .chat-msg-sender{ font-size:11px; font-weight:700; color:var(--blue-700); margin:0 0 3px 12px; }
 .chat-bubble{

@@ -329,6 +329,8 @@
     }
 
     // Convierte links en <a> sin usar innerHTML con texto del usuario.
+    var ANIM_MS = 340; // duración de .chat-msg.is-new (chatMsgIn) en el CSS
+
     var URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g;
     function appendLinkified(parent, text) {
       var last = 0, match;
@@ -565,6 +567,19 @@
         wrap.className = 'chat-msg' + (mine ? ' is-mine' : '') + (startsRun ? ' starts-run' : '') +
           (m._pending ? ' is-pending' : '') + (m._failed ? ' is-failed' : '');
 
+      // Animación de entrada solo para mensajes recién llegados/enviados.
+      // Si el chat se repinta mientras anima (p. ej. llega la confirmación
+      // del servidor), continúa desde donde iba en vez de reiniciarse.
+      if (m._animAt) {
+        var elapsed = Date.now() - m._animAt;
+        if (elapsed < ANIM_MS) {
+          wrap.classList.add('is-new');
+          wrap.style.animationDelay = '-' + elapsed + 'ms';
+        } else {
+          delete m._animAt;
+        }
+      }
+
         if (startsRun && !mine && c.kind === 'group') {
           var sender = document.createElement('div');
           sender.className = 'chat-msg-sender';
@@ -782,7 +797,8 @@
         sender_name: meInfo.name || 'Tú',
         body: body,
         created_at: new Date().toISOString(),
-        _pending: true
+        _pending: true,
+        _animAt: Date.now()
       };
       var data = cache[api.activeId];
       if (data) { data.items.push(m); data.unreadFrom = null; }
@@ -821,8 +837,14 @@
           if (m.client_id) data.items = data.items.filter(function (x) { return !(x._pending || x._failed) || x.client_id !== m.client_id; });
         } else {
           var idx = m.client_id ? data.items.findIndex(function (x) { return x.client_id === m.client_id && !x.id; }) : -1;
-          if (idx !== -1) { data.items[idx] = m; isNew = false; }
-          else data.items.push(m);
+          if (idx !== -1) {
+            m._animAt = data.items[idx]._animAt; // sigue la animación del optimista
+            data.items[idx] = m;
+            isNew = false;
+          } else {
+            if (!fromOwnPost) m._animAt = Date.now();
+            data.items.push(m);
+          }
         }
       } else if (fromOwnPost) {
         isNew = false;
