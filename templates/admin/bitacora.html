@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitácora — Admin · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+<link rel="stylesheet" href="/static/css/admin/bitacora.css">
+</head>
+<body class="cuenta-body">
+
+{{template "admin-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "admin-sidebar" .}}
+
+  <main class="cuenta-main bit-page" id="bitPage">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Bitácora</h1>
+        <p>Todo lo que hace recepción en el panel: qué páginas abre, a qué le da clic, qué busca y qué crea, cambia o elimina.</p>
+      </div>
+      <button type="button" class="bit-live is-on" id="bitLive" aria-pressed="true" title="Mostrar lo nuevo sin recargar">
+        <span class="bit-live-dot"></span>
+        <span id="bitLiveLabel">En vivo</span>
+      </button>
+    </div>
+
+    <!-- Periodo -->
+    <div class="bit-period">
+      <div class="filter-pills" id="bitPeriod">
+        <button type="button" class="filter-pill active" data-period="hoy">Hoy</button>
+        <button type="button" class="filter-pill" data-period="ayer">Ayer</button>
+        <button type="button" class="filter-pill" data-period="7">Últimos 7 días</button>
+        <button type="button" class="filter-pill" data-period="30">Últimos 30 días</button>
+        <button type="button" class="filter-pill" data-period="rango">Elegir fechas</button>
+      </div>
+      <div class="bit-range" id="bitRange" hidden>
+        <label>Desde <input type="date" id="bitFrom"></label>
+        <label>Hasta <input type="date" id="bitTo"></label>
+        <button type="button" class="btn small solid" id="bitRangeApply">Ver</button>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="admin-stats bit-stats">
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num" id="bitStatAcciones">—</div><div class="label">Acciones</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num" id="bitStatClics">—</div><div class="label">Clics</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num" id="bitStatVistas">—</div><div class="label">Páginas vistas</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num" id="bitStatBusquedas">—</div><div class="label">Búsquedas</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card" style="--stat-color:#c0392b"><div class="num" id="bitStatFallidas">—</div><div class="label">Acciones fallidas</div></div></div>
+    </div>
+
+    <div class="bit-layout">
+      <!-- Personas -->
+      <aside class="panel bit-people">
+        <div class="panel-head">
+          <div>
+            <h2>Recepción</h2>
+            <p id="bitPeopleSub">Cargando…</p>
+          </div>
+        </div>
+        <div class="bit-people-list" id="bitPeople" role="list"></div>
+      </aside>
+
+      <!-- Actividad -->
+      <section class="panel bit-feed">
+        <div class="panel-head">
+          <div>
+            <h2 id="bitFeedTitle">Actividad de todo el equipo</h2>
+            <p id="bitFeedSub">Cargando…</p>
+          </div>
+        </div>
+        <div class="panel-toolbar bit-toolbar">
+          <div class="filter-pills" id="bitKinds">
+            <button type="button" class="filter-pill active" data-kind="">Todo</button>
+            <button type="button" class="filter-pill" data-kind="accion">Acciones</button>
+            <button type="button" class="filter-pill" data-kind="clic">Clics</button>
+            <button type="button" class="filter-pill" data-kind="vista">Páginas</button>
+            <button type="button" class="filter-pill" data-kind="busqueda">Búsquedas</button>
+            <button type="button" class="filter-pill" data-kind="sesion">Sesión</button>
+          </div>
+          <div class="search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="bitSearch" placeholder="Buscar en la bitácora (nombre de cliente, “cancel”, página…)" autocomplete="off">
+            </div>
+          </div>
+        </div>
+
+        <div class="bit-timeline" id="bitTimeline" aria-live="polite"></div>
+        <p class="bit-empty" id="bitEmpty">Cargando…</p>
+        <div class="bit-more-wrap">
+          <button type="button" class="btn small bit-more" id="bitMore" hidden>Cargar más</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/admin/bitacora.js"></script>
+</body>
+</html>

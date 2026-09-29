@@ -68,6 +68,7 @@ func AdminLogin(c *gin.Context) {
 			finishStaffLogin(c, RoleAdmin, admin.ID, admin.Name, admin.Email, "/admin/base-de-datos")
 			return
 		}
+		LogStaffLoginFailed(c, RoleAdmin, admin.ID, admin.Name)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
 		return
 	} else if !errors.Is(err, models.ErrAdminNotFound) {
@@ -81,6 +82,7 @@ func AdminLogin(c *gin.Context) {
 			finishStaffLogin(c, RoleReceptionist, r.ID, r.Name, r.Email, "/receptionist/citas")
 			return
 		}
+		LogStaffLoginFailed(c, RoleReceptionist, r.ID, r.Name)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
 		return
 	} else if !errors.Is(err, models.ErrReceptionistNotFound) {
@@ -94,6 +96,7 @@ func AdminLogin(c *gin.Context) {
 			finishStaffLogin(c, RoleOptometrist, o.ID, o.Name, o.Email, "/optometrist/historial-clinico")
 			return
 		}
+		LogStaffLoginFailed(c, RoleOptometrist, o.ID, o.Name)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
 		return
 	} else if !errors.Is(err, models.ErrOptometristNotFound) {
@@ -107,6 +110,7 @@ func AdminLogin(c *gin.Context) {
 			finishStaffLogin(c, RoleEmployee, e.ID, e.Name, e.Email, "/employee/comunicacion")
 			return
 		}
+		LogStaffLoginFailed(c, RoleEmployee, e.ID, e.Name)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
 		return
 	} else if !errors.Is(err, models.ErrEmployeeNotFound) {
@@ -126,6 +130,7 @@ func finishStaffLogin(c *gin.Context, role string, id int64, name string, email 
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo iniciar sesión. Intenta de nuevo."})
 		return
 	}
+	LogStaffLogin(c, role, id, name)
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Bienvenido al panel de administración.",
 		"redirect": redirect,
@@ -136,6 +141,7 @@ func finishStaffLogin(c *gin.Context, role string, id int64, name string, email 
 // no toca la sesión de cliente si hubiera una activa en el mismo navegador).
 // Sirve para todas las cuentas de staff por igual — es la misma cookie.
 func AdminLogout(c *gin.Context) {
+	LogStaffLogout(c) // bitácora: antes de borrar la cookie
 	session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
 	session.Options.MaxAge = -1
 	session.Save(c.Request, c.Writer)

@@ -1,0 +1,177 @@
+/* =========================================================
+   ADMIN — Bitácora
+   Se apoya en base-de-datos.css (tokens, .panel, .btn,
+   .filter-pill, .search-box, .admin-stats) — aquí solo lo
+   propio de la página.
+   ========================================================= */
+
+.bit-page [hidden]{ display:none !important; }
+
+/* ---------- "En vivo" ---------- */
+.bit-live{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:9px 16px; border-radius:100px; border:1.5px solid var(--line);
+  font-size:12px; font-weight:700; color:var(--grey); background:var(--white);
+  transition:border-color .2s var(--ease), color .2s var(--ease), background .2s var(--ease);
+}
+.bit-live:hover{ border-color:var(--blue-300); }
+.bit-live-dot{ width:8px; height:8px; border-radius:50%; background:var(--line); }
+.bit-live.is-on{ color:#1f7a3d; border-color:#bfe6cc; background:#effaf3; }
+.bit-live.is-on .bit-live-dot{ background:#1f9d55; animation:bitPulse 1.6s ease-in-out infinite; }
+body.dark .bit-live.is-on{ background:rgba(46,204,113,.12); border-color:rgba(46,204,113,.35); color:#6fe0a0; }
+@keyframes bitPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(31,157,85,.45); } 50%{ box-shadow:0 0 0 6px rgba(31,157,85,0); } }
+
+/* ---------- Periodo ---------- */
+.bit-period{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:22px; }
+.bit-range{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.bit-range label{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:var(--grey); }
+.bit-range input{
+  border:1.5px solid var(--line); border-radius:12px; padding:8px 11px;
+  font-size:13px; color:var(--ink); background:var(--white);
+}
+.bit-range input:focus{ outline:none; border-color:var(--blue-600); }
+body.dark .bit-range input{ color-scheme:dark; }
+
+/* ---------- Layout: personas + actividad ---------- */
+.bit-layout{ display:grid; grid-template-columns:290px minmax(0,1fr); gap:20px; align-items:start; }
+@media (max-width:1060px){ .bit-layout{ grid-template-columns:1fr; } }
+
+/* ---------- Personas ---------- */
+.bit-people{ position:sticky; top:112px; overflow:hidden; }
+@media (max-width:1060px){ .bit-people{ position:static; } }
+.bit-people-list{
+  padding:8px; display:flex; flex-direction:column; gap:2px;
+  max-height:calc(100vh - 300px); overflow-y:auto;
+  scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+}
+@media (max-width:1060px){ .bit-people-list{ max-height:none; flex-direction:row; overflow-x:auto; } }
+
+.bit-person{
+  width:100%; display:flex; align-items:center; gap:11px; text-align:left;
+  padding:10px; border-radius:14px;
+  transition:background .16s var(--ease);
+}
+@media (max-width:1060px){ .bit-person{ width:auto; min-width:220px; flex-shrink:0; } }
+.bit-person:hover{ background:var(--blue-50); }
+.bit-person.is-active{ background:var(--blue-100); }
+.bit-avatar{
+  position:relative; width:38px; height:38px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:#7a2fbf; color:#fff; font-size:12.5px; font-weight:700;
+}
+.bit-avatar.is-all{ background:var(--ink); color:var(--white); }
+.bit-avatar.is-all svg{ width:17px; height:17px; }
+.bit-avatar.role-optometrist{ background:#0f6fa8; }
+.bit-avatar.role-employee{ background:#1f7a3d; }
+.bit-avatar.is-online:after{
+  content:''; position:absolute; right:0; bottom:0; width:11px; height:11px; border-radius:50%;
+  background:#1f9d55; border:2px solid var(--white);
+}
+.bit-person-text{ flex:1; min-width:0; }
+.bit-person-name{ font-size:13.5px; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bit-person-sub{ font-size:11.5px; color:var(--grey); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bit-person-sub .is-online{ color:#1f9d55; font-weight:700; }
+.bit-person-count{
+  min-width:26px; height:22px; padding:0 7px; border-radius:100px; flex-shrink:0;
+  background:var(--blue-50); color:var(--blue-700);
+  font-size:11px; font-weight:700; line-height:22px; text-align:center;
+}
+.bit-person.is-active .bit-person-count{ background:var(--blue-600); color:var(--on-accent); }
+.bit-people-empty{ padding:28px 14px; text-align:center; font-size:12.5px; color:var(--grey); line-height:1.6; }
+
+/* ---------- Actividad ---------- */
+.bit-feed{ min-width:0; }
+.bit-timeline > :last-child .bit-row{ border-radius:0 0 var(--radius-lg) var(--radius-lg); }
+.bit-toolbar .search-box{ max-width:360px; }
+
+.bit-timeline{ padding:6px 0 4px; }
+.bit-day{
+  padding:10px 24px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--blue-700); background:var(--blue-50); border-bottom:1px solid var(--line);
+}
+body.dark .bit-day{ background:#1b1b24; color:#b7bcff; }
+
+.bit-item{ border-bottom:1px solid var(--blue-50); }
+body.dark .bit-item{ border-bottom-color:var(--line); }
+.bit-item:last-child{ border-bottom:none; }
+.bit-item.is-new{ animation:bitIn .5s var(--ease); }
+@keyframes bitIn{ from{ opacity:0; transform:translateY(-6px); background:var(--blue-50); } to{ opacity:1; transform:none; } }
+
+.bit-row{
+  width:100%; display:grid; grid-template-columns:62px 32px minmax(0,1fr) auto; gap:12px; align-items:start;
+  padding:13px 24px; text-align:left;
+  transition:background .16s var(--ease);
+}
+.bit-row:hover{ background:var(--blue-50); }
+.bit-time{ font-size:12px; font-weight:700; color:var(--grey); font-variant-numeric:tabular-nums; padding-top:6px; }
+
+.bit-icon{
+  width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--blue-50); color:var(--blue-600);
+}
+.bit-icon svg{ width:15px; height:15px; }
+.bit-item.kind-accion .bit-icon{ background:var(--blue-600); color:var(--on-accent); }
+.bit-item.kind-clic .bit-icon{ background:#F3E8FF; color:#7a2fbf; }
+.bit-item.kind-vista .bit-icon{ background:#E3F3FF; color:#0f6fa8; }
+.bit-item.kind-busqueda .bit-icon{ background:#fdf1d6; color:#8a6a12; }
+.bit-item.kind-sesion .bit-icon{ background:#E6F6EC; color:#1f7a3d; }
+.bit-item.is-failed .bit-icon{ background:#fbe0e0; color:#a3231b; }
+body.dark .bit-item.kind-clic .bit-icon{ background:rgba(122,47,191,.25); color:#d4b3f5; }
+body.dark .bit-item.kind-vista .bit-icon{ background:rgba(15,111,168,.25); color:#9dd3f5; }
+body.dark .bit-item.kind-busqueda .bit-icon{ background:rgba(255,193,7,.16); color:#ffcf5c; }
+body.dark .bit-item.kind-sesion .bit-icon{ background:rgba(46,204,113,.16); color:#6fe0a0; }
+body.dark .bit-item.is-failed .bit-icon{ background:rgba(231,76,60,.18); color:#ff8b7d; }
+
+.bit-main{ min-width:0; padding-top:1px; }
+.bit-desc{ font-size:13.5px; color:var(--ink); line-height:1.45; word-break:break-word; }
+.bit-item.kind-accion .bit-desc{ font-weight:700; }
+.bit-item.is-failed .bit-desc{ color:#c0392b; }
+body.dark .bit-item.is-failed .bit-desc{ color:#ff8b7d; }
+.bit-ctx{ font-size:12px; color:var(--grey); margin-top:3px; line-height:1.5; word-break:break-word; }
+.bit-meta{ display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+.bit-chip{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:100px;
+  background:var(--blue-50); color:var(--grey);
+}
+body.dark .bit-chip{ background:rgba(255,255,255,.06); }
+.bit-chip.person{ background:#F3E8FF; color:#7a2fbf; }
+body.dark .bit-chip.person{ background:rgba(122,47,191,.25); color:#d4b3f5; }
+
+.bit-caret{ width:16px; height:16px; color:var(--grey); margin-top:8px; transition:transform .2s var(--ease); }
+.bit-item.is-open .bit-caret{ transform:rotate(180deg); }
+
+/* Detalles técnicos */
+.bit-details{ padding:0 24px 16px 130px; }
+.bit-details dl{
+  display:grid; grid-template-columns:140px minmax(0,1fr); gap:6px 14px;
+  padding:14px 16px; border-radius:var(--radius-sm); background:var(--blue-50);
+  font-size:12px;
+}
+body.dark .bit-details dl{ background:rgba(255,255,255,.04); }
+.bit-details dt{ font-weight:700; color:var(--grey); }
+.bit-details dd{ color:var(--ink); word-break:break-word; }
+.bit-details pre{
+  margin:0; white-space:pre-wrap; word-break:break-word;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:11.5px;
+}
+
+.bit-empty{ text-align:center; padding:56px 24px 64px; font-size:13.5px; color:var(--grey); line-height:1.7; }
+.bit-more-wrap{ display:flex; justify-content:center; padding:4px 24px 22px; }
+.bit-more-wrap:empty, .bit-more[hidden]{ display:none; }
+
+@media (max-width:720px){
+  .bit-stats{ gap:8px; }
+  .bit-stats .stat-card-wrap{ width:calc((100% - 32px) / 5); min-width:58px; }
+  .bit-stats .admin-stat-card .num{ font-size:15px; }
+  .bit-stats .admin-stat-card .label{ font-size:7.5px; }
+  .bit-row{ grid-template-columns:48px 28px minmax(0,1fr); padding:12px 14px; gap:10px; }
+  .bit-caret{ display:none; }
+  .bit-icon{ width:28px; height:28px; }
+  .bit-details{ padding:0 14px 14px; }
+  .bit-details dl{ grid-template-columns:1fr; }
+  .bit-day{ padding:9px 14px; }
+  .bit-toolbar{ padding:14px; }
+  .bit-toolbar .search-box{ max-width:none; }
+}

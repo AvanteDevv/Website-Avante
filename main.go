@@ -190,6 +190,9 @@ func main() {
 	db.Connect()
 	defer db.DB.Close()
 
+	// Crea la tabla de la bitácora si todavía no existe (no toca datos).
+	db.EnsureActivityTable()
+
 	storage.Connect()
 
 	// Recordatorios de citas por WhatsApp (24h y 1h antes) — corre en
@@ -227,6 +230,12 @@ func main() {
 	}
 
 	router := gin.Default()
+
+	// Bitácora del staff: guarda lo que crean / cambian / eliminan los
+	// roles vigilados (ver handlers/activity_log.go). Va antes de las
+	// rutas para que aplique a todas.
+	router.Use(handlers.ActivityTracker())
+	handlers.StartActivityJanitor()
 
 	router.SetHTMLTemplate(loadTemplates())
 	router.Static("/static", "./static")
@@ -434,6 +443,8 @@ func main() {
 		})
 		// Avisos al staff + grupos de chat (solo admin).
 		adminGroup.GET("/comunicacion", onlyAdmin, adminHandlers.Communication)
+		// Bitácora: qué hace cada persona del staff (solo admin).
+		adminGroup.GET("/bitacora", onlyAdmin, adminHandlers.Bitacora)
 	}
 
 	// Chat interno + avisos — recepción, optometría y empleados. El admin
@@ -463,6 +474,11 @@ func main() {
 		apiStaff.POST("/chat/conversaciones/:id/mensajes", handlers.SendChatMessage)
 		apiStaff.POST("/chat/conversaciones/:id/leido", handlers.MarkChatRead)
 	}
+
+	// Bitácora: el navegador de cada rol vigilado manda aquí (en lotes)
+	// las páginas que abre, sus clics y búsquedas. El handler ignora a
+	// los roles que no se vigilan.
+	router.POST("/api/bitacora", handlers.RequireAdminAuth(), handlers.PostClientActivity)
 
 	// WebSocket: mensajes, avisos y "en línea" en tiempo real.
 	router.GET("/ws/staff", handlers.RequireAdminAuth(), commsStaff, handlers.StaffWebSocket)
@@ -606,6 +622,10 @@ func main() {
 		apiAdmin.POST("/chat/grupos", onlyAdmin, adminHandlers.CreateChatGroup)
 		apiAdmin.PUT("/chat/grupos/:id", onlyAdmin, adminHandlers.UpdateChatGroup)
 		apiAdmin.DELETE("/chat/grupos/:id", onlyAdmin, adminHandlers.DeleteChatGroup)
+
+		// Bitácora del staff
+		apiAdmin.GET("/bitacora", onlyAdmin, adminHandlers.ListBitacora)
+		apiAdmin.GET("/bitacora/personas", onlyAdmin, adminHandlers.BitacoraPeople)
 	}
 
 	// Client JSON API — llamada desde index.js / ecommerce.js (el corazón
