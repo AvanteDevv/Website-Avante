@@ -26,7 +26,8 @@ import (
 //     que imprime log.Printf, gin, etc.). El admin las ve en
 //     GET /admin/logs.
 //  2. ErrorRecovery() reemplaza el Recovery de gin: si una página truena
-//     (panic, error en una plantilla…), en vez de una pantalla en blanco
+//     (panic) o su plantilla falla al llenarse (gin responde 200 vacío,
+//     la "página en blanco"), en vez de una pantalla en blanco
 //     muestra el error y dónde pasó — el detalle completo solo si tienes
 //     sesión de admin; a los demás les sale un mensaje genérico.
 
@@ -104,30 +105,52 @@ func ErrorRecovery() gin.HandlerFunc {
 				return
 			}
 
-			var body string
-			if isAdminSession(c) {
-				body = `<div style="font-family:system-ui,sans-serif;max-width:1000px;margin:40px auto;padding:0 20px;color:#15161a">` +
-					`<h1 style="color:#c0392b;font-size:22px">Esta página tuvo un error</h1>` +
-					`<p><b>Ruta:</b> ` + html.EscapeString(c.Request.Method+" "+c.Request.URL.Path) + `</p>` +
-					`<p><b>Error:</b></p><pre style="white-space:pre-wrap;background:#fdecea;color:#a3231b;padding:14px;border-radius:10px">` +
-					html.EscapeString(fmt.Sprint(rec)) + `</pre>` +
-					`<p><b>Dónde pasó:</b></p><pre style="white-space:pre-wrap;background:#f4f5fb;padding:14px;border-radius:10px;font-size:12px">` +
-					html.EscapeString(stack) + `</pre>` +
-					`<p><a href="/admin/logs">Ver todos los logs del servidor</a></p></div>`
-			} else {
-				body = `<div style="font-family:system-ui,sans-serif;text-align:center;margin-top:80px">` +
-					`<h1>Algo salió mal</h1><p>Intenta de nuevo en un momento.</p></div>`
-			}
-
-			if !c.Writer.Written() {
-				c.Header("Content-Type", "text/html; charset=utf-8")
-				c.Status(http.StatusInternalServerError)
-			}
-			_, _ = c.Writer.Write([]byte(body))
+			writeErrorPage(c, fmt.Sprint(rec), stack)
 			c.Abort()
 		}()
+
 		c.Next()
+
+		// Errores que NO son panic: gin los guarda en c.Errors y responde
+		// vacío (así pasa cuando una plantilla falla al llenarse — la
+		// famosa página en blanco con 200). Aquí se muestran.
+		if len(c.Errors) == 0 || strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			return
+		}
+		msg := c.Errors.String()
+		log.Printf("[ERROR] %s %s: %s", c.Request.Method, c.Request.URL.Path, msg)
+		ct := c.Writer.Header().Get("Content-Type")
+		if c.Writer.Size() <= 0 || strings.Contains(ct, "text/html") {
+			writeErrorPage(c, msg, "")
+		}
 	}
+}
+
+// writeErrorPage pinta el error en la página (detalle solo para admin).
+func writeErrorPage(c *gin.Context, msg, stack string) {
+	var body string
+	if isAdminSession(c) {
+		body = `<div style="font-family:system-ui,sans-serif;max-width:1000px;margin:40px auto;padding:0 20px;color:#15161a;background:#fff">` +
+			`<h1 style="color:#c0392b;font-size:22px">Esta página tuvo un error</h1>` +
+			`<p><b>Ruta:</b> ` + html.EscapeString(c.Request.Method+" "+c.Request.URL.Path) + `</p>` +
+			`<p><b>Error:</b></p><pre style="white-space:pre-wrap;background:#fdecea;color:#a3231b;padding:14px;border-radius:10px">` +
+			html.EscapeString(msg) + `</pre>`
+		if stack != "" {
+			body += `<p><b>Dónde pasó:</b></p><pre style="white-space:pre-wrap;background:#f4f5fb;padding:14px;border-radius:10px;font-size:12px">` +
+				html.EscapeString(stack) + `</pre>`
+		}
+		body += `<p><a href="/admin/logs">Ver todos los logs del servidor</a></p></div>`
+	} else {
+		body = `<div style="font-family:system-ui,sans-serif;text-align:center;margin-top:80px">` +
+			`<h1>Algo salió mal</h1><p>Intenta de nuevo en un momento.</p></div>`
+	}
+
+	if !c.Writer.Written() {
+		c.Writer.Header().Del("Content-Length")
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		c.Status(http.StatusInternalServerError)
+	}
+	_, _ = c.Writer.Write([]byte(body))
 }
 
 // ViewLogs — GET /admin/logs (solo admin). ?q=texto filtra las líneas.
