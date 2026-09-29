@@ -36,12 +36,13 @@ import (
 // Además: inicio / cierre de sesión e intentos de inicio fallidos (ver
 // auth_admin.go).
 //
-// Por ahora solo se vigila recepción. Para sumar otro rol basta con
+// Se vigila recepción y optometría. Para sumar otro rol basta con
 // agregarlo a TrackedActivityRoles y cargar su bitacora-<rol>.js.
 
 // TrackedActivityRoles son los roles cuya actividad se guarda.
 var TrackedActivityRoles = map[string]bool{
 	RoleReceptionist: true,
+	RoleOptometrist:  true,
 }
 
 // ActivityRetentionDays: lo más viejo que esto se borra solo (una vez al
@@ -413,6 +414,49 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		e.Action = "aviso.leer_todos"
 		e.Description, intento = "Marcó todos sus avisos como leídos", "marcar todos sus avisos como leídos"
 
+	/* ----- Optometría: exámenes ----- */
+	case method == http.MethodPost && route == "/api/optometrist/examenes":
+		e.Action = "examen.crear"
+		paciente := actOrDash(actStr(p, "patientName"))
+		e.Description = "Registró un examen de la vista para " + paciente
+		intento = "guardar el examen de la vista de " + paciente
+		ctx := []string{}
+		if tel := actStr(p, "patientPhone"); tel != "" {
+			ctx = append(ctx, "Tel. "+tel)
+		}
+		if uid := actStr(p, "userId"); uid != "" && uid != "0" {
+			ctx = append(ctx, "Paciente con cuenta (#"+uid+")")
+		} else {
+			ctx = append(ctx, "Paciente sin cuenta")
+		}
+		if t := actStr(p, "templateId"); t != "" {
+			ctx = append(ctx, "Plantilla #"+t)
+		}
+		e.Context = strings.Join(ctx, " · ")
+	case method == http.MethodDelete && route == "/api/optometrist/examenes/:id":
+		e.Action = "examen.eliminar"
+		e.Description, intento = "Eliminó el examen #"+c.Param("id"), "eliminar el examen #"+c.Param("id")
+
+	/* ----- Optometría: plantillas de examen ----- */
+	case method == http.MethodPost && route == "/api/optometrist/plantillas":
+		e.Action = "plantilla.crear"
+		n := actOrDash(actStr(p, "name"))
+		e.Description, intento = "Creó la plantilla de examen “"+n+"”", "crear la plantilla “"+n+"”"
+		e.Context = activityElementsCount(p)
+	case method == http.MethodPut && route == "/api/optometrist/plantillas/:id":
+		e.Action = "plantilla.guardar"
+		n := actOrDash(actStr(p, "name"))
+		e.Description = "Guardó cambios en la plantilla “" + n + "” (#" + c.Param("id") + ")"
+		intento = "guardar la plantilla “" + n + "”"
+		e.Context = activityElementsCount(p)
+	case route == "/api/optometrist/plantillas/:id/activar":
+		e.Action = "plantilla.activar"
+		e.Description, intento = "Activó la plantilla de examen #"+c.Param("id"), "activar la plantilla #"+c.Param("id")
+		e.Context = "Desde ahora los exámenes nuevos usan esta plantilla"
+	case method == http.MethodDelete && route == "/api/optometrist/plantillas/:id":
+		e.Action = "plantilla.eliminar"
+		e.Description, intento = "Eliminó la plantilla de examen #"+c.Param("id"), "eliminar la plantilla #"+c.Param("id")
+
 	/* ----- Cualquier otra ----- */
 	default:
 		if route == "" { // 404: no existe la ruta
@@ -463,6 +507,16 @@ func activityDetailsJSON(p map[string]interface{}) string {
 			clean[k] = "••••"
 		case k == "body" && !LogChatText:
 			clean[k] = "(oculto)"
+		case k == "data":
+			// Resultados del examen: se ven completos en el examen mismo.
+			clean[k] = "(resultados del examen — ábrelo para verlos)"
+		case k == "elements":
+			// Diseño de la plantilla (puede traer imágenes pesadas).
+			if list, ok := v.([]interface{}); ok {
+				clean[k] = strconv.Itoa(len(list)) + " elementos"
+			} else {
+				clean[k] = "(diseño de la plantilla)"
+			}
 		default:
 			clean[k] = v
 		}
@@ -608,4 +662,12 @@ func StartActivityJanitor() {
 			time.Sleep(24 * time.Hour)
 		}
 	}()
+}
+
+// activityElementsCount: "12 elementos en el diseño".
+func activityElementsCount(p map[string]interface{}) string {
+	if list, ok := p["elements"].([]interface{}); ok {
+		return strconv.Itoa(len(list)) + " elementos en el diseño"
+	}
+	return ""
 }

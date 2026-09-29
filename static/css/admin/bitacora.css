@@ -39,6 +39,8 @@ body.dark .bit-range input{ color-scheme:dark; }
 /* ---------- Personas ---------- */
 .bit-people{ position:sticky; top:112px; overflow:hidden; }
 @media (max-width:1060px){ .bit-people{ position:static; } }
+.bit-people-head{ flex-direction:column; align-items:flex-start; gap:12px; }
+.bit-roles .filter-pill{ padding:6px 12px; font-size:11.5px; }
 .bit-people-list{
   padding:8px; display:flex; flex-direction:column; gap:2px;
   max-height:calc(100vh - 300px); overflow-y:auto;

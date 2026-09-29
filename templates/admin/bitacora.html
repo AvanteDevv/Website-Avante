@@ -23,7 +23,7 @@
     <div class="cuenta-header admin-header-row">
       <div>
         <h1>Bitácora</h1>
-        <p>Todo lo que hace recepción en el panel: qué páginas abre, a qué le da clic, qué busca y qué crea, cambia o elimina.</p>
+        <p>Todo lo que hacen recepción y optometría en el panel: qué páginas abren, a qué le dan clic, qué buscan y qué crean, cambian o eliminan.</p>
       </div>
       <button type="button" class="bit-live is-on" id="bitLive" aria-pressed="true" title="Mostrar lo nuevo sin recargar">
         <span class="bit-live-dot"></span>
@@ -59,10 +59,15 @@
     <div class="bit-layout">
       <!-- Personas -->
       <aside class="panel bit-people">
-        <div class="panel-head">
+        <div class="panel-head bit-people-head">
           <div>
-            <h2>Recepción</h2>
+            <h2>Equipo</h2>
             <p id="bitPeopleSub">Cargando…</p>
+          </div>
+          <div class="filter-pills bit-roles" id="bitRoles">
+            <button type="button" class="filter-pill active" data-role="">Todos</button>
+            <button type="button" class="filter-pill" data-role="receptionist">Recepción</button>
+            <button type="button" class="filter-pill" data-role="optometrist">Optometría</button>
           </div>
         </div>
         <div class="bit-people-list" id="bitPeople" role="list"></div>

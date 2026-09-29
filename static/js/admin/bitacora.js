@@ -22,7 +22,12 @@
   var PAGE_NAMES = {
     '/receptionist/citas': 'Citas',
     '/receptionist/comunicacion': 'Comunicación',
-    '/admin/pedidos': 'Pedidos'
+    '/admin/pedidos': 'Pedidos',
+    '/optometrist/historial-clinico': 'Historial clínico',
+    '/optometrist/examen-vista': 'Examen de la vista',
+    '/optometrist/examen-vista/nuevo': 'Nuevo examen',
+    '/optometrist/plantilla-examen': 'Plantilla de examen',
+    '/optometrist/comunicacion': 'Comunicación'
   };
 
   var ICONS = {
@@ -60,6 +65,7 @@
     period: 'hoy',
     from: null, to: null,
     persona: params.get('persona') || '',
+    role: params.get('rol') || '',
     kind: '',
     q: '',
     items: [],
@@ -104,7 +110,7 @@
   function pageName(path) {
     if (!path) return '';
     var clean = path.split('?')[0];
-    var name = PAGE_NAMES[clean] || clean;
+    var name = PAGE_NAMES[clean] || (/^\/optometrist\/examen-vista\/\d+$/.test(clean) ? 'Ver examen #' + clean.split('/').pop() : clean);
     var tab = new URLSearchParams(path.split('?')[1] || '').get('tab');
     if (tab) name += ' · ' + tab;
     return name;
@@ -155,6 +161,7 @@
     var q = new URLSearchParams();
     q.set('desde', state.from.toISOString());
     q.set('hasta', state.to.toISOString());
+    if (state.role) q.set('rol', state.role);
     if (extra) Object.keys(extra).forEach(function (k) { if (extra[k] !== '' && extra[k] != null) q.set(k, extra[k]); });
     return q.toString();
   }
@@ -176,7 +183,7 @@
     av.innerHTML = ICONS.todos;
     all.appendChild(av);
     var tx = el('span', 'bit-person-text');
-    tx.appendChild(el('div', 'bit-person-name', 'Todo el equipo'));
+    tx.appendChild(el('div', 'bit-person-name', state.role ? 'Todos en ' + (ROLE_LABELS[state.role] || '') : 'Todo el equipo'));
     tx.appendChild(el('div', 'bit-person-sub', totals ? plural(totals.acciones || 0, 'acción', 'acciones') + ' · ' + plural(totals.clics || 0, 'clic', 'clics') : ''));
     all.appendChild(tx);
     all.appendChild(el('span', 'bit-person-count', totals ? String(totals.total || 0) : '0'));
@@ -184,7 +191,7 @@
     peopleEl.appendChild(all);
 
     if (!state.people.length) {
-      peopleEl.appendChild(el('p', 'bit-people-empty', 'Todavía no hay cuentas de recepción. Créalas en Base de datos.'));
+      peopleEl.appendChild(el('p', 'bit-people-empty', 'Todavía no hay cuentas de este rol. Créalas en Base de datos.'));
       return;
     }
 
@@ -198,6 +205,7 @@
       t.appendChild(el('div', 'bit-person-name', p.name));
       var sub = el('div', 'bit-person-sub');
       if (p.online) sub.appendChild(el('span', 'is-online', 'En línea · '));
+      if (!state.role) sub.appendChild(document.createTextNode((ROLE_LABELS[p.role] || p.role) + ' · '));
       if (p.first_at && p.last_at) {
         var f = new Date(p.first_at), l = new Date(p.last_at);
         var span = state.period === 'hoy' || state.period === 'ayer'
@@ -240,7 +248,8 @@
   /* ---------- actividad ---------- */
   function updateFeedTitle() {
     var p = state.persona ? personByKey(state.persona) : null;
-    feedTitle.textContent = p ? 'Actividad de ' + p.name : (state.persona ? 'Actividad de la persona elegida' : 'Actividad de todo el equipo');
+    feedTitle.textContent = p ? 'Actividad de ' + p.name : (state.persona ? 'Actividad de la persona elegida'
+      : state.role ? 'Actividad de ' + (ROLE_LABELS[state.role] || '').toLowerCase() : 'Actividad de todo el equipo');
   }
 
   function updateFeedSub() {
@@ -481,6 +490,24 @@
       state.q = v;
       loadFeed();
     }, 350);
+  });
+
+  /* ---------- rol: Todos / Recepción / Optometría ---------- */
+  var rolePills = document.querySelectorAll('#bitRoles .filter-pill');
+  rolePills.forEach(function (pill) {
+    pill.classList.toggle('active', (pill.dataset.role || '') === state.role);
+    pill.addEventListener('click', function () {
+      rolePills.forEach(function (p) { p.classList.toggle('active', p === pill); });
+      state.role = pill.dataset.role || '';
+      state.persona = '';
+      var url = new URLSearchParams(location.search);
+      url.delete('persona');
+      if (state.role) url.set('rol', state.role); else url.delete('rol');
+      try { history.replaceState(null, '', location.pathname + (url.toString() ? '?' + url.toString() : '')); } catch (e) { /* no importa */ }
+      updateFeedTitle();
+      loadPeople();
+      loadFeed();
+    });
   });
 
   /* ---------- arranque ---------- */
