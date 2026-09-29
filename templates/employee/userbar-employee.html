@@ -22,6 +22,9 @@
     </div>
   </div>
   <div class="staff-toast-stack" id="staffToastStack" aria-live="polite"></div>
+  {{/* Bitácora: registra páginas, clics y búsquedas para el admin
+       (/admin/bitacora). Aquí para que aplique a todas las páginas. */}}
+  <script defer src="/static/js/employee/bitacora-employee.js"></script>
   <div class="userbar" id="userbar">
     <button type="button" class="userbar-trigger">
       <span class="userbar-avatar">{{.StaffInitials}}</span>

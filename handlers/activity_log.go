@@ -36,13 +36,14 @@ import (
 // Además: inicio / cierre de sesión e intentos de inicio fallidos (ver
 // auth_admin.go).
 //
-// Se vigila recepción y optometría. Para sumar otro rol basta con
+// Se vigila recepción, optometría y empleados. Para sumar otro rol basta con
 // agregarlo a TrackedActivityRoles y cargar su bitacora-<rol>.js.
 
 // TrackedActivityRoles son los roles cuya actividad se guarda.
 var TrackedActivityRoles = map[string]bool{
 	RoleReceptionist: true,
 	RoleOptometrist:  true,
+	RoleEmployee:     true,
 }
 
 // ActivityRetentionDays: lo más viejo que esto se borra solo (una vez al

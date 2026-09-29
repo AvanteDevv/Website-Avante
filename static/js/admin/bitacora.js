@@ -18,6 +18,7 @@
   var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
   var ROLE_LABELS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleado' };
+  var ROLE_GROUPS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleados' };
   var KIND_LABELS = { accion: 'Acción', clic: 'Clic', vista: 'Página', busqueda: 'Búsqueda', sesion: 'Sesión' };
   var PAGE_NAMES = {
     '/receptionist/citas': 'Citas',
@@ -27,7 +28,8 @@
     '/optometrist/examen-vista': 'Examen de la vista',
     '/optometrist/examen-vista/nuevo': 'Nuevo examen',
     '/optometrist/plantilla-examen': 'Plantilla de examen',
-    '/optometrist/comunicacion': 'Comunicación'
+    '/optometrist/comunicacion': 'Comunicación',
+    '/employee/comunicacion': 'Comunicación'
   };
 
   var ICONS = {
@@ -183,7 +185,7 @@
     av.innerHTML = ICONS.todos;
     all.appendChild(av);
     var tx = el('span', 'bit-person-text');
-    tx.appendChild(el('div', 'bit-person-name', state.role ? 'Todos en ' + (ROLE_LABELS[state.role] || '') : 'Todo el equipo'));
+    tx.appendChild(el('div', 'bit-person-name', state.role ? 'Todos en ' + (ROLE_GROUPS[state.role] || '') : 'Todo el equipo'));
     tx.appendChild(el('div', 'bit-person-sub', totals ? plural(totals.acciones || 0, 'acción', 'acciones') + ' · ' + plural(totals.clics || 0, 'clic', 'clics') : ''));
     all.appendChild(tx);
     all.appendChild(el('span', 'bit-person-count', totals ? String(totals.total || 0) : '0'));
@@ -249,7 +251,7 @@
   function updateFeedTitle() {
     var p = state.persona ? personByKey(state.persona) : null;
     feedTitle.textContent = p ? 'Actividad de ' + p.name : (state.persona ? 'Actividad de la persona elegida'
-      : state.role ? 'Actividad de ' + (ROLE_LABELS[state.role] || '').toLowerCase() : 'Actividad de todo el equipo');
+      : state.role ? 'Actividad de ' + (ROLE_GROUPS[state.role] || '').toLowerCase() : 'Actividad de todo el equipo');
   }
 
   function updateFeedSub() {
