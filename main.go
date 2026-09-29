@@ -180,6 +180,9 @@ func loadTemplates() *template.Template {
 }
 
 func main() {
+	// Guarda los logs en memoria para verlos en /admin/logs (sin Railway).
+	handlers.CaptureLogs()
+
 	// .env is optional: locally you use it for your Railway credentials;
 	// in production (Railway/another host) the variables are already injected
 	// directly into the environment, so if there is no .env, nothing happens.
@@ -229,7 +232,11 @@ func main() {
 		reviewsCache.StartBackgroundRefresh(24 * time.Hour)
 	}
 
-	router := gin.Default()
+	// gin.New() + Logger + ErrorRecovery en vez de gin.Default(): si una
+	// página truena, muestra el error en pantalla (con sesión de admin)
+	// en lugar de una página en blanco.
+	router := gin.New()
+	router.Use(gin.Logger(), handlers.ErrorRecovery())
 
 	// Bitácora del staff: guarda lo que crean / cambian / eliminan los
 	// roles vigilados (ver handlers/activity_log.go). Va antes de las
@@ -445,6 +452,8 @@ func main() {
 		adminGroup.GET("/comunicacion", onlyAdmin, adminHandlers.Communication)
 		// Bitácora: qué hace cada persona del staff (solo admin).
 		adminGroup.GET("/bitacora", onlyAdmin, adminHandlers.Bitacora)
+		// Logs del servidor (errores incluidos) sin entrar a Railway.
+		adminGroup.GET("/logs", onlyAdmin, handlers.ViewLogs)
 	}
 
 	// Chat interno + avisos — recepción, optometría y empleados. El admin
