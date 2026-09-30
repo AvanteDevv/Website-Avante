@@ -543,3 +543,11 @@ footer{
   .quest-step h3{ font-size:19px; }
   .qopt-box{ padding:13px 14px; }
 }
+
+/* Clic afuera de un modal: no se cierra, solo rebota un poco */
+.modal-overlay.open .modal-card.is-bump{ animation:modalBump .32s cubic-bezier(.22,1.4,.36,1); }
+@keyframes modalBump{
+  0%{ transform:scale(1); }
+  40%{ transform:scale(1.025); }
+  100%{ transform:scale(1); }
+}

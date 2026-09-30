@@ -248,6 +248,22 @@ function renderHours(){
 apptBack.addEventListener('click', showDayView);
 
 /* =========================================================
+   Los modales NO se cierran al dar clic afuera: solo con la X o
+   con sus propios botones. Al picar afuera, la tarjeta hace un
+   pequeño rebote para indicar que sigue ahí.
+   ========================================================= */
+function bumpOnOutsideClick(overlay){
+  overlay.addEventListener('click', (e) => {
+    if(e.target !== overlay) return;
+    const card = overlay.querySelector('.modal-card');
+    if(!card) return;
+    card.classList.remove('is-bump');
+    void card.offsetWidth; // reinicia la animación
+    card.classList.add('is-bump');
+  });
+}
+
+/* =========================================================
    MODAL DE CONFIRMACIÓN FINAL (el que ya existía)
    ========================================================= */
 function openApptModal(text){
@@ -272,7 +288,9 @@ function closeApptModal(){
 }
 apptModalClose.addEventListener('click', closeApptModal);
 apptModalOk.addEventListener('click', closeApptModal);
-apptModalOverlay.addEventListener('click', (e) => { if(e.target === apptModalOverlay) closeApptModal(); });
+// Clic afuera NO cierra el modal (solo la X o sus botones) — así no se
+// pierde lo que la persona ya llenó. Solo hace un pequeño "rebote".
+bumpOnOutsideClick(apptModalOverlay);
 
 /* =========================================================
    MODAL 1: DATOS DE CONTACTO (nombre, apellido, celular)
@@ -286,7 +304,9 @@ function closeApptContactModal(){
   document.body.style.overflow = '';
 }
 apptContactModalClose.addEventListener('click', closeApptContactModal);
-apptContactModalOverlay.addEventListener('click', (e) => { if(e.target === apptContactModalOverlay) closeApptContactModal(); });
+// Clic afuera NO cierra el modal (solo la X o sus botones) — así no se
+// pierde lo que la persona ya llenó. Solo hace un pequeño "rebote".
+bumpOnOutsideClick(apptContactModalOverlay);
 
 /* =========================================================
    MODAL 1.5: CUESTIONARIO RÁPIDO (antes de verificar el código)
@@ -350,7 +370,9 @@ function closeQuestModal(){
   document.body.style.overflow = '';
 }
 apptQuestModalClose.addEventListener('click', closeQuestModal);
-apptQuestModalOverlay.addEventListener('click', (e) => { if(e.target === apptQuestModalOverlay) closeQuestModal(); });
+// Clic afuera NO cierra el modal (solo la X o sus botones) — así no se
+// pierde lo que la persona ya llenó. Solo hace un pequeño "rebote".
+bumpOnOutsideClick(apptQuestModalOverlay);
 
 /* =========================================================
    MODAL 2: CÓDIGO DE VERIFICACIÓN (4 dígitos)
@@ -364,7 +386,9 @@ function closeCodeModal(){
   document.body.style.overflow = '';
 }
 apptCodeModalClose.addEventListener('click', closeCodeModal);
-apptCodeModalOverlay.addEventListener('click', (e) => { if(e.target === apptCodeModalOverlay) closeCodeModal(); });
+// Clic afuera NO cierra el modal (solo la X o sus botones) — así no se
+// pierde lo que la persona ya llenó. Solo hace un pequeño "rebote".
+bumpOnOutsideClick(apptCodeModalOverlay);
 
 // Auto-avance entre las 4 casillas del código
 apptCodeDigits.forEach((input, idx) => {
