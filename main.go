@@ -499,6 +499,16 @@ func main() {
 	{
 		// Comunicación: solo recepción (el admin no chatea ni recibe avisos).
 		receptionistGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleReceptionist), handlers.ReceptionistCommunicationPage)
+		// Secciones nuevas de recepción: por ahora solo están en el
+		// sidebar y sus rutas mandan a Citas. Cuando se creen las
+		// páginas, se cambia "proximamente" por el handler de cada una.
+		proximamente := func(c *gin.Context) {
+			c.Redirect(http.StatusFound, "/receptionist/citas")
+		}
+		receptionistGroup.GET("/consultas", proximamente)
+		receptionistGroup.GET("/punto-de-venta", proximamente)
+		receptionistGroup.GET("/plantillas", proximamente)
+		receptionistGroup.GET("/administracion", proximamente)
 		receptionistGroup.GET("/citas", func(c *gin.Context) {
 			appointments, err := models.GetAllAppointments()
 			if err != nil {

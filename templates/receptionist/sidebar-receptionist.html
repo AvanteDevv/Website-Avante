@@ -78,10 +78,18 @@
 
   <nav class="cuenta-nav-group">
     <span class="cuenta-nav-blob" aria-hidden="true"></span>
+    {{/* Orden: el día a día primero (Citas → Consultas → Punto de venta),
+         luego Comunicación, y al final lo de gestión (Plantillas,
+         Administración). Por ahora esas 4 solo están en el menú: no
+         tienen página todavía, así que no llevan a ningún lado. */}}
     <a href="/receptionist/citas" class="cuenta-nav-link{{if eq .ActivePage "receptionist-citas"}} active{{end}}"><i data-feather="calendar"></i><span>Citas</span><span class="cuenta-nav-tooltip">Citas</span></a>
+    <a href="/receptionist/consultas" class="cuenta-nav-link{{if eq .ActivePage "receptionist-consultas"}} active{{end}}"><i data-feather="clipboard"></i><span>Consultas</span><span class="cuenta-nav-tooltip">Consultas</span></a>
+    <a href="/receptionist/punto-de-venta" class="cuenta-nav-link{{if eq .ActivePage "receptionist-punto-de-venta"}} active{{end}}"><i data-feather="shopping-cart"></i><span>Punto de venta</span><span class="cuenta-nav-tooltip">Punto de venta</span></a>
     {{if and .StaffRoleKey (eq .StaffRoleKey "receptionist")}}
     <a href="/receptionist/comunicacion" class="cuenta-nav-link{{if eq .ActivePage "receptionist-comunicacion"}} active{{end}}"><i data-feather="message-circle"></i><span>Comunicación</span><span class="cuenta-nav-badge" data-chat-unread hidden></span><span class="cuenta-nav-tooltip">Comunicación</span></a>
     {{end}}
+    <a href="/receptionist/plantillas" class="cuenta-nav-link{{if eq .ActivePage "receptionist-plantillas"}} active{{end}}"><i data-feather="file-text"></i><span>Plantillas</span><span class="cuenta-nav-tooltip">Plantillas</span></a>
+    <a href="/receptionist/administracion" class="cuenta-nav-link{{if eq .ActivePage "receptionist-administracion"}} active{{end}}"><i data-feather="briefcase"></i><span>Administración</span><span class="cuenta-nav-tooltip">Administración</span></a>
   </nav>
 
   <div class="cuenta-nav-divider"></div>
