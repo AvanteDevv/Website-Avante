@@ -458,6 +458,27 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		e.Action = "plantilla.eliminar"
 		e.Description, intento = "Eliminó la plantilla de examen #"+c.Param("id"), "eliminar la plantilla #"+c.Param("id")
 
+	/* ----- Recepción: plantilla del ticket ----- */
+	case method == http.MethodPut && route == "/api/receptionist/ticket-plantilla":
+		e.Action = "ticket.plantilla.guardar"
+		e.Description, intento = "Guardó cambios en la plantilla del ticket de venta", "guardar la plantilla del ticket"
+		if d, ok := p["data"].(map[string]interface{}); ok {
+			ctx := []string{}
+			if papel, ok := d["papel"].(map[string]interface{}); ok {
+				if w, ok := papel["ancho"].(float64); ok {
+					ctx = append(ctx, "Rollo de "+strconv.Itoa(int(w))+" mm")
+				}
+			}
+			if pg, ok := d["pagare"].(map[string]interface{}); ok {
+				if on, _ := pg["activo"].(bool); on {
+					ctx = append(ctx, "Con pagaré")
+				} else {
+					ctx = append(ctx, "Sin pagaré")
+				}
+			}
+			e.Context = strings.Join(ctx, " · ")
+		}
+
 	/* ----- Cualquier otra ----- */
 	default:
 		if route == "" { // 404: no existe la ruta

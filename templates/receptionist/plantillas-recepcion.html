@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plantillas — Recepción · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/plantillas-recepcion.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "receptionist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "receptionist-sidebar" .}}
+
+  <main class="cuenta-main admin-main tkp-page" id="tkpPage" data-cajero="{{.StaffName}}">
+    <div class="admin-header tkp-header">
+      <div>
+        <h1>Plantillas</h1>
+        <p>El ticket de venta que se imprime en la ticketera. Lo que cambies aquí se ve al instante en la vista previa.</p>
+      </div>
+      <div class="tkp-actions">
+        <button type="button" class="btn small" id="tkpHelpBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+          Conectar impresora
+        </button>
+        <button type="button" class="btn small" id="tkpPrintBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir prueba
+        </button>
+        <button type="button" class="btn solid small" id="tkpSaveBtn" disabled>Guardar</button>
+      </div>
+    </div>
+
+    <div class="tkp-tabs" role="tablist">
+      <button type="button" class="tkp-tab active" role="tab" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+        Ticket de venta
+      </button>
+    </div>
+
+    <p class="tkp-status" id="tkpStatus" aria-live="polite"></p>
+
+    <div class="tkp-layout">
+      <!-- ================= Formulario ================= -->
+      <form class="tkp-form" id="tkpForm" autocomplete="off" onsubmit="return false">
+
+        <section class="admin-panel tkp-card">
+          <h2 class="tkp-card-title"><span class="form-section-num">1</span> Papel</h2>
+          <div class="tkp-grid">
+            <div class="staff-field">
+              <span>Ancho del rollo</span>
+              <div class="tkp-seg" data-path="papel.ancho" data-type="number">
+                <button type="button" data-value="80">80 mm</button>
+                <button type="button" data-value="58">58 mm</button>
+              </div>
+            </div>
+            <label class="staff-field">
+              <span>Tamaño de letra</span>
+              <div class="tkp-range">
+                <input type="range" min="9" max="16" step="1" data-path="papel.letra" data-type="number">
+                <output data-out="papel.letra"></output>
+              </div>
+            </label>
+            <label class="staff-field">
+              <span>Margen a los lados</span>
+              <div class="tkp-range">
+                <input type="range" min="0" max="6" step="1" data-path="papel.margen" data-type="number">
+                <output data-out="papel.margen" data-suffix=" mm"></output>
+              </div>
+            </label>
+          </div>
+          <div class="tkp-switches">
+            <label class="tkp-switch"><input type="checkbox" data-path="papel.negritas"><span class="tkp-switch-track"></span><span>Letra en negritas <em>(se lee mejor en papel térmico)</em></span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="papel.mayusculas"><span class="tkp-switch-track"></span><span>Todo en mayúsculas</span></label>
+          </div>
+        </section>
+
+        <section class="admin-panel tkp-card">
+          <h2 class="tkp-card-title"><span class="form-section-num">2</span> Encabezado</h2>
+          <div class="tkp-switches">
+            <label class="tkp-switch"><input type="checkbox" data-path="encabezado.logo"><span class="tkp-switch-track"></span><span>Imprimir el logo</span></label>
+          </div>
+          <div class="tkp-grid">
+            <label class="staff-field tkp-span2"><span>Nombre del negocio</span><input type="text" maxlength="80" data-path="encabezado.nombre"></label>
+            <label class="staff-field"><span>RFC</span><input type="text" maxlength="20" data-path="encabezado.rfc"></label>
+            <label class="staff-field"><span>Teléfono</span><input type="text" maxlength="30" data-path="encabezado.telefono"></label>
+            <label class="staff-field tkp-span2"><span>Dirección</span><input type="text" maxlength="120" data-path="encabezado.direccion"></label>
+            <label class="staff-field"><span>Ciudad y estado</span><input type="text" maxlength="80" data-path="encabezado.ciudad"></label>
+            <label class="staff-field"><span>Código postal</span><input type="text" maxlength="10" data-path="encabezado.cp"></label>
+            <label class="staff-field tkp-span2"><span>Correo</span><input type="text" maxlength="120" data-path="encabezado.correo"></label>
+            <label class="staff-field tkp-span2"><span>Línea extra <em>(opcional — horario, sitio web…)</em></span><input type="text" maxlength="120" data-path="encabezado.extra"></label>
+          </div>
+        </section>
+
+        <section class="admin-panel tkp-card">
+          <h2 class="tkp-card-title"><span class="form-section-num">3</span> Qué se muestra</h2>
+          <div class="tkp-switches tkp-switches--grid">
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.folio"><span class="tkp-switch-track"></span><span>No. de ticket</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.fecha"><span class="tkp-switch-track"></span><span>Fecha</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.hora"><span class="tkp-switch-track"></span><span>Hora</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.formasPago"><span class="tkp-switch-track"></span><span>Formas de pago</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.soloUsadas"><span class="tkp-switch-track"></span><span>Solo las formas usadas</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.cambio"><span class="tkp-switch-track"></span><span>Cambio</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.caja"><span class="tkp-switch-track"></span><span>Caja</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.cliente"><span class="tkp-switch-track"></span><span>Cliente</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.cajero"><span class="tkp-switch-track"></span><span>Cajero</span></label>
+          </div>
+        </section>
+
+        <section class="admin-panel tkp-card">
+          <h2 class="tkp-card-title"><span class="form-section-num">4</span> Pagaré</h2>
+          <div class="tkp-switches">
+            <label class="tkp-switch"><input type="checkbox" data-path="pagare.activo"><span class="tkp-switch-track"></span><span>Imprimir pagaré</span></label>
+          </div>
+          <div class="tkp-collapse" id="tkpPagareBody">
+            <div>
+              <div class="tkp-grid">
+                <label class="staff-field tkp-span2"><span>A la orden de</span><input type="text" maxlength="120" data-path="pagare.beneficiario"></label>
+                <div class="staff-field tkp-span2">
+                  <span>Monto del pagaré</span>
+                  <div class="tkp-seg" data-path="pagare.monto">
+                    <button type="button" data-value="tarjeta">Pagado con tarjeta</button>
+                    <button type="button" data-value="credito">A crédito</button>
+                    <button type="button" data-value="total">Total</button>
+                  </div>
+                </div>
+                <label class="staff-field"><span>Vence en <em>(días)</em></span><input type="number" min="0" max="365" data-path="pagare.dias" data-type="number"></label>
+                <label class="staff-field"><span>Interés mensual <em>(%)</em></span><input type="number" min="0" max="100" step="0.5" data-path="pagare.interes" data-type="number"></label>
+                <label class="staff-field tkp-span2">
+                  <span>Texto</span>
+                  <textarea rows="7" maxlength="2000" data-path="pagare.texto" id="tkpPagareText"></textarea>
+                </label>
+              </div>
+              <div class="tkp-vars">
+                <small>Toca para insertar:</small>
+                <button type="button" data-var="beneficiario">A la orden de</button>
+                <button type="button" data-var="vencimiento">Fecha de vencimiento</button>
+                <button type="button" data-var="monto">Monto</button>
+                <button type="button" data-var="monto_letra">Monto con letra</button>
+                <button type="button" data-var="interes">Interés</button>
+                <button type="button" data-var="cliente">Cliente</button>
+                <button type="button" data-var="fecha">Fecha de venta</button>
+              </div>
+              <div class="tkp-switches">
+                <label class="tkp-switch"><input type="checkbox" data-path="pagare.firma"><span class="tkp-switch-track"></span><span>Línea para firma del cliente</span></label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-panel tkp-card">
+          <h2 class="tkp-card-title"><span class="form-section-num">5</span> Mensaje al final <small>opcional</small></h2>
+          <label class="staff-field"><span class="tkp-sr">Mensaje</span><textarea rows="3" maxlength="300" data-path="pie" placeholder="Ej. ¡Gracias por su compra! Garantía de 30 días en armazones."></textarea></label>
+        </section>
+
+        <div class="tkp-foot">
+          <button type="button" class="tkp-reset" id="tkpResetBtn">Restablecer como el ticket de SICAR</button>
+          <span class="tkp-updated" id="tkpUpdated"></span>
+        </div>
+      </form>
+
+      <!-- ================= Vista previa ================= -->
+      <aside class="tkp-preview-col">
+        <div class="tkp-preview-head">
+          <span>Vista previa</span>
+          <small>Datos de ejemplo</small>
+        </div>
+        <div class="tkp-paper-wrap">
+          <div class="tkp-paper" id="tkpPreview"></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<!-- ================= Modal: cómo conectar la impresora ================= -->
+<div class="admin-modal-overlay" id="tkpHelpOverlay">
+  <div class="admin-modal-card tkp-help-card" role="dialog" aria-modal="true" aria-labelledby="tkpHelpTitle">
+    <div class="admin-modal-head">
+      <h3 id="tkpHelpTitle">Imprimir en la ticketera de SICAR</h3>
+      <button type="button" class="admin-modal-close" id="tkpHelpClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body tkp-help">
+      <p class="tkp-help-lead">No hay que instalar nada. La ticketera ya está instalada en Windows para SICAR, así que el navegador puede usarla igual.</p>
+      <ol>
+        <li>
+          <strong>Abre el panel en la compu de caja.</strong>
+          <p>Es la compu donde está conectada la ticketera. Usa Google Chrome o Edge. Desde otra compu o desde el celular no se puede, porque la impresora está conectada a esa compu.</p>
+        </li>
+        <li>
+          <strong>Toca «Imprimir prueba».</strong>
+          <p>En <em>Destino</em>, elige la misma impresora que usa SICAR. Suele llamarse <em>EPSON TM-T20</em>, <em>TM-T88</em>, <em>POS-80</em>, <em>XP-80</em> o parecido. Si no sabes cuál es, en Windows ve a <em>Configuración → Impresoras</em>.</p>
+        </li>
+        <li>
+          <strong>En «Más opciones», deja esto una sola vez:</strong>
+          <p>Márgenes: <em>Ninguno</em> · Escala: <em>Predeterminada</em> · desmarca <em>Encabezados y pies de página</em>. Chrome lo recuerda para las siguientes impresiones.</p>
+        </li>
+        <li>
+          <strong>Si sale cortado o muy chico:</strong>
+          <p>Revisa arriba que el ancho del rollo sea el correcto (80 mm o 58 mm) y sube el tamaño de letra o el margen.</p>
+        </li>
+      </ol>
+      <div class="tkp-help-tip">
+        <strong>Para que imprima sin preguntar (opcional)</strong>
+        <p>Pon la ticketera como impresora predeterminada de Windows. Luego crea un acceso directo de Chrome y agrega esto al final de <em>Destino</em>:</p>
+        <code>--kiosk-printing</code>
+        <p>Abriendo Chrome desde ese acceso directo, «Imprimir» manda el ticket directo a la ticketera.</p>
+      </div>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="tkpHelpOk">Entendido</button>
+        <button type="button" class="btn solid small" id="tkpHelpPrint">Imprimir prueba</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: restablecer ================= -->
+<div class="admin-modal-overlay" id="tkpResetOverlay">
+  <div class="admin-modal-card admin-modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="tkpResetTitle">
+    <div class="admin-modal-head">
+      <h3 id="tkpResetTitle">Restablecer ticket</h3>
+      <button type="button" class="admin-modal-close" id="tkpResetClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="admin-confirm-text">Se regresan todos los campos al formato del ticket de SICAR. Los cambios se guardan hasta que toques <strong>Guardar</strong>.</p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="tkpResetCancel">Cancelar</button>
+        <button type="button" class="btn solid small" id="tkpResetConfirm">Restablecer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/receptionist/ticket-render.js"></script>
+<script src="/static/js/receptionist/plantillas-recepcion.js"></script>
+</body>
+</html>

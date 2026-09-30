@@ -195,6 +195,8 @@ func main() {
 
 	// Crea la tabla de la bitácora si todavía no existe (no toca datos).
 	db.EnsureActivityTable()
+	// Crea la tabla de la plantilla del ticket si todavía no existe.
+	db.EnsureTicketTemplateTable()
 
 	storage.Connect()
 
@@ -499,15 +501,15 @@ func main() {
 	{
 		// Comunicación: solo recepción (el admin no chatea ni recibe avisos).
 		receptionistGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleReceptionist), handlers.ReceptionistCommunicationPage)
-		// Secciones nuevas de recepción: por ahora solo están en el
-		// sidebar y sus rutas mandan a Citas. Cuando se creen las
-		// páginas, se cambia "proximamente" por el handler de cada una.
+		// Secciones nuevas de recepción: las que todavía no tienen
+		// página mandan a Citas. Cuando se cree cada página, se cambia
+		// "proximamente" por su handler (Plantillas ya tiene la suya).
 		proximamente := func(c *gin.Context) {
 			c.Redirect(http.StatusFound, "/receptionist/citas")
 		}
 		receptionistGroup.GET("/consultas", proximamente)
 		receptionistGroup.GET("/punto-de-venta", proximamente)
-		receptionistGroup.GET("/plantillas", proximamente)
+		receptionistGroup.GET("/plantillas", handlers.ReceptionistPlantillasPage)
 		receptionistGroup.GET("/administracion", proximamente)
 		receptionistGroup.GET("/citas", func(c *gin.Context) {
 			appointments, err := models.GetAllAppointments()
@@ -524,6 +526,13 @@ func main() {
 				"Citas":      appointments,
 			}))
 		})
+	}
+
+	// API de recepción: plantilla del ticket (Plantillas → Ticket de venta).
+	apiReceptionist := router.Group("/api/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
+	{
+		apiReceptionist.GET("/ticket-plantilla", handlers.GetTicketTemplate)
+		apiReceptionist.PUT("/ticket-plantilla", handlers.SaveTicketTemplate)
 	}
 
 	// Optometrist panel (templates/optometrist/*.html) — mismo login y

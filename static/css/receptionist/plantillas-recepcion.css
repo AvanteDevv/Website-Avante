@@ -1,0 +1,207 @@
+/* =========================================================
+   RECEPCIÓN — Plantillas · Ticket de venta
+   Se apoya en citas-recepcion.css (tokens, .admin-panel, .btn,
+   .staff-field, modales). El ticket en sí lo dibuja
+   ticket-render.js con su propio CSS (blanco y negro, como sale
+   en la ticketera).
+   ========================================================= */
+.tkp-page [hidden]{ display:none !important; }
+
+/* ---------- Encabezado + acciones ---------- */
+.tkp-header{ align-items:flex-end; }
+.tkp-actions{ display:flex; flex-wrap:wrap; gap:10px; }
+.tkp-actions .btn{ display:inline-flex; align-items:center; gap:8px; }
+.tkp-actions .btn svg{ width:15px; height:15px; }
+.tkp-actions .btn:disabled{ opacity:.55; cursor:default; transform:none; box-shadow:none; }
+
+/* ---------- Pestañas (hoy solo "Ticket de venta") ---------- */
+.tkp-tabs{ display:flex; gap:8px; margin:-8px 0 14px; }
+.tkp-tab{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:9px 16px; border-radius:100px; border:1.5px solid var(--line);
+  font-family:var(--sans); font-size:12.5px; font-weight:600; color:var(--muted); background:var(--white);
+}
+.tkp-tab svg{ width:15px; height:15px; }
+.tkp-tab.active{ background:var(--ink); border-color:var(--ink); color:var(--white); }
+
+.tkp-status{ min-height:18px; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:10px; }
+.tkp-status.is-ok{ color:#1f9d55; }
+.tkp-status.is-error{ color:#c0392b; }
+
+/* ---------- Layout: formulario + vista previa ---------- */
+.tkp-layout{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:start; }
+
+.tkp-form{ display:flex; flex-direction:column; gap:16px; min-width:0; }
+.tkp-card{ padding:20px 22px 22px; overflow:visible; }
+.tkp-card-title{
+  display:flex; align-items:center; gap:10px;
+  font-family:var(--sans); font-size:15px; font-weight:700; color:var(--ink);
+  margin-bottom:16px;
+}
+.tkp-card-title small{ font-size:11.5px; font-weight:500; color:var(--muted); }
+
+.tkp-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; }
+.tkp-grid .staff-field{ min-width:0; }
+.tkp-span2{ grid-column:1 / -1; }
+.staff-field textarea{
+  border:1px solid var(--line); border-radius:12px; padding:11px 13px; resize:vertical;
+  font-family:var(--sans); font-size:13.5px; line-height:1.5; color:var(--ink); background:var(--white);
+  transition:border-color .18s var(--ease), background .18s var(--ease);
+}
+.staff-field textarea:focus{ outline:none; border-color:var(--accent); background:var(--accent-soft); }
+.tkp-sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+/* Botones segmentados */
+.tkp-seg{
+  display:flex; flex-wrap:wrap; gap:4px; padding:4px;
+  border-radius:14px; background:var(--accent-soft);
+}
+.tkp-seg button{
+  flex:1; min-width:max-content;
+  padding:9px 12px; border:none; border-radius:10px; background:none; cursor:pointer;
+  font-family:var(--sans); font-size:12.5px; font-weight:600; color:var(--muted);
+  transition:background .2s var(--ease), color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.tkp-seg button:hover{ color:var(--ink); }
+.tkp-seg button.active{ background:var(--white); color:var(--accent); box-shadow:0 2px 8px rgba(4,28,255,.12); }
+body.dark .tkp-seg button.active{ background:var(--accent); color:#fff; }
+
+/* Slider con valor */
+.tkp-range{ display:flex; align-items:center; gap:12px; padding:8px 2px; }
+.tkp-range input{ flex:1; accent-color:var(--accent); }
+.tkp-range output{ min-width:44px; text-align:right; font-size:12.5px; font-weight:700; color:var(--ink); }
+
+/* Switches */
+.tkp-switches{ display:flex; flex-direction:column; gap:12px; margin-top:16px; }
+.tkp-card-title + .tkp-switches{ margin-top:0; margin-bottom:16px; }
+.tkp-switches--grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px 16px; margin:0; }
+.tkp-switch{ display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; font-weight:600; color:var(--ink); user-select:none; }
+.tkp-switch em{ font-style:normal; font-weight:500; color:var(--muted); }
+.tkp-switch input{ position:absolute; opacity:0; pointer-events:none; }
+.tkp-switch-track{
+  position:relative; width:38px; height:22px; border-radius:100px; flex-shrink:0;
+  background:var(--line); transition:background .25s var(--ease);
+}
+.tkp-switch-track::after{
+  content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2);
+  transition:transform .28s cubic-bezier(.22,1.4,.36,1);
+}
+.tkp-switch input:checked + .tkp-switch-track{ background:var(--accent); }
+.tkp-switch input:checked + .tkp-switch-track::after{ transform:translateX(16px); }
+.tkp-switch input:focus-visible + .tkp-switch-track{ box-shadow:0 0 0 4px var(--accent-soft); }
+.tkp-switch.is-disabled{ opacity:.45; cursor:default; }
+
+/* Pagaré: se despliega suave al activarlo */
+.tkp-collapse{
+  display:grid; grid-template-rows:0fr; opacity:0;
+  transition:grid-template-rows .35s var(--ease), opacity .3s var(--ease);
+}
+.tkp-collapse > div{ overflow:hidden; min-height:0; }
+.tkp-collapse.is-open{ grid-template-rows:1fr; opacity:1; }
+
+.tkp-vars{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px; }
+.tkp-vars small{ font-size:11.5px; color:var(--muted); font-weight:600; margin-right:2px; }
+.tkp-vars button{
+  padding:6px 11px; border-radius:100px; border:1.5px dashed var(--accent-border);
+  background:var(--accent-soft); color:var(--accent); cursor:pointer;
+  font-family:var(--sans); font-size:11.5px; font-weight:700;
+  transition:transform .15s var(--ease), background .15s var(--ease);
+}
+.tkp-vars button:hover{ background:var(--blue-100); }
+.tkp-vars button:active{ transform:scale(.95); }
+
+.tkp-foot{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:2px 4px 8px; }
+.tkp-reset{
+  border:none; background:none; cursor:pointer; padding:6px 0;
+  font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--muted);
+  text-decoration:underline; text-underline-offset:3px;
+}
+.tkp-reset:hover{ color:#c0392b; }
+.tkp-updated{ font-size:12px; color:var(--muted); }
+
+/* ---------- Vista previa ---------- */
+.tkp-preview-col{ position:sticky; top:96px; width:360px; }
+.tkp-preview-head{ display:flex; align-items:baseline; justify-content:space-between; padding:0 4px 10px; }
+.tkp-preview-head span{ font-family:var(--sans); font-size:14px; font-weight:700; color:var(--ink); }
+.tkp-preview-head small{ font-size:11.5px; color:var(--muted); }
+.tkp-paper-wrap{
+  border-radius:var(--radius-lg); padding:22px 0 26px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(4,28,255,.07), transparent 60%),
+    var(--accent-soft);
+  border:1.5px solid var(--line);
+  max-height:calc(100vh - 150px); overflow:auto;
+  display:flex; justify-content:center;
+  scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+}
+.tkp-paper{
+  position:relative; flex-shrink:0;
+  filter:drop-shadow(0 10px 18px rgba(10,10,40,.18));
+  animation:tkpPaperIn .5s var(--ease) backwards;
+}
+/* borde de corte en zigzag abajo, como el rollo */
+.tkp-paper::after{
+  content:''; position:absolute; left:0; right:0; bottom:-6px; height:6px;
+  background:linear-gradient(-45deg, transparent 4px, #fff 0) 0 0/8px 8px repeat-x,
+             linear-gradient(45deg, transparent 4px, #fff 0) 0 0/8px 8px repeat-x;
+}
+@keyframes tkpPaperIn{ from{ opacity:0; transform:translateY(-14px); } to{ opacity:1; transform:none; } }
+
+/* ---------- Modal de ayuda ---------- */
+.tkp-help-card{ max-width:540px; }
+.tkp-help-lead{ font-size:13.5px; color:var(--ink); line-height:1.6; margin-bottom:16px; }
+.tkp-help ol{ list-style:none; counter-reset:paso; display:flex; flex-direction:column; gap:14px; }
+.tkp-help li{ counter-increment:paso; position:relative; padding-left:36px; }
+.tkp-help li::before{
+  content:counter(paso); position:absolute; left:0; top:0;
+  width:24px; height:24px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--accent); color:#fff; font-size:12px; font-weight:700;
+}
+.tkp-help li strong{ display:block; font-size:13.5px; color:var(--ink); margin-bottom:3px; }
+.tkp-help li p, .tkp-help-tip p{ font-size:12.5px; color:var(--muted); line-height:1.6; }
+.tkp-help em{ font-style:normal; font-weight:700; color:var(--ink); }
+.tkp-help-tip{
+  margin-top:18px; padding:14px 16px; border-radius:14px;
+  background:var(--accent-soft); border:1px solid var(--line);
+}
+.tkp-help-tip strong{ display:block; font-size:13px; color:var(--ink); margin-bottom:4px; }
+.tkp-help-tip code{
+  display:inline-block; margin:6px 0; padding:5px 10px; border-radius:8px;
+  background:var(--white); border:1px solid var(--line);
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12.5px; color:var(--accent);
+  user-select:all;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1180px){
+  .tkp-switches--grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+}
+@media (max-width:1060px){
+  .tkp-layout{ grid-template-columns:1fr; }
+  /* En pantallas chicas la vista previa va primero */
+  .tkp-preview-col{ position:static; width:auto; order:-1; }
+  .tkp-paper-wrap{ max-height:none; }
+}
+@media (max-width:720px){
+  .tkp-header{ align-items:stretch; }
+  .tkp-actions{ width:100%; }
+  .tkp-actions .btn{ flex:1; justify-content:center; padding-left:12px; padding-right:12px; }
+  #tkpHelpBtn{ flex-basis:100%; order:3; }
+  .tkp-card{ padding:16px; }
+  .tkp-grid{ grid-template-columns:1fr; }
+  .tkp-switches--grid{ grid-template-columns:1fr 1fr; gap:12px; }
+  .staff-field textarea, .tkp-grid input{ font-size:16px; }
+  .tkp-paper-wrap{ padding:16px 0 20px; }
+  /* el ticket de 80 mm (~302 px) cabe; si la pantalla es angosta se escala */
+  .tkp-paper{ zoom:.92; }
+}
+@media (max-width:380px){
+  .tkp-paper{ zoom:.82; }
+  .tkp-switches--grid{ grid-template-columns:1fr; }
+}
+@media (prefers-reduced-motion:reduce){
+  .tkp-paper{ animation:none; }
+  .tkp-collapse{ transition:none; }
+}
