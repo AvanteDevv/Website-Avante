@@ -1,0 +1,102 @@
+/* =========================================================
+   ADMIN — Inventario
+   Se apoya en base-de-datos.css (tokens, .panel, .btn,
+   .users-table, .row-menu, modales, .admin-user-form).
+   ========================================================= */
+.inv-page [hidden]{ display:none !important; }
+.inv-num-money{ font-size:15px !important; }
+.inv-page .btn svg{ width:14px; height:14px; flex-shrink:0; }
+
+/* Tabla */
+.inv-table-wrap{ overflow-x:auto; }
+table.users-table.inv-table{ min-width:860px; }
+.inv-table th.inv-num, .inv-table td.inv-num{ text-align:right; }
+.inv-table tbody tr{ cursor:pointer; }
+.inv-table tbody tr.is-flash{ animation:invFlash 1.4s var(--ease); }
+@keyframes invFlash{ 0%,30%{ background:var(--blue-100); } 100%{ background:transparent; } }
+
+.inv-sort{ cursor:pointer; user-select:none; position:relative; transition:color .18s var(--ease); }
+.inv-sort:hover{ color:var(--ink); }
+.inv-sort::after{
+  content:''; display:inline-block; margin-left:6px; vertical-align:middle;
+  border:4px solid transparent; border-top-color:currentColor; border-bottom:0;
+  opacity:0; transform:translateY(-1px); transition:opacity .18s var(--ease), transform .2s var(--ease);
+}
+.inv-sort.is-sorted{ color:var(--blue-700); }
+.inv-sort.is-sorted::after{ opacity:1; transform:rotate(180deg); }
+.inv-sort.is-sorted.is-desc::after{ transform:none; }
+
+.inv-id{
+  display:inline-block; padding:3px 9px; border-radius:100px;
+  background:var(--blue-50); color:var(--blue-700);
+  font-size:11.5px; font-weight:700; font-variant-numeric:tabular-nums;
+}
+.inv-desc{ font-weight:600; color:var(--ink); max-width:320px; }
+.inv-table td.inv-num{ font-variant-numeric:tabular-nums; white-space:nowrap; }
+.inv-table td.inv-num strong{ font-weight:700; color:var(--ink); }
+.inv-margin-tag{
+  display:block; margin-top:2px; font-size:10.5px; font-weight:700; color:#1f7a3d;
+}
+.inv-margin-tag.is-neg{ color:#c0392b; }
+
+/* Existencia: número + barra */
+.inv-stock{ display:flex; align-items:center; gap:10px; min-width:150px; }
+.inv-stock-num{ min-width:28px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); }
+.inv-stock-bar{ flex:1; max-width:90px; height:6px; border-radius:100px; background:var(--blue-50); overflow:hidden; }
+.inv-stock-bar i{ display:block; height:100%; border-radius:100px; background:#1f9d55; transition:width .5s var(--ease); }
+.inv-stock.is-low .inv-stock-bar i{ background:#e67e22; }
+.inv-stock.is-out .inv-stock-bar i{ background:#c0392b; }
+.inv-stock-tag{ font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 8px; border-radius:100px; }
+.inv-stock.is-low .inv-stock-tag{ background:#fdf0e3; color:#9a4f0c; }
+.inv-stock.is-out .inv-stock-tag{ background:#fbe0e0; color:#a3231b; }
+.inv-stock.is-out .inv-stock-num{ color:#c0392b; }
+body.dark .inv-stock.is-low .inv-stock-tag{ background:rgba(230,126,34,.16); color:#ffb877; }
+body.dark .inv-stock.is-out .inv-stock-tag{ background:rgba(231,76,60,.16); color:#ff8b7d; }
+
+.inv-empty{ text-align:center; padding:52px 24px 58px; font-size:13.5px; color:var(--grey); line-height:1.7; }
+
+/* Modal */
+.inv-modal-card{ max-width:480px; }
+.inv-money{ position:relative; display:block; }
+.inv-money > span{ position:absolute; left:13px; top:50%; transform:translateY(-50%); font-weight:700; color:var(--grey); pointer-events:none; }
+.inv-money input{ width:100%; padding-left:26px !important; }
+.inv-margin{ font-size:12px; font-weight:700; min-height:16px; margin-top:-6px; }
+.inv-margin.is-pos{ color:#1f7a3d; }
+.inv-margin.is-neg{ color:#c0392b; }
+.inv-hint{ font-size:11.5px; color:var(--grey); line-height:1.55; margin-top:-4px; }
+
+/* Celular: cada producto como tarjeta */
+@media (max-width:720px){
+  .inv-table-wrap{ overflow:visible; padding:12px; }
+  table.users-table.inv-table{ min-width:0; display:block; }
+  .inv-table thead{ display:none; }
+  .inv-table tbody{ display:flex; flex-direction:column; gap:10px; }
+  .inv-table tbody tr{
+    position:relative; display:grid; grid-template-columns:1fr 1fr; gap:10px 14px;
+    padding:14px; border:1.5px solid var(--line); border-radius:16px;
+  }
+  .inv-table tbody td{ padding:0; border:none; display:flex; flex-direction:column; gap:2px; text-align:left !important; }
+  .inv-table tbody td::before{
+    content:attr(data-label); font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--grey);
+  }
+  .inv-table tbody td:first-child{ grid-column:1 / -1; padding-right:40px; }
+  .inv-table tbody td:first-child::before{ display:none; }
+  .inv-table tbody td.inv-desc{ grid-column:1 / -1; max-width:none; font-size:14px; }
+  .inv-table tbody td.inv-desc::before{ display:none; }
+  .inv-table tbody td.inv-actions{ position:absolute; top:10px; right:10px; }
+  .inv-table tbody td.inv-actions::before{ display:none; }
+  .inv-stock{ min-width:0; }
+  .inv-margin-tag{ display:inline; margin-left:6px; }
+  .admin-user-form input{ font-size:16px; }
+  .inv-id{ align-self:flex-start; }
+  .inv-page .panel-toolbar{ flex-direction:column; align-items:stretch; gap:12px; }
+  .inv-page .search-box{ max-width:none; min-width:0; }
+  .inv-page .filter-pills{ flex-wrap:wrap; }
+  .inv-page .admin-stats{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:6px; }
+  .inv-page .stat-card-wrap{ width:100%; }
+  .inv-page .admin-stat-card .num{ font-size:14px; }
+  .inv-page .inv-num-money{ font-size:11px !important; }
+  .inv-page .admin-stat-card .label{ font-size:7.5px; }
+  .inv-page .panel-foot{ display:flex; flex-direction:column; gap:10px; }
+  .inv-page .panel-foot-spacer{ display:none; }
+}

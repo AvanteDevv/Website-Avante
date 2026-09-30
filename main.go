@@ -197,6 +197,8 @@ func main() {
 	db.EnsureActivityTable()
 	// Crea la tabla de la plantilla del ticket si todavía no existe.
 	db.EnsureTicketTemplateTable()
+	// Crea la tabla del inventario si todavía no existe.
+	db.EnsureInventoryTable()
 
 	storage.Connect()
 
@@ -454,6 +456,7 @@ func main() {
 		adminGroup.GET("/comunicacion", onlyAdmin, adminHandlers.Communication)
 		// Bitácora: qué hace cada persona del staff (solo admin).
 		adminGroup.GET("/bitacora", onlyAdmin, adminHandlers.Bitacora)
+		adminGroup.GET("/inventario", onlyAdmin, adminHandlers.Inventario)
 		// Logs del servidor (errores incluidos) sin entrar a Railway.
 		adminGroup.GET("/logs", onlyAdmin, handlers.ViewLogs)
 	}
@@ -503,11 +506,11 @@ func main() {
 		receptionistGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleReceptionist), handlers.ReceptionistCommunicationPage)
 		// Secciones nuevas de recepción: las que todavía no tienen
 		// página mandan a Citas. Cuando se cree cada página, se cambia
-		// "proximamente" por su handler (Plantillas y Administración ya tienen la suya).
+		// "proximamente" por su handler (Consultas, Plantillas y Administración ya tienen la suya).
 		proximamente := func(c *gin.Context) {
 			c.Redirect(http.StatusFound, "/receptionist/citas")
 		}
-		receptionistGroup.GET("/consultas", proximamente)
+		receptionistGroup.GET("/consultas", handlers.ReceptionistConsultasPage)
 		receptionistGroup.GET("/punto-de-venta", proximamente)
 		receptionistGroup.GET("/plantillas", handlers.ReceptionistPlantillasPage)
 		receptionistGroup.GET("/administracion", handlers.ReceptionistAdministracionPage)
@@ -533,6 +536,8 @@ func main() {
 	{
 		apiReceptionist.GET("/ticket-plantilla", handlers.GetTicketTemplate)
 		apiReceptionist.PUT("/ticket-plantilla", handlers.SaveTicketTemplate)
+		// Consultas: buscar en el inventario (sin precio de costo).
+		apiReceptionist.GET("/inventario", handlers.SearchInventarioRecepcion)
 	}
 
 	// Optometrist panel (templates/optometrist/*.html) — mismo login y
@@ -612,6 +617,11 @@ func main() {
 		apiAdmin.GET("/pedidos", pedidosStaff, adminHandlers.ListOrders)
 		apiAdmin.PATCH("/pedidos/:id/estado", pedidosStaff, adminHandlers.UpdateOrderStatus)
 		apiAdmin.DELETE("/pedidos/:id", pedidosStaff, adminHandlers.DeleteOrder)
+		// Inventario (Admin → Inventario)
+		apiAdmin.GET("/inventario", onlyAdmin, adminHandlers.ListInventario)
+		apiAdmin.POST("/inventario", onlyAdmin, adminHandlers.CreateInventario)
+		apiAdmin.PUT("/inventario/:id", onlyAdmin, adminHandlers.UpdateInventario)
+		apiAdmin.DELETE("/inventario/:id", onlyAdmin, adminHandlers.DeleteInventario)
 		apiAdmin.GET("/estados", onlyAdmin, adminHandlers.ListStatusOptions)
 		apiAdmin.POST("/estados", onlyAdmin, adminHandlers.CreateStatusOption)
 		apiAdmin.PUT("/estados/:id", onlyAdmin, adminHandlers.UpdateStatusOption)

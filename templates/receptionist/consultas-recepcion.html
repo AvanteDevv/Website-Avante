@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultas — Recepción · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/consultas-recepcion.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "receptionist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "receptionist-sidebar" .}}
+
+  <main class="cuenta-main admin-main csl-page" id="cslPage">
+    <div class="admin-header">
+      <div>
+        <h1>Consultas</h1>
+        <p>Busca en el inventario para ver el precio y cuántas piezas quedan.</p>
+      </div>
+    </div>
+
+    <div class="admin-panel csl-panel">
+      <div class="csl-search">
+        <div class="search-box csl-search-box">
+          <div class="search-box-glow"></div>
+          <div class="search-box-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="search" id="cslSearch" placeholder="Ej. fibra, progresivo, armazón… o el ID" autocomplete="off" autofocus>
+            <span class="csl-spinner" id="cslSpinner" hidden></span>
+            <button type="button" class="csl-clear" id="cslClear" aria-label="Borrar búsqueda" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+        <label class="csl-only">
+          <input type="checkbox" id="cslOnlyStock">
+          <span class="csl-only-track"></span>
+          <span>Solo con existencia</span>
+        </label>
+      </div>
+      <p class="csl-count" id="cslCount" aria-live="polite"></p>
+      <div class="csl-results" id="cslResults"></div>
+      <p class="csl-empty" id="cslEmpty" hidden></p>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/receptionist/consultas-recepcion.js"></script>
+</body>
+</html>

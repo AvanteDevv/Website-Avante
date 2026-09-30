@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario — Admin · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+<link rel="stylesheet" href="/static/css/admin/inventario.css">
+</head>
+<body class="cuenta-body">
+
+{{template "admin-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "admin-sidebar" .}}
+
+  <main class="cuenta-main inv-page" id="invPage">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Inventario</h1>
+        <p>Lo que hay en la óptica: precio de costo, precio de venta, lo que entró y lo que queda. Recepción lo consulta desde «Consultas» (sin ver el precio de costo).</p>
+      </div>
+      <button type="button" class="btn thin" id="invNewBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo producto</button>
+    </div>
+
+    <div class="admin-stats">
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num" id="invStatProductos">—</div><div class="label">Productos</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num" id="invStatPiezas">—</div><div class="label">Piezas en existencia</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num inv-num-money" id="invStatCosto">—</div><div class="label">Valor a costo</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num inv-num-money" id="invStatVenta">—</div><div class="label">Valor a venta</div></div></div>
+      <div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card" style="--stat-color:#c0392b"><div class="num" id="invStatAgotados">—</div><div class="label">Agotados</div></div></div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Todos los productos</h2>
+          <p id="invSubtitle">Cargando…</p>
+        </div>
+      </div>
+
+      <div class="panel-toolbar">
+        <div class="search-box">
+          <div class="search-box-glow"></div>
+          <div class="search-box-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="invSearch" placeholder="Buscar por ID o descripción…" autocomplete="off">
+          </div>
+        </div>
+        <div class="filter-pills" id="invFilters">
+          <button type="button" class="filter-pill active" data-filter="todos">Todos</button>
+          <button type="button" class="filter-pill" data-filter="existencia">Con existencia</button>
+          <button type="button" class="filter-pill" data-filter="pocos">Pocas piezas</button>
+          <button type="button" class="filter-pill" data-filter="agotados">Agotados</button>
+        </div>
+      </div>
+
+      <div class="table-wrap inv-table-wrap">
+        <table class="users-table inv-table" id="invTable">
+          <thead>
+            <tr>
+              <th class="inv-sort" data-sort="id">ID</th>
+              <th class="inv-sort" data-sort="descripcion">Descripción</th>
+              <th class="inv-sort inv-num" data-sort="precio_costo">Precio de costo</th>
+              <th class="inv-sort inv-num" data-sort="precio_venta">Precio de venta</th>
+              <th class="inv-sort inv-num" data-sort="cantidad">Cantidad</th>
+              <th class="inv-sort" data-sort="cantidad_actual">Cantidad actual</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="invBody"></tbody>
+        </table>
+        <p class="inv-empty" id="invEmpty">Cargando…</p>
+      </div>
+
+      <div class="panel-foot">
+        <span class="panel-foot-count" id="invFootCount"></span>
+        <div class="pagination">
+          <button type="button" class="page-arrow" id="invPrev" aria-label="Página anterior" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="page-current" id="invPagCurrent">Página 1</span>
+          <button type="button" class="page-arrow" id="invNext" aria-label="Página siguiente" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+        <span class="panel-foot-spacer"></span>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Nuevo / editar producto -->
+<div class="admin-modal-overlay" id="invModalOverlay">
+  <div class="admin-modal-card inv-modal-card" role="dialog" aria-modal="true" aria-labelledby="invModalTitle">
+    <div class="admin-modal-head">
+      <h3 id="invModalTitle">Nuevo producto</h3>
+      <button type="button" class="admin-modal-close" id="invModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="admin-user-form" id="invForm" novalidate>
+        <label>Descripción
+          <input type="text" id="invDescripcion" maxlength="200" required placeholder="Ej. Mica fibra de vidrio CR-39 AR">
+        </label>
+        <div class="admin-user-form-row">
+          <label>Precio de costo
+            <span class="inv-money"><span>$</span><input type="number" id="invCosto" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span>
+          </label>
+          <label>Precio de venta
+            <span class="inv-money"><span>$</span><input type="number" id="invVenta" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span>
+          </label>
+        </div>
+        <p class="inv-margin" id="invMargin"></p>
+        <div class="admin-user-form-row">
+          <label>Cantidad
+            <input type="number" id="invCantidad" min="0" step="1" inputmode="numeric" placeholder="0">
+          </label>
+          <label>Cantidad actual <span class="admin-user-form-optional">(lo que queda)</span>
+            <input type="number" id="invActual" min="0" step="1" inputmode="numeric" placeholder="Igual a cantidad">
+          </label>
+        </div>
+        <p class="inv-hint">La cantidad actual irá bajando sola con cada venta del Punto de venta. Aquí puedes ajustarla a mano si haces un conteo.</p>
+        <p class="admin-user-form-error" id="invError"></p>
+        <button type="submit" class="btn solid" id="invSubmit">Guardar producto</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Eliminar -->
+<div class="admin-modal-overlay" id="invDeleteOverlay">
+  <div class="admin-modal-card admin-modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="invDeleteTitle">
+    <div class="admin-modal-head">
+      <h3 id="invDeleteTitle">Eliminar producto</h3>
+      <button type="button" class="admin-modal-close" id="invDeleteClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="admin-confirm-text">¿Eliminar <strong id="invDeleteName"></strong> del inventario? Esta acción no se puede deshacer.</p>
+      <p class="admin-user-form-error" id="invDeleteError"></p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="invDeleteCancel">Cancelar</button>
+        <button type="button" class="btn small danger" id="invDeleteConfirm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/admin/inventario.js"></script>
+</body>
+</html>

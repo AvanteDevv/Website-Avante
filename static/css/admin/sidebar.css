@@ -198,3 +198,11 @@ body .cuenta-shell{
   /* En el celular el sidebar es la barra horizontal: sin marca */
   .cuenta-brand{ display:none; }
 }
+
+/* Celular: el contenido usa todo el ancho de la pantalla (antes se
+   estiraba al ancho de la barra de links y la página se salía). */
+@media (max-width:900px){
+  body .cuenta-shell{ align-items:stretch; }
+  body .cuenta-shell > .cuenta-main{ width:100%; min-width:0; }
+  .cuenta-sidebar{ max-width:100%; min-width:0; }
+}
