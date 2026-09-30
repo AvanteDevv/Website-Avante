@@ -539,6 +539,21 @@
   function openModal(){
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
+    loadSavedHours();
+  }
+
+  // El horario guardado se lee de /api/horarios (lo mismo que usa
+  // Agendar) cada vez que se abre el modal: así siempre muestra lo que
+  // está guardado de verdad, aunque la página no lo traiga en el HTML.
+  function loadSavedHours(){
+    fetch('/api/horarios', { headers: { Accept: 'application/json' } })
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .then(function(data){
+        if (!data) return;
+        if (data.open && pickerSetters.agendaOpen) pickerSetters.agendaOpen(String(data.open).slice(0, 5));
+        if (data.close && pickerSetters.agendaClose) pickerSetters.agendaClose(String(data.close).slice(0, 5));
+      })
+      .catch(function(){ /* se queda con lo que tenga el formulario */ });
   }
   function closeModal(){
     overlay.classList.remove('open');
@@ -570,6 +585,8 @@
   }
   var TIME_OPTIONS = buildOptions();
 
+  var pickerSetters = {}; // id del input oculto -> setValue(t)
+
   function initPicker(pickerId, hiddenInputId){
     var picker = document.getElementById(pickerId);
     var hiddenInput = document.getElementById(hiddenInputId);
@@ -592,6 +609,7 @@
       hiddenInput.dispatchEvent(new Event('change'));
     }
     if (hiddenInput.value) setValue(hiddenInput.value);
+    pickerSetters[hiddenInputId] = setValue;
 
     function open(){
       closeAllPickers();
