@@ -946,9 +946,59 @@
   var timeLabel = document.getElementById('crearCitaTimeLabel');
   var timeMenu = document.getElementById('crearCitaTimeMenu');
 
+  /* ---------- Horas ocupadas del día elegido ----------
+     Se juntan dos fuentes: lo que dice el servidor
+     (/api/horarios/ocupadas, lo mismo que usa Agendar) y las citas que
+     ya están en esta página (por si la API falla). Las citas canceladas
+     no ocupan. Esas horas salen como "Ocupada" y no se pueden elegir;
+     si el día es hoy, las horas que ya pasaron tampoco. */
+  var occupied = [];
+  var occupiedReq = 0;
+
+  function occupiedFromPage(dateISO){
+    return Array.prototype.slice.call(document.querySelectorAll('#citasTableBody tr[data-id]'))
+      .filter(function(r){ return r.dataset.date === dateISO && r.dataset.status !== 'cancelada'; })
+      .map(function(r){ return (r.dataset.time || '').slice(0, 5); });
+  }
+
+  function loadOccupied(dateISO){
+    var req = ++occupiedReq;
+    occupied = occupiedFromPage(dateISO);
+    fillTimeMenu();
+    if (!dateISO) return Promise.resolve();
+    return fetch('/api/horarios/ocupadas?fecha=' + encodeURIComponent(dateISO))
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .then(function(data){
+        if (req !== occupiedReq || !data) return;
+        (data.ocupadas || []).forEach(function(t){
+          t = String(t).slice(0, 5);
+          if (occupied.indexOf(t) === -1) occupied.push(t);
+        });
+        fillTimeMenu();
+      })
+      .catch(function(){ /* se queda con lo de la página */ });
+  }
+
+  function isPastToday(t){
+    if (dateHidden.value !== todayISO) return false;
+    var now = new Date();
+    return t < pad(now.getHours()) + ':' + pad(now.getMinutes());
+  }
+
   function fillTimeMenu(){
+    // Si la hora elegida resultó ocupada (o ya pasó), se quita.
+    if (timeHidden.value && (occupied.indexOf(timeHidden.value) !== -1 || isPastToday(timeHidden.value))) {
+      timeHidden.value = '';
+      timeLabel.textContent = '—';
+      errorEl.textContent = 'Esa hora ya está ocupada, elige otra.';
+    }
     timeMenu.innerHTML = HOURS.map(function(t){
-      return '<button type="button" class="time-picker-option' + (t === timeHidden.value ? ' active' : '') + '" data-time="' + t + '">' + to12h(t) + '</button>';
+      var busy = occupied.indexOf(t) !== -1;
+      var past = !busy && isPastToday(t);
+      var cls = 'time-picker-option' + (t === timeHidden.value ? ' active' : '') + (busy ? ' is-occupied' : '') + (past ? ' is-past' : '');
+      var tag = busy ? '<small>Ocupada</small>' : (past ? '<small>Ya pasó</small>' : '');
+      return '<button type="button" class="' + cls + '" data-time="' + t + '"' + (busy || past ? ' disabled' : '') + '>' +
+        '<span>' + to12h(t) + '</span>' + tag + '</button>';
     }).join('');
   }
   function setTime(t){
@@ -968,7 +1018,8 @@
   });
   timeMenu.addEventListener('click', function(e){
     var opt = e.target.closest('.time-picker-option');
-    if (!opt) return;
+    if (!opt || opt.disabled) return;
+    errorEl.textContent = '';
     setTime(opt.dataset.time);
     timePicker.classList.remove('is-open');
   });
@@ -1009,8 +1060,10 @@
     dateGrid.innerHTML = html;
   }
   function setDate(y, m, d){
+    var changed = dateHidden.value !== iso(y, m, d);
     dateHidden.value = iso(y, m, d);
     dateLabel.textContent = pad(d) + '/' + pad(m + 1) + '/' + y;
+    if (changed) loadOccupied(dateHidden.value);
   }
   document.getElementById('crearCitaDatePrev').addEventListener('click', function(e){
     e.stopPropagation();
@@ -1210,12 +1263,12 @@
 
     viewYear = today.getFullYear();
     viewMonth = today.getMonth();
-    setDate(today.getFullYear(), today.getMonth(), today.getDate());
-    renderDateGrid();
-
-    fillTimeMenu();
     timeHidden.value = '';
     timeLabel.textContent = '—';
+    dateHidden.value = '';
+    setDate(today.getFullYear(), today.getMonth(), today.getDate()); // también carga las ocupadas
+    renderDateGrid();
+    errorEl.textContent = '';
 
     form.querySelectorAll('.qchip input').forEach(function(i){ i.checked = false; i.dataset.wasChecked = ''; });
 
@@ -1257,6 +1310,7 @@
     var time = timeHidden.value;
 
     if (!date || !time) { errorEl.textContent = 'Selecciona día y hora.'; return; }
+    if (occupied.indexOf(time) !== -1) { errorEl.textContent = 'Esa hora ya está ocupada, elige otra.'; return; }
     if (!nombre || !apellido) { errorEl.textContent = 'Completa nombre y apellido.'; return; }
     if (!/^\d{10}$/.test(celularDigits)) { errorEl.textContent = 'Ingresa un celular a 10 dígitos.'; return; }
     if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { errorEl.textContent = 'El correo no es válido.'; return; }
@@ -1281,6 +1335,7 @@
       })
     }).then(function(res){
       if (res.status === 409) {
+        loadOccupied(date); // alguien la ganó: refresca las ocupadas
         return res.json().then(function(data){ throw new Error(data.error || 'Esa hora ya está ocupada.'); });
       }
       if (!res.ok) {
