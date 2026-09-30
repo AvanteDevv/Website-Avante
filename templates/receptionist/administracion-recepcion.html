@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administración — Recepción · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/administracion-recepcion.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "receptionist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "receptionist-sidebar" .}}
+
+  <main class="cuenta-main admin-main adm-page" id="admPage">
+    <div class="admin-header">
+      <div>
+        <h1>Administración</h1>
+        <p>Reportes del negocio y Clarito.</p>
+      </div>
+    </div>
+
+    <div class="adm-tabs" id="admTabs" role="tablist" aria-label="Secciones de administración">
+      <span class="adm-tabs-glow" aria-hidden="true"></span>
+      <button type="button" class="adm-tab{{if eq .Tab "reportes"}} active{{end}}" role="tab" id="admTabReportes" data-tab="reportes"
+              aria-controls="admPanelReportes" aria-selected="{{if eq .Tab "reportes"}}true{{else}}false{{end}}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+        Reportes
+      </button>
+      <button type="button" class="adm-tab{{if eq .Tab "clarito"}} active{{end}}" role="tab" id="admTabClarito" data-tab="clarito"
+              aria-controls="admPanelClarito" aria-selected="{{if eq .Tab "clarito"}}true{{else}}false{{end}}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9.5a3.5 3.5 0 1 0 0 5"/></svg>
+        Clarito
+      </button>
+    </div>
+
+    <section class="admin-panel adm-panel" id="admPanelReportes" role="tabpanel" aria-labelledby="admTabReportes"{{if ne .Tab "reportes"}} hidden{{end}}>
+      <div class="adm-empty">
+        <div class="adm-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+        <h2>Reportes</h2>
+        <p>Todavía no hay nada aquí.</p>
+      </div>
+    </section>
+
+    <section class="admin-panel adm-panel" id="admPanelClarito" role="tabpanel" aria-labelledby="admTabClarito"{{if ne .Tab "clarito"}} hidden{{end}}>
+      <div class="adm-empty">
+        <div class="adm-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9.5a3.5 3.5 0 1 0 0 5"/></svg></div>
+        <h2>Clarito</h2>
+        <p>Todavía no hay nada aquí.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/receptionist/administracion-recepcion.js"></script>
+</body>
+</html>
