@@ -462,9 +462,28 @@ const questCount = document.getElementById('questCount');
 const questProgressBar = document.getElementById('questProgressBar');
 let questIndex = 0;
 
+const questEmpresaWrap = document.getElementById('questEmpresaWrap');
+const questEmpresa = document.getElementById('questEmpresa');
+
+function empresaSelected(){
+  const el = apptQuestForm.querySelector('input[name="procedencia"]:checked');
+  return !!el && el.value === 'empresa';
+}
 function questStepValid(stepEl){
   const req = (stepEl.dataset.required || '').split(',').filter(Boolean);
-  return req.every(name => apptQuestForm.querySelector('input[name="' + name + '"]:checked'));
+  const radiosOk = req.every(name => apptQuestForm.querySelector('input[name="' + name + '"]:checked'));
+  if(!radiosOk) return false;
+  // "De una empresa" pide escribir cuál.
+  if(stepEl.contains(questEmpresa) && empresaSelected() && !questEmpresa.value.trim()) return false;
+  return true;
+}
+// Muestra / oculta (con animación) el campo "¿De qué empresa?".
+function syncEmpresaField(){
+  const on = empresaSelected();
+  questEmpresaWrap.classList.toggle('is-open', on);
+  questEmpresaWrap.setAttribute('aria-hidden', on ? 'false' : 'true');
+  questEmpresa.tabIndex = on ? 0 : -1;
+  if(on) setTimeout(() => questEmpresa.focus(), 260);
 }
 function showQuestStep(i, back){
   questIndex = Math.max(0, Math.min(i, questSteps.length - 1));
@@ -484,7 +503,9 @@ function showQuestStep(i, back){
 function questGoNext(){
   const step = questSteps[questIndex];
   if(!questStepValid(step)){
-    apptQuestError.textContent = step.dataset.step === '2' ? 'Responde las dos preguntas para continuar.' : 'Elige una opción para continuar.';
+    apptQuestError.textContent = step.dataset.step === '2' ? 'Responde las dos preguntas para continuar.'
+      : (step.contains(questEmpresa) && empresaSelected()) ? 'Escribe el nombre de la empresa.'
+      : 'Elige una opción para continuar.';
     return;
   }
   showQuestStep(questIndex + 1);
@@ -494,8 +515,16 @@ questBack.addEventListener('click', () => showQuestStep(questIndex - 1, true));
 
 // Elegir una opción NO avanza sola: solo se pasa de paso con el botón
 // "Siguiente". Aquí solo se borra el aviso de "elige una opción".
-apptQuestForm.addEventListener('change', () => {
+apptQuestForm.addEventListener('change', (e) => {
   apptQuestError.textContent = '';
+  if(e.target.name === 'procedencia') syncEmpresaField();
+});
+questEmpresa.addEventListener('input', () => { apptQuestError.textContent = ''; });
+// Enter en "¿De qué empresa?" = Continuar / Siguiente (no manda el form a medias).
+questEmpresa.addEventListener('keydown', (e) => {
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  if(!questNext.hidden) questGoNext(); else apptQuestSubmit.click();
 });
 
 function openQuestModal(){
@@ -676,6 +705,7 @@ apptContactForm.addEventListener('submit', (e) => {
   closeApptContactModal();
   apptQuestError.textContent = '';
   apptQuestForm.reset();
+  syncEmpresaField();
   openQuestModal();
 });
 
@@ -691,7 +721,9 @@ apptQuestForm.addEventListener('submit', async (e) => {
   const missing = questSteps.findIndex(step => !questStepValid(step));
   if(missing !== -1){
     showQuestStep(missing, true);
-    apptQuestError.textContent = 'Te faltó responder esta pregunta.';
+    apptQuestError.textContent = (questSteps[missing].contains(questEmpresa) && empresaSelected())
+      ? 'Escribe el nombre de la empresa.'
+      : 'Te faltó responder esta pregunta.';
     return;
   }
 
@@ -705,7 +737,10 @@ apptQuestForm.addEventListener('submit', async (e) => {
     lentes_contacto: lentesContacto.value,
     usa_gotitas: usaGotitas ? usaGotitas.value : '',
     problemas,
-    enfermedades
+    enfermedades,
+    como_se_entero: (apptQuestForm.querySelector('input[name="como_se_entero"]:checked') || {}).value || '',
+    procedencia: (apptQuestForm.querySelector('input[name="procedencia"]:checked') || {}).value || '',
+    empresa: empresaSelected() ? questEmpresa.value.trim() : ''
   };
 
   apptQuestError.textContent = '';

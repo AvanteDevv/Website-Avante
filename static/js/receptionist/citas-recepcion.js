@@ -169,7 +169,9 @@
     lentes_contacto: '¿Usa lentes de contacto?',
     usa_gotitas: '¿Usa gotas para los ojos?',
     problemas: 'Problemas visuales',
-    enfermedades: 'Enfermedades relacionadas'
+    enfermedades: 'Enfermedades relacionadas',
+    como_se_entero: '¿Cómo se enteró de nosotros?',
+    procedencia: '¿Viene de parte de?'
   };
 
   // Texto que ve el cliente en agendar.html para cada valor guardado.
@@ -189,6 +191,12 @@
     diabetes: 'Diabetes',
     hipertension: 'Hipertensión',
     cirugias_oculares: 'Cirugías oculares',
+    facebook: 'Facebook',
+    instagram: 'Instagram',
+    television: 'Televisión',
+    tiktok: 'TikTok',
+    empresa: 'Una empresa',
+    unison: 'La Unison',
     ninguno: 'Ninguno',
     ninguna: 'Ninguna'
   };
@@ -247,6 +255,11 @@
           var text = Array.isArray(val)
             ? (val.map(questValueLabel).filter(Boolean).join(', ') || 'Ninguno')
             : questValueLabel(val);
+          // "Empresa" + cuál: "Empresa — Grupo México".
+          if (key === 'procedencia') {
+            if (val === 'empresa') text = 'Empresa' + (parsed.empresa ? ' — ' + String(parsed.empresa).trim() : '');
+            else if (val === 'ninguna') text = 'Ninguna (vino por su cuenta)';
+          }
           if (!text) return;
           var item = document.createElement('div');
           item.className = 'cliente-quest-item';
@@ -1235,6 +1248,22 @@
     }
   });
 
+  /* "Empresa" → aparece el campo "¿De qué empresa?" (deslizándose). */
+  var empresaWrap = document.getElementById('crearCitaEmpresaWrap');
+  var empresaInput = document.getElementById('crearCitaEmpresa');
+  function syncEmpresa(){
+    var sel = form.querySelector('input[name="procedencia"]:checked');
+    var on = !!sel && sel.value === 'empresa';
+    empresaWrap.classList.toggle('is-open', on);
+    empresaInput.tabIndex = on ? 0 : -1;
+    if (on) setTimeout(function(){ empresaInput.focus(); }, 250);
+  }
+  form.addEventListener('change', function(e){ if (e.target.name === 'procedencia') syncEmpresa(); });
+  // El clic que desmarca un chip no dispara "change": se revisa después del clic.
+  form.addEventListener('click', function(e){
+    if (e.target.name === 'procedencia') setTimeout(syncEmpresa, 0);
+  });
+
   function collectQuestionnaire(){
     function one(name){
       var el = form.querySelector('input[name="' + name + '"]:checked');
@@ -1243,7 +1272,11 @@
     function many(name){
       return Array.prototype.slice.call(form.querySelectorAll('input[name="' + name + '"]:checked')).map(function(i){ return i.value; });
     }
+    var procedencia = one('procedencia');
     var q = {
+      como_se_entero: one('como_se_entero'),
+      procedencia: procedencia,
+      empresa: procedencia === 'empresa' ? empresaInput.value.trim() : '',
       ultimo_examen: one('ultimo_examen'),
       lentes_armazon: one('lentes_armazon'),
       lentes_contacto: one('lentes_contacto'),
@@ -1251,7 +1284,7 @@
       problemas: many('problemas'),
       enfermedades: many('enfermedades')
     };
-    var answered = q.ultimo_examen || q.lentes_armazon || q.lentes_contacto || q.usa_gotitas ||
+    var answered = q.como_se_entero || q.procedencia || q.ultimo_examen || q.lentes_armazon || q.lentes_contacto || q.usa_gotitas ||
       q.problemas.length || q.enfermedades.length;
     return answered ? q : null;
   }
@@ -1271,6 +1304,8 @@
     errorEl.textContent = '';
 
     form.querySelectorAll('.qchip input').forEach(function(i){ i.checked = false; i.dataset.wasChecked = ''; });
+    empresaInput.value = '';
+    syncEmpresa();
 
     selectedLada = '+52';
     ladaLabel.textContent = '+52';
@@ -1306,6 +1341,11 @@
     // Si la crea recepción, ya está confirmada: siempre "verificada".
     var status = 'verificada';
     var cuestionario = collectQuestionnaire();
+    if (cuestionario && cuestionario.procedencia === 'empresa' && !cuestionario.empresa) {
+      errorEl.textContent = 'Escribe de qué empresa viene el cliente.';
+      empresaInput.focus();
+      return;
+    }
     var date = dateHidden.value;
     var time = timeHidden.value;
 

@@ -1061,3 +1061,17 @@ body.dark .cancel-cita-icon{ background:rgba(255,193,7,.16); color:#ffcf5c; }
 .time-picker-option.is-past small{ background:var(--accent-soft); color:var(--muted); }
 .time-picker-option.is-occupied:hover, .time-picker-option.is-past:hover{ background:none; color:var(--muted); }
 body.dark .time-picker-option.is-occupied small{ background:rgba(231,76,60,.16); color:#ff8b7d; }
+
+/* "¿De qué empresa?" en Crear cita — aparece deslizándose */
+.crear-cita-empresa{
+  display:grid; grid-template-rows:0fr; opacity:0;
+  transition:grid-template-rows .35s var(--ease), opacity .3s var(--ease), margin .35s var(--ease);
+}
+.crear-cita-empresa > div{ overflow:hidden; min-height:0; }
+.crear-cita-empresa.is-open{ grid-template-rows:1fr; opacity:1; margin-top:8px; }
+.crear-cita-empresa input{
+  width:100%; border:1px solid var(--line); border-radius:12px; padding:11px 13px;
+  font-family:var(--sans); font-size:13.5px; color:var(--ink); background:var(--white);
+  transition:border-color .18s var(--ease), background .18s var(--ease);
+}
+.crear-cita-empresa input:focus{ outline:none; border-color:var(--accent); background:var(--accent-soft); }

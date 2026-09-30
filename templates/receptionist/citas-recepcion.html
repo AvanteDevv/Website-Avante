@@ -491,6 +491,28 @@
             <label class="qchip"><input type="checkbox" name="enfermedades" value="cirugias_oculares"><span>Cirugías oculares</span></label>
           </div>
         </div>
+        <div class="staff-field">
+          <span>¿Cómo se enteró de nosotros?</span>
+          <div class="qchips" data-quest="como_se_entero">
+            <label class="qchip"><input type="radio" name="como_se_entero" value="facebook"><span>Facebook</span></label>
+            <label class="qchip"><input type="radio" name="como_se_entero" value="instagram"><span>Instagram</span></label>
+            <label class="qchip"><input type="radio" name="como_se_entero" value="television"><span>Televisión</span></label>
+            <label class="qchip"><input type="radio" name="como_se_entero" value="tiktok"><span>TikTok</span></label>
+          </div>
+        </div>
+        <div class="staff-field">
+          <span>¿Viene de parte de una empresa o de la Unison?</span>
+          <div class="qchips" data-quest="procedencia">
+            <label class="qchip"><input type="radio" name="procedencia" value="empresa"><span>Empresa</span></label>
+            <label class="qchip"><input type="radio" name="procedencia" value="unison"><span>Unison</span></label>
+            <label class="qchip"><input type="radio" name="procedencia" value="ninguna"><span>Ninguna</span></label>
+          </div>
+          <div class="crear-cita-empresa" id="crearCitaEmpresaWrap">
+            <div>
+              <input type="text" id="crearCitaEmpresa" name="empresa" maxlength="120" placeholder="¿De qué empresa?" tabindex="-1">
+            </div>
+          </div>
+        </div>
         <p class="staff-error" id="crearCitaError"></p>
         <div class="staff-form-actions">
           <button type="button" class="btn small" id="crearCitaCancel">Cancelar</button>

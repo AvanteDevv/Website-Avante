@@ -640,3 +640,11 @@ footer{
 }
 .appt-datepicker-actions button{ font-size:12px; font-weight:700; color:var(--blue-600); }
 .appt-datepicker-actions button:hover{ color:var(--blue-700); }
+
+/* "¿De qué empresa?" — aparece deslizándose al elegir "De una empresa" */
+.quest-empresa{
+  display:grid; grid-template-rows:0fr; opacity:0;
+  transition:grid-template-rows .35s var(--ease), opacity .3s var(--ease), margin .35s var(--ease);
+}
+.quest-empresa > .modal-field{ overflow:hidden; min-height:0; margin-bottom:0; }
+.quest-empresa.is-open{ grid-template-rows:1fr; opacity:1; margin-top:14px; }

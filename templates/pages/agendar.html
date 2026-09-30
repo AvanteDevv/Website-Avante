@@ -129,7 +129,7 @@
     <button class="modal-close" id="apptQuestModalClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
 
     <div class="quest-top">
-      <span class="quest-count" id="questCount">Paso 1 de 5</span>
+      <span class="quest-count" id="questCount">Paso 1 de 7</span>
       <div class="quest-progress"><div class="quest-progress-bar" id="questProgressBar"></div></div>
     </div>
 
@@ -194,6 +194,33 @@
           <label class="qopt"><input type="checkbox" name="enfermedades" value="diabetes"><span class="qopt-box"><span class="qopt-text">Diabetes</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
           <label class="qopt"><input type="checkbox" name="enfermedades" value="hipertension"><span class="qopt-box"><span class="qopt-text">Hipertensión</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
           <label class="qopt"><input type="checkbox" name="enfermedades" value="cirugias_oculares"><span class="qopt-box"><span class="qopt-text">Cirugías oculares</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
+        </div>
+      </section>
+
+      <section class="quest-step" data-step="6" data-required="como_se_entero">
+        <h3>¿Cómo te enteraste de nosotros?</h3>
+        <p class="quest-step-hint">Elige una opción.</p>
+        <div class="qopt-list">
+          <label class="qopt"><input type="radio" name="como_se_entero" value="facebook"><span class="qopt-box"><span class="qopt-text">Facebook</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
+          <label class="qopt"><input type="radio" name="como_se_entero" value="instagram"><span class="qopt-box"><span class="qopt-text">Instagram</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
+          <label class="qopt"><input type="radio" name="como_se_entero" value="television"><span class="qopt-box"><span class="qopt-text">Televisión</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
+          <label class="qopt"><input type="radio" name="como_se_entero" value="tiktok"><span class="qopt-box"><span class="qopt-text">TikTok</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
+        </div>
+      </section>
+
+      <section class="quest-step" data-step="7" data-required="procedencia">
+        <h3>¿Vienes de parte de alguna empresa o de la Unison?</h3>
+        <p class="quest-step-hint">Elige una opción.</p>
+        <div class="qopt-list">
+          <label class="qopt"><input type="radio" name="procedencia" value="empresa"><span class="qopt-box"><span class="qopt-text">De una empresa</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
+          <label class="qopt"><input type="radio" name="procedencia" value="unison"><span class="qopt-box"><span class="qopt-text">De la Unison</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
+          <label class="qopt"><input type="radio" name="procedencia" value="ninguna"><span class="qopt-box"><span class="qopt-text">Ninguna, vengo por mi cuenta</span><svg class="qopt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></label>
+        </div>
+        <div class="quest-empresa" id="questEmpresaWrap" aria-hidden="true">
+          <div class="modal-field">
+            <label for="questEmpresa">¿De qué empresa?</label>
+            <input type="text" id="questEmpresa" name="empresa" maxlength="120" placeholder="Nombre de la empresa" autocomplete="organization">
+          </div>
         </div>
       </section>
 
