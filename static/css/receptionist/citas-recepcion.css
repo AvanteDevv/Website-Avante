@@ -842,7 +842,8 @@ body.dark .cal-action-noasistio:hover{ border-color:#666; background:rgba(255,25
 .staff-form-row{ display:flex; gap:12px; }
 .staff-form-row .staff-field{ flex:1; min-width:0; }
 .staff-field{ display:flex; flex-direction:column; gap:6px; }
-.staff-field span{ font-size:11.5px; font-weight:700; letter-spacing:.3px; color:var(--muted); text-transform:uppercase; }
+.staff-field > span{ font-size:11.5px; font-weight:700; letter-spacing:.3px; color:var(--muted); text-transform:uppercase; }
+.staff-field > span em{ font-style:normal; font-weight:500; text-transform:none; letter-spacing:0; }
 .staff-field input,
 .staff-field select{
   border:1px solid var(--line); border-radius:12px; padding:11px 13px;
@@ -995,3 +996,55 @@ body.dark .admin-stat-card .num.stat-num-noasistio{ color:#b9b9b9; }
 
 /* Sin subrayado en los links del sidebar / userbar */
 .cuenta-sidebar a, .cuenta-nav-link, .userbar-menu a, .userbar-menu-link{ text-decoration:none; }
+
+/* ===========================================================
+   CREAR CITA — secciones (Fecha y hora · Datos del cliente ·
+   Cuestionario) y opciones del cuestionario como "chips"
+   =========================================================== */
+.crear-cita-card{ max-width:580px; }
+.form-section-title{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  font-size:14px; font-weight:700; color:var(--ink);
+  padding-bottom:10px; margin-top:10px; border-bottom:1px solid var(--line);
+}
+.staff-form .form-section-title:first-child{ margin-top:0; }
+.form-section-title small{ font-size:11.5px; font-weight:500; color:var(--muted); }
+.form-section-num{
+  width:22px; height:22px; border-radius:50%; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--accent); color:#fff; font-size:11px; font-weight:700;
+}
+
+.qchips{ display:flex; flex-wrap:wrap; gap:8px; }
+.qchip{ position:relative; cursor:pointer; }
+.qchip input{ position:absolute; opacity:0; pointer-events:none; }
+.qchip span{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 14px; border-radius:100px; border:1.5px solid var(--line);
+  font-size:12.5px; font-weight:600; color:var(--ink); background:var(--white);
+  transition:border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease), transform .18s var(--ease);
+}
+.qchip:hover span{ border-color:var(--accent-border); }
+.qchip:active span{ transform:scale(.96); }
+.qchip input:checked + span{
+  background:var(--accent); border-color:var(--accent); color:#fff;
+  animation:qchipPop .28s cubic-bezier(.22,1.4,.36,1);
+}
+.qchip input:focus-visible + span{ box-shadow:0 0 0 4px var(--accent-soft); }
+@keyframes qchipPop{ 0%{ transform:scale(1); } 45%{ transform:scale(1.06); } 100%{ transform:scale(1); } }
+
+/* ===========================================================
+   Modal: ¿seguro que quieres cancelar la cita?
+   =========================================================== */
+.cancel-cita-icon{
+  width:48px; height:48px; border-radius:50%; margin:2px auto 14px;
+  display:flex; align-items:center; justify-content:center;
+  background:#fdf1d6; color:#8a6a12;
+  animation:qchipPop .4s cubic-bezier(.22,1.4,.36,1);
+}
+.cancel-cita-icon svg{ width:22px; height:22px; }
+body.dark .cancel-cita-icon{ background:rgba(255,193,7,.16); color:#ffcf5c; }
+#cancelCitaModalOverlay .admin-confirm-text{ text-align:center; }
+.cancel-cita-when{ text-align:center; font-size:12.5px; font-weight:600; color:var(--muted); margin-top:6px; }
+.cancel-cita-when:empty{ display:none; }
+#cancelCitaModalOverlay .admin-confirm-actions{ justify-content:center; }

@@ -102,14 +102,57 @@
     });
   }
 
-  function updateStatus(id, status){
+  /* ---------- Modal: ¿seguro que quieres cancelar la cita? ---------- */
+  var cancelOverlay = document.getElementById('cancelCitaModalOverlay');
+  var cancelWhoEl = document.getElementById('cancelCitaWho');
+  var cancelWhenEl = document.getElementById('cancelCitaWhen');
+  var cancelConfirmBtn = document.getElementById('cancelCitaConfirm');
+  var pendingCancelId = null;
+
+  function askCancel(id){
+    if (!cancelOverlay) { updateStatus(id, 'cancelada'); return; }
+    var row = tbody.querySelector('tr[data-id="' + id + '"]');
+    var nombre = row && row.dataset.nombre ? row.dataset.nombre.trim() : '';
+    var dia = row && row.querySelector('.cita-dia') ? row.querySelector('.cita-dia').textContent.trim() : '';
+    var hora = row ? (row.dataset.time || '') : '';
+    cancelWhoEl.textContent = nombre || ('la cita #' + id);
+    cancelWhenEl.textContent = [dia, hora].filter(Boolean).join(' · ');
+    pendingCancelId = id;
+    cancelConfirmBtn.disabled = false;
+    cancelConfirmBtn.textContent = 'Sí, cancelar';
+    cancelOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeCancelModal(){
+    if (!cancelOverlay) return;
+    cancelOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+    pendingCancelId = null;
+  }
+  if (cancelOverlay) {
+    document.getElementById('cancelCitaModalClose').addEventListener('click', closeCancelModal);
+    document.getElementById('cancelCitaBack').addEventListener('click', closeCancelModal);
+    cancelOverlay.addEventListener('click', function(e){ if (e.target === cancelOverlay) closeCancelModal(); });
+    cancelConfirmBtn.addEventListener('click', function(){
+      if (!pendingCancelId) return;
+      cancelConfirmBtn.disabled = true;
+      cancelConfirmBtn.textContent = 'Cancelando...';
+      updateStatus(pendingCancelId, 'cancelada', function(){
+        cancelConfirmBtn.disabled = false;
+        cancelConfirmBtn.textContent = 'Sí, cancelar';
+      });
+    });
+  }
+
+  function updateStatus(id, status, onFail){
     fetch('/admin/citas/' + id + '/estado', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: status })
     }).then(function(res){
       if (res.ok) window.location.reload();
-    });
+      else if (onFail) onFail();
+    }).catch(function(){ if (onFail) onFail(); });
   }
 
   /* ---------- Modal: ver datos del cliente ---------- */
@@ -283,7 +326,7 @@
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
     var id = btn.dataset.id;
-    if (btn.dataset.action === 'cancel') updateStatus(id, 'cancelada');
+    if (btn.dataset.action === 'cancel') askCancel(id);
     if (btn.dataset.action === 'asistio') updateStatus(id, 'asistio');
     if (btn.dataset.action === 'no_asistio') updateStatus(id, 'no_asistio');
     if (btn.dataset.action === 'delete') deleteCita(id);
@@ -432,7 +475,7 @@
         }
       }
 
-      document.getElementById('calEventCancel').onclick = function(){ updateStatus(id, 'cancelada'); };
+      document.getElementById('calEventCancel').onclick = function(){ closeEventModal(); askCancel(id); };
       document.getElementById('calEventAsistio').onclick = function(){ updateStatus(id, 'asistio'); };
       document.getElementById('calEventNoAsistio').onclick = function(){ updateStatus(id, 'no_asistio'); };
       document.getElementById('calEventCliente').onclick = function(){ closeEventModal(); openClienteModal(id); };
@@ -858,7 +901,6 @@
   var submitBtn = document.getElementById('crearCitaSubmit');
   var dateHidden = document.getElementById('crearCitaDate');
   var timeHidden = document.getElementById('crearCitaTime');
-  var statusHidden = document.getElementById('crearCitaStatus');
   if (!openBtn || !overlay || !form) return;
 
   var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -893,7 +935,7 @@
 
   /* ---------- widgets compartidos: abrir uno cierra los demás ---------- */
   function closeAllPickers(){
-    document.querySelectorAll('#crearCitaForm .time-picker.is-open, #crearCitaForm .cb-datepicker.is-open, #crearCitaForm .admin-role-select.is-open, #crearCitaForm .staff-lada-select.is-open')
+    document.querySelectorAll('#crearCitaForm .time-picker.is-open, #crearCitaForm .cb-datepicker.is-open, #crearCitaForm .staff-lada-select.is-open')
       .forEach(function(p){ p.classList.remove('is-open'); });
   }
   document.addEventListener('click', closeAllPickers);
@@ -1120,25 +1162,46 @@
     nacPicker.classList.add('is-open');
   });
 
-  /* ---------- Estado inicial: admin-role-select ---------- */
-  var statusWrap = document.getElementById('crearCitaStatusWrap');
-  var statusBtn = document.getElementById('crearCitaStatusBtn');
-  var statusLabel = document.getElementById('crearCitaStatusLabel');
-  var statusMenu = document.getElementById('crearCitaStatusMenu');
-  statusBtn.addEventListener('click', function(e){
-    e.stopPropagation();
-    if (statusWrap.classList.contains('is-open')) { statusWrap.classList.remove('is-open'); return; }
-    closeAllPickers();
-    statusWrap.classList.add('is-open');
+  /* ---------- Cuestionario (opcional) ----------
+     Mismas preguntas y mismos valores que el de agendar.html, así el
+     modal "Datos del cliente" lo muestra igual venga de donde venga.
+     Un clic en la opción ya marcada la desmarca (todas son opcionales). */
+  form.addEventListener('mousedown', function(e){
+    var chip = e.target.closest('.qchip');
+    if (!chip) return;
+    var input = chip.querySelector('input[type="radio"]');
+    if (input) input.dataset.wasChecked = input.checked ? '1' : '';
   });
-  statusMenu.addEventListener('click', function(e){
-    var opt = e.target.closest('.admin-role-option');
-    if (!opt) return;
-    statusHidden.value = opt.dataset.value;
-    statusLabel.textContent = opt.textContent;
-    statusMenu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.toggle('active', o === opt); });
-    statusWrap.classList.remove('is-open');
+  form.addEventListener('click', function(e){
+    var chip = e.target.closest('.qchip');
+    if (!chip || e.target.tagName !== 'INPUT') return;
+    var input = e.target;
+    if (input.type === 'radio' && input.dataset.wasChecked === '1') {
+      input.checked = false;
+      input.dataset.wasChecked = '';
+    }
   });
+
+  function collectQuestionnaire(){
+    function one(name){
+      var el = form.querySelector('input[name="' + name + '"]:checked');
+      return el ? el.value : '';
+    }
+    function many(name){
+      return Array.prototype.slice.call(form.querySelectorAll('input[name="' + name + '"]:checked')).map(function(i){ return i.value; });
+    }
+    var q = {
+      ultimo_examen: one('ultimo_examen'),
+      lentes_armazon: one('lentes_armazon'),
+      lentes_contacto: one('lentes_contacto'),
+      usa_gotitas: one('usa_gotitas'),
+      problemas: many('problemas'),
+      enfermedades: many('enfermedades')
+    };
+    var answered = q.ultimo_examen || q.lentes_armazon || q.lentes_contacto || q.usa_gotitas ||
+      q.problemas.length || q.enfermedades.length;
+    return answered ? q : null;
+  }
 
   /* ---------- abrir / cerrar el modal ---------- */
   function openModal(){
@@ -1154,9 +1217,7 @@
     timeHidden.value = '';
     timeLabel.textContent = '—';
 
-    statusHidden.value = 'verificada';
-    statusLabel.textContent = 'Verificada';
-    statusMenu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.toggle('active', o.dataset.value === 'verificada'); });
+    form.querySelectorAll('.qchip input').forEach(function(i){ i.checked = false; i.dataset.wasChecked = ''; });
 
     selectedLada = '+52';
     ladaLabel.textContent = '+52';
@@ -1189,7 +1250,9 @@
     var celularDigits = document.getElementById('crearCitaCelular').value.trim();
     var correo = document.getElementById('crearCitaCorreo').value.trim();
     var nacimiento = document.getElementById('crearCitaNacimiento').value;
-    var status = statusHidden.value;
+    // Si la crea recepción, ya está confirmada: siempre "verificada".
+    var status = 'verificada';
+    var cuestionario = collectQuestionnaire();
     var date = dateHidden.value;
     var time = timeHidden.value;
 
@@ -1213,7 +1276,8 @@
         celular: selectedLada + celularDigits,
         correo: correo,
         fecha_nacimiento: nacimiento,
-        status: status
+        status: status,
+        cuestionario: cuestionario
       })
     }).then(function(res){
       if (res.status === 409) {
