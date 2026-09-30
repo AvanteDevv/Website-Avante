@@ -1075,3 +1075,200 @@ body.dark .time-picker-option.is-occupied small{ background:rgba(231,76,60,.16);
   transition:border-color .18s var(--ease), background .18s var(--ease);
 }
 .crear-cita-empresa input:focus{ outline:none; border-color:var(--accent); background:var(--accent-soft); }
+
+
+/* =========================================================
+   CELULAR — Citas de recepción
+   ≤900px: el sidebar ya es un menú deslizable, el contenido
+           usa todo el ancho.
+   ≤720px: todo compacto (stats, panel, vistas, tabla en
+           tarjetas).
+   ≤560px: los modales salen desde abajo (bottom sheet).
+   ========================================================= */
+@media (max-width:900px){
+  .admin-main{ padding:4px 0 40px; }
+  body.cuenta-body{ overflow-x:hidden; }
+}
+
+@media (max-width:720px){
+  /* ---------- Encabezado ---------- */
+  .admin-header{ margin:6px 0 20px; }
+  .admin-header h1{ font-size:26px; }
+  .admin-header p{ font-size:13px; margin-top:4px; }
+
+  /* ---------- Indicadores: los 5 en una fila ---------- */
+  .admin-stats{
+    display:grid; grid-template-columns:repeat(5, minmax(0,1fr));
+    gap:8px; margin-bottom:22px;
+  }
+  .stat-card-wrap{ width:100%; }
+  .admin-stat-card{ inset:2px; padding:4px; }
+  .admin-stat-card .num{ font-size:17px; }
+  .admin-stat-card .label{ font-size:8.5px; margin-top:3px; max-width:none; letter-spacing:-.1px; }
+  .admin-stat-card:hover{ transform:none; }
+
+  /* ---------- Panel ---------- */
+  .admin-panel{ border-radius:22px; }
+  .admin-panel-head{ padding:16px; }
+  .admin-panel-head--stacked{ gap:12px; }
+  .admin-panel-head h2{ font-size:16px; }
+  .admin-panel-head-row:first-child{ flex-wrap:nowrap; gap:10px; }
+  .admin-panel-head-row:last-child{ flex-direction:column; align-items:stretch; gap:10px; }
+  .view-switch--3{ width:100%; }
+  .view-switch--3 .view-switch-btn{ padding:10px 6px; gap:6px; font-size:12.5px; }
+  .search-box{ min-width:0; max-width:none; width:100%; }
+  /* iOS hace zoom si el texto del input es menor a 16px */
+  .search-box-inner input{ font-size:16px; }
+  .search-box-inner{ padding:9px 13px; }
+
+  /* ---------- Vista de día ---------- */
+  .day-view{ padding:14px 14px 18px; }
+  .day-view .cal-toolbar{ flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+  .day-view .cal-toolbar-nav{ flex:1 1 100%; min-width:0; gap:8px; }
+  .day-view-label{ font-size:17px; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .day-view-toolbar-right{ flex:1 1 100%; justify-content:space-between; }
+  .day-view-summary{ gap:6px; margin-bottom:12px; }
+  .day-view-chip{ font-size:11.5px; padding:5px 10px; }
+
+  .day-item{
+    display:grid; grid-template-columns:auto 4px minmax(0,1fr);
+    grid-template-areas:"time bar info" "time bar right";
+    align-items:center; column-gap:12px; row-gap:6px;
+    padding:12px 14px;
+  }
+  .day-item:hover{ transform:none; }
+  .day-item-time{ grid-area:time; font-size:16px; min-width:44px; }
+  .day-item-bar{ grid-area:bar; }
+  .day-item-info{ grid-area:info; }
+  .day-item-info strong{ font-size:13.5px; white-space:normal; }
+  .day-item-info small{ font-size:11.5px; white-space:normal; word-break:break-word; }
+  .day-item-right{ grid-area:right; justify-content:flex-start; flex-wrap:wrap; gap:6px; }
+  .day-item-right .admin-badge{ font-size:10.5px; padding:4px 10px; }
+  .day-item-right .day-item-next{ display:inline-block; font-size:9.5px; padding:4px 8px; }
+
+  /* ---------- Calendario del mes ---------- */
+  .cal-view{ padding:14px 10px 18px; }
+  .cal-view .cal-toolbar{ flex-wrap:nowrap; gap:8px; margin-bottom:12px; padding:0 4px; }
+  .cal-view .cal-toolbar-nav{ gap:8px; min-width:0; }
+  .cal-month-label{ min-width:0; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cal-weekdays span{ font-size:9.5px; letter-spacing:.2px; }
+  .cal-grid{ gap:4px; }
+  .cal-day{ min-height:52px; padding:5px 3px; border-radius:10px; gap:4px; align-items:center; }
+  .cal-day-num{ font-size:11.5px; }
+  .cal-day.is-today .cal-day-num{ width:19px; height:19px; }
+  /* En el celular cada cita es un puntito; al tocar el día se abre su vista */
+  .cal-day-events{ flex-direction:row; flex-wrap:wrap; justify-content:center; gap:3px; overflow:visible; }
+  .cal-event-chip{ width:auto; padding:0; background:none; gap:0; pointer-events:none; }
+  .cal-event-chip .cal-dot{ width:7px; height:7px; }
+  .cal-event-chip span.chip-label{ display:none; }
+  .cal-day-more{ padding:0; font-size:9px; line-height:1; width:100%; text-align:center; }
+  .cal-legend{ flex-wrap:wrap; gap:8px 14px; font-size:11.5px; padding:14px 4px 0; margin-top:14px; }
+
+  /* ---------- Tabla → tarjetas ---------- */
+  .admin-table-wrap{ overflow:visible; padding:12px; }
+  table.admin-table{ min-width:0; display:block; font-size:13px; }
+  .admin-table thead{ display:none; }
+  .admin-table tbody{ display:flex; flex-direction:column; gap:10px; }
+  .admin-table tr{
+    position:relative;
+    display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 14px;
+    border:1.5px solid var(--line); border-radius:16px; background:var(--white);
+    padding:12px 14px 14px;
+    animation:dayItemIn .3s var(--ease) backwards;
+  }
+  .admin-table tr:hover td{ background:none; }
+  .admin-table td{
+    display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    padding:0; border:none; min-width:0;
+    white-space:normal; word-break:break-word; font-size:13px; color:var(--ink);
+  }
+  .admin-table td::before{
+    font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--muted);
+  }
+  /* Encabezado de la tarjeta: "CITA 12" y el botón "…" */
+  .admin-table td:nth-child(1){
+    grid-column:1 / -1; flex-direction:row; align-items:center; gap:6px;
+    padding:0 44px 10px 0; margin-bottom:2px; border-bottom:1px dashed var(--line);
+    font-weight:700; color:var(--accent);
+  }
+  .admin-table td:nth-child(1)::before{ content:'Cita #'; font-size:11px; color:var(--accent); letter-spacing:.3px; }
+  .admin-table td:nth-child(2)::before{ content:'Nombre'; }
+  .admin-table td:nth-child(3)::before{ content:'Apellido'; }
+  .admin-table td:nth-child(4)::before{ content:'Teléfono'; }
+  .admin-table td:nth-child(5)::before{ content:'Correo'; }
+  .admin-table td:nth-child(5){ grid-column:1 / -1; order:1; }
+  .admin-table td:nth-child(6)::before{ content:'Nacimiento'; }
+  .admin-table td:nth-child(7)::before{ content:'Día'; }
+  .admin-table td:nth-child(8)::before{ content:'Hora'; }
+  .admin-table td:nth-child(9)::before{ content:'Estado'; }
+  .admin-table td:nth-child(10)::before{ content:'Agendada el'; }
+  .admin-table td:nth-child(n+6):nth-child(-n+10){ order:2; }
+  .admin-table td:nth-child(9) .admin-badge{ margin-top:2px; }
+  /* Acciones: el botón de "…" arriba a la derecha de la tarjeta */
+  .admin-table td:last-child{
+    position:absolute; top:7px; right:10px;
+    padding:0; border:none; display:block;
+  }
+  .admin-table td:last-child::before{ content:none; }
+  .row-menu-dropdown{ min-width:190px; }
+  .row-menu-item{ padding:11px 12px; font-size:13.5px; }
+  .admin-empty{ padding:40px 16px 46px; }
+
+  /* Paginación centrada */
+  .admin-panel-foot{ display:flex; flex-direction:column; gap:10px; padding:14px 16px 16px; }
+  .admin-panel-foot-count{ justify-self:auto; }
+  .admin-panel-foot-spacer{ display:none; }
+  .page-arrow{ width:36px; height:36px; }
+}
+
+@media (max-width:380px){
+  .admin-stats{ gap:6px; }
+  .admin-stat-card .num{ font-size:15px; }
+  .admin-stat-card .label{ font-size:7.5px; }
+  .view-switch--3 .view-switch-btn svg{ display:none; }
+}
+
+/* ---------- Modales: bottom sheet ---------- */
+@media (max-width:560px){
+  .admin-modal-overlay{ align-items:flex-end; padding:0; }
+  .admin-modal-card,
+  .admin-modal-card--sm,
+  .crear-cita-card,
+  .cal-event-modal{
+    max-width:none; width:100%;
+    max-height:92vh; max-height:92dvh;
+    border-radius:26px 26px 0 0; border-bottom:none;
+    transform:translateY(100%);
+    transition:transform .38s cubic-bezier(.22,1,.36,1);
+  }
+  .admin-modal-overlay.open .admin-modal-card{ transform:none; }
+  /* "Agarradera" arriba del sheet */
+  .admin-modal-card::before{
+    content:''; display:block; flex-shrink:0;
+    width:40px; height:4px; border-radius:4px; margin:9px auto 0;
+    background:var(--line);
+  }
+  .admin-modal-head{ padding:10px 18px 14px; }
+  .admin-modal-body{ padding:16px 18px calc(22px + env(safe-area-inset-bottom)); }
+  .cal-event-modal .admin-modal-body{ padding:18px 18px calc(22px + env(safe-area-inset-bottom)); }
+
+  /* Formularios en una sola columna y sin zoom de iOS */
+  .staff-form-row{ flex-direction:column; gap:14px; }
+  .settings-row{ flex-direction:column; gap:14px; }
+  .settings-field{ width:100%; }
+  .staff-field input, .staff-field select, .crear-cita-empresa input{ font-size:16px; }
+  .staff-phone-row input{ flex:1; min-width:0; }
+  .staff-form-actions, .admin-confirm-actions{ gap:10px; }
+  .staff-form-actions .btn, .admin-confirm-actions .btn{ flex:1; justify-content:center; padding-top:13px; padding-bottom:13px; }
+  .settings-actions{ flex-wrap:wrap; }
+  .qchip span{ padding:9px 14px; font-size:13px; }
+
+  /* Menús de fecha/hora al ancho del campo */
+  .cb-datepicker-menu{ width:100%; max-width:320px; }
+  .time-picker-menu{ max-height:210px; }
+  .time-picker-option{ padding:11px 12px; font-size:14px; }
+  .cal-action{ padding:13px 14px; }
+}
+@media (max-width:560px) and (prefers-reduced-motion:reduce){
+  .admin-modal-card{ transition:none; }
+}

@@ -314,3 +314,61 @@ body.dark .chat-messages{ background:rgba(255,255,255,.02); }
   .aviso-item{ padding:16px 18px; gap:12px; }
   .aviso-icon{ width:34px; height:34px; }
 }
+/* =========================================================
+   CELULAR — Comunicación de recepción
+   · Pestañas como control segmentado a todo el ancho.
+   · La lista de chats ocupa el alto disponible de la pantalla.
+   · Al abrir un chat, la conversación ocupa toda la pantalla
+     (como WhatsApp); la flecha regresa a la lista.
+   ========================================================= */
+@media (max-width:720px){
+  .com-page .cuenta-header{ margin:6px 0 16px; flex-direction:column; align-items:stretch; gap:14px; }
+  .com-page .cuenta-header h1{ font-size:26px; }
+  .com-tabs{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; flex-wrap:nowrap; }
+  .com-tab{ justify-content:center; padding:10px 6px; gap:6px; font-size:12px; white-space:nowrap; min-width:0; }
+
+  /* Avisos */
+  .com-page .panel{ border-radius:22px; }
+  #comViewAvisos .panel-head{ padding:16px 18px; flex-direction:column; align-items:stretch; gap:12px; }
+  .avisos-head-actions{ justify-content:space-between; }
+  .aviso-item{ padding:16px; }
+  .aviso-title{ font-size:14.5px; }
+  .aviso-body{ font-size:13.5px; }
+  .aviso-mark{ padding:9px 14px; }
+  .avisos-empty{ padding:44px 18px 50px; }
+
+  /* Lista de chats */
+  .chat-app{
+    height:calc(100vh - 200px); height:calc(100dvh - 200px);
+    min-height:380px; max-height:none; border-radius:22px;
+  }
+  .chat-side-head{ padding:14px 14px 10px; }
+  .chat-side-head .search-box-inner input{ font-size:16px; }
+  .chat-item{ padding:11px 10px; }
+
+  /* Conversación a pantalla completa */
+  .chat-app.show-thread{
+    position:fixed; inset:0; z-index:150;
+    height:100vh; height:100dvh; min-height:0; max-height:none;
+    border:none; border-radius:0; box-shadow:none;
+    animation:chatSheetIn .32s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes chatSheetIn{ from{ transform:translateX(24px); opacity:.4; } to{ transform:none; opacity:1; } }
+  body:has(.chat-app.show-thread){ overflow:hidden; }
+  .chat-app.show-thread .chat-thread-head{
+    padding:calc(10px + env(safe-area-inset-top)) 12px 10px 8px;
+    background:var(--white);
+  }
+  .chat-back{ width:40px; height:40px; }
+  .chat-back:active{ background:var(--blue-50); }
+  .chat-composer{ padding:10px 12px calc(10px + env(safe-area-inset-bottom)); gap:8px; }
+  /* iOS hace zoom si el texto es menor a 16px */
+  .chat-composer textarea{ font-size:16px; padding:9px 15px; }
+  .chat-bubble{ font-size:14px; }
+}
+@media (max-width:380px){
+  .com-tab{ font-size:11px; padding:10px 4px; }
+}
+@media (max-width:720px) and (prefers-reduced-motion:reduce){
+  .chat-app.show-thread{ animation:none; }
+}

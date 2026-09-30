@@ -76,26 +76,6 @@ body.dark .cuenta-sidebar{ transition:background-color .3s var(--ease), border-c
 .shrink .cuenta-themeLabel:before{ width:calc(100% - 4px); }
 .shrink .cuenta-themeLabel.switched:before{ left:2px; }
 
-@media (max-width:900px){
-  .cuenta-sidebar{
-    position:static; width:100% !important;
-    flex-direction:row; align-items:center;
-    overflow-x:auto; gap:8px;
-    padding:12px;
-  }
-  .cuenta-sidebar::-webkit-scrollbar{ display:none; }
-  .cuenta-themeContainer{ display:none; }
-  .cuenta-nav-divider{ display:none; }
-  .cuenta-nav-group{ flex-direction:row !important; }
-  .cuenta-nav-link{ flex-shrink:0; }
-  .cuenta-sidebar{
-    -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 30px), transparent);
-    mask-image:linear-gradient(90deg, #000 calc(100% - 30px), transparent);
-  }
-  .cuenta-nav-blob{ display:none; }
-  .cuenta-nav-group .cuenta-nav-link.active{ background:var(--blue-600); color:var(--on-accent, #fff); }
-}
-
 .cuenta-nav-group{
   position:relative;
   display:flex; flex-direction:column; gap:3px;
@@ -164,3 +144,98 @@ body .cuenta-shell{
 
 /* Links del sidebar sin subrayado (en páginas cuyo CSS no lo quita). */
 .cuenta-sidebar a, .cuenta-nav-link{ text-decoration:none; }
+
+/* =========================================================
+   CELULAR (≤900px): menú lateral deslizable
+   En vez de la barra horizontal que se arrastraba, hay un botón
+   de menú arriba a la izquierda y el sidebar completo entra
+   desde la izquierda sobre un fondo oscuro.
+   ========================================================= */
+.mnav-toggle, .mnav-backdrop, .mnav-head{ display:none; }
+
+@media (max-width:900px){
+  .mnav-toggle{
+    display:flex; align-items:center; justify-content:center;
+    position:fixed; top:16px; left:14px; z-index:95;
+    width:42px; height:42px; border-radius:50%;
+    background:var(--white); color:var(--ink);
+    border:1px solid var(--line); box-shadow:var(--shadow-sm);
+    transition:transform .2s var(--ease), background .2s var(--ease);
+  }
+  .mnav-toggle svg{ width:20px; height:20px; }
+  .mnav-toggle:active{ transform:scale(.92); }
+  .mnav-badge{ position:absolute; top:-3px; right:-3px; margin:0 !important; }
+
+  .mnav-backdrop{
+    display:block; position:fixed; inset:0; z-index:190;
+    background:rgba(10,10,20,.45); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+    opacity:0; pointer-events:none; transition:opacity .3s var(--ease);
+  }
+  body.mnav-open .mnav-backdrop{ opacity:1; pointer-events:auto; }
+  body.mnav-open{ overflow:hidden; }
+
+  .cuenta-sidebar,
+  .cuenta-sidebar.shrink{
+    position:fixed; top:0; left:0; bottom:0; z-index:200;
+    width:min(300px, 86vw) !important; max-width:none;
+    border-radius:0 24px 24px 0; border-left:none;
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:3px;
+    overflow-y:auto; overscroll-behavior:contain;
+    transform:translateX(-105%);
+    transition:transform .38s cubic-bezier(.22,1,.36,1), box-shadow .38s var(--ease);
+    box-shadow:none;
+    visibility:hidden;
+  }
+  body.mnav-open .cuenta-sidebar{
+    transform:none; visibility:visible;
+    box-shadow:24px 0 60px -20px rgba(0,0,0,.45);
+  }
+  .cuenta-sidebar-toggle{ display:none; }
+
+  .mnav-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:4px 2px 16px; margin-bottom:12px; border-bottom:1px solid var(--line);
+  }
+  .mnav-who{ display:flex; align-items:center; gap:11px; min-width:0; }
+  .mnav-who .userbar-avatar{ width:40px; height:40px; font-size:13.5px; }
+  .mnav-name{ font-size:14.5px; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mnav-role{ font-size:12px; color:var(--grey); margin-top:1px; }
+  .mnav-close{
+    width:36px; height:36px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--line); color:var(--grey); background:var(--white);
+    transition:transform .3s var(--ease), color .2s var(--ease);
+  }
+  .mnav-close svg{ width:16px; height:16px; }
+  .mnav-close:active{ transform:rotate(90deg) scale(.9); }
+
+  /* Todo en vertical y con texto, aunque en compu estuviera colapsado. */
+  .cuenta-themeContainer{ display:block; }
+  .cuenta-sidebar.shrink .cuenta-themeType span{ display:inline; }
+  .cuenta-sidebar.shrink .cuenta-themeType{ width:50%; }
+  .cuenta-nav-group{ flex-direction:column !important; }
+  .cuenta-nav-divider{ display:block; }
+  .cuenta-nav-blob{ display:none; }
+  .cuenta-nav-link,
+  .cuenta-sidebar.shrink .cuenta-nav-link{ padding:13px 14px; justify-content:flex-start; font-size:14.5px; }
+  .cuenta-sidebar.shrink .cuenta-nav-link span:not(.cuenta-nav-tooltip){ position:static; width:auto; height:auto; overflow:visible; clip:auto; }
+  .cuenta-nav-tooltip, .cuenta-sidebar.shrink .cuenta-nav-tooltip{ display:none; }
+  .cuenta-nav-group .cuenta-nav-link.active{ background:var(--blue-600); color:var(--on-accent, #fff); }
+  .cuenta-nav-group .cuenta-nav-link:not(.active):active{ background:var(--blue-50); }
+
+  /* Cada link entra con un pequeño desfase al abrir. */
+  body.mnav-open .cuenta-nav-link{ animation:mnavLinkIn .4s var(--ease) backwards; }
+  body.mnav-open .cuenta-nav-link:nth-child(2){ animation-delay:.04s; }
+  body.mnav-open .cuenta-nav-link:nth-child(3){ animation-delay:.08s; }
+  body.mnav-open .cuenta-nav-link:nth-child(4){ animation-delay:.12s; }
+  @keyframes mnavLinkIn{ from{ opacity:0; transform:translateX(-12px); } to{ opacity:1; transform:none; } }
+
+  /* El contenido ya no deja hueco arriba para la barra vieja. */
+  body .cuenta-shell{ padding:18px 16px 70px; gap:0; align-items:stretch; }
+  .cuenta-main{ width:100%; }
+}
+@media (max-width:900px) and (prefers-reduced-motion:reduce){
+  .cuenta-sidebar{ transition:none; }
+  body.mnav-open .cuenta-nav-link{ animation:none; }
+}
