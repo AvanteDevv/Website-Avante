@@ -387,6 +387,7 @@
     var byDate = {};
 
     function renderCalendar(){
+      if (remindOn) return renderRemindCalendar();
       var events = eventsFromRows();
       byDate = {};
       events.forEach(function(ev){
@@ -455,6 +456,264 @@
       viewYear = t.getFullYear(); viewMonth = t.getMonth();
       renderCalendar();
     });
+
+    /* =======================================================
+       REVISIÓN ANUAL
+       Con el toggle prendido, el calendario deja de mostrar las
+       citas y muestra a quién le toca volver: un año después de su
+       última cita (asistió o verificada). No sale quien ya tiene
+       otra cita agendada de hoy en adelante.
+       Todo sale de las mismas filas de la tabla — no pide nada
+       nuevo al servidor.
+       ======================================================= */
+    var REMIND_MONTHS = 12;
+    var REMIND_VISIT = { asistio: true, verificada: true };
+    var remindToggle = document.getElementById('calRemindToggle');
+    var remindCountEl = document.getElementById('calRemindCount');
+    var remindBar = document.getElementById('calRemindBar');
+    var calView = document.getElementById('citasCalendarView');
+    var remindOn = false;
+    var reminders = [];      // [{ key, due, last, ... }]
+    var remindByKey = {};
+
+    try { remindOn = localStorage.getItem('avanteCalRemind') === '1'; } catch (e) {}
+    if (remindToggle) remindToggle.checked = remindOn;
+
+    function digitsOf(s){ return String(s || '').replace(/\D/g, ''); }
+    function personKey(row){
+      var tel = digitsOf(row.dataset.celular).slice(-10);
+      if (tel.length === 10) return 'tel:' + tel;
+      var mail = (row.dataset.correo || '').trim().toLowerCase();
+      if (mail) return 'mail:' + mail;
+      var name = (row.dataset.nombre || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+      return name ? 'name:' + name : '';
+    }
+    // Suma meses a una fecha "YYYY-MM-DD" (29 feb → 28 feb si el año no es bisiesto).
+    function addMonthsISO(iso, months){
+      var p = iso.split('-').map(Number);
+      var y = p[0], m = p[1] - 1 + months, d = p[2];
+      y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+      var last = new Date(y, m + 1, 0).getDate();
+      return isoDate(y, m, Math.min(d, last));
+    }
+    function daysBetween(aISO, bISO){
+      var a = aISO.split('-').map(Number), b = bISO.split('-').map(Number);
+      return Math.round((Date.UTC(b[0], b[1] - 1, b[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 86400000);
+    }
+    function fechaLarga(iso){
+      var p = iso.split('-').map(Number);
+      return p[2] + ' de ' + MESES[p[1] - 1] + ' de ' + p[0];
+    }
+
+    function computeReminders(){
+      var todayStr = todayISO();
+      var people = {};
+      allRows.forEach(function(row){
+        var date = row.dataset.date;
+        var key = personKey(row);
+        if (!date || !key) return;
+        var st = row.dataset.status;
+        var pr = people[key] = people[key] || { key: key, visits: 0, last: null, upcoming: false };
+        // Ya tiene otra cita de hoy en adelante → no hay que recordarle.
+        if (date >= todayStr && st !== 'cancelada' && st !== 'no_asistio') pr.upcoming = true;
+        if (date < todayStr && REMIND_VISIT[st]) {
+          pr.visits += 1;
+          if (!pr.last || date > pr.last.dataset.date ||
+              (date === pr.last.dataset.date && (row.dataset.time || '') > (pr.last.dataset.time || ''))) pr.last = row;
+        }
+      });
+      reminders = [];
+      remindByKey = {};
+      Object.keys(people).forEach(function(k){
+        var pr = people[k];
+        if (!pr.last || pr.upcoming) return;
+        var row = pr.last;
+        var due = addMonthsISO(row.dataset.date, REMIND_MONTHS);
+        var tds = row.querySelectorAll('td');
+        var r = {
+          key: k,
+          due: due,
+          last: row.dataset.date,
+          lastId: row.dataset.id,
+          visits: pr.visits,
+          overdue: due < todayStr,
+          nombre: (row.dataset.nombre || '').trim(),
+          first: tds[1] ? tds[1].textContent.trim() : '',
+          apellido: tds[2] ? tds[2].textContent.trim() : '',
+          celular: row.dataset.celular || '',
+          correo: row.dataset.correo || '',
+          nacimiento: row.dataset.fechaNacimiento || ''
+        };
+        reminders.push(r);
+        remindByKey[k] = r;
+      });
+      reminders.sort(function(a, b){ return a.due.localeCompare(b.due) || a.nombre.localeCompare(b.nombre); });
+    }
+
+    function remindMatches(r){
+      var term = searchTerm.toLowerCase().trim();
+      if (!term) return true;
+      return (r.nombre + ' ' + r.celular + ' ' + r.correo).toLowerCase().indexOf(term) !== -1;
+    }
+
+    function renderRemindCalendar(){
+      computeReminders();
+      byDate = {};
+      reminders.filter(remindMatches).forEach(function(r){ (byDate[r.due] = byDate[r.due] || []).push(r); });
+      calMonthLabel.textContent = MESES[viewMonth] + ' ' + viewYear;
+
+      var firstOfMonth = new Date(viewYear, viewMonth, 1);
+      var startOffset = (firstOfMonth.getDay() + 6) % 7;
+      var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      var daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+      var totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+      var todayStr = todayISO();
+      var monthPrefix = viewYear + '-' + pad(viewMonth + 1) + '-';
+      var inMonth = 0, overdueInMonth = 0;
+
+      var html = '';
+      for (var i = 0; i < totalCells; i++) {
+        var dayNum, cellYear = viewYear, cellMonth = viewMonth, outside = false;
+        if (i < startOffset) { dayNum = daysInPrevMonth - (startOffset - 1 - i); cellMonth = viewMonth - 1; outside = true; }
+        else if (i >= startOffset + daysInMonth) { dayNum = i - (startOffset + daysInMonth) + 1; cellMonth = viewMonth + 1; outside = true; }
+        else { dayNum = i - startOffset + 1; }
+        if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
+        if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
+        var cellISO = isoDate(cellYear, cellMonth, dayNum);
+        var list = byDate[cellISO] || [];
+        if (!outside) {
+          inMonth += list.length;
+          overdueInMonth += list.filter(function(r){ return r.overdue; }).length;
+        }
+
+        html += '<div class="cal-day is-remind' + (outside ? ' is-outside' : '') + (cellISO === todayStr ? ' is-today' : '') +
+                (list.length ? ' has-remind' : '') + '" data-date="' + cellISO + '">';
+        html += '<span class="cal-day-num">' + dayNum + '</span>';
+        html += '<div class="cal-day-events">';
+        list.slice(0, 3).forEach(function(r){
+          var cls = r.overdue ? 'remind-overdue' : 'remind';
+          html += '<button type="button" class="cal-event-chip cal-remind-chip ' + cls + '" data-remind-key="' + escAttr(r.key) + '" title="' + escAttr(r.nombre) + '">' +
+                  '<i class="cal-dot ' + cls + '"></i><span class="chip-label">' + escHtml(r.first || r.nombre) + '</span></button>';
+        });
+        if (list.length > 3) {
+          html += '<button type="button" class="cal-day-more" data-more-date="' + cellISO + '">+' + (list.length - 3) + ' más</button>';
+        }
+        html += '</div></div>';
+      }
+      calGrid.innerHTML = html;
+
+      // Resumen del mes
+      if (remindBar) {
+        var mes = MESES[viewMonth];
+        var txt = inMonth === 0
+          ? 'Nadie tiene su revisión anual en ' + mes + '.'
+          : (inMonth === 1 ? '1 persona tiene' : inMonth + ' personas tienen') + ' su revisión anual en ' + mes +
+            (overdueInMonth ? ' · ' + (overdueInMonth === 1 ? '1 ya pasó su fecha y no ha agendado' : overdueInMonth + ' ya pasaron su fecha y no han agendado') : '') + '.';
+        remindBar.textContent = txt;
+      }
+      updateRemindCount();
+    }
+
+    // Número en el toggle: a cuántos les toca este mes (de hoy a fin de mes) + atrasados del mes.
+    function updateRemindCount(){
+      if (!remindCountEl) return;
+      if (!reminders.length && !remindOn) computeReminders();
+      var t = new Date();
+      var prefix = t.getFullYear() + '-' + pad(t.getMonth() + 1) + '-';
+      var n = reminders.filter(function(r){ return r.due.indexOf(prefix) === 0; }).length;
+      remindCountEl.textContent = n;
+      remindCountEl.hidden = n === 0;
+      remindCountEl.title = n === 1 ? '1 persona tiene su revisión este mes' : n + ' personas tienen su revisión este mes';
+    }
+
+    function escHtml(s){ return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function escAttr(s){ return escHtml(s).replace(/"/g, '&quot;'); }
+
+    function setRemindMode(on){
+      remindOn = !!on;
+      try { localStorage.setItem('avanteCalRemind', remindOn ? '1' : '0'); } catch (e) {}
+      if (calView) calView.classList.toggle('is-remind-mode', remindOn);
+      if (remindBar) remindBar.hidden = !remindOn;
+      document.querySelectorAll('.cal-legend').forEach(function(l){
+        l.hidden = l.classList.contains('cal-legend--remind') ? !remindOn : remindOn;
+      });
+      calGrid.classList.remove('cal-mode-swap'); void calGrid.offsetWidth; calGrid.classList.add('cal-mode-swap');
+      renderCalendar();
+    }
+    if (remindToggle) remindToggle.addEventListener('change', function(){ setRemindMode(remindToggle.checked); });
+    if (searchInput) searchInput.addEventListener('input', function(){ if (remindOn && calView && !calView.hidden) renderCalendar(); });
+
+    /* ---------- modal de la persona ---------- */
+    var remindModal = document.getElementById('remindModalOverlay');
+    var remindCurrent = null;
+    function openRemindModal(key){
+      var r = remindByKey[key];
+      if (!r || !remindModal) return;
+      remindCurrent = r;
+      var todayStr = todayISO();
+      var diff = daysBetween(todayStr, r.due);
+      var initials = r.nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(function(w){ return w[0]; }).join('').toUpperCase();
+      document.getElementById('remindAvatar').textContent = initials || '?';
+      document.getElementById('remindName').textContent = r.nombre || 'Sin nombre';
+      document.getElementById('remindVisits').textContent = r.visits === 1 ? '1 cita anterior' : r.visits + ' citas anteriores';
+      var badge = document.getElementById('remindBadge');
+      badge.className = 'remind-when-badge' + (diff < 0 ? ' is-overdue' : (diff === 0 ? ' is-today' : ''));
+      badge.textContent = diff === 0 ? 'Le toca hoy'
+        : diff === 1 ? 'Le toca mañana'
+        : diff > 1 ? 'Le toca en ' + diff + ' días'
+        : diff === -1 ? 'Le tocaba ayer' : 'Le tocaba hace ' + (-diff) + ' días';
+      document.getElementById('remindDue').textContent = fechaLarga(r.due);
+      document.getElementById('remindLast').textContent = fechaLarga(r.last) + ' · Cita #' + r.lastId;
+      document.getElementById('remindPhone').textContent = r.celular || '—';
+      document.getElementById('remindMail').textContent = r.correo || '—';
+      document.getElementById('remindMailRow').hidden = !r.correo;
+      var call = document.getElementById('remindCall');
+      var tel = digitsOf(r.celular);
+      call.hidden = !tel;
+      call.href = tel ? 'tel:+' + (tel.length === 10 ? '52' + tel : tel) : '#';
+      remindModal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeRemindModal(){
+      if (!remindModal) return;
+      remindModal.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    if (remindModal) {
+      document.getElementById('remindModalClose').addEventListener('click', closeRemindModal);
+      document.getElementById('remindCliente').addEventListener('click', function(){
+        if (!remindCurrent) return;
+        closeRemindModal();
+        openClienteModal(remindCurrent.lastId);
+      });
+      document.getElementById('remindAgendar').addEventListener('click', function(){
+        if (!remindCurrent) return;
+        var r = remindCurrent;
+        closeRemindModal();
+        if (window.AvanteCrearCita) window.AvanteCrearCita.open({
+          nombre: r.first, apellido: r.apellido, celular: r.celular, correo: r.correo,
+          nacimiento: r.nacimiento, fecha: r.due >= todayISO() ? r.due : ''
+        });
+      });
+      document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && remindModal.classList.contains('open')) closeRemindModal(); });
+    }
+
+    // Lista del día (cuando hay más de 3 en un día o se toca el día)
+    function openRemindDayModal(cellISO){
+      var list = (byDate[cellISO] || []);
+      var parts = cellISO.split('-').map(Number);
+      dayModalTitle.textContent = 'Revisión anual · ' + parts[2] + ' de ' + MESES[parts[1] - 1];
+      dayList.innerHTML = list.length ? list.map(function(r){
+        var cls = r.overdue ? 'remind-overdue' : 'remind';
+        return '<button type="button" class="day-events-item" data-remind-key="' + escAttr(r.key) + '">' +
+               '<i class="cal-dot ' + cls + '"></i>' +
+               '<span class="day-events-time">' + escHtml(r.nombre || 'Sin nombre') + '</span>' +
+               '<span class="day-events-name">Última cita: ' + fechaLarga(r.last) + '</span>' +
+               '</button>';
+      }).join('') : '<p class="day-view-empty">Nadie tiene su revisión este día.</p>';
+      dayModal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
 
     /* ---------- modal de detalle al hacer click en un evento ---------- */
     var eventModal = document.getElementById('calEventModalOverlay');
@@ -530,6 +789,8 @@
     dayModalClose && dayModalClose.addEventListener('click', closeDayModal);
     dayModal && dayModal.addEventListener('click', function(e){ if (e.target === dayModal) closeDayModal(); });
     dayList && dayList.addEventListener('click', function(e){
+      var rem = e.target.closest('[data-remind-key]');
+      if (rem) { closeDayModal(); openRemindModal(rem.dataset.remindKey); return; }
       var item = e.target.closest('[data-event-id]');
       if (!item) return;
       closeDayModal();
@@ -696,6 +957,16 @@
     }
 
     calGrid.addEventListener('click', function(e){
+      if (remindOn) {
+        var rchip = e.target.closest('[data-remind-key]');
+        if (rchip) { openRemindModal(rchip.dataset.remindKey); return; }
+        var rcell = e.target.closest('.cal-day[data-date]');
+        if (rcell && (byDate[rcell.dataset.date] || []).length) {
+          var rl = byDate[rcell.dataset.date];
+          if (rl.length === 1) openRemindModal(rl[0].key); else openRemindDayModal(rcell.dataset.date);
+        }
+        return;
+      }
       var chip = e.target.closest('[data-event-id]');
       if (chip) { openEventModal(chip.dataset.eventId); return; }
       var more = e.target.closest('[data-more-date]');
@@ -705,7 +976,7 @@
       if (cell) openDayView(cell.dataset.date);
     });
 
-    renderCalendar();
+    if (remindOn) setRemindMode(true); else { renderCalendar(); updateRemindCount(); }
   }
 
   /* ---------- switch Día / Calendario / Tabla (Día es la predeterminada) ---------- */
@@ -1326,6 +1597,39 @@
   openBtn.addEventListener('click', function(){
     loadHours().then(openModal);
   });
+
+  // Abrir "Crear cita" ya llenado (lo usa Revisión anual del calendario).
+  // prefill: { nombre, apellido, celular, correo, nacimiento, fecha }
+  window.AvanteCrearCita = {
+    open: function(prefill){
+      prefill = prefill || {};
+      loadHours().then(function(){
+        openModal();
+        document.getElementById('crearCitaNombre').value = prefill.nombre || '';
+        document.getElementById('crearCitaApellido').value = prefill.apellido || '';
+        document.getElementById('crearCitaCorreo').value = prefill.correo || '';
+        var tel = String(prefill.celular || '').replace(/\D/g, '');
+        if (tel.length > 10) {
+          var lada = '+' + tel.slice(0, tel.length - 10);
+          var opt = ladaMenu.querySelector('.admin-role-option[data-lada="' + lada + '"]');
+          if (opt) {
+            selectedLada = lada;
+            ladaLabel.textContent = lada;
+            ladaMenu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.toggle('active', o === opt); });
+          }
+        }
+        document.getElementById('crearCitaCelular').value = tel.slice(-10);
+        var n = /^(\d{4})-(\d{2})-(\d{2})$/.exec(prefill.nacimiento || '');
+        if (n) setNacimiento(+n[1], +n[2] - 1, +n[3]);
+        var f = /^(\d{4})-(\d{2})-(\d{2})$/.exec(prefill.fecha || '');
+        if (f) {
+          viewYear = +f[1]; viewMonth = +f[2] - 1;
+          setDate(+f[1], +f[2] - 1, +f[3]);
+          renderDateGrid();
+        }
+      });
+    }
+  };
   closeBtn && closeBtn.addEventListener('click', closeModal);
   cancelBtn && cancelBtn.addEventListener('click', closeModal);
   overlay.addEventListener('click', function(e){ if (e.target === overlay) closeModal(); });

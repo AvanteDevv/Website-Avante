@@ -1272,3 +1272,101 @@ body.dark .time-picker-option.is-occupied small{ background:rgba(231,76,60,.16);
 @media (max-width:560px) and (prefers-reduced-motion:reduce){
   .admin-modal-card{ transition:none; }
 }
+
+/* ===========================================================
+   CALENDARIO — Revisión anual
+   Toggle que cambia el calendario para mostrar a quién le toca
+   volver (un año después de su última cita).
+   =========================================================== */
+.cal-toolbar-right{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+
+.cal-remind-toggle{
+  position:relative; display:inline-flex; align-items:center; gap:9px;
+  padding:7px 14px 7px 8px; border-radius:100px; cursor:pointer; user-select:none;
+  border:1.5px solid var(--line); background:var(--white);
+  font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--muted);
+  transition:border-color .25s var(--ease), background .25s var(--ease), color .25s var(--ease);
+}
+.cal-remind-toggle:hover{ border-color:var(--accent-border); }
+.cal-remind-toggle input{ position:absolute; opacity:0; pointer-events:none; }
+.cal-remind-track{
+  position:relative; width:34px; height:20px; border-radius:100px; flex-shrink:0;
+  background:var(--line); transition:background .25s var(--ease);
+}
+.cal-remind-track::after{
+  content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2);
+  transition:transform .3s cubic-bezier(.22,1.4,.36,1);
+}
+.cal-remind-toggle input:checked + .cal-remind-track{ background:#0f9f9a; }
+.cal-remind-toggle input:checked + .cal-remind-track::after{ transform:translateX(14px); }
+.cal-remind-toggle:has(input:checked){ color:var(--ink); border-color:#8fd8d4; background:#effaf9; }
+body.dark .cal-remind-toggle:has(input:checked){ background:rgba(15,159,154,.14); border-color:rgba(15,159,154,.5); }
+.cal-remind-toggle input:focus-visible + .cal-remind-track{ box-shadow:0 0 0 4px rgba(15,159,154,.2); }
+.cal-remind-count{
+  min-width:20px; height:20px; padding:0 6px; border-radius:100px;
+  background:#0f9f9a; color:#fff; font-size:11px; font-weight:700; line-height:20px; text-align:center;
+  animation:qchipPop .35s cubic-bezier(.22,1.4,.36,1);
+}
+.cal-remind-count[hidden]{ display:none; }
+
+.cal-remind-bar{
+  margin:-6px 0 14px; padding:10px 14px; border-radius:12px;
+  background:#effaf9; color:#0b6f6b; font-size:12.5px; font-weight:600;
+  animation:dayItemIn .3s var(--ease);
+}
+body.dark .cal-remind-bar{ background:rgba(15,159,154,.14); color:#7fe3dc; }
+.cal-remind-bar[hidden]{ display:none; }
+
+/* Puntos y chips */
+.cal-dot.remind{ background:#0f9f9a; }
+.cal-dot.remind-overdue{ background:#e67e22; }
+.cal-remind-chip{ background:#effaf9; color:#0b6f6b; }
+.cal-remind-chip:hover{ background:#d6f3f1; }
+.cal-remind-chip.remind-overdue{ background:#fdf0e3; color:#9a4f0c; }
+.cal-remind-chip.remind-overdue:hover{ background:#fbe2c8; }
+body.dark .cal-remind-chip{ background:rgba(15,159,154,.16); color:#7fe3dc; }
+body.dark .cal-remind-chip.remind-overdue{ background:rgba(230,126,34,.16); color:#ffb877; }
+.cal-remind-chip .chip-label{ overflow:hidden; text-overflow:ellipsis; }
+
+/* En modo revisión solo los días con alguien son clicables */
+.cal-day.is-remind{ cursor:default; }
+.cal-day.is-remind.has-remind:not(.is-outside){ cursor:pointer; border-color:#bfe9e6; }
+.cal-day.is-remind.has-remind:not(.is-outside):hover{ border-color:#0f9f9a; }
+body.dark .cal-day.is-remind.has-remind:not(.is-outside){ border-color:rgba(15,159,154,.45); }
+.cal-grid.cal-mode-swap{ animation:calModeSwap .35s var(--ease); }
+@keyframes calModeSwap{ from{ opacity:0; transform:scale(.985); } to{ opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce){ .cal-grid.cal-mode-swap{ animation:none; } }
+
+/* Modal de la persona */
+.remind-who{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.remind-avatar{
+  width:44px; height:44px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:#0f9f9a; color:#fff; font-size:14px; font-weight:700;
+}
+.remind-who strong{ display:block; font-size:15.5px; font-weight:700; color:var(--ink); }
+.remind-who small{ font-size:12px; color:var(--muted); }
+.remind-when-badge{
+  display:inline-block; padding:6px 12px; border-radius:100px;
+  font-size:11.5px; font-weight:700; background:#effaf9; color:#0b6f6b;
+}
+.remind-when-badge.is-today{ background:#0f9f9a; color:#fff; }
+.remind-when-badge.is-overdue{ background:#fdf0e3; color:#9a4f0c; }
+body.dark .remind-when-badge{ background:rgba(15,159,154,.16); color:#7fe3dc; }
+body.dark .remind-when-badge.is-overdue{ background:rgba(230,126,34,.16); color:#ffb877; }
+.remind-facts{ display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+.remind-facts > div{ display:flex; justify-content:space-between; gap:14px; font-size:13px; }
+.remind-facts > div[hidden]{ display:none; }
+.remind-facts dt{ color:var(--muted); font-weight:600; }
+.remind-facts dd{ color:var(--ink); font-weight:700; text-align:right; word-break:break-word; }
+a.cal-action{ text-decoration:none; }
+a.cal-action[hidden]{ display:none; }
+
+@media (max-width:720px){
+  .cal-view .cal-toolbar{ flex-wrap:wrap; }
+  .cal-view .cal-toolbar-nav{ flex:1 1 100%; }
+  .cal-toolbar-right{ flex:1 1 100%; justify-content:space-between; }
+  .cal-remind-bar{ margin:-2px 4px 12px; }
+}
+.cal-legend[hidden]{ display:none; }
