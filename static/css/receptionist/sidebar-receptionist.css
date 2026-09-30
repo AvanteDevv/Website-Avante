@@ -146,3 +146,18 @@ body.dark .cuenta-sidebar{ transition:background-color .3s var(--ease), border-c
 }
 .cuenta-nav-tooltip{ display:none; }
 .cuenta-sidebar.shrink .cuenta-nav-tooltip{ display:block; }
+
+/* ---------- Sidebar pegado a la izquierda (todas las páginas) ----------
+   Igual que en Plantilla de examen: el panel ya no queda centrado en
+   1180px, usa todo el ancho y el sidebar arranca en la orilla izquierda.
+   "body .cuenta-shell" (más específico que ".cuenta-shell") para ganarle
+   a los CSS de cada página que también lo definen (base-de-datos.css,
+   citas.css, etc.) sin importar cuál se cargue después. */
+body .cuenta-shell{
+  max-width:none;
+  margin:0;
+  padding:36px 32px 90px 24px;
+}
+@media (max-width:900px){
+  body .cuenta-shell{ padding:28px 18px 70px; }
+}
