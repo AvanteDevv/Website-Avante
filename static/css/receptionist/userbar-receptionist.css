@@ -3,7 +3,9 @@
    más la campanita de avisos, los toasts y el globito del
    link "Comunicación" en el sidebar.
    ========================================================= */
-body.dark .userbar-menu{ transition:background-color .3s var(--ease), border-color .3s var(--ease); }
+/* En modo oscuro el menú del perfil también abre/cierra suave
+   (antes esta regla reemplazaba la transición de opacidad/escala). */
+body.dark .userbar-menu{ transition:opacity .22s var(--ease), transform .22s var(--ease), background-color .3s var(--ease), border-color .3s var(--ease); }
 
 .header-outer{
   position:sticky; top:0; z-index:80;
