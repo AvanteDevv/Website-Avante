@@ -91,6 +91,32 @@
         <label for="apptCorreo">Correo electrónico</label>
         <input type="email" id="apptCorreo" name="correo" placeholder="tu@correo.com" autocomplete="email" required>
       </div>
+      <div class="modal-field">
+        <label for="apptNacimientoBtn">Fecha de nacimiento</label>
+        <div class="appt-datepicker" id="apptNacimientoPicker">
+          <button type="button" class="appt-datepicker-trigger" id="apptNacimientoBtn" aria-haspopup="dialog" aria-expanded="false">
+            <svg class="appt-datepicker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span class="appt-datepicker-value is-placeholder" id="apptNacimientoLabel">dd/mm/aaaa</span>
+            <svg class="appt-datepicker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="appt-datepicker-menu" id="apptNacimientoMenu" role="dialog" aria-label="Elige tu fecha de nacimiento">
+            <div class="appt-datepicker-nav">
+              <button type="button" class="appt-datepicker-arrow" id="apptNacimientoPrev" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+              <button type="button" class="appt-datepicker-navlabel" id="apptNacimientoMonthYear" title="Elegir año">—</button>
+              <button type="button" class="appt-datepicker-arrow" id="apptNacimientoNext" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+            </div>
+            <div class="appt-datepicker-years" id="apptNacimientoYears" hidden></div>
+            <div class="appt-datepicker-days" id="apptNacimientoDays">
+              <div class="appt-datepicker-weekdays"><span>do</span><span>lu</span><span>ma</span><span>mi</span><span>ju</span><span>vi</span><span>sá</span></div>
+              <div class="appt-datepicker-grid" id="apptNacimientoGrid"></div>
+            </div>
+            <div class="appt-datepicker-actions">
+              <button type="button" id="apptNacimientoClear">Borrar</button>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" id="apptNacimiento" name="fecha_nacimiento">
+      </div>
       <p class="modal-form-error" id="apptContactError"></p>
       <button type="submit" class="btn solid modal-ok" id="apptContactSubmit">Continuar</button>
     </form>

@@ -45,6 +45,7 @@ const apptApellido = document.getElementById('apptApellido');
 const apptCelular = document.getElementById('apptCelular');
 const apptCorreo = document.getElementById('apptCorreo');
 const apptContactError = document.getElementById('apptContactError');
+const apptNacimiento = document.getElementById('apptNacimiento');
 const apptContactSubmit = document.getElementById('apptContactSubmit');
 
 // --- Modal de cuestionario rápido (entre datos de contacto y código) ---
@@ -69,7 +70,7 @@ let viewYear = today.getFullYear();
 let viewMonth = today.getMonth();
 let selectedDate = null;
 let selectedTime = null;
-let contactData = { nombre: '', apellido: '', celular: '', correo: '' };
+let contactData = { nombre: '', apellido: '', celular: '', correo: '', fechaNacimiento: '' };
 let questionnaireData = null;
 let occupiedHours = [];
 // Citas propias del cliente, SOLO si tiene sesión de cliente iniciada —
@@ -309,6 +310,148 @@ apptContactModalClose.addEventListener('click', closeApptContactModal);
 bumpOnOutsideClick(apptContactModalOverlay);
 
 /* =========================================================
+   FECHA DE NACIMIENTO — selector de calendario animado (mismo
+   estilo "smooth" que los selectores del sitio: se abre con un
+   pequeño rebote). Primero se elige el año (lista), luego el día.
+   No deja elegir fechas futuras. Guarda "AAAA-MM-DD" en el
+   input oculto #apptNacimiento.
+   ========================================================= */
+const birthPicker = (function(){
+  const wrap = document.getElementById('apptNacimientoPicker');
+  if(!wrap) return { reset(){}, value(){ return ''; } };
+  const trigger = document.getElementById('apptNacimientoBtn');
+  const label = document.getElementById('apptNacimientoLabel');
+  const menu = document.getElementById('apptNacimientoMenu');
+  const prevBtn = document.getElementById('apptNacimientoPrev');
+  const nextBtn = document.getElementById('apptNacimientoNext');
+  const monthYearBtn = document.getElementById('apptNacimientoMonthYear');
+  const yearsEl = document.getElementById('apptNacimientoYears');
+  const daysEl = document.getElementById('apptNacimientoDays');
+  const grid = document.getElementById('apptNacimientoGrid');
+  const clearBtn = document.getElementById('apptNacimientoClear');
+  const hidden = apptNacimiento;
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+  const todayISO = iso(today.getFullYear(), today.getMonth(), today.getDate());
+  let viewY = today.getFullYear() - 25;
+  let viewM = 0;
+  let showingYears = false;
+
+  function setLabel(){
+    if(hidden.value){
+      const [y, m, d] = hidden.value.split('-');
+      label.textContent = `${d}/${m}/${y}`;
+      label.classList.remove('is-placeholder');
+    } else {
+      label.textContent = 'dd/mm/aaaa';
+      label.classList.add('is-placeholder');
+    }
+  }
+
+  function renderDays(){
+    monthYearBtn.textContent = `${capitalize(MONTHS[viewM])} ${viewY}`;
+    const first = new Date(viewY, viewM, 1).getDay();
+    const inMonth = new Date(viewY, viewM + 1, 0).getDate();
+    let html = '';
+    for(let i = 0; i < first; i++) html += '<span class="appt-datepicker-day is-empty"></span>';
+    for(let d = 1; d <= inMonth; d++){
+      const v = iso(viewY, viewM, d);
+      let cls = 'appt-datepicker-day';
+      if(v === hidden.value) cls += ' is-selected';
+      if(v === todayISO) cls += ' is-today';
+      const future = v > todayISO;
+      html += `<button type="button" class="${cls}" data-iso="${v}"${future ? ' disabled' : ''}>${d}</button>`;
+    }
+    grid.innerHTML = html;
+    nextBtn.disabled = iso(viewY, viewM, 1) >= iso(today.getFullYear(), today.getMonth(), 1);
+    // Reinicia la animación de entrada del mes.
+    grid.classList.remove('is-anim'); void grid.offsetWidth; grid.classList.add('is-anim');
+  }
+
+  function renderYears(){
+    let html = '';
+    for(let y = today.getFullYear(); y >= today.getFullYear() - 100; y--){
+      html += `<button type="button" class="appt-datepicker-year${y === viewY ? ' is-active' : ''}" data-year="${y}">${y}</button>`;
+    }
+    yearsEl.innerHTML = html;
+    const active = yearsEl.querySelector('.is-active');
+    if(active) yearsEl.scrollTop = active.offsetTop - yearsEl.clientHeight / 2 + active.offsetHeight / 2;
+  }
+
+  function setYearsMode(on){
+    showingYears = on;
+    yearsEl.hidden = !on;
+    daysEl.hidden = on;
+    prevBtn.style.visibility = nextBtn.style.visibility = on ? 'hidden' : '';
+    monthYearBtn.classList.toggle('is-open', on);
+    monthYearBtn.textContent = on ? 'Elige el año' : `${capitalize(MONTHS[viewM])} ${viewY}`;
+    if(on) renderYears(); else renderDays();
+  }
+
+  function open(){
+    if(hidden.value){
+      const [y, m] = hidden.value.split('-').map(Number);
+      viewY = y; viewM = m - 1;
+      setYearsMode(false);
+    } else {
+      // Sin fecha todavía: empieza eligiendo el año (lo más rápido).
+      setYearsMode(true);
+    }
+    wrap.classList.add('is-open');
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+  function close(){
+    wrap.classList.remove('is-open');
+    trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    wrap.classList.contains('is-open') ? close() : open();
+  });
+  menu.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') close(); });
+
+  prevBtn.addEventListener('click', () => {
+    viewM--; if(viewM < 0){ viewM = 11; viewY--; }
+    renderDays();
+  });
+  nextBtn.addEventListener('click', () => {
+    viewM++; if(viewM > 11){ viewM = 0; viewY++; }
+    renderDays();
+  });
+  monthYearBtn.addEventListener('click', () => setYearsMode(!showingYears));
+  yearsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-year]');
+    if(!b) return;
+    viewY = Number(b.dataset.year);
+    if(iso(viewY, viewM, 1) > todayISO) viewM = today.getMonth();
+    setYearsMode(false);
+  });
+  grid.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-iso]');
+    if(!b || b.disabled) return;
+    hidden.value = b.dataset.iso;
+    setLabel();
+    apptContactError.textContent = '';
+    renderDays();
+    setTimeout(close, 140); // que alcance a verse marcado
+  });
+  clearBtn.addEventListener('click', () => {
+    hidden.value = '';
+    setLabel();
+    setYearsMode(true);
+  });
+
+  return {
+    reset(){ hidden.value = ''; viewY = today.getFullYear() - 25; viewM = 0; setLabel(); close(); },
+    value(){ return hidden.value; }
+  };
+})();
+
+/* =========================================================
    MODAL 1.5: CUESTIONARIO RÁPIDO (antes de verificar el código)
    ========================================================= */
 /* ---------- onboarding paso a paso ---------- */
@@ -477,6 +620,7 @@ async function bookAppointment(dateObj, time, contact, questionnaire){
         apellido: contact.apellido,
         celular: contact.celular,
         correo: contact.correo,
+        fecha_nacimiento: contact.fechaNacimiento,
         cuestionario: questionnaire
       })
     });
@@ -493,6 +637,7 @@ apptSubmit.addEventListener('click', () => {
   if(selectedDate && selectedTime){
     apptContactError.textContent = '';
     apptContactForm.reset();
+    birthPicker.reset();
     openApptContactModal();
   } else {
     openApptModal('Por favor selecciona un día y una hora antes de confirmar.');
@@ -519,9 +664,14 @@ apptContactForm.addEventListener('submit', (e) => {
     apptContactError.textContent = 'Ingresa un correo válido.';
     return;
   }
+  const fechaNacimiento = birthPicker.value();
+  if(!fechaNacimiento){
+    apptContactError.textContent = 'Elige tu fecha de nacimiento.';
+    return;
+  }
 
   apptContactError.textContent = '';
-  contactData = { nombre, apellido, celular: '+52' + celularDigits, correo };
+  contactData = { nombre, apellido, celular: '+52' + celularDigits, correo, fechaNacimiento };
 
   closeApptContactModal();
   apptQuestError.textContent = '';
