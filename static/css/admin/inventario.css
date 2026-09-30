@@ -9,7 +9,7 @@
 
 /* Tabla */
 .inv-table-wrap{ overflow-x:auto; }
-table.users-table.inv-table{ min-width:860px; }
+table.users-table.inv-table{ min-width:940px; }
 .inv-table th.inv-num, .inv-table td.inv-num{ text-align:right; }
 .inv-table tbody tr{ cursor:pointer; }
 .inv-table tbody tr.is-flash{ animation:invFlash 1.4s var(--ease); }
@@ -26,32 +26,53 @@ table.users-table.inv-table{ min-width:860px; }
 .inv-sort.is-sorted::after{ opacity:1; transform:rotate(180deg); }
 .inv-sort.is-sorted.is-desc::after{ transform:none; }
 
-.inv-id{
-  display:inline-block; padding:3px 9px; border-radius:100px;
+.inv-clave{
+  display:inline-block; padding:4px 10px; border-radius:8px;
   background:var(--blue-50); color:var(--blue-700);
-  font-size:11.5px; font-weight:700; font-variant-numeric:tabular-nums;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:11.5px; font-weight:700; letter-spacing:.02em; white-space:nowrap;
 }
-.inv-desc{ font-weight:600; color:var(--ink); max-width:320px; }
+.inv-clave.is-missing{ background:#fdf0e3; color:#9a4f0c; font-family:inherit; }
+body.dark .inv-clave.is-missing{ background:rgba(230,126,34,.16); color:#ffb877; }
+.inv-desc{ font-weight:600; color:var(--ink); min-width:190px; max-width:320px; }
 .inv-table td.inv-num{ font-variant-numeric:tabular-nums; white-space:nowrap; }
 .inv-table td.inv-num strong{ font-weight:700; color:var(--ink); }
 .inv-margin-tag{
-  display:block; margin-top:2px; font-size:10.5px; font-weight:700; color:#1f7a3d;
+  display:inline-block; padding:4px 10px; border-radius:100px;
+  background:#dff3e4; color:#1f7a3d; font-size:11.5px; font-weight:700; font-variant-numeric:tabular-nums;
 }
-.inv-margin-tag.is-neg{ color:#c0392b; }
+.inv-margin-tag.is-neg{ background:#fbe0e0; color:#a3231b; }
+body.dark .inv-margin-tag{ background:rgba(46,204,113,.16); color:#6fe0a0; }
+body.dark .inv-margin-tag.is-neg{ background:rgba(231,76,60,.16); color:#ff8b7d; }
+.inv-muted{ color:var(--grey); }
 
-/* Existencia: número + barra */
-.inv-stock{ display:flex; align-items:center; gap:10px; min-width:150px; }
-.inv-stock-num{ min-width:28px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); }
-.inv-stock-bar{ flex:1; max-width:90px; height:6px; border-radius:100px; background:var(--blue-50); overflow:hidden; }
-.inv-stock-bar i{ display:block; height:100%; border-radius:100px; background:#1f9d55; transition:width .5s var(--ease); }
-.inv-stock.is-low .inv-stock-bar i{ background:#e67e22; }
-.inv-stock.is-out .inv-stock-bar i{ background:#c0392b; }
-.inv-stock-tag{ font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 8px; border-radius:100px; }
-.inv-stock.is-low .inv-stock-tag{ background:#fdf0e3; color:#9a4f0c; }
-.inv-stock.is-out .inv-stock-tag{ background:#fbe0e0; color:#a3231b; }
-.inv-stock.is-out .inv-stock-num{ color:#c0392b; }
-body.dark .inv-stock.is-low .inv-stock-tag{ background:rgba(230,126,34,.16); color:#ffb877; }
-body.dark .inv-stock.is-out .inv-stock-tag{ background:rgba(231,76,60,.16); color:#ff8b7d; }
+/* Existencia: barra con el número adentro */
+.inv-stock{
+  position:relative; width:130px; height:26px; border-radius:100px; overflow:hidden;
+  background:var(--blue-50); display:flex; align-items:center; justify-content:center;
+}
+.inv-stock-fill{
+  position:absolute; left:0; top:0; bottom:0; width:var(--p, 0%); border-radius:100px;
+  background:var(--fill, #1f9d55); transition:width .5s var(--ease);
+}
+.inv-stock.is-ok{ --fill:#1f9d55; }
+.inv-stock.is-low{ --fill:#e67e22; }
+.inv-stock.is-out{ --fill:#fbe0e0; }
+body.dark .inv-stock.is-out{ --fill:rgba(231,76,60,.22); }
+/* El número ocupa toda la barra: blanco donde hay relleno, oscuro donde no */
+.inv-stock-num{
+  position:absolute; inset:0; z-index:1;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11.5px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;
+  background:linear-gradient(90deg, #fff var(--p, 0%), var(--ink) var(--p, 0%));
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent; -webkit-text-fill-color:transparent;
+}
+.inv-stock.is-out .inv-stock-num{
+  background:none; color:#a3231b; -webkit-text-fill-color:#a3231b;
+  text-transform:uppercase; letter-spacing:.04em; font-size:10.5px;
+}
+body.dark .inv-stock.is-out .inv-stock-num{ color:#ff8b7d; -webkit-text-fill-color:#ff8b7d; }
 
 .inv-empty{ text-align:center; padding:52px 24px 58px; font-size:13.5px; color:var(--grey); line-height:1.7; }
 
@@ -85,10 +106,10 @@ body.dark .inv-stock.is-out .inv-stock-tag{ background:rgba(231,76,60,.16); colo
   .inv-table tbody td.inv-desc::before{ display:none; }
   .inv-table tbody td.inv-actions{ position:absolute; top:10px; right:10px; }
   .inv-table tbody td.inv-actions::before{ display:none; }
-  .inv-stock{ min-width:0; }
-  .inv-margin-tag{ display:inline; margin-left:6px; }
+  .inv-stock{ width:100%; max-width:180px; }
+  .inv-table tbody td .inv-margin-tag{ align-self:flex-start; }
   .admin-user-form input{ font-size:16px; }
-  .inv-id{ align-self:flex-start; }
+  .inv-clave{ align-self:flex-start; }
   .inv-page .panel-toolbar{ flex-direction:column; align-items:stretch; gap:12px; }
   .inv-page .search-box{ max-width:none; min-width:0; }
   .inv-page .filter-pills{ flex-wrap:wrap; }
@@ -100,3 +121,9 @@ body.dark .inv-stock.is-out .inv-stock-tag{ background:rgba(231,76,60,.16); colo
   .inv-page .panel-foot{ display:flex; flex-direction:column; gap:10px; }
   .inv-page .panel-foot-spacer{ display:none; }
 }
+
+/* Campo "Clave" del modal */
+#invClave{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing:.03em; }
+.inv-clave-hint{ margin-top:0; font-weight:500; }
+.inv-clave-hint b{ color:var(--blue-700); font-weight:700; }
+.inv-table thead th, .inv-table tbody td{ padding-left:14px; padding-right:14px; }

@@ -49,7 +49,7 @@
           <div class="search-box-glow"></div>
           <div class="search-box-inner">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" id="invSearch" placeholder="Buscar por ID o descripción…" autocomplete="off">
+            <input type="text" id="invSearch" placeholder="Buscar por clave o descripción…" autocomplete="off">
           </div>
         </div>
         <div class="filter-pills" id="invFilters">
@@ -64,10 +64,11 @@
         <table class="users-table inv-table" id="invTable">
           <thead>
             <tr>
-              <th class="inv-sort" data-sort="id">ID</th>
+              <th class="inv-sort" data-sort="clave">Clave</th>
               <th class="inv-sort" data-sort="descripcion">Descripción</th>
               <th class="inv-sort inv-num" data-sort="precio_costo">Precio de costo</th>
               <th class="inv-sort inv-num" data-sort="precio_venta">Precio de venta</th>
+              <th class="inv-sort inv-num" data-sort="margen">Margen</th>
               <th class="inv-sort inv-num" data-sort="cantidad">Cantidad</th>
               <th class="inv-sort" data-sort="cantidad_actual">Cantidad actual</th>
               <th>Acciones</th>
@@ -106,6 +107,10 @@
     </div>
     <div class="admin-modal-body">
       <form class="admin-user-form" id="invForm" novalidate>
+        <label>Clave
+          <input type="text" id="invClave" maxlength="60" required placeholder="Ej. LNT-GSS-FLOW" autocomplete="off" spellcheck="false">
+          <span class="inv-hint inv-clave-hint">Ej. <b>LNT</b>-<b>GSS</b>-<b>FLOW</b> = lentes · Guess · modelo Flow. Se guarda en mayúsculas.</span>
+        </label>
         <label>Descripción
           <input type="text" id="invDescripcion" maxlength="200" required placeholder="Ej. Mica fibra de vidrio CR-39 AR">
         </label>
@@ -122,7 +127,7 @@
           <label>Cantidad
             <input type="number" id="invCantidad" min="0" step="1" inputmode="numeric" placeholder="0">
           </label>
-          <label>Cantidad actual <span class="admin-user-form-optional">(lo que queda)</span>
+          <label>Cantidad actual
             <input type="number" id="invActual" min="0" step="1" inputmode="numeric" placeholder="Igual a cantidad">
           </label>
         </div>

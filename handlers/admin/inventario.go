@@ -38,6 +38,7 @@ func ListInventario(c *gin.Context) {
 }
 
 type inventarioBody struct {
+	Clave          string  `json:"clave"`
 	Descripcion    string  `json:"descripcion"`
 	PrecioCosto    float64 `json:"precio_costo"`
 	PrecioVenta    float64 `json:"precio_venta"`
@@ -47,7 +48,14 @@ type inventarioBody struct {
 
 func (b *inventarioBody) validate() string {
 	b.Descripcion = strings.TrimSpace(b.Descripcion)
+	b.Clave = models.NormalizeInventoryClave(b.Clave)
 	switch {
+	case b.Clave == "":
+		return "Escribe la clave del producto (ej. LNT-GSS-FLOW)."
+	case len([]rune(b.Clave)) > 60:
+		return "La clave es muy larga (máximo 60 caracteres)."
+	case !claveOK(b.Clave):
+		return "La clave solo puede llevar letras, números, guiones (-), puntos (.) y diagonales (/)."
 	case b.Descripcion == "":
 		return "Escribe la descripción del producto."
 	case len([]rune(b.Descripcion)) > 200:
@@ -64,6 +72,21 @@ func (b *inventarioBody) validate() string {
 	b.PrecioCosto = math.Round(b.PrecioCosto*100) / 100
 	b.PrecioVenta = math.Round(b.PrecioVenta*100) / 100
 	return ""
+}
+
+func claveOK(c string) bool {
+	for _, r := range c {
+		switch {
+		case r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_', r == '.', r == '/', r == 'Ñ':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func claveTaken(c *gin.Context, clave string) {
+	c.JSON(http.StatusConflict, gin.H{"error": "Ya existe un producto con la clave " + clave + "."})
 }
 
 // CreateInventario — POST /api/admin/inventario
@@ -83,9 +106,13 @@ func CreateInventario(c *gin.Context) {
 		actual = *b.CantidadActual
 	}
 	it, err := models.CreateInventoryItem(models.InventoryItem{
-		Descripcion: b.Descripcion, PrecioCosto: b.PrecioCosto, PrecioVenta: b.PrecioVenta,
+		Clave: b.Clave, Descripcion: b.Descripcion, PrecioCosto: b.PrecioCosto, PrecioVenta: b.PrecioVenta,
 		Cantidad: b.Cantidad, CantidadActual: actual,
 	})
+	if err == models.ErrInventoryClaveTaken {
+		claveTaken(c, b.Clave)
+		return
+	}
 	if err != nil {
 		log.Printf("admin.CreateInventario: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el producto."})
@@ -125,9 +152,13 @@ func UpdateInventario(c *gin.Context) {
 		actual = *b.CantidadActual
 	}
 	it, err := models.UpdateInventoryItem(models.InventoryItem{
-		ID: id, Descripcion: b.Descripcion, PrecioCosto: b.PrecioCosto, PrecioVenta: b.PrecioVenta,
+		ID: id, Clave: b.Clave, Descripcion: b.Descripcion, PrecioCosto: b.PrecioCosto, PrecioVenta: b.PrecioVenta,
 		Cantidad: b.Cantidad, CantidadActual: actual,
 	})
+	if err == models.ErrInventoryClaveTaken {
+		claveTaken(c, b.Clave)
+		return
+	}
 	if err != nil {
 		log.Printf("admin.UpdateInventario: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el producto."})

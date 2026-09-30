@@ -15,6 +15,7 @@ import (
 // InventoryItem es un producto del inventario (Admin → Inventario).
 type InventoryItem struct {
 	ID             int64     `json:"id"`
+	Clave          string    `json:"clave"`
 	Descripcion    string    `json:"descripcion"`
 	PrecioCosto    float64   `json:"precio_costo"`
 	PrecioVenta    float64   `json:"precio_venta"`
@@ -27,7 +28,7 @@ type InventoryItem struct {
 // InventoryPublicItem es lo que ve recepción al buscar (Consultas):
 // sin el precio de costo.
 type InventoryPublicItem struct {
-	ID             int64   `json:"id"`
+	Clave          string  `json:"clave"`
 	Descripcion    string  `json:"descripcion"`
 	PrecioVenta    float64 `json:"precio_venta"`
 	CantidadActual int     `json:"cantidad_actual"`
@@ -36,14 +37,17 @@ type InventoryPublicItem struct {
 // ErrInventoryNotFound — no existe ese producto.
 var ErrInventoryNotFound = errors.New("producto no encontrado")
 
+// ErrInventoryClaveTaken — ya hay otro producto con esa clave.
+var ErrInventoryClaveTaken = errors.New("ya existe un producto con esa clave")
+
 // ErrInventoryNotEnough — no hay suficientes piezas para descontar.
 var ErrInventoryNotEnough = errors.New("no hay suficientes piezas en existencia")
 
-const inventoryCols = "id, descripcion, precio_costo, precio_venta, cantidad, cantidad_actual, created_at, updated_at"
+const inventoryCols = "id, COALESCE(clave, ''), descripcion, precio_costo, precio_venta, cantidad, cantidad_actual, created_at, updated_at"
 
 func scanInventory(sc interface{ Scan(...interface{}) error }) (InventoryItem, error) {
 	var it InventoryItem
-	err := sc.Scan(&it.ID, &it.Descripcion, &it.PrecioCosto, &it.PrecioVenta, &it.Cantidad, &it.CantidadActual, &it.CreatedAt, &it.UpdatedAt)
+	err := sc.Scan(&it.ID, &it.Clave, &it.Descripcion, &it.PrecioCosto, &it.PrecioVenta, &it.Cantidad, &it.CantidadActual, &it.CreatedAt, &it.UpdatedAt)
 	return it, err
 }
 
@@ -77,12 +81,33 @@ func GetInventoryItem(id int64) (*InventoryItem, error) {
 	return &it, nil
 }
 
+// NormalizeInventoryClave deja la clave en mayúsculas, sin espacios a
+// los lados y con guiones en vez de espacios ("lnt gss flow" → "LNT-GSS-FLOW").
+func NormalizeInventoryClave(c string) string {
+	c = strings.ToUpper(strings.TrimSpace(c))
+	return strings.Join(strings.Fields(c), "-")
+}
+
+func nullClave(c string) interface{} {
+	if c == "" {
+		return nil
+	}
+	return c
+}
+
+func isDuplicateKey(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "1062")
+}
+
 // CreateInventoryItem agrega un producto.
 func CreateInventoryItem(it InventoryItem) (*InventoryItem, error) {
 	res, err := db.DB.Exec(
-		"INSERT INTO inventory_items (descripcion, precio_costo, precio_venta, cantidad, cantidad_actual) VALUES (?, ?, ?, ?, ?)",
-		strings.TrimSpace(it.Descripcion), it.PrecioCosto, it.PrecioVenta, it.Cantidad, it.CantidadActual,
+		"INSERT INTO inventory_items (clave, descripcion, precio_costo, precio_venta, cantidad, cantidad_actual) VALUES (?, ?, ?, ?, ?, ?)",
+		nullClave(NormalizeInventoryClave(it.Clave)), strings.TrimSpace(it.Descripcion), it.PrecioCosto, it.PrecioVenta, it.Cantidad, it.CantidadActual,
 	)
+	if isDuplicateKey(err) {
+		return nil, ErrInventoryClaveTaken
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -96,9 +121,12 @@ func CreateInventoryItem(it InventoryItem) (*InventoryItem, error) {
 // UpdateInventoryItem guarda los cambios de un producto.
 func UpdateInventoryItem(it InventoryItem) (*InventoryItem, error) {
 	res, err := db.DB.Exec(
-		"UPDATE inventory_items SET descripcion = ?, precio_costo = ?, precio_venta = ?, cantidad = ?, cantidad_actual = ? WHERE id = ?",
-		strings.TrimSpace(it.Descripcion), it.PrecioCosto, it.PrecioVenta, it.Cantidad, it.CantidadActual, it.ID,
+		"UPDATE inventory_items SET clave = ?, descripcion = ?, precio_costo = ?, precio_venta = ?, cantidad = ?, cantidad_actual = ? WHERE id = ?",
+		nullClave(NormalizeInventoryClave(it.Clave)), strings.TrimSpace(it.Descripcion), it.PrecioCosto, it.PrecioVenta, it.Cantidad, it.CantidadActual, it.ID,
 	)
+	if isDuplicateKey(err) {
+		return nil, ErrInventoryClaveTaken
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +145,7 @@ func DeleteInventoryItem(id int64) error {
 	return err
 }
 
-// SearchInventoryPublic busca por descripción o id (recepción → Consultas).
+// SearchInventoryPublic busca por descripción o clave (recepción → Consultas).
 // Cada palabra tiene que aparecer en la descripción ("fibra cr" encuentra
 // "Lente fibra de vidrio CR-39"). Sin texto regresa todo.
 func SearchInventoryPublic(q string, limit int) ([]InventoryPublicItem, error) {
@@ -131,13 +159,13 @@ func SearchInventoryPublic(q string, limit int) ([]InventoryPublicItem, error) {
 			w = string([]rune(w)[:60])
 		}
 		w = strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(w)
-		where = append(where, "(descripcion LIKE ? OR CAST(id AS CHAR) = ?)")
-		args = append(args, "%"+w+"%", w)
+		where = append(where, "(descripcion LIKE ? OR clave LIKE ?)")
+		args = append(args, "%"+w+"%", "%"+w+"%")
 		if len(where) == 8 {
 			break
 		}
 	}
-	query := "SELECT id, descripcion, precio_venta, cantidad_actual FROM inventory_items"
+	query := "SELECT COALESCE(clave, ''), descripcion, precio_venta, cantidad_actual FROM inventory_items"
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -152,7 +180,7 @@ func SearchInventoryPublic(q string, limit int) ([]InventoryPublicItem, error) {
 	out := []InventoryPublicItem{}
 	for rows.Next() {
 		var it InventoryPublicItem
-		if err := rows.Scan(&it.ID, &it.Descripcion, &it.PrecioVenta, &it.CantidadActual); err != nil {
+		if err := rows.Scan(&it.Clave, &it.Descripcion, &it.PrecioVenta, &it.CantidadActual); err != nil {
 			return nil, err
 		}
 		out = append(out, it)

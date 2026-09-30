@@ -21,7 +21,7 @@
   var items = [];
   var term = '';
   var filter = 'todos';
-  var sortKey = 'id', sortDir = -1;
+  var sortKey = 'id', sortDir = -1; // 'id' = más nuevo primero (no se muestra)
   var currentPage = 1;
   var flashId = null;
 
@@ -81,24 +81,33 @@
       if (filter === 'agotados' && it.cantidad_actual > 0) return false;
       if (filter === 'pocos' && !isLow(it)) return false;
       if (!words.length) return true;
-      var hay = norm(it.descripcion) + ' ' + it.id;
-      return words.every(function (w) { return hay.indexOf(w) !== -1 || String(it.id) === w; });
+      var hay = norm(it.clave) + ' ' + norm(it.descripcion);
+      return words.every(function (w) { return hay.indexOf(w) !== -1; });
     }).sort(function (a, b) {
-      var x = a[sortKey], y = b[sortKey];
+      var x = sortKey === 'margen' ? margenOf(a) : a[sortKey], y = sortKey === 'margen' ? margenOf(b) : b[sortKey];
+      if (x === null) x = -Infinity;
+      if (y === null) y = -Infinity;
       if (typeof x === 'string') return x.localeCompare(y, 'es', { sensitivity: 'base' }) * sortDir;
       return (x - y) * sortDir;
     });
   }
 
+  function margenOf(it) {
+    return it.precio_costo > 0 ? Math.round((it.precio_venta - it.precio_costo) / it.precio_costo * 100) : null;
+  }
+
+  // Barra de existencia con el número adentro
   function stockCell(it) {
     var a = it.cantidad_actual, c = it.cantidad;
     var pct = c > 0 ? Math.max(0, Math.min(100, Math.round(a / c * 100))) : (a > 0 ? 100 : 0);
     var cls = a <= 0 ? 'is-out' : (isLow(it) ? 'is-low' : 'is-ok');
-    var label = a <= 0 ? 'Agotado' : (isLow(it) ? 'Pocas' : '');
-    return '<div class="inv-stock ' + cls + '">' +
-      '<span class="inv-stock-num">' + int.format(a) + '</span>' +
-      '<span class="inv-stock-bar"><i style="width:' + pct + '%"></i></span>' +
-      (label ? '<span class="inv-stock-tag">' + label + '</span>' : '') +
+    var label = a <= 0 ? 'Agotado' : int.format(a) + (c > 0 ? ' de ' + int.format(c) : '');
+    var fill = a <= 0 ? 100 : Math.max(pct, 8);
+    // --p: hasta dónde llega el relleno; el texto es blanco sobre el
+    // relleno y oscuro sobre lo vacío (se ve bien aunque lo parta a la mitad).
+    return '<div class="inv-stock ' + cls + '" style="--p:' + fill + '%" title="' + (a <= 0 ? 'Agotado' : a + ' de ' + c + ' piezas') + '">' +
+      '<i class="inv-stock-fill"></i>' +
+      '<span class="inv-stock-num">' + label + '</span>' +
       '</div>';
   }
 
@@ -110,13 +119,15 @@
     var rows = list.slice(start, start + PAGE_SIZE);
 
     body.innerHTML = rows.map(function (it) {
-      var margen = it.precio_costo > 0 ? Math.round((it.precio_venta - it.precio_costo) / it.precio_costo * 100) : null;
+      var margen = margenOf(it);
       return '<tr data-id="' + it.id + '"' + (it.id === flashId ? ' class="is-flash"' : '') + '>' +
-        '<td data-label="ID"><span class="inv-id">#' + it.id + '</span></td>' +
+        '<td data-label="Clave">' + (it.clave ? '<span class="inv-clave">' + esc(it.clave) + '</span>' : '<span class="inv-clave is-missing">Sin clave</span>') + '</td>' +
         '<td data-label="Descripción" class="inv-desc">' + esc(it.descripcion) + '</td>' +
         '<td data-label="Precio de costo" class="inv-num">' + mxn.format(it.precio_costo) + '</td>' +
-        '<td data-label="Precio de venta" class="inv-num"><strong>' + mxn.format(it.precio_venta) + '</strong>' +
-          (margen !== null ? '<small class="inv-margin-tag' + (margen < 0 ? ' is-neg' : '') + '">' + (margen >= 0 ? '+' : '') + margen + '%</small>' : '') + '</td>' +
+        '<td data-label="Precio de venta" class="inv-num"><strong>' + mxn.format(it.precio_venta) + '</strong></td>' +
+        '<td data-label="Margen" class="inv-num">' + (margen !== null
+          ? '<span class="inv-margin-tag' + (margen < 0 ? ' is-neg' : '') + '">' + (margen >= 0 ? '+' : '') + margen + '%</span>'
+          : '<span class="inv-muted">—</span>') + '</td>' +
         '<td data-label="Cantidad" class="inv-num">' + int.format(it.cantidad) + '</td>' +
         '<td data-label="Cantidad actual">' + stockCell(it) + '</td>' +
         '<td class="inv-actions">' +
@@ -163,7 +174,7 @@
     return api(API).then(function (d) {
       items = (d.items || []).map(function (it) {
         return {
-          id: it.id, descripcion: it.descripcion || '',
+          id: it.id, clave: it.clave || '', descripcion: it.descripcion || '',
           precio_costo: Number(it.precio_costo) || 0, precio_venta: Number(it.precio_venta) || 0,
           cantidad: Number(it.cantidad) || 0, cantidad_actual: Number(it.cantidad_actual) || 0
         };
@@ -231,6 +242,7 @@
   /* ---------- modal: nuevo / editar ---------- */
   var overlay = document.getElementById('invModalOverlay');
   var form = document.getElementById('invForm');
+  var fClave = document.getElementById('invClave');
   var fDesc = document.getElementById('invDescripcion');
   var fCosto = document.getElementById('invCosto');
   var fVenta = document.getElementById('invVenta');
@@ -264,7 +276,8 @@
   function openForm(id) {
     editingId = id || null;
     var it = id ? byId(id) : null;
-    document.getElementById('invModalTitle').textContent = it ? 'Editar producto #' + it.id : 'Nuevo producto';
+    document.getElementById('invModalTitle').textContent = it ? 'Editar ' + (it.clave || 'producto') : 'Nuevo producto';
+    fClave.value = it ? it.clave : '';
     submitBtn.textContent = it ? 'Guardar cambios' : 'Guardar producto';
     fDesc.value = it ? it.descripcion : '';
     fCosto.value = it ? it.precio_costo.toFixed(2) : '';
@@ -275,9 +288,15 @@
     errEl.textContent = '';
     syncMargin();
     openModal(overlay);
-    setTimeout(function () { fDesc.focus(); }, 80);
+    setTimeout(function () { (fClave.value ? fDesc : fClave).focus(); }, 80);
   }
 
+  function normClave(v) { return String(v || '').toUpperCase().trim().split(/\s+/).filter(Boolean).join('-'); }
+  // Mayúsculas mientras escribe (sin mover el cursor)
+  fClave.addEventListener('input', function () {
+    var pos = fClave.selectionStart, up = fClave.value.toUpperCase().replace(/ /g, '-');
+    if (up !== fClave.value) { fClave.value = up; fClave.setSelectionRange(pos, pos); }
+  });
   fCosto.addEventListener('input', syncMargin);
   fVenta.addEventListener('input', syncMargin);
   fActual.addEventListener('input', function () { actualTouched = fActual.value !== ''; });
@@ -286,11 +305,17 @@
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+    var clave = normClave(fClave.value);
+    fClave.value = clave;
     var desc = fDesc.value.trim();
     var costo = fCosto.value === '' ? 0 : parseFloat(fCosto.value);
     var venta = fVenta.value === '' ? 0 : parseFloat(fVenta.value);
     var cant = fCant.value === '' ? 0 : parseInt(fCant.value, 10);
     var actual = fActual.value === '' ? cant : parseInt(fActual.value, 10);
+    if (!clave) { errEl.textContent = 'Escribe la clave del producto (ej. LNT-GSS-FLOW).'; fClave.focus(); return; }
+    if (!/^[A-Z0-9Ñ._\/-]+$/.test(clave)) { errEl.textContent = 'La clave solo puede llevar letras, números, guiones (-), puntos (.) y diagonales (/).'; fClave.focus(); return; }
+    var dup = items.filter(function (x) { return x.clave === clave && x.id !== editingId; })[0];
+    if (dup) { errEl.textContent = 'Ya existe un producto con la clave ' + clave + ' (' + dup.descripcion + ').'; fClave.focus(); return; }
     if (!desc) { errEl.textContent = 'Escribe la descripción del producto.'; fDesc.focus(); return; }
     if (isNaN(costo) || costo < 0 || isNaN(venta) || venta < 0) { errEl.textContent = 'Revisa los precios.'; return; }
     if (isNaN(cant) || cant < 0 || isNaN(actual) || actual < 0) { errEl.textContent = 'Las cantidades deben ser números enteros, sin negativos.'; return; }
@@ -300,11 +325,11 @@
     submitBtn.textContent = 'Guardando…';
     api(editingId ? API + '/' + editingId : API, {
       method: editingId ? 'PUT' : 'POST',
-      body: { descripcion: desc, precio_costo: costo, precio_venta: venta, cantidad: cant, cantidad_actual: actual }
+      body: { clave: clave, descripcion: desc, precio_costo: costo, precio_venta: venta, cantidad: cant, cantidad_actual: actual }
     }).then(function (d) {
       var it = d.item;
       var saved = {
-        id: it.id, descripcion: it.descripcion, precio_costo: Number(it.precio_costo), precio_venta: Number(it.precio_venta),
+        id: it.id, clave: it.clave || '', descripcion: it.descripcion, precio_costo: Number(it.precio_costo), precio_venta: Number(it.precio_venta),
         cantidad: Number(it.cantidad), cantidad_actual: Number(it.cantidad_actual)
       };
       if (editingId) items = items.map(function (x) { return x.id === saved.id ? saved : x; });
@@ -330,7 +355,7 @@
     var it = byId(id);
     if (!it) return;
     delId = id;
-    document.getElementById('invDeleteName').textContent = it.descripcion + ' (#' + it.id + ')';
+    document.getElementById('invDeleteName').textContent = (it.clave ? it.clave + ' · ' : '') + it.descripcion;
     document.getElementById('invDeleteError').textContent = '';
     openModal(delOverlay);
   }
