@@ -97,17 +97,17 @@
   }
 
   // Barra de existencia con el número adentro
+  // Diseño original (barra delgada + etiqueta), con el número dentro de la barra.
   function stockCell(it) {
     var a = it.cantidad_actual, c = it.cantidad;
     var pct = c > 0 ? Math.max(0, Math.min(100, Math.round(a / c * 100))) : (a > 0 ? 100 : 0);
     var cls = a <= 0 ? 'is-out' : (isLow(it) ? 'is-low' : 'is-ok');
-    var label = a <= 0 ? 'Agotado' : int.format(a) + (c > 0 ? ' de ' + int.format(c) : '');
-    var fill = a <= 0 ? 100 : Math.max(pct, 8);
-    // --p: hasta dónde llega el relleno; el texto es blanco sobre el
-    // relleno y oscuro sobre lo vacío (se ve bien aunque lo parta a la mitad).
-    return '<div class="inv-stock ' + cls + '" style="--p:' + fill + '%" title="' + (a <= 0 ? 'Agotado' : a + ' de ' + c + ' piezas') + '">' +
-      '<i class="inv-stock-fill"></i>' +
-      '<span class="inv-stock-num">' + label + '</span>' +
+    var tag = a <= 0 ? 'Agotado' : (isLow(it) ? 'Pocas' : '');
+    return '<div class="inv-stock ' + cls + '" title="' + a + ' de ' + c + ' piezas">' +
+      '<span class="inv-stock-bar" style="--p:' + pct + '%">' +
+        '<i></i><span class="inv-stock-num">' + int.format(a) + '</span>' +
+      '</span>' +
+      (tag ? '<span class="inv-stock-tag">' + tag + '</span>' : '') +
       '</div>';
   }
 

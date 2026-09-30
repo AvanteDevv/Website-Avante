@@ -46,33 +46,31 @@ body.dark .inv-margin-tag{ background:rgba(46,204,113,.16); color:#6fe0a0; }
 body.dark .inv-margin-tag.is-neg{ background:rgba(231,76,60,.16); color:#ff8b7d; }
 .inv-muted{ color:var(--grey); }
 
-/* Existencia: barra con el número adentro */
-.inv-stock{
-  position:relative; width:130px; height:26px; border-radius:100px; overflow:hidden;
-  background:var(--blue-50); display:flex; align-items:center; justify-content:center;
+/* Existencia: barra delgada (diseño original) con el número adentro */
+.inv-stock{ display:flex; align-items:center; gap:10px; min-width:150px; }
+.inv-stock-bar{
+  position:relative; flex:1; max-width:110px; height:18px; border-radius:100px;
+  background:var(--blue-50); overflow:hidden;
 }
-.inv-stock-fill{
+.inv-stock-bar i{
   position:absolute; left:0; top:0; bottom:0; width:var(--p, 0%); border-radius:100px;
-  background:var(--fill, #1f9d55); transition:width .5s var(--ease);
+  background:#1f9d55; transition:width .5s var(--ease);
 }
-.inv-stock.is-ok{ --fill:#1f9d55; }
-.inv-stock.is-low{ --fill:#e67e22; }
-.inv-stock.is-out{ --fill:#fbe0e0; }
-body.dark .inv-stock.is-out{ --fill:rgba(231,76,60,.22); }
-/* El número ocupa toda la barra: blanco donde hay relleno, oscuro donde no */
+.inv-stock.is-low .inv-stock-bar i{ background:#e67e22; }
+.inv-stock.is-out .inv-stock-bar i{ background:#c0392b; }
+/* número: blanco sobre el relleno, oscuro sobre lo vacío */
 .inv-stock-num{
-  position:absolute; inset:0; z-index:1;
-  display:flex; align-items:center; justify-content:center;
-  font-size:11.5px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;
+  position:absolute; inset:0; display:flex; align-items:center; padding-left:8px;
+  font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;
   background:linear-gradient(90deg, #fff var(--p, 0%), var(--ink) var(--p, 0%));
   -webkit-background-clip:text; background-clip:text;
   color:transparent; -webkit-text-fill-color:transparent;
 }
-.inv-stock.is-out .inv-stock-num{
-  background:none; color:#a3231b; -webkit-text-fill-color:#a3231b;
-  text-transform:uppercase; letter-spacing:.04em; font-size:10.5px;
-}
-body.dark .inv-stock.is-out .inv-stock-num{ color:#ff8b7d; -webkit-text-fill-color:#ff8b7d; }
+.inv-stock-tag{ font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 8px; border-radius:100px; }
+.inv-stock.is-low .inv-stock-tag{ background:#fdf0e3; color:#9a4f0c; }
+.inv-stock.is-out .inv-stock-tag{ background:#fbe0e0; color:#a3231b; }
+body.dark .inv-stock.is-low .inv-stock-tag{ background:rgba(230,126,34,.16); color:#ffb877; }
+body.dark .inv-stock.is-out .inv-stock-tag{ background:rgba(231,76,60,.16); color:#ff8b7d; }
 
 .inv-empty{ text-align:center; padding:52px 24px 58px; font-size:13.5px; color:var(--grey); line-height:1.7; }
 
@@ -106,7 +104,7 @@ body.dark .inv-stock.is-out .inv-stock-num{ color:#ff8b7d; -webkit-text-fill-col
   .inv-table tbody td.inv-desc::before{ display:none; }
   .inv-table tbody td.inv-actions{ position:absolute; top:10px; right:10px; }
   .inv-table tbody td.inv-actions::before{ display:none; }
-  .inv-stock{ width:100%; max-width:180px; }
+  .inv-stock{ min-width:0; }
   .inv-table tbody td .inv-margin-tag{ align-self:flex-start; }
   .admin-user-form input{ font-size:16px; }
   .inv-clave{ align-self:flex-start; }

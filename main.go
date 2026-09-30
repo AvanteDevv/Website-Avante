@@ -504,14 +504,8 @@ func main() {
 	{
 		// Comunicación: solo recepción (el admin no chatea ni recibe avisos).
 		receptionistGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleReceptionist), handlers.ReceptionistCommunicationPage)
-		// Secciones nuevas de recepción: las que todavía no tienen
-		// página mandan a Citas. Cuando se cree cada página, se cambia
-		// "proximamente" por su handler (Consultas, Plantillas y Administración ya tienen la suya).
-		proximamente := func(c *gin.Context) {
-			c.Redirect(http.StatusFound, "/receptionist/citas")
-		}
 		receptionistGroup.GET("/consultas", handlers.ReceptionistConsultasPage)
-		receptionistGroup.GET("/punto-de-venta", proximamente)
+		receptionistGroup.GET("/punto-de-venta", handlers.ReceptionistPuntoDeVentaPage)
 		receptionistGroup.GET("/plantillas", handlers.ReceptionistPlantillasPage)
 		receptionistGroup.GET("/administracion", handlers.ReceptionistAdministracionPage)
 		receptionistGroup.GET("/citas", func(c *gin.Context) {

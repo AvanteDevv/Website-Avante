@@ -25,9 +25,11 @@ type InventoryItem struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
-// InventoryPublicItem es lo que ve recepción al buscar (Consultas):
-// sin el precio de costo.
+// InventoryPublicItem es lo que ve recepción al buscar (Consultas y
+// Punto de venta): sin el precio de costo. El id no se muestra, pero el
+// Punto de venta lo usa para saber qué producto se vende.
 type InventoryPublicItem struct {
+	ID             int64   `json:"id"`
 	Clave          string  `json:"clave"`
 	Descripcion    string  `json:"descripcion"`
 	PrecioVenta    float64 `json:"precio_venta"`
@@ -165,7 +167,7 @@ func SearchInventoryPublic(q string, limit int) ([]InventoryPublicItem, error) {
 			break
 		}
 	}
-	query := "SELECT COALESCE(clave, ''), descripcion, precio_venta, cantidad_actual FROM inventory_items"
+	query := "SELECT id, COALESCE(clave, ''), descripcion, precio_venta, cantidad_actual FROM inventory_items"
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -180,7 +182,7 @@ func SearchInventoryPublic(q string, limit int) ([]InventoryPublicItem, error) {
 	out := []InventoryPublicItem{}
 	for rows.Next() {
 		var it InventoryPublicItem
-		if err := rows.Scan(&it.Clave, &it.Descripcion, &it.PrecioVenta, &it.CantidadActual); err != nil {
+		if err := rows.Scan(&it.ID, &it.Clave, &it.Descripcion, &it.PrecioVenta, &it.CantidadActual); err != nil {
 			return nil, err
 		}
 		out = append(out, it)

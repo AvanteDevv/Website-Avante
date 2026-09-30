@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Punto de venta — Recepción · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/punto-de-venta-recepcion.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "receptionist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "receptionist-sidebar" .}}
+
+  <main class="cuenta-main admin-main pos-page" id="posPage" data-cajero="{{.StaffName}}">
+    <div class="admin-header pos-header">
+      <div>
+        <h1>Punto de venta</h1>
+        <p>Busca el producto, elige al cliente y cobra.</p>
+      </div>
+      <span class="pos-preview-tag" title="Por ahora la venta no se guarda ni descuenta del inventario">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        Vista de prueba
+      </span>
+    </div>
+
+    <div class="pos-layout">
+      <!-- ================= Productos ================= -->
+      <section class="admin-panel pos-products">
+        <div class="pos-search">
+          <div class="search-box pos-search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="posSearch" placeholder="Buscar producto por nombre o clave…  (Enter agrega el primero)" autocomplete="off" autofocus>
+              <span class="pos-spinner" id="posSpinner" hidden></span>
+              <kbd class="pos-kbd">F2</kbd>
+            </div>
+          </div>
+        </div>
+        <p class="pos-count" id="posCount"></p>
+        <div class="pos-grid" id="posGrid"></div>
+        <p class="pos-empty" id="posEmpty" hidden></p>
+      </section>
+
+      <!-- ================= Venta ================= -->
+      <aside class="admin-panel pos-cart">
+        <div class="pos-client" id="posClient">
+          <div class="pos-client-pick" id="posClientPick">
+            <span class="pos-client-avatar" id="posClientAvatar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </span>
+            <div class="pos-client-text">
+              <small>Cliente</small>
+              <strong id="posClientName">Público en general</strong>
+              <span id="posClientMeta"></span>
+            </div>
+            <button type="button" class="pos-client-change" id="posClientBtn">Cambiar</button>
+          </div>
+          <!-- Buscador de clientes -->
+          <div class="pos-client-drop" id="posClientDrop" hidden>
+            <div class="pos-client-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="posClientSearch" placeholder="Nombre, celular, No. de cliente o clave…" autocomplete="off">
+            </div>
+            <div class="pos-client-list" id="posClientList"></div>
+            <button type="button" class="pos-client-new" id="posClientNew">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Nuevo cliente
+            </button>
+          </div>
+        </div>
+
+        <div class="pos-lines-head">
+          <span>Venta</span>
+          <button type="button" class="pos-clear" id="posClearBtn" disabled>Vaciar</button>
+        </div>
+        <div class="pos-lines" id="posLines"></div>
+        <div class="pos-lines-empty" id="posLinesEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+          <p>Toca un producto para agregarlo a la venta.</p>
+        </div>
+
+        <div class="pos-totals">
+          <div class="pos-row"><span>Artículos</span><span id="posItems">0</span></div>
+          <div class="pos-row"><span>Subtotal</span><span id="posSubtotal">$0.00</span></div>
+          <div class="pos-row pos-row-desc" id="posDescRow" hidden><span>Descuentos</span><span id="posDesc">−$0.00</span></div>
+          <div class="pos-row pos-total"><span>Total</span><strong id="posTotal">$0.00</strong></div>
+        </div>
+        <button type="button" class="btn solid pos-pay" id="posPayBtn" disabled>
+          Cobrar <kbd>F12</kbd>
+        </button>
+      </aside>
+    </div>
+
+    <!-- Celular: barra fija con el total que lleva a la venta -->
+    <button type="button" class="pos-mbar" id="posMobileBar" hidden>
+      <span class="pos-mbar-count" id="posMobileCount">0</span>
+      <span>Ver venta</span>
+      <strong id="posMobileTotal">$0.00</strong>
+    </button>
+  </main>
+</div>
+
+<!-- ================= Modal: nuevo cliente ================= -->
+<div class="admin-modal-overlay" id="posClientModal">
+  <div class="admin-modal-card pos-client-card" role="dialog" aria-modal="true" aria-labelledby="posClientModalTitle">
+    <div class="admin-modal-head">
+      <h3 id="posClientModalTitle">Nuevo cliente</h3>
+      <button type="button" class="admin-modal-close" id="posClientModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="staff-form" id="posClientForm" novalidate autocomplete="off">
+        <div class="form-section-title"><span class="form-section-num">1</span> Datos básicos</div>
+        <div class="staff-form-row">
+          <label class="staff-field">
+            <span>No. de cliente</span>
+            <input type="text" id="pcNumero" maxlength="12" inputmode="numeric" required>
+          </label>
+          <label class="staff-field">
+            <span>Clave <em>(opcional)</em></span>
+            <input type="text" id="pcClave" maxlength="30" placeholder="Ej. FRECUENTE" spellcheck="false">
+          </label>
+        </div>
+        <div class="qchips pos-clave-chips" id="pcClaveChips">
+          <small>Rápido:</small>
+          <button type="button" data-clave="FRECUENTE">Frecuente</button>
+          <button type="button" data-clave="VIP">VIP</button>
+          <button type="button" data-clave="EMPRESA">Empresa</button>
+          <button type="button" data-clave="UNISON">Unison</button>
+        </div>
+        <label class="staff-field">
+          <span>Nombre</span>
+          <input type="text" id="pcNombre" maxlength="120" required placeholder="Ej. Leonardo Ortega Miranda">
+        </label>
+        <div class="staff-form-row">
+          <label class="staff-field">
+            <span>Celular</span>
+            <input type="tel" id="pcCelular" maxlength="10" inputmode="numeric" placeholder="10 dígitos">
+          </label>
+          <label class="staff-field">
+            <span>Representante <em>(quién lo atendió)</em></span>
+            <input type="text" id="pcRepresentante" maxlength="120">
+          </label>
+        </div>
+
+        <div class="form-section-title"><span class="form-section-num">2</span> Crédito <small>opcional</small></div>
+        <div class="staff-form-row">
+          <label class="staff-field">
+            <span>Días de crédito</span>
+            <input type="number" id="pcDias" min="0" max="365" step="1" inputmode="numeric" placeholder="0">
+          </label>
+          <label class="staff-field">
+            <span>Límite de crédito</span>
+            <span class="pos-money"><span>$</span><input type="number" id="pcLimite" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span>
+          </label>
+        </div>
+        <p class="staff-error" id="pcError"></p>
+        <div class="staff-form-actions">
+          <button type="button" class="btn small" id="pcCancel">Cancelar</button>
+          <button type="submit" class="btn solid small">Guardar cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: cobrar ================= -->
+<div class="admin-modal-overlay" id="posPayModal">
+  <div class="admin-modal-card pos-pay-card" role="dialog" aria-modal="true" aria-labelledby="posPayTitle">
+    <div class="admin-modal-head">
+      <h3 id="posPayTitle">Cobrar</h3>
+      <button type="button" class="admin-modal-close" id="posPayClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="pos-pay-total">
+        <small>Total a pagar</small>
+        <strong id="payTotal">$0.00</strong>
+        <span id="payLetras"></span>
+      </div>
+
+      <div class="pos-methods" id="payMethods">
+        <label class="pos-method"><span class="pos-method-ico is-cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></span><span>Efectivo</span>
+          <span class="pos-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-pay="efectivo" placeholder="0.00"></span></label>
+        <label class="pos-method"><span class="pos-method-ico is-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span>Tarjeta</span>
+          <span class="pos-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-pay="tarjeta" placeholder="0.00"></span></label>
+        <label class="pos-method"><span class="pos-method-ico is-transfer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg></span><span>Transferencia</span>
+          <span class="pos-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-pay="transferencia" placeholder="0.00"></span></label>
+        <label class="pos-method"><span class="pos-method-ico is-vales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4Z"/></svg></span><span>Vales</span>
+          <span class="pos-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-pay="vales" placeholder="0.00"></span></label>
+        <label class="pos-method"><span class="pos-method-ico is-cheque"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 14h6M15 14h3"/></svg></span><span>Cheque</span>
+          <span class="pos-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-pay="cheque" placeholder="0.00"></span></label>
+        <label class="pos-method pos-method-credit" id="payCreditRow"><span class="pos-method-ico is-credit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span><span>Crédito</span>
+          <span class="pos-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-pay="credito" placeholder="0.00"></span></label>
+      </div>
+      <button type="button" class="pos-rest" id="payRestBtn">Poner lo que falta en <b id="payRestLabel">efectivo</b></button>
+
+      <label class="staff-field pos-ref">
+        <span>Referencia <em>(opcional — no. de autorización, folio de transferencia…)</em></span>
+        <input type="text" id="payRef" maxlength="80">
+      </label>
+
+      <div class="pos-credit-box" id="payCreditBox" hidden>
+        <div><small>Días de crédito</small><strong id="payCreditDias">—</strong></div>
+        <div><small>Límite</small><strong id="payCreditLimite">—</strong></div>
+        <div><small>Disponible</small><strong id="payCreditDisp">—</strong></div>
+        <div><small>Vence</small><strong id="payCreditVence">—</strong></div>
+      </div>
+
+      <div class="pos-pay-summary">
+        <div class="pos-row"><span>Pagado</span><span id="payPaid">$0.00</span></div>
+        <div class="pos-row pos-pay-falta" id="payFaltaRow"><span>Falta</span><strong id="payFalta">$0.00</strong></div>
+        <div class="pos-row pos-pay-cambio" id="payCambioRow" hidden><span>Cambio</span><strong id="payCambio">$0.00</strong></div>
+      </div>
+      <p class="staff-error" id="payError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" id="payCancel">Regresar</button>
+        <button type="button" class="btn solid small" id="payAccept" disabled>Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: venta terminada ================= -->
+<div class="admin-modal-overlay" id="posDoneModal">
+  <div class="admin-modal-card pos-done-card" role="dialog" aria-modal="true" aria-labelledby="posDoneTitle">
+    <div class="admin-modal-body pos-done">
+      <div class="pos-done-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <h3 id="posDoneTitle">Venta lista</h3>
+      <p id="posDoneText"></p>
+      <p class="pos-done-note">Vista de prueba: la venta todavía no se guarda ni descuenta del inventario.</p>
+      <div class="pos-done-actions">
+        <button type="button" class="btn small" id="posDonePrint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir ticket
+        </button>
+        <button type="button" class="btn solid small" id="posDoneNew">Nueva venta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/receptionist/ticket-render.js"></script>
+<script src="/static/js/receptionist/punto-de-venta-recepcion.js"></script>
+</body>
+</html>
