@@ -3,7 +3,9 @@
    Único cambio: los tokens --blue-* y los rgba() que estaban
    escritos directo con el azul institucional pasan a rojo.
    ========================================================= */
-body.dark .cuenta-sidebar{ transition:background-color .3s var(--ease), border-color .3s var(--ease); }
+/* En modo oscuro también se anima el ancho al retraer/expandir
+   (antes esta regla reemplazaba la transición y el cambio era brusco). */
+body.dark .cuenta-sidebar{ transition:width .3s var(--ease), background-color .3s var(--ease), border-color .3s var(--ease); }
 
 /* ---------- Shell compartido: sidebar + contenido ----------
    Vive aquí (no en cada página) porque cualquier vista que use
@@ -161,3 +163,6 @@ body .cuenta-shell{
 @media (max-width:900px){
   body .cuenta-shell{ padding:28px 18px 70px; }
 }
+
+/* Links del sidebar sin subrayado (en páginas cuyo CSS no lo quita). */
+.cuenta-sidebar a, .cuenta-nav-link{ text-decoration:none; }
