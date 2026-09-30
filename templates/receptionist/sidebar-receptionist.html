@@ -1,4 +1,37 @@
 {{define "receptionist-sidebar"}}
+{{/* Marca del sidebar. Los estilos van aquí mismo para que se vean
+   igual en todas las páginas, sin importar qué CSS cargue cada una
+   (o si el navegador tiene en caché un sidebar.css viejo). */}}
+<style>
+.cuenta-sidebar a.cuenta-brand{
+  display:flex !important; flex-direction:row !important; align-items:center; gap:12px;
+  padding:4px 6px 16px; margin:0 0 14px;
+  border-bottom:1px solid var(--line);
+  color:var(--ink); text-decoration:none;
+  flex-shrink:0; overflow:hidden; white-space:nowrap;
+  transition:gap .3s var(--ease, ease), padding .3s var(--ease, ease);
+}
+.cuenta-sidebar .cuenta-brand-logo{
+  width:36px; height:36px; object-fit:contain; flex-shrink:0; display:block; margin:0;
+  transition:transform .3s cubic-bezier(.22,1.4,.36,1);
+}
+.cuenta-sidebar a.cuenta-brand:hover .cuenta-brand-logo{ transform:rotate(-6deg) scale(1.06); }
+.cuenta-sidebar a.cuenta-brand:active .cuenta-brand-logo{ transform:scale(.94); }
+.cuenta-sidebar .cuenta-brand-text{
+  display:block; font-family:inherit; font-size:17px; font-weight:800; letter-spacing:-.01em; line-height:1.1;
+  color:var(--ink); white-space:nowrap; overflow:hidden;
+  max-width:170px; opacity:1;
+  transition:max-width .3s var(--ease, ease), opacity .2s var(--ease, ease), color .2s var(--ease, ease);
+}
+.cuenta-sidebar a.cuenta-brand:hover .cuenta-brand-text{ color:var(--blue-600); }
+.cuenta-sidebar.shrink a.cuenta-brand{ gap:0; padding-left:0; padding-right:0; justify-content:center; }
+.cuenta-sidebar.shrink .cuenta-brand-text{ max-width:0; opacity:0; }
+@media (max-width:900px){
+  /* Menú del celular: marca completa aunque en compu esté retraído */
+  .cuenta-sidebar.shrink a.cuenta-brand{ gap:12px; padding:4px 2px 16px; justify-content:flex-start; }
+  .cuenta-sidebar.shrink .cuenta-brand-text{ max-width:170px; opacity:1; }
+}
+</style>
 {{/* Celular (≤900px): botón de menú arriba a la izquierda + el mismo
      sidebar como panel que se desliza desde la izquierda. En
      computadora estos dos elementos no se ven. */}}
@@ -23,6 +56,11 @@
   <button type="button" class="cuenta-sidebar-toggle" id="sidebarToggle" aria-label="Colapsar menú" title="Colapsar">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
   </button>
+
+  <a href="/" class="cuenta-brand" aria-label="Avante Optics — ir al inicio" title="Ir al inicio">
+    <img src="/static/images/avante-logo.png" alt="" class="cuenta-brand-logo" width="36" height="36">
+    <span class="cuenta-brand-text">Avante Optics</span>
+  </a>
 
   <div class="cuenta-themeContainer">
     <label class="cuenta-themeLabel" id="cuentaThemeLabel">
@@ -49,7 +87,6 @@
   <div class="cuenta-nav-divider"></div>
 
   <nav class="cuenta-nav-group cuenta-nav-group--plain">
-    <a href="/" class="cuenta-nav-link"><i data-feather="home"></i><span>Volver al sitio</span><span class="cuenta-nav-tooltip">Volver al sitio</span></a>
     <a href="/admin/logout" class="cuenta-nav-link logout"><i data-feather="log-out"></i><span>Cerrar sesión</span><span class="cuenta-nav-tooltip">Cerrar sesión</span></a>
   </nav>
 </aside>

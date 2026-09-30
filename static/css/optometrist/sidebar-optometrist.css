@@ -166,3 +166,35 @@ body .cuenta-shell{
 
 /* Links del sidebar sin subrayado (en páginas cuyo CSS no lo quita). */
 .cuenta-sidebar a, .cuenta-nav-link{ text-decoration:none; }
+
+/* =========================================================
+   Marca arriba del cambio de tema: logo + "Avante Optics".
+   Lleva al inicio. Con el sidebar retraído solo queda el logo.
+   ========================================================= */
+.cuenta-brand{
+  display:flex; align-items:center; gap:11px;
+  padding:4px 6px 16px; margin-bottom:14px;
+  border-bottom:1px solid var(--line);
+  color:var(--ink); text-decoration:none;
+  flex-shrink:0; overflow:hidden;
+  transition:gap .3s var(--ease), padding .3s var(--ease);
+}
+.cuenta-brand-logo{
+  width:36px; height:36px; object-fit:contain; flex-shrink:0; display:block;
+  transition:transform .3s cubic-bezier(.22,1.4,.36,1);
+}
+.cuenta-brand:hover .cuenta-brand-logo{ transform:rotate(-6deg) scale(1.06); }
+.cuenta-brand:active .cuenta-brand-logo{ transform:scale(.94); }
+.cuenta-brand-text{
+  font-size:17px; font-weight:800; letter-spacing:-.01em; line-height:1.1;
+  white-space:nowrap; overflow:hidden;
+  max-width:170px; opacity:1;
+  transition:max-width .3s var(--ease), opacity .2s var(--ease), color .2s var(--ease);
+}
+.cuenta-brand:hover .cuenta-brand-text{ color:var(--blue-600); }
+.cuenta-sidebar.shrink .cuenta-brand{ gap:0; padding-left:0; padding-right:0; justify-content:center; }
+.cuenta-sidebar.shrink .cuenta-brand-text{ max-width:0; opacity:0; }
+@media (max-width:900px){
+  /* En el celular el sidebar es la barra horizontal: sin marca */
+  .cuenta-brand{ display:none; }
+}
