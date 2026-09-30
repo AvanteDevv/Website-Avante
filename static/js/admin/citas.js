@@ -23,6 +23,12 @@
     var totalEl = document.getElementById('citasStatTotal');
     var confEl = document.getElementById('citasStatVerificadas');
     var cancEl = document.getElementById('citasStatCanceladas');
+    var asistio = allRows.filter(function(r){ return r.dataset.status === 'asistio'; }).length;
+    var noAsistio = allRows.filter(function(r){ return r.dataset.status === 'no_asistio'; }).length;
+    var asisEl = document.getElementById('citasStatAsistio');
+    var noAsisEl = document.getElementById('citasStatNoAsistio');
+    if (asisEl) asisEl.textContent = asistio;
+    if (noAsisEl) noAsisEl.textContent = noAsistio;
     if (totalEl) totalEl.textContent = allRows.length;
     if (confEl) confEl.textContent = verificadas;
     if (cancEl) cancEl.textContent = canceladas;
@@ -340,8 +346,23 @@
     }
     function nowHHMM(){ var t = new Date(); return pad(t.getHours()) + ':' + pad(t.getMinutes()); }
 
-    function renderDay(){
+    // Deslizamiento al cambiar de día: el contenido nuevo entra del
+    // lado hacia el que se avanzó (derecha = siguiente, izquierda = anterior).
+    function animateDaySwap(dir){
+      if (!dir) return;
+      var cls = dir > 0 ? 'day-swap-next' : 'day-swap-prev';
+      [dvLabel, dvSummary, dvList].forEach(function(el){
+        if (!el) return;
+        el.classList.remove('day-swap-next', 'day-swap-prev');
+        void el.offsetWidth; // reinicia la animación si se pica rápido
+        el.classList.add(cls);
+      });
+    }
+
+    // dir: 1 = día siguiente, -1 = día anterior (para la animación).
+    function renderDay(dir){
       if (!dvView) return;
+      animateDaySwap(dir);
       var term = searchTerm.toLowerCase().trim();
       var rows = allRows.filter(function(r){ return r.dataset.date === dvDate; })
         .filter(function(r){ return !term || r.textContent.toLowerCase().indexOf(term) !== -1; })
@@ -442,9 +463,14 @@
     }
 
     if (dvView) {
-      document.getElementById('dayViewPrev').addEventListener('click', function(){ dvDate = shiftISO(dvDate, -1); renderDay(); });
-      document.getElementById('dayViewNext').addEventListener('click', function(){ dvDate = shiftISO(dvDate, 1); renderDay(); });
-      document.getElementById('dayViewTodayBtn').addEventListener('click', function(){ dvDate = todayISO(); renderDay(); });
+      document.getElementById('dayViewPrev').addEventListener('click', function(){ dvDate = shiftISO(dvDate, -1); renderDay(-1); });
+      document.getElementById('dayViewNext').addEventListener('click', function(){ dvDate = shiftISO(dvDate, 1); renderDay(1); });
+      document.getElementById('dayViewTodayBtn').addEventListener('click', function(){
+        var t = todayISO();
+        var dir = t > dvDate ? 1 : (t < dvDate ? -1 : 0);
+        dvDate = t;
+        renderDay(dir);
+      });
       dvList.addEventListener('click', function(e){
         var item = e.target.closest('[data-event-id]');
         if (item) openEventModal(item.dataset.eventId);

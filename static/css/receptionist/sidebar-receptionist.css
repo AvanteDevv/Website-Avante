@@ -161,3 +161,6 @@ body .cuenta-shell{
 @media (max-width:900px){
   body .cuenta-shell{ padding:28px 18px 70px; }
 }
+
+/* Links del sidebar sin subrayado (en páginas cuyo CSS no lo quita). */
+.cuenta-sidebar a, .cuenta-nav-link{ text-decoration:none; }

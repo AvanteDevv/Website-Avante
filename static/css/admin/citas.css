@@ -781,3 +781,24 @@ body.dark .admin-badge.asistio{ background:rgba(137,146,255,.20); color:#b7bcff;
 body.dark .admin-badge.no_asistio{ background:rgba(255,255,255,.08); color:#b9b9b9; }
 .cal-dot.asistio{ background:var(--blue-600); }
 .cal-dot.no_asistio{ background:#9a9a9a; }
+
+/* ===========================================================
+   Cambiar de día: el contenido se desliza hacia el lado al que
+   se avanzó, y las flechas se "hunden" al pulsarlas.
+   =========================================================== */
+.day-swap-next{ animation:daySwapNext .34s var(--ease); }
+.day-swap-prev{ animation:daySwapPrev .34s var(--ease); }
+@keyframes daySwapNext{ from{ opacity:0; transform:translateX(28px); } to{ opacity:1; transform:none; } }
+@keyframes daySwapPrev{ from{ opacity:0; transform:translateX(-28px); } to{ opacity:1; transform:none; } }
+.day-view .page-arrow{ transition:background .18s var(--ease), color .18s var(--ease), transform .12s var(--ease); }
+.day-view .page-arrow:active{ transform:scale(.86); }
+.day-view .btn.thin:active{ transform:scale(.94); }
+@media (prefers-reduced-motion:reduce){ .day-swap-next, .day-swap-prev{ animation:none; } }
+
+/* Indicadores Asistieron / No asistieron */
+.admin-stat-card .num.stat-num-asistio{ color:var(--blue-700); }
+.admin-stat-card .num.stat-num-noasistio{ color:#6b6b6b; }
+body.dark .admin-stat-card .num.stat-num-noasistio{ color:#b9b9b9; }
+
+/* Sin subrayado en los links del sidebar / userbar */
+.cuenta-sidebar a, .cuenta-nav-link, .userbar-menu a, .userbar-menu-link{ text-decoration:none; }
