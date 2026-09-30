@@ -349,15 +349,10 @@ function questGoNext(){
 questNext.addEventListener('click', questGoNext);
 questBack.addEventListener('click', () => showQuestStep(questIndex - 1, true));
 
-// Preguntas de una sola respuesta: al elegir, avanza sola (con una
-// pausita para que se vea marcada). Las de varias respuestas no.
-apptQuestForm.addEventListener('change', (e) => {
-  if(e.target.type !== 'radio') return;
+// Elegir una opción NO avanza sola: solo se pasa de paso con el botón
+// "Siguiente". Aquí solo se borra el aviso de "elige una opción".
+apptQuestForm.addEventListener('change', () => {
   apptQuestError.textContent = '';
-  const step = questSteps[questIndex];
-  if(questIndex < questSteps.length - 1 && questStepValid(step)){
-    setTimeout(() => { if(questSteps[questIndex] === step) showQuestStep(questIndex + 1); }, 320);
-  }
 });
 
 function openQuestModal(){
