@@ -458,6 +458,18 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		e.Action = "plantilla.eliminar"
 		e.Description, intento = "Eliminó la plantilla de examen #"+c.Param("id"), "eliminar la plantilla #"+c.Param("id")
 
+	/* ----- Recepción: etiqueta de cita ----- */
+	case method == http.MethodPut && route == "/api/receptionist/citas/:id/etiqueta":
+		e.Action = "cita.etiqueta"
+		tag := actStr(p, "tag")
+		if label, ok := models.AppointmentTagLabels[tag]; ok {
+			e.Description = "Marcó la cita #" + c.Param("id") + " como “" + label + "”"
+			intento = "marcar la cita #" + c.Param("id") + " como “" + label + "”"
+		} else {
+			e.Description = "Quitó la etiqueta de la cita #" + c.Param("id")
+			intento = "quitar la etiqueta de la cita #" + c.Param("id")
+		}
+
 	/* ----- Recepción: plantilla del ticket ----- */
 	case method == http.MethodPut && route == "/api/receptionist/ticket-plantilla":
 		e.Action = "ticket.plantilla.guardar"

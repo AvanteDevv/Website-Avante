@@ -199,6 +199,8 @@ func main() {
 	db.EnsureTicketTemplateTable()
 	// Crea la tabla del inventario si todavía no existe.
 	db.EnsureInventoryTable()
+	// Etiquetas de cita (cómo llegó: sin cita, chequeo, teléfono, WhatsApp).
+	db.EnsureAppointmentTagsTable()
 
 	storage.Connect()
 
@@ -532,6 +534,9 @@ func main() {
 		apiReceptionist.PUT("/ticket-plantilla", handlers.SaveTicketTemplate)
 		// Consultas: buscar en el inventario (sin precio de costo).
 		apiReceptionist.GET("/inventario", handlers.SearchInventarioRecepcion)
+		// Etiquetas de cita (Citas → calendario / detalle / crear cita)
+		apiReceptionist.GET("/citas/etiquetas", handlers.ListCitaEtiquetas)
+		apiReceptionist.PUT("/citas/:id/etiqueta", handlers.SetCitaEtiqueta)
 	}
 
 	// Optometrist panel (templates/optometrist/*.html) — mismo login y

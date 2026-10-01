@@ -244,6 +244,7 @@
           <span><i class="cal-dot asistio"></i> Asistió</span>
           <span><i class="cal-dot no_asistio"></i> No asistió</span>
         </div>
+        <div class="cal-legend cal-legend--tags" id="calTagLegend"></div>
         <div class="cal-legend cal-legend--remind" hidden>
           <span><i class="cal-dot remind"></i> Le toca su revisión</span>
           <span><i class="cal-dot remind-overdue"></i> Ya pasó la fecha y no ha agendado</span>
@@ -308,6 +309,13 @@
       </div>
       <span class="admin-badge" id="calEventStatus"></span>
       <p class="cal-event-reason" id="calEventReason" hidden></p>
+
+      {{/* Etiqueta de la cita: cómo llegó (vino sin cita, chequeo,
+           teléfono, WhatsApp). La llena citas-recepcion.js. */}}
+      <div class="cita-tag-pick">
+        <span class="cita-tag-pick-label">¿Cómo llegó?</span>
+        <div class="cita-tag-options" id="calEventTags"></div>
+      </div>
 
       <div class="cal-event-actions">
         <button type="button" class="cal-action cal-action-cliente" data-action="cliente" id="calEventCliente">
@@ -401,6 +409,12 @@
     </div>
     <div class="admin-modal-body">
       <form id="crearCitaForm" class="staff-form" novalidate>
+        <div class="crear-cita-tipo">
+          <span class="crear-cita-tipo-label">Tipo de cita <em>(opcional)</em></span>
+          <div class="cita-tag-options" id="crearCitaTags"></div>
+          <p class="crear-cita-tipo-hint" id="crearCitaTagHint" hidden>Vino sin cita: se registra hoy y puedes elegir una hora que ya pasó.</p>
+        </div>
+
         <div class="form-section-title"><span class="form-section-num">1</span>Fecha y hora</div>
         <div class="staff-form-row">
           <label class="staff-field">

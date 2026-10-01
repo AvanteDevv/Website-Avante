@@ -7,6 +7,73 @@
    El bloque del modal de horario sigue aquí pero no hace nada
    porque esa página no tiene el botón que lo abre (es admin-only).
    ========================================================= */
+/* =========================================================
+   ETIQUETAS DE CITA — cómo llegó la cita
+   (reloj = vino sin cita · corazón = chequeo · teléfono · WhatsApp)
+   Se guardan aparte de la cita:
+     GET /api/receptionist/citas/etiquetas      → { tags: { "12": "chequeo" } }
+     PUT /api/receptionist/citas/:id/etiqueta   { tag: "chequeo" | "" }
+   ========================================================= */
+window.CitaTags = (function(){
+  var TAGS = {
+    sin_cita: { label: 'Vino sin cita', short: 'Sin cita',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' },
+    chequeo: { label: 'Chequeo', short: 'Chequeo',
+      icon: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.3 3 4.5 6.7 4.5c2.2 0 3.6 1.2 5.3 3.1 1.7-1.9 3.1-3.1 5.3-3.1 3.7 0 5.8 3.8 4.3 7.3C19.5 16.4 12 21 12 21Z"/></svg>' },
+    telefono: { label: 'Agendó por teléfono', short: 'Teléfono',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>' },
+    whatsapp: { label: 'Agendó por WhatsApp', short: 'WhatsApp',
+      icon: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3Z"/></svg>' }
+  };
+  var ORDER = ['sin_cita', 'chequeo', 'telefono', 'whatsapp'];
+  var byId = {};
+  var loaded = false;
+
+  function icon(tag, extra){
+    var t = TAGS[tag];
+    if (!t) return '';
+    return '<i class="cita-tag-ico tag-' + tag + (extra ? ' ' + extra : '') + '" title="' + t.label + '" aria-label="' + t.label + '">' + t.icon + '</i>';
+  }
+  function pill(tag){
+    var t = TAGS[tag];
+    if (!t) return '';
+    return '<span class="cita-tag-pill tag-' + tag + '" title="' + t.label + '">' + t.icon + '<span>' + t.short + '</span></span>';
+  }
+  // Botones para elegir (el activo marcado; clic en el activo lo quita)
+  function options(active){
+    return ORDER.map(function(k){
+      var t = TAGS[k];
+      return '<button type="button" class="cita-tag-opt tag-' + k + (k === active ? ' is-on' : '') + '" data-tag="' + k + '" aria-pressed="' + (k === active) + '" title="' + t.label + '">' +
+        t.icon + '<span>' + t.label + '</span></button>';
+    }).join('');
+  }
+  function load(){
+    return fetch('/api/receptionist/citas/etiquetas', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function(r){ return r.ok ? r.json() : { tags: {} }; })
+      .then(function(d){ byId = (d && d.tags) || {}; loaded = true; return byId; })
+      .catch(function(){ loaded = true; return byId; });
+  }
+  function set(id, tag){
+    tag = TAGS[tag] ? tag : '';
+    return fetch('/api/receptionist/citas/' + encodeURIComponent(id) + '/etiqueta', {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ tag: tag })
+    }).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(d){
+        if (!r.ok) throw new Error(d.error || 'No se pudo guardar la etiqueta.');
+        if (tag) byId[String(id)] = tag; else delete byId[String(id)];
+        return tag;
+      });
+    });
+  }
+  return {
+    TAGS: TAGS, ORDER: ORDER, icon: icon, pill: pill, options: options, load: load, set: set,
+    get: function(id){ return byId[String(id)] || ''; },
+    isLoaded: function(){ return loaded; }
+  };
+})();
+
 (function(){
   var tbody = document.getElementById('citasTableBody');
   if (!tbody) return;
@@ -358,6 +425,38 @@
   renderStats();
   renderView();
 
+  /* ---------- etiquetas (cómo llegó la cita) ---------- */
+  function applyRowTag(row){
+    var tag = CitaTags.get(row.dataset.id);
+    row.dataset.tag = tag;
+    var cell = row.querySelector('td .admin-badge');
+    if (!cell) return;
+    var old = cell.parentNode.querySelector('.cita-tag-ico');
+    if (old) old.remove();
+    if (tag) cell.insertAdjacentHTML('afterend', CitaTags.icon(tag, 'in-table'));
+  }
+  CitaTags.load().then(function(){
+    allRows.forEach(applyRowTag);
+    document.dispatchEvent(new CustomEvent('citatags:change'));
+    applyPendingTag();
+  });
+
+  // Etiqueta de una cita recién creada cuyo id no venía en la respuesta.
+  function applyPendingTag(){
+    var pend = null;
+    try { pend = JSON.parse(sessionStorage.getItem('avantePendingTag') || 'null'); sessionStorage.removeItem('avantePendingTag'); } catch (e) {}
+    if (!pend || Date.now() - pend.at > 120000) return;
+    var digits = function(s){ return String(s || '').replace(/\D/g, '').slice(-10); };
+    var match = allRows.filter(function(r){
+      return r.dataset.date === pend.date && (r.dataset.time || '').slice(0, 5) === pend.time && digits(r.dataset.celular) === digits(pend.celular);
+    }).sort(function(a, b){ return Number(b.dataset.id) - Number(a.dataset.id); })[0];
+    if (!match) return;
+    CitaTags.set(match.dataset.id, pend.tag).then(function(){
+      applyRowTag(match);
+      document.dispatchEvent(new CustomEvent('citatags:change'));
+    }).catch(function(){});
+  }
+
   /* =======================================================
      VISTA DE CALENDARIO (mes, tipo Google Calendar)
      Reutiliza las mismas filas del DOM (allRows) como fuente
@@ -372,7 +471,8 @@
         status: row.dataset.status,
         date: row.dataset.date,   // "YYYY-MM-DD"
         time: row.dataset.time || '',
-        nombre: row.dataset.nombre ? row.dataset.nombre.trim() : ''
+        nombre: row.dataset.nombre ? row.dataset.nombre.trim() : '',
+        tag: row.dataset.tag || ''
       };
     }).filter(function(ev){ return !!ev.date; });
   }
@@ -435,7 +535,7 @@
         var shown = dayEvents.slice(0, 3);
         shown.forEach(function(ev){
           html += '<button type="button" class="cal-event-chip" data-event-id="' + ev.id + '">' +
-                  '<i class="cal-dot ' + ev.status + '"></i><span class="chip-label">' + (ev.time || '') + '</span></button>';
+                  '<i class="cal-dot ' + ev.status + '"></i><span class="chip-label">' + (ev.time || '') + '</span>' + (ev.tag ? CitaTags.icon(ev.tag, 'in-chip') : '') + '</button>';
         });
         if (dayEvents.length > 3) {
           html += '<button type="button" class="cal-day-more" data-more-date="' + cellISO + '">+' + (dayEvents.length - 3) + ' más</button>';
@@ -751,6 +851,8 @@
         }
       }
 
+      renderEventTags(id);
+
       document.getElementById('calEventCancel').onclick = function(){ closeEventModal(); askCancel(id); };
       document.getElementById('calEventAsistio').onclick = function(){ updateStatus(id, 'asistio'); };
       document.getElementById('calEventNoAsistio').onclick = function(){ updateStatus(id, 'no_asistio'); };
@@ -760,6 +862,30 @@
       eventModal.classList.add('open');
       document.body.style.overflow = 'hidden';
     }
+    var eventTagsEl = document.getElementById('calEventTags');
+    function renderEventTags(id){
+      if (!eventTagsEl) return;
+      eventTagsEl.dataset.id = id;
+      eventTagsEl.innerHTML = CitaTags.options(CitaTags.get(id));
+    }
+    eventTagsEl && eventTagsEl.addEventListener('click', function(e){
+      var b = e.target.closest('.cita-tag-opt');
+      if (!b || eventTagsEl.classList.contains('is-saving')) return;
+      var id = eventTagsEl.dataset.id;
+      var next = b.classList.contains('is-on') ? '' : b.dataset.tag;
+      var prev = CitaTags.get(id);
+      eventTagsEl.classList.add('is-saving');
+      eventTagsEl.innerHTML = CitaTags.options(next); // se ve al instante
+      CitaTags.set(id, next).then(function(){
+        var row = tbody.querySelector('tr[data-id="' + id + '"]');
+        if (row) applyRowTag(row);
+        document.dispatchEvent(new CustomEvent('citatags:change'));
+      }).catch(function(err){
+        eventTagsEl.innerHTML = CitaTags.options(prev);
+        alert(err.message);
+      }).finally(function(){ eventTagsEl.classList.remove('is-saving'); });
+    });
+
     function closeEventModal(){
       eventModal.classList.remove('open');
       document.body.style.overflow = '';
@@ -781,6 +907,7 @@
                '<i class="cal-dot ' + ev.status + '"></i>' +
                '<span class="day-events-time">' + (ev.time || '') + '</span>' +
                '<span class="day-events-name">' + (ev.nombre || '') + '</span>' +
+               (ev.tag ? CitaTags.icon(ev.tag) : '') +
                '</button>';
       }).join('');
       dayModal.classList.add('open');
@@ -871,6 +998,15 @@
         chip.appendChild(document.createTextNode(counts[st] + ' ' + STATUS_LABELS[st].toLowerCase()));
         dvSummary.appendChild(chip);
       });
+      var tagCounts = {};
+      rows.forEach(function(r){ if (r.dataset.tag) tagCounts[r.dataset.tag] = (tagCounts[r.dataset.tag] || 0) + 1; });
+      CitaTags.ORDER.forEach(function(k){
+        if (!tagCounts[k]) return;
+        var chip = document.createElement('span');
+        chip.className = 'day-view-chip is-tag';
+        chip.innerHTML = CitaTags.icon(k) + tagCounts[k] + ' ' + CitaTags.TAGS[k].short.toLowerCase();
+        dvSummary.appendChild(chip);
+      });
 
       dvList.innerHTML = '';
       if (!rows.length) {
@@ -924,6 +1060,7 @@
           next.textContent = 'Siguiente';
           right.appendChild(next);
         }
+        if (row.dataset.tag) right.insertAdjacentHTML('beforeend', CitaTags.pill(row.dataset.tag));
         var badge = document.createElement('span');
         badge.className = 'admin-badge ' + st;
         badge.textContent = STATUS_LABELS[st] || st;
@@ -978,6 +1115,13 @@
       // Clic en cualquier otra parte del día: abrir ese día en la vista de Día.
       var cell = e.target.closest('.cal-day[data-date]');
       if (cell) openDayView(cell.dataset.date);
+    });
+
+    var tagLegend = document.getElementById('calTagLegend');
+    if (tagLegend) tagLegend.innerHTML = CitaTags.ORDER.map(function(k){ return '<span>' + CitaTags.icon(k) + ' ' + CitaTags.TAGS[k].label + '</span>'; }).join('');
+    document.addEventListener('citatags:change', function(){
+      if (calView && !calView.hidden) renderCalendar();
+      if (dvView && !dvView.hidden) renderDay();
     });
 
     if (remindOn) setRemindMode(true); else { renderCalendar(); updateRemindCount(); }
@@ -1269,6 +1413,7 @@
 
   function isPastToday(t){
     if (dateHidden.value !== todayISO) return false;
+    if (newTag === 'sin_cita') return false; // vino sin cita: se registra ya pasada la hora
     var now = new Date();
     return t < pad(now.getHours()) + ':' + pad(now.getMinutes());
   }
@@ -1564,9 +1709,50 @@
     return answered ? q : null;
   }
 
+  /* ---------- Tipo de cita (etiqueta) ---------- */
+  var newTag = '';
+  var tagsEl = document.getElementById('crearCitaTags');
+  var tagHint = document.getElementById('crearCitaTagHint');
+  function renderNewTags(){ if (tagsEl) tagsEl.innerHTML = CitaTags.options(newTag); }
+  // Vino sin cita: hoy, a la hora libre más cercana a "ahora" (hacia atrás).
+  function pickWalkInTime(){
+    var now = new Date();
+    var nowHM = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    var free = HOURS.filter(function(t){ return occupied.indexOf(t) === -1; });
+    var before = free.filter(function(t){ return t <= nowHM; });
+    var t = before.length ? before[before.length - 1] : free[0];
+    if (t) setTime(t);
+  }
+  tagsEl && tagsEl.addEventListener('click', function(e){
+    var b = e.target.closest('.cita-tag-opt');
+    if (!b) return;
+    newTag = b.classList.contains('is-on') ? '' : b.dataset.tag;
+    renderNewTags();
+    tagHint.hidden = newTag !== 'sin_cita';
+    if (newTag === 'sin_cita') {
+      viewYear = today.getFullYear(); viewMonth = today.getMonth();
+      var p = loadOccupiedFor(today);
+      renderDateGrid();
+      p.then(pickWalkInTime);
+    } else {
+      fillTimeMenu();
+    }
+  });
+  function loadOccupiedFor(d){
+    var target = iso(d.getFullYear(), d.getMonth(), d.getDate());
+    if (dateHidden.value !== target) {
+      dateHidden.value = target;
+      dateLabel.textContent = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+    }
+    return loadOccupied(target);
+  }
+
   /* ---------- abrir / cerrar el modal ---------- */
   function openModal(){
     form.reset();
+    newTag = '';
+    renderNewTags();
+    if (tagHint) tagHint.hidden = true;
     errorEl.textContent = '';
 
     viewYear = today.getFullYear();
@@ -1689,7 +1875,16 @@
       if (!res.ok) {
         return res.json().then(function(data){ throw new Error(data.error || 'No se pudo crear la cita.'); });
       }
-      window.location.reload();
+      if (!newTag) { window.location.reload(); return; }
+      // Guarda la etiqueta. Si la respuesta trae el id de la cita nueva se
+      // guarda ya; si no, se guarda al recargar (se busca la cita por día,
+      // hora y celular).
+      return res.json().catch(function(){ return {}; }).then(function(data){
+        var newId = data && (data.id || (data.cita && data.cita.id) || (data.appointment && data.appointment.id) || (data.item && data.item.id));
+        if (newId) return CitaTags.set(newId, newTag).catch(function(){}).then(function(){ window.location.reload(); });
+        try { sessionStorage.setItem('avantePendingTag', JSON.stringify({ date: date, time: time, celular: selectedLada + celularDigits, tag: newTag, at: Date.now() })); } catch (e) {}
+        window.location.reload();
+      });
     }).catch(function(err){
       errorEl.textContent = err.message || 'No se pudo crear la cita. Intenta de nuevo.';
     }).finally(function(){
