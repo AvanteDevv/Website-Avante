@@ -648,3 +648,9 @@ footer{
 }
 .quest-empresa > .modal-field{ overflow:hidden; min-height:0; margin-bottom:0; }
 .quest-empresa.is-open{ grid-template-rows:1fr; opacity:1; margin-top:14px; }
+
+
+/* "¿Cómo te enteraste?" tiene 8 opciones: en dos columnas para que el
+   modal no crezca de más (una sola columna en celulares angostos). */
+.qopt-list--2col{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+@media (max-width:420px){ .qopt-list--2col{ grid-template-columns:1fr; } }
