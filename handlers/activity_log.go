@@ -458,6 +458,29 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		e.Action = "plantilla.eliminar"
 		e.Description, intento = "Eliminó la plantilla de examen #"+c.Param("id"), "eliminar la plantilla #"+c.Param("id")
 
+	/* ----- Administración → Clarito (Google Drive) ----- */
+	case method == http.MethodPost && route == "/api/clarito/documents":
+		e.Action = "clarito.guardar"
+		formato := actOrDash(c.PostForm("form_name"))
+		cliente := strings.TrimSpace(c.PostForm("client"))
+		e.Description = "Guardó en Drive el formato “" + formato + "”"
+		intento = "guardar en Drive el formato “" + formato + "”"
+		if cliente != "" {
+			e.Description += " de " + cliente
+			intento += " de " + cliente
+		}
+		e.Context = c.PostForm("file_name")
+	case method == http.MethodPost && route == "/api/clarito/drive/folder":
+		e.Action = "clarito.carpeta"
+		n := actOrDash(actStr(p, "name"))
+		e.Description, intento = "Creó la carpeta “"+n+"” en Drive", "crear la carpeta “"+n+"” en Drive"
+	case method == http.MethodPut && route == "/api/clarito/drive/settings":
+		e.Action = "clarito.config"
+		e.Description, intento = "Cambió cómo se organizan los formatos de Clarito en Drive", "cambiar la organización de Clarito en Drive"
+	case method == http.MethodPost && route == "/api/clarito/drive/disconnect":
+		e.Action = "clarito.desconectar"
+		e.Description, intento = "Desconectó la cuenta de Google Drive", "desconectar Google Drive"
+
 	/* ----- Recepción: etiqueta de cita ----- */
 	case method == http.MethodPut && route == "/api/receptionist/citas/:id/etiqueta":
 		e.Action = "cita.etiqueta"

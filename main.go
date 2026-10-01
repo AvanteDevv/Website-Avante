@@ -201,6 +201,10 @@ func main() {
 	db.EnsureInventoryTable()
 	// Etiquetas de cita (cómo llegó: sin cita, chequeo, teléfono, WhatsApp).
 	db.EnsureAppointmentTagsTable()
+	// Clarito: conexión con Google Drive y formatos subidos.
+	db.EnsureClaritoTables()
+	// Mantiene viva la conexión de Google Drive (renueva el token cada 12 h).
+	go handlers.StartDriveKeepAlive()
 
 	storage.Connect()
 
@@ -537,6 +541,22 @@ func main() {
 		// Etiquetas de cita (Citas → calendario / detalle / crear cita)
 		apiReceptionist.GET("/citas/etiquetas", handlers.ListCitaEtiquetas)
 		apiReceptionist.PUT("/citas/:id/etiqueta", handlers.SetCitaEtiqueta)
+	}
+
+	// Administración → Clarito: formatos PDF que se llenan y se guardan en
+	// Google Drive (handlers/clarito_drive.go). Recepción y admin.
+	apiClarito := router.Group("/api/clarito", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
+	{
+		apiClarito.GET("/drive/status", handlers.ClaritoDriveStatus)
+		apiClarito.GET("/drive/connect", handlers.ClaritoDriveConnect)
+		apiClarito.GET("/drive/callback", handlers.ClaritoDriveCallback)
+		apiClarito.POST("/drive/disconnect", handlers.ClaritoDriveDisconnect)
+		apiClarito.PUT("/drive/settings", handlers.ClaritoDriveSettings)
+		apiClarito.GET("/drive/folder", handlers.ClaritoDriveList)
+		apiClarito.POST("/drive/folder", handlers.ClaritoDriveCreateFolder)
+		apiClarito.GET("/drive/file/:id", handlers.ClaritoDriveFile)
+		apiClarito.GET("/documents", handlers.ClaritoDocuments)
+		apiClarito.POST("/documents", handlers.ClaritoUpload)
 	}
 
 	// Optometrist panel (templates/optometrist/*.html) — mismo login y
