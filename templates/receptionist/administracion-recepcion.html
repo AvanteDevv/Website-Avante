@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
 <link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
 <link rel="stylesheet" href="/static/css/receptionist/administracion-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/clarito-recepcion.css">
 </head>
 <body class="cuenta-body admin-body">
 
@@ -23,7 +24,7 @@
     <div class="admin-header">
       <div>
         <h1>Administración</h1>
-        <p>Reportes del negocio y Clarito.</p>
+        <p>Reportes del negocio y los formatos de Clarito.</p>
       </div>
     </div>
 
@@ -49,19 +50,239 @@
       </div>
     </section>
 
-    <section class="admin-panel adm-panel" id="admPanelClarito" role="tabpanel" aria-labelledby="admTabClarito"{{if ne .Tab "clarito"}} hidden{{end}}>
-      <div class="adm-empty">
-        <div class="adm-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9.5a3.5 3.5 0 1 0 0 5"/></svg></div>
-        <h2>Clarito</h2>
-        <p>Todavía no hay nada aquí.</p>
+    <section class="adm-panel clr-page" id="admPanelClarito" role="tabpanel" aria-labelledby="admTabClarito"{{if ne .Tab "clarito"}} hidden{{end}} data-staff="{{.StaffName}}">
+
+      <!-- ================= Conexión con Google Drive ================= -->
+      <div class="admin-panel clr-drive" id="clrDrive">
+        <span class="clr-drive-logo"><svg viewBox="0 0 87.3 78" aria-hidden="true"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg></span>
+        <div class="clr-drive-text">
+          <strong id="clrDriveTitle">Google Drive</strong>
+          <span id="clrDriveSub">Revisando la conexión…</span>
+        </div>
+        <div class="clr-drive-actions" id="clrDriveActions"></div>
+      </div>
+      <p class="clr-alert" id="clrAlert" hidden></p>
+
+      <!-- ================= Pestañas internas ================= -->
+      <div class="clr-bar">
+        <div class="clr-seg" id="clrSeg" role="tablist">
+          <button type="button" class="active" data-view="formatos" role="tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>
+            Formatos
+          </button>
+          <button type="button" data-view="drive" role="tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            Carpeta de Drive
+          </button>
+        </div>
+        <div class="clr-layout-toggle" id="clrLayout" title="Cambiar vista">
+          <button type="button" data-layout="grid" aria-label="Cuadrícula"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+          <button type="button" data-layout="list" aria-label="Lista"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
+        </div>
+      </div>
+
+      <!-- ================= Formatos ================= -->
+      <div class="clr-view" id="clrViewFormatos">
+        <div class="clr-forms is-grid" id="clrForms"></div>
+
+        <div class="admin-panel clr-recent">
+          <div class="clr-recent-head">
+            <h3>Guardados recientemente</h3>
+            <small id="clrRecentCount"></small>
+          </div>
+          <div class="clr-recent-list" id="clrRecent"></div>
+        </div>
+      </div>
+
+      <!-- ================= Carpeta de Drive ================= -->
+      <div class="clr-view admin-panel clr-browser" id="clrViewDrive" hidden>
+        <div class="clr-browser-head">
+          <nav class="clr-crumbs" id="clrCrumbs" aria-label="Ruta"></nav>
+          <div class="clr-browser-actions">
+            <button type="button" class="clr-icon-btn" id="clrRefresh" title="Actualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg></button>
+            <button type="button" class="btn small" id="clrNewFolder">+ Carpeta</button>
+            <a class="btn small clr-open-drive" id="clrOpenFolder" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 87.3 78" aria-hidden="true"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg> Abrir en Drive</a>
+          </div>
+        </div>
+        <div class="clr-items is-grid" id="clrItems"></div>
+        <p class="clr-empty" id="clrItemsEmpty" hidden></p>
       </div>
     </section>
   </main>
+</div>
+
+
+<!-- ================= Clarito: llenar formato ================= -->
+<div class="admin-modal-overlay clr-fill-overlay" id="clrFillModal">
+  <div class="admin-modal-card clr-fill-card" role="dialog" aria-modal="true" aria-labelledby="clrFillTitle">
+    <div class="admin-modal-head">
+      <div>
+        <h3 id="clrFillTitle">Formato</h3>
+        <small class="clr-fill-sub" id="clrFillSub"></small>
+      </div>
+      <button type="button" class="admin-modal-close" id="clrFillClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="clr-fill-body">
+      <form class="clr-fill-form staff-form" id="clrFillForm" autocomplete="off" novalidate></form>
+      <div class="clr-fill-preview">
+        <div class="clr-preview-paper" id="clrPreview"><canvas id="clrPreviewCanvas"></canvas><span class="clr-preview-loading" id="clrPreviewLoading">Cargando vista previa…</span></div>
+      </div>
+    </div>
+    <div class="clr-fill-foot">
+      <div class="clr-dest" id="clrDest">
+        <small>Se guarda en</small>
+        <span id="clrDestPath">—</span>
+        <button type="button" class="clr-link" id="clrDestChange">Cambiar</button>
+      </div>
+      <label class="clr-filename">
+        <small>Nombre del archivo</small>
+        <span><input type="text" id="clrFileName" maxlength="150"><em>.pdf</em></span>
+      </label>
+      <div class="clr-fill-actions">
+        <button type="button" class="btn small" id="clrDownload">Descargar</button>
+        <button type="button" class="btn small" id="clrPrint">Imprimir</button>
+        <button type="button" class="btn solid small" id="clrSave">Guardar en Drive</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Clarito: firma ================= -->
+<div class="admin-modal-overlay" id="clrSignModal">
+  <div class="admin-modal-card clr-sign-card" role="dialog" aria-modal="true" aria-labelledby="clrSignTitle">
+    <div class="admin-modal-head">
+      <h3 id="clrSignTitle">Firma</h3>
+      <button type="button" class="admin-modal-close" id="clrSignClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="clr-sign-hint">Firma con el dedo, el lápiz o el mouse.</p>
+      <canvas class="clr-sign-pad" id="clrSignPad" width="900" height="300"></canvas>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="clrSignClear">Borrar</button>
+        <button type="button" class="btn solid small" id="clrSignOk">Usar firma</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Clarito: elegir carpeta ================= -->
+<div class="admin-modal-overlay" id="clrPickModal">
+  <div class="admin-modal-card clr-pick-card" role="dialog" aria-modal="true" aria-labelledby="clrPickTitle">
+    <div class="admin-modal-head">
+      <h3 id="clrPickTitle">Elegir carpeta</h3>
+      <button type="button" class="admin-modal-close" id="clrPickClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <nav class="clr-crumbs" id="clrPickCrumbs"></nav>
+      <div class="clr-pick-list" id="clrPickList"></div>
+      <div class="clr-pick-new">
+        <input type="text" id="clrPickNewName" maxlength="120" placeholder="Nueva carpeta aquí…">
+        <button type="button" class="btn small" id="clrPickNewBtn">Crear</button>
+      </div>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="clrPickAuto">Automático</button>
+        <button type="button" class="btn solid small" id="clrPickOk">Usar esta carpeta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Clarito: configuración ================= -->
+<div class="admin-modal-overlay" id="clrSetModal">
+  <div class="admin-modal-card clr-set-card" role="dialog" aria-modal="true" aria-labelledby="clrSetTitle">
+    <div class="admin-modal-head">
+      <h3 id="clrSetTitle">Cómo se organiza en Drive</h3>
+      <button type="button" class="admin-modal-close" id="clrSetClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body staff-form">
+      <label class="staff-field">
+        <span>Carpeta principal</span>
+        <input type="text" id="clrSetRoot" maxlength="120">
+      </label>
+      <div class="staff-field">
+        <span>Dentro de la carpeta</span>
+        <div class="clr-set-base">
+          <strong id="clrSetBase">La carpeta principal</strong>
+          <button type="button" class="clr-link" id="clrSetBaseBtn">Cambiar</button>
+        </div>
+      </div>
+      <div class="staff-field">
+        <span>Organizar en subcarpetas</span>
+        <div class="clr-org" id="clrSetOrg"></div>
+      </div>
+      <label class="staff-field">
+        <span>Nombre de los archivos</span>
+        <input type="text" id="clrSetName" maxlength="200">
+      </label>
+      <div class="qchips clr-tokens" id="clrSetTokens">
+        <small>Toca para agregar:</small>
+        <button type="button" data-token="{formato}">Formato</button>
+        <button type="button" data-token="{cliente}">Cliente</button>
+        <button type="button" data-token="{folio}">Folio</button>
+        <button type="button" data-token="{fecha}">Fecha</button>
+        <button type="button" data-token="{hora}">Hora</button>
+      </div>
+      <p class="clr-set-example">Ejemplo: <b id="clrSetExample"></b></p>
+      <p class="staff-error" id="clrSetError"></p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="clrSetCancel">Cancelar</button>
+        <button type="button" class="btn solid small" id="clrSetSave">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Clarito: vista previa de un archivo de Drive ================= -->
+<div class="admin-modal-overlay" id="clrViewModal">
+  <div class="admin-modal-card clr-view-card" role="dialog" aria-modal="true" aria-labelledby="clrViewTitle">
+    <div class="admin-modal-head">
+      <h3 id="clrViewTitle">Archivo</h3>
+      <div class="clr-view-actions">
+        <a class="btn small" id="clrViewDownload" href="#" download>Descargar</a>
+        <a class="btn small clr-open-drive" id="clrViewOpen" href="#" target="_blank" rel="noopener">Abrir en Drive</a>
+        <button type="button" class="admin-modal-close" id="clrViewClose" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="admin-modal-body clr-view-body" id="clrViewBody"></div>
+  </div>
+</div>
+
+<!-- ================= Clarito: desconectar ================= -->
+<div class="admin-modal-overlay" id="clrDiscModal">
+  <div class="admin-modal-card admin-modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="clrDiscTitle">
+    <div class="admin-modal-head">
+      <h3 id="clrDiscTitle">Desconectar Google Drive</h3>
+      <button type="button" class="admin-modal-close" id="clrDiscClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="admin-confirm-text">Los formatos ya no se podrán guardar en Drive hasta que alguien vuelva a conectar una cuenta. Los archivos que ya están en Drive <strong>no se borran</strong>.</p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="clrDiscCancel">Cancelar</button>
+        <button type="button" class="btn small danger" id="clrDiscOk">Desconectar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/receptionist/sidebar-receptionist.js"></script>
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
 <script src="/static/js/receptionist/administracion-recepcion.js"></script>
+<!-- Clarito: pdf-lib llena el PDF, pdf.js lo dibuja para la vista previa -->
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="/static/js/receptionist/clarito-recepcion.js"></script>
 </body>
 </html>
