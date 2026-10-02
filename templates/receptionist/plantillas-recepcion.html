@@ -27,8 +27,9 @@
       </div>
       <div class="tkp-actions">
         <button type="button" class="btn small" id="tkpHelpBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-          Conectar impresora
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+          <span id="tkpHelpLabel">Ticketera</span>
+          <span class="tkp-btn-dot" id="tkpHelpDot" aria-hidden="true"></span>
         </button>
         <button type="button" class="btn small" id="tkpPrintBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
@@ -180,43 +181,68 @@
   </main>
 </div>
 
-<!-- ================= Modal: cómo conectar la impresora ================= -->
+<!-- ================= Modal: ticketera (impresión directa) ================= -->
 <div class="admin-modal-overlay" id="tkpHelpOverlay">
   <div class="admin-modal-card tkp-help-card" role="dialog" aria-modal="true" aria-labelledby="tkpHelpTitle">
     <div class="admin-modal-head">
-      <h3 id="tkpHelpTitle">Imprimir en la ticketera de SICAR</h3>
+      <h3 id="tkpHelpTitle">Ticketera</h3>
       <button type="button" class="admin-modal-close" id="tkpHelpClose" aria-label="Cerrar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
     <div class="admin-modal-body tkp-help">
-      <p class="tkp-help-lead">No hay que instalar nada. La ticketera ya está instalada en Windows para SICAR, así que el navegador puede usarla igual.</p>
-      <ol>
-        <li>
-          <strong>Abre el panel en la compu de caja.</strong>
-          <p>Es la compu donde está conectada la ticketera. Usa Google Chrome o Edge. Desde otra compu o desde el celular no se puede, porque la impresora está conectada a esa compu.</p>
-        </li>
-        <li>
-          <strong>Toca «Imprimir prueba».</strong>
-          <p>En <em>Destino</em>, elige la misma impresora que usa SICAR. Suele llamarse <em>EPSON TM-T20</em>, <em>TM-T88</em>, <em>POS-80</em>, <em>XP-80</em> o parecido. Si no sabes cuál es, en Windows ve a <em>Configuración → Impresoras</em>.</p>
-        </li>
-        <li>
-          <strong>En «Más opciones», deja esto una sola vez:</strong>
-          <p>Márgenes: <em>Ninguno</em> · Escala: <em>Predeterminada</em> · desmarca <em>Encabezados y pies de página</em>. Chrome lo recuerda para las siguientes impresiones.</p>
-        </li>
-        <li>
-          <strong>Si sale cortado o muy chico:</strong>
-          <p>Revisa arriba que el ancho del rollo sea el correcto (80 mm o 58 mm) y sube el tamaño de letra o el margen.</p>
-        </li>
-      </ol>
-      <div class="tkp-help-tip">
-        <strong>Para que imprima sin preguntar (opcional)</strong>
-        <p>Pon la ticketera como impresora predeterminada de Windows. Luego crea un acceso directo de Chrome y agrega esto al final de <em>Destino</em>:</p>
-        <code>--kiosk-printing</code>
-        <p>Abriendo Chrome desde ese acceso directo, «Imprimir» manda el ticket directo a la ticketera.</p>
+      <p class="tkp-help-lead">El ticket de Plantillas y del Punto de venta sale <strong>directo en la ticketera</strong>, sin el diálogo de impresión. Las hojas y todo lo demás se siguen imprimiendo en la impresora de siempre.</p>
+
+      <!-- estado del programa -->
+      <div class="tkp-agent" id="tkpAgent" data-state="checking">
+        <span class="tkp-agent-dot" aria-hidden="true"></span>
+        <div class="tkp-agent-text">
+          <strong id="tkpAgentTitle">Buscando Avante Impresión…</strong>
+          <span id="tkpAgentSub">Revisando esta compu.</span>
+        </div>
+        <button type="button" class="btn small" id="tkpAgentRetry">Volver a buscar</button>
       </div>
+
+      <!-- sin programa: cómo instalarlo -->
+      <div class="tkp-install" id="tkpInstall" hidden>
+        <ol>
+          <li>
+            <strong>Descarga el programa en la compu de caja.</strong>
+            <p>Es la compu donde está conectada la ticketera por USB. Se instala una sola vez.</p>
+            <a class="btn solid small tkp-dl" href="/static/downloads/avante-impresion.exe" download>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+              Descargar Avante Impresión
+            </a>
+          </li>
+          <li>
+            <strong>Ábrelo.</strong>
+            <p>Si Windows dice <em>«Windows protegió tu PC»</em>, toca <em>Más información → Ejecutar de todas formas</em>. Sale un aviso de que quedó activo; desde ahí abre solo cada vez que se prende la compu.</p>
+          </li>
+          <li>
+            <strong>Regresa aquí y toca «Volver a buscar».</strong>
+            <p>Si Chrome pregunta si esta página puede <em>conectarse a dispositivos de tu red local</em>, toca <em>Permitir</em>.</p>
+          </li>
+        </ol>
+      </div>
+
+      <!-- con programa: elegir impresora -->
+      <div class="tkp-pick" id="tkpPick" hidden>
+        <label class="tkp-field">
+          <span>Impresora del ticket</span>
+          <select id="tkpPrinter"></select>
+        </label>
+        <p class="tkp-pick-hint" id="tkpPrinterHint">Elige la misma que usa SICAR.</p>
+        <label class="tkp-switch"><input type="checkbox" id="tkpDirect" checked><span class="tkp-switch-track"></span><span>Imprimir directo en esta compu <em>(sin diálogo)</em></span></label>
+        <p class="tkp-pick-hint">Se guarda solo en esta compu. En otras compus el ticket abre el diálogo de impresión.</p>
+      </div>
+
+      <details class="tkp-help-tip tkp-nodirect">
+        <summary>Sin el programa (diálogo de Chrome)</summary>
+        <p>Toca <em>Imprimir prueba</em> y en <em>Destino</em> elige la ticketera (por ejemplo <em>WL88S</em>). En <em>Más configuración</em>: márgenes <em>Ninguno</em>, escala <em>Predeterminada</em> y quita <em>Encabezados y pies de página</em>. Chrome recuerda la impresora la siguiente vez.</p>
+      </details>
+
       <div class="admin-confirm-actions">
-        <button type="button" class="btn small" id="tkpHelpOk">Entendido</button>
+        <button type="button" class="btn small" id="tkpHelpOk">Cerrar</button>
         <button type="button" class="btn solid small" id="tkpHelpPrint">Imprimir prueba</button>
       </div>
     </div>

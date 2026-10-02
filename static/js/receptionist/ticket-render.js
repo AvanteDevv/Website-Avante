@@ -7,14 +7,25 @@
    AvanteTicket.merge(guardada)       → plantilla completa (rellena lo que falte)
    AvanteTicket.sampleSale(cajero)    → venta de ejemplo para la vista previa
    AvanteTicket.html(tpl, venta)      → HTML del ticket (sin <html>)
-   AvanteTicket.print(tpl, venta)     → abre el diálogo de impresión con
-                                         SOLO el ticket, al ancho del rollo
+   AvanteTicket.print(tpl, venta)     → imprime el ticket. Si en esta compu
+                                         está activo "Avante Impresión" y se eligió
+                                         la ticketera, sale DIRECTO (sin diálogo).
+                                         Si no, abre el diálogo de Chrome.
+                                         Regresa una promesa {mode:'direct'|'dialog'}.
+   AvanteTicket.printDialog(tpl, venta) → siempre con el diálogo de Chrome
+   AvanteTicket.direct                → config/estado de la impresión directa
    AvanteTicket.numeroALetras(1219)   → "MIL DOSCIENTOS DIECINUEVE PESOS 00/100 M.N."
 
-   Impresión: el navegador manda el ticket a la impresora de Windows
-   que elijas (la misma que usa SICAR). El tamaño de la hoja se
-   calcula con el alto real del ticket para que salga en una sola
-   tira y el driver corte al final, igual que con SICAR.
+   Impresión directa: el ticket se dibuja como imagen al ancho real
+   de la ticketera (576 puntos en 80 mm, 384 en 58 mm), se convierte a
+   comandos ESC/POS (imagen + avance + corte) y se manda al programa
+   "Avante Impresión" (127.0.0.1:17771), que lo entrega a la impresora
+   elegida. La impresora predeterminada de Windows no se toca, así que
+   las hojas se siguen imprimiendo en la otra impresora.
+   La impresora elegida se guarda en ESTA compu (localStorage).
+
+   Diálogo: si no hay programa o falla, se usa el diálogo de Chrome con
+   la hoja del alto real del ticket, igual que antes.
    ========================================================= */
 (function () {
   'use strict';
@@ -296,7 +307,7 @@
   /* ---------- imprimir ---------- */
   // Se imprime dentro de un iframe oculto: así no sale nada de la página
   // (sidebar, botones) y la hoja mide exactamente lo que mide el ticket.
-  function print(tpl, venta) {
+  function printDialog(tpl, venta) {
     tpl = merge(tpl);
     var ancho = tpl.papel.ancho === 58 ? 58 : 80;
     var old = document.getElementById('tkPrintFrame');
@@ -340,12 +351,223 @@
     document.head.appendChild(s);
   }
 
+
+  /* =========================================================
+     IMPRESIÓN DIRECTA (programa "Avante Impresión")
+     ========================================================= */
+  var AGENT = 'http://127.0.0.1:17771';
+  var CFG_KEY = 'avante.ticketera';
+  var H2C = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+
+  function getConfig() {
+    var c = {};
+    try { c = JSON.parse(localStorage.getItem(CFG_KEY) || '{}') || {}; } catch (e) { c = {}; }
+    return { printer: typeof c.printer === 'string' ? c.printer : '', enabled: c.enabled !== false };
+  }
+  function setConfig(c) {
+    var cur = getConfig();
+    var next = { printer: c.printer != null ? String(c.printer) : cur.printer, enabled: c.enabled != null ? !!c.enabled : cur.enabled };
+    try { localStorage.setItem(CFG_KEY, JSON.stringify(next)); } catch (e) { /* sin almacenamiento: solo esta vez */ }
+    return next;
+  }
+
+  function agentFetch(path, opts, ms) {
+    opts = opts || {};
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var t = ctrl ? setTimeout(function () { ctrl.abort(); }, ms || 2500) : null;
+    var init = { method: opts.method || 'GET', mode: 'cors', cache: 'no-store', targetAddressSpace: 'loopback' };
+    if (ctrl) init.signal = ctrl.signal;
+    if (opts.body) { init.headers = { 'Content-Type': 'application/json' }; init.body = opts.body; }
+    return fetch(AGENT + path, init).then(function (r) {
+      if (t) clearTimeout(t);
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok || d.ok === false) throw new Error(d.error || 'El programa respondió con error ' + r.status);
+        return d;
+      });
+    }, function (err) {
+      if (t) clearTimeout(t);
+      var e = new Error('No se encontró Avante Impresión en esta compu');
+      e.offline = true; e.cause = err;
+      throw e;
+    });
+  }
+
+  // Estado del programa: {ok, version, printers:[], default} o null si no está.
+  function status() {
+    return agentFetch('/status', null, 1500).catch(function () { return null; });
+  }
+
+  // Parece ticketera por el nombre (para sugerirla primero).
+  function looksLikeTicket(name) {
+    return /wl ?88|pos[- ]?(58|80)|tm-?t|xp-?\d|ticket|thermal|receipt|80 ?mm|58 ?mm|eva58|epson tm/i.test(name || '');
+  }
+
+  var h2cPromise = null;
+  function loadH2C() {
+    if (window.html2canvas) return Promise.resolve(window.html2canvas);
+    if (h2cPromise) return h2cPromise;
+    h2cPromise = new Promise(function (resolve, reject) {
+      var sc = document.createElement('script');
+      sc.src = H2C; sc.async = true;
+      sc.onload = function () { window.html2canvas ? resolve(window.html2canvas) : reject(new Error('No cargó el dibujador del ticket')); };
+      sc.onerror = function () { h2cPromise = null; reject(new Error('No cargó el dibujador del ticket (sin internet)')); };
+      document.head.appendChild(sc);
+    });
+    return h2cPromise;
+  }
+
+  function waitImages(root) {
+    var imgs = root.querySelectorAll('img');
+    return Promise.all(Array.prototype.map.call(imgs, function (im) {
+      if (im.complete) return null;
+      return new Promise(function (res) { im.onload = im.onerror = res; });
+    }));
+  }
+
+  // Dibuja el ticket al ancho imprimible de la ticketera.
+  function renderCanvas(tpl, venta) {
+    tpl = merge(tpl);
+    var is58 = tpl.papel.ancho === 58;
+    var dots = is58 ? 384 : 576;          // 203 dpi
+    var printableMm = is58 ? 48 : 72;     // lo que de verdad imprime el cabezal
+    ensureCss();
+    var host = document.createElement('div');
+    host.setAttribute('aria-hidden', 'true');
+    host.style.cssText = 'position:fixed;left:-10000px;top:0;background:#fff;z-index:-1;pointer-events:none;';
+    host.innerHTML = html(tpl, venta);
+    document.body.appendChild(host);
+    var el = host.querySelector('.tk');
+    el.style.width = printableMm + 'mm';
+    var cleanup = function () { host.remove(); };
+    return Promise.all([loadH2C(), waitImages(host)]).then(function (r) {
+      var h2c = r[0];
+      var w = el.getBoundingClientRect().width;
+      return h2c(el, { scale: dots / w, backgroundColor: '#ffffff', logging: false, useCORS: true });
+    }).then(function (canvas) { cleanup(); return { canvas: canvas, dots: dots }; },
+      function (err) { cleanup(); throw err; });
+  }
+
+  // Canvas → ESC/POS: ESC @, imagen raster (GS v 0) en bandas, avance y corte.
+  function toEscPos(canvas, dots) {
+    var ctx = canvas.getContext('2d');
+    var w = Math.min(canvas.width, dots), h = canvas.height;
+    var px = ctx.getImageData(0, 0, w, h).data;
+    var bpr = dots / 8;
+    var offset = Math.floor((dots - w) / 2);
+    // quitar renglones blancos del final (ahorra papel)
+    var last = h - 1;
+    for (; last > 0; last--) {
+      var dark = false;
+      for (var xx = 0; xx < w; xx++) {
+        var k = (last * w + xx) * 4;
+        if (px[k + 3] > 0 && (px[k] * 299 + px[k + 1] * 587 + px[k + 2] * 114) / 1000 < 160) { dark = true; break; }
+      }
+      if (dark) break;
+    }
+    h = Math.min(h, last + 8);
+
+    var BAND = 256;
+    var bands = Math.ceil(h / BAND);
+    var out = new Uint8Array(2 + bands * 8 + bpr * h + 7);
+    var p = 0;
+    out[p++] = 0x1B; out[p++] = 0x40;                    // ESC @  (reiniciar)
+    for (var y0 = 0; y0 < h; y0 += BAND) {
+      var rows = Math.min(BAND, h - y0);
+      out[p++] = 0x1D; out[p++] = 0x76; out[p++] = 0x30; out[p++] = 0x00; // GS v 0 normal
+      out[p++] = bpr & 0xFF; out[p++] = (bpr >> 8) & 0xFF;
+      out[p++] = rows & 0xFF; out[p++] = (rows >> 8) & 0xFF;
+      for (var y = y0; y < y0 + rows; y++) {
+        for (var x = 0; x < w; x++) {
+          var i = (y * w + x) * 4;
+          if (px[i + 3] > 0 && (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000 < 160) {
+            var X = x + offset;
+            out[p + (X >> 3)] |= 0x80 >> (X & 7);
+          }
+        }
+        p += bpr;
+      }
+    }
+    out[p++] = 0x1B; out[p++] = 0x64; out[p++] = 0x04;  // ESC d 4  (avanzar 4 renglones)
+    out[p++] = 0x1D; out[p++] = 0x56; out[p++] = 0x42; out[p++] = 0x00; // GS V B 0 (corte parcial)
+    return out.subarray(0, p);
+  }
+
+  function toBase64(bytes) {
+    var bin = '', CH = 0x8000;
+    for (var i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+    return btoa(bin);
+  }
+
+  // Imprime directo en la impresora indicada (o la configurada).
+  function printDirect(tpl, venta, printer) {
+    printer = printer || getConfig().printer;
+    if (!printer) return Promise.reject(new Error('Elige la ticketera en Plantillas → Ticketera'));
+    return renderCanvas(tpl, venta).then(function (r) {
+      var bytes = toEscPos(r.canvas, r.dots);
+      var folio = venta && (venta.folio || venta.id);
+      return agentFetch('/print', {
+        method: 'POST',
+        body: JSON.stringify({ printer: printer, name: 'Ticket Avante' + (folio ? ' ' + folio : ''), data: toBase64(bytes) })
+      }, 15000);
+    });
+  }
+
+  /* ---------- aviso chiquito (para cuando se cae a diálogo) ---------- */
+  function toast(msg, kind) {
+    var t = document.getElementById('tkToast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'tkToast';
+      t.setAttribute('role', 'status');
+      t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);z-index:9999;' +
+        'max-width:min(92vw,460px);padding:11px 16px;border-radius:12px;font:600 13px/1.45 "Public Sans",system-ui,sans-serif;' +
+        'color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.22);opacity:0;transition:opacity .2s ease,transform .2s ease;pointer-events:none;';
+      document.body.appendChild(t);
+    }
+    t.style.background = kind === 'error' ? '#b42318' : kind === 'ok' ? '#1f7a4d' : '#1f2433';
+    t.textContent = msg;
+    requestAnimationFrame(function () { t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; });
+    clearTimeout(t._h);
+    t._h = setTimeout(function () { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(12px)'; }, kind === 'error' ? 5200 : 2600);
+  }
+
+  // print(): directo si se puede; si no, diálogo de Chrome.
+  function print(tpl, venta) {
+    var cfg = getConfig();
+    if (!cfg.enabled || !cfg.printer) {
+      printDialog(tpl, venta);
+      return Promise.resolve({ mode: 'dialog' });
+    }
+    return printDirect(tpl, venta, cfg.printer).then(function () {
+      toast('Ticket enviado a ' + cfg.printer, 'ok');
+      return { mode: 'direct' };
+    }, function (err) {
+      toast((err.offline ? 'Avante Impresión no está abierto en esta compu. ' : 'No se pudo imprimir directo: ' + err.message + '. ') +
+        'Se abrió el diálogo de impresión.', 'error');
+      printDialog(tpl, venta);
+      return { mode: 'dialog', error: err };
+    });
+  }
+
+  var direct = {
+    agent: AGENT,
+    config: getConfig,
+    setConfig: setConfig,
+    status: status,
+    looksLikeTicket: looksLikeTicket,
+    printTo: printDirect,
+    escpos: function (tpl, venta) { return renderCanvas(tpl, venta).then(function (r) { return toEscPos(r.canvas, r.dots); }); },
+    toast: toast
+  };
+
   window.AvanteTicket = {
     defaults: defaults,
     merge: merge,
     sampleSale: sampleSale,
     html: function (tpl, venta) { ensureCss(); return html(tpl, venta); },
     print: print,
+    printDialog: printDialog,
+    direct: direct,
     numeroALetras: numeroALetras,
     PAGARE_DEFAULT: PAGARE_DEFAULT
   };

@@ -213,7 +213,7 @@
   function printTest() {
     sale = T.sampleSale(page.getAttribute('data-cajero') || '');
     renderPreview();
-    T.print(tpl, sale);
+    return T.print(tpl, sale);
   }
   document.getElementById('tkpPrintBtn').addEventListener('click', printTest);
 
@@ -223,11 +223,115 @@
     ov.classList.toggle('open', open);
     if (open) setTimeout(function () { var b = ov.querySelector('.btn.solid, .btn'); if (b) b.focus(); }, 60);
   }
-  document.getElementById('tkpHelpBtn').addEventListener('click', function () { modal('tkpHelpOverlay', true); });
+  /* ---------- ticketera: impresión directa (Avante Impresión) ---------- */
+  var D = T.direct;
+  var agentBox = document.getElementById('tkpAgent');
+  var agentTitle = document.getElementById('tkpAgentTitle');
+  var agentSub = document.getElementById('tkpAgentSub');
+  var installBox = document.getElementById('tkpInstall');
+  var pickBox = document.getElementById('tkpPick');
+  var printerSel = document.getElementById('tkpPrinter');
+  var printerHint = document.getElementById('tkpPrinterHint');
+  var directChk = document.getElementById('tkpDirect');
+  var helpLabel = document.getElementById('tkpHelpLabel');
+  var helpDot = document.getElementById('tkpHelpDot');
+  var agentOnline = false;
+
+  function syncHeaderBtn() {
+    var cfg = D.config();
+    var on = agentOnline && cfg.enabled && cfg.printer;
+    helpLabel.textContent = on ? 'Ticketera: ' + cfg.printer : 'Ticketera';
+    helpDot.className = 'tkp-btn-dot' + (on ? ' is-on' : agentOnline ? ' is-warn' : '');
+  }
+
+  function fillPrinters(st) {
+    var cfg = D.config();
+    var list = (st.printers || []).slice();
+    if (cfg.printer && list.indexOf(cfg.printer) === -1) list.unshift(cfg.printer);
+    list.sort(function (a, b) { return (D.looksLikeTicket(b) ? 1 : 0) - (D.looksLikeTicket(a) ? 1 : 0); });
+    printerSel.innerHTML = '';
+    var ph = document.createElement('option');
+    ph.value = ''; ph.textContent = '— Elige la ticketera —';
+    printerSel.appendChild(ph);
+    list.forEach(function (n) {
+      var o = document.createElement('option');
+      o.value = n;
+      o.textContent = n + (n === st.default ? '  (predeterminada de Windows)' : '') +
+        ((st.printers || []).indexOf(n) === -1 ? '  (no encontrada)' : '');
+      printerSel.appendChild(o);
+    });
+    var sel = cfg.printer;
+    if (!sel) {
+      var guess = list.filter(D.looksLikeTicket);
+      if (guess.length) { sel = guess[0]; D.setConfig({ printer: sel }); }
+    }
+    printerSel.value = sel || '';
+    directChk.checked = cfg.enabled;
+    hintPrinter();
+  }
+
+  function hintPrinter() {
+    var v = printerSel.value;
+    if (!v) { printerHint.textContent = 'Elige la misma que usa SICAR (por ejemplo WL88S).'; printerHint.className = 'tkp-pick-hint'; return; }
+    if (!D.looksLikeTicket(v)) {
+      printerHint.textContent = 'Ojo: esta no parece ticketera. Si es la de hojas, el ticket saldrá raro.';
+      printerHint.className = 'tkp-pick-hint is-warn';
+    } else {
+      printerHint.textContent = 'Los tickets saldrán aquí. La impresora predeterminada de Windows no cambia.';
+      printerHint.className = 'tkp-pick-hint is-ok';
+    }
+  }
+
+  function checkAgent() {
+    agentBox.setAttribute('data-state', 'checking');
+    agentTitle.textContent = 'Buscando Avante Impresión…';
+    agentSub.textContent = 'Revisando esta compu.';
+    return D.status().then(function (st) {
+      agentOnline = !!st;
+      if (st) {
+        agentBox.setAttribute('data-state', 'ok');
+        agentTitle.textContent = 'Avante Impresión está activo';
+        agentSub.textContent = 'Versión ' + (st.version || '—') + ' · ' + (st.printers || []).length + ' impresoras en esta compu';
+        installBox.hidden = true;
+        pickBox.hidden = false;
+        fillPrinters(st);
+      } else {
+        agentBox.setAttribute('data-state', 'off');
+        agentTitle.textContent = 'No está instalado en esta compu';
+        agentSub.textContent = 'Sin él, el ticket abre el diálogo de impresión de Chrome.';
+        installBox.hidden = false;
+        pickBox.hidden = true;
+      }
+      syncHeaderBtn();
+    });
+  }
+
+  printerSel.addEventListener('change', function () {
+    D.setConfig({ printer: printerSel.value });
+    hintPrinter(); syncHeaderBtn();
+  });
+  directChk.addEventListener('change', function () {
+    D.setConfig({ enabled: directChk.checked });
+    syncHeaderBtn();
+  });
+  document.getElementById('tkpAgentRetry').addEventListener('click', checkAgent);
+
+  document.getElementById('tkpHelpBtn').addEventListener('click', function () { modal('tkpHelpOverlay', true); checkAgent(); });
   ['tkpHelpClose', 'tkpHelpOk'].forEach(function (id) {
     document.getElementById(id).addEventListener('click', function () { modal('tkpHelpOverlay', false); });
   });
-  document.getElementById('tkpHelpPrint').addEventListener('click', function () { modal('tkpHelpOverlay', false); printTest(); });
+  document.getElementById('tkpHelpPrint').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    printTest().then(function (r) {
+      btn.disabled = false;
+      if (r && r.mode === 'direct') modal('tkpHelpOverlay', false);
+    });
+  });
+
+  // Al abrir la página solo se revisa si esta compu ya se configuró
+  // (así Chrome no pide permiso de red local en compus sin ticketera).
+  if (D.config().printer) checkAgent(); else syncHeaderBtn();
 
   document.getElementById('tkpResetBtn').addEventListener('click', function () { modal('tkpResetOverlay', true); });
   ['tkpResetClose', 'tkpResetCancel'].forEach(function (id) {
