@@ -14,6 +14,9 @@
 *.test
 *.out
 
+# Excepción: programa de impresión del ticket (se descarga desde Plantillas → Ticketera)
+!static/downloads/avante-impresion.exe
+
 # Carpeta de dependencias vendorizadas (si algún día usas vendor/)
 /vendor/
 
