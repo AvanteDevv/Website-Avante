@@ -518,6 +518,7 @@ func main() {
 		receptionistGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleReceptionist), handlers.ReceptionistCommunicationPage)
 		receptionistGroup.GET("/consultas", handlers.ReceptionistConsultasPage)
 		receptionistGroup.GET("/punto-de-venta", handlers.ReceptionistPuntoDeVentaPage)
+		receptionistGroup.GET("/ventas", handlers.ReceptionistVentasPage)
 		receptionistGroup.GET("/plantillas", handlers.ReceptionistPlantillasPage)
 		receptionistGroup.GET("/administracion", handlers.ReceptionistAdministracionPage)
 		receptionistGroup.GET("/citas", func(c *gin.Context) {
@@ -555,6 +556,8 @@ func main() {
 		apiReceptionist.GET("/pos/clientes/siguiente", handlers.PosNextClientNumero)
 		apiReceptionist.POST("/pos/clientes", handlers.PosCreateClient)
 		apiReceptionist.GET("/pos/clientes/:id/creditos", handlers.PosClientCredits)
+		apiReceptionist.GET("/pos/ventas", handlers.PosListSales)
+		apiReceptionist.GET("/pos/ventas/:id", handlers.PosGetSale)
 		apiReceptionist.POST("/pos/ventas", handlers.PosCreateSale)
 		apiReceptionist.POST("/pos/creditos/:id/abonos", handlers.PosAddPayment)
 		apiReceptionist.DELETE("/pos/abonos/:id", handlers.PosCancelPayment)
@@ -651,6 +654,8 @@ func main() {
 	apiAdmin := router.Group("/api/admin", handlers.RequireAdminAuth())
 	{
 		apiAdmin.GET("/pedidos", pedidosStaff, adminHandlers.ListOrders)
+		// Etiquetas de cita (Admin → Citas: indicadores por tipo de cita)
+		apiAdmin.GET("/citas/etiquetas", citasStaff, handlers.ListCitaEtiquetas)
 		apiAdmin.PATCH("/pedidos/:id/estado", pedidosStaff, adminHandlers.UpdateOrderStatus)
 		apiAdmin.DELETE("/pedidos/:id", pedidosStaff, adminHandlers.DeleteOrder)
 		// Inventario (Admin → Inventario)
