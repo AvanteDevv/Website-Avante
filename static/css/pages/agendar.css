@@ -451,6 +451,66 @@ footer{
 }
 .modal-email-option svg{ width:16px; height:16px; flex-shrink:0; color:var(--blue-500); }
 .modal-email-option:hover{ border-color:var(--blue-300, var(--blue-500)); background:var(--blue-50); color:var(--blue-700); }
+.modal-email-option:disabled{ cursor:wait; }
+.modal-email-option.is-sending{ border-color:var(--blue-300); background:var(--blue-50); color:var(--blue-700); }
+.modal-email-spinner{
+  width:15px; height:15px; border-radius:50%; flex-shrink:0;
+  border:2px solid var(--blue-100); border-top-color:var(--blue-600);
+  animation:emailSpin .7s linear infinite;
+}
+@keyframes emailSpin{ to{ transform:rotate(360deg); } }
+
+/* ---------- aviso animado: correo enviado / no enviado ---------- */
+.appt-toast{
+  --toast:#1f9d55; --toast-bg:#e3f6ea;
+  position:fixed; left:50%; top:24px; z-index:10050;
+  display:flex; align-items:center; gap:12px;
+  width:min(420px, calc(100vw - 32px)); padding:14px 14px 16px 16px;
+  background:var(--white); border:1px solid var(--line); border-radius:18px;
+  box-shadow:0 24px 50px -18px rgba(8,24,72,.45);
+  overflow:hidden; pointer-events:none;
+  opacity:0; transform:translate(-50%, -24px) scale(.94);
+  transition:opacity .35s var(--ease), transform .45s cubic-bezier(.22,1.4,.36,1);
+}
+.appt-toast.is-error{ --toast:#d92d20; --toast-bg:#fde8e7; }
+.appt-toast.is-show{ opacity:1; transform:translate(-50%, 0) scale(1); pointer-events:auto; }
+.appt-toast-ico{
+  width:38px; height:38px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--toast-bg); color:var(--toast);
+}
+.appt-toast.is-show .appt-toast-ico{ animation:toastPop .5s cubic-bezier(.22,1.6,.36,1) .08s backwards; }
+.appt-toast-ico svg{ width:20px; height:20px; }
+.appt-toast-check{ stroke-dasharray:24; stroke-dashoffset:24; }
+.appt-toast-x{ stroke-dasharray:30; stroke-dashoffset:30; }
+.appt-toast.is-show .appt-toast-check,
+.appt-toast.is-show .appt-toast-x{ animation:toastDraw .45s var(--ease) .3s forwards; }
+.appt-toast.is-error.is-show{ animation:toastShake .45s ease .35s; }
+.appt-toast-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.appt-toast-txt strong{ font-size:14px; font-weight:700; color:var(--ink); }
+.appt-toast-txt small{ font-size:12.5px; line-height:1.4; color:var(--grey); overflow-wrap:anywhere; }
+.appt-toast-close{
+  width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  color:var(--grey); transition:background .2s var(--ease), color .2s var(--ease);
+}
+.appt-toast-close:hover{ background:var(--blue-50); color:var(--ink); }
+.appt-toast-close svg{ width:15px; height:15px; }
+.appt-toast-bar{ position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--toast); transform-origin:left; transform:scaleX(0); }
+.appt-toast.is-ok.is-show .appt-toast-bar{ animation:toastBar 5s linear forwards; }
+.appt-toast.is-error.is-show .appt-toast-bar{ animation:toastBar 7s linear forwards; }
+@keyframes toastPop{ from{ transform:scale(.3); opacity:0; } to{ transform:scale(1); opacity:1; } }
+@keyframes toastDraw{ to{ stroke-dashoffset:0; } }
+@keyframes toastBar{ from{ transform:scaleX(1); } to{ transform:scaleX(0); } }
+@keyframes toastShake{
+  0%,100%{ transform:translate(-50%, 0); }
+  20%{ transform:translate(calc(-50% - 7px), 0); }
+  40%{ transform:translate(calc(-50% + 6px), 0); }
+  60%{ transform:translate(calc(-50% - 4px), 0); }
+  80%{ transform:translate(calc(-50% + 2px), 0); }
+}
+@media (max-width:640px){
+  .appt-toast{ top:14px; }
+}
 
 /* ---------- cuestionario rápido (modal 1.5) ---------- */
 .modal-quest-card{ max-width:720px; }

@@ -616,14 +616,20 @@ async function sendVerificationCode(data){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nombre: data.nombre, apellido: data.apellido, celular: data.celular })
     });
+    const body = await res.clone().json().catch(() => ({}));
+    if(res.ok) console.info('[Avante] Código por SMS/WhatsApp enviado a', data.celular, body);
+    else console.error('[Avante] No se pudo enviar el código por SMS/WhatsApp — HTTP ' + res.status, body.error || body);
     return res.ok;
   } catch(e){
+    console.error('[Avante] No se pudo enviar el código por SMS/WhatsApp — error de red:', e);
     return false;
   }
 }
 
 // Mismo código, pero enviado al correo que la persona escribió en "Tus
 // datos". Se verifica igual con /api/agendar/verificar (por celular).
+// En la consola del navegador queda si se pudo o cuál fue el error
+// (código HTTP + lo que respondió el servidor).
 async function sendVerificationCodeByEmail(data){
   try{
     const res = await fetch('/api/agendar/codigo-correo', {
@@ -631,11 +637,54 @@ async function sendVerificationCodeByEmail(data){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nombre: data.nombre, apellido: data.apellido, celular: data.celular, correo: data.correo })
     });
-    const body = await res.json().catch(() => ({}));
-    return { ok: res.ok, error: body.error };
+    const raw = await res.text();
+    let body = {};
+    try { body = raw ? JSON.parse(raw) : {}; } catch(_) { body = { error: raw.slice(0, 300) }; }
+    if(res.ok){
+      console.info('[Avante] ✅ Código enviado por correo a ' + data.correo, body);
+    } else {
+      console.error('[Avante] ❌ No se pudo enviar el código por correo a ' + data.correo +
+        ' — HTTP ' + res.status + ' ' + res.statusText + '\nRespuesta del servidor:', body);
+    }
+    return { ok: res.ok, status: res.status, error: body.error };
   } catch(e){
-    return { ok: false };
+    console.error('[Avante] ❌ No se pudo enviar el código por correo — error de red (no se llegó al servidor):', e);
+    return { ok: false, status: 0, error: 'No hay conexión con el servidor.' };
   }
+}
+
+/* ---------- Aviso animado (correo enviado / no enviado) ---------- */
+let apptToastTimer = null;
+function showApptToast(ok, title, text){
+  let toast = document.getElementById('apptToast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'apptToast';
+    toast.className = 'appt-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toast);
+  }
+  const icon = ok
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline class="appt-toast-check" points="5 12.5 10 17.5 19 7.5"></polyline></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="appt-toast-x" d="M7 7l10 10M17 7 7 17"></path></svg>';
+  toast.className = 'appt-toast ' + (ok ? 'is-ok' : 'is-error');
+  toast.innerHTML =
+    '<span class="appt-toast-ico">' + icon + '</span>' +
+    '<span class="appt-toast-txt"><strong></strong><small></small></span>' +
+    '<button type="button" class="appt-toast-close" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+    '<span class="appt-toast-bar"></span>';
+  toast.querySelector('strong').textContent = title;
+  toast.querySelector('small').textContent = text;
+  toast.querySelector('.appt-toast-close').onclick = hideApptToast;
+  void toast.offsetWidth; // reinicia la animación si ya estaba visible
+  toast.classList.add('is-show');
+  clearTimeout(apptToastTimer);
+  apptToastTimer = setTimeout(hideApptToast, ok ? 5000 : 7000);
+}
+function hideApptToast(){
+  const toast = document.getElementById('apptToast');
+  if(toast) toast.classList.remove('is-show');
 }
 
 async function verifyCode(celular, codigo){
@@ -829,15 +878,24 @@ apptCodeResend.addEventListener('click', async () => {
 
 if(apptCodeEmail){
   apptCodeEmail.addEventListener('click', async () => {
+    if(apptCodeEmail.disabled) return;
+    const originalHTML = apptCodeEmail.innerHTML;
     apptCodeEmail.disabled = true;
+    apptCodeEmail.classList.add('is-sending');
+    apptCodeEmail.innerHTML = '<span class="modal-email-spinner"></span> Enviando a tu correo…';
     apptCodeError.textContent = '';
     const sent = await sendVerificationCodeByEmail(contactData);
     apptCodeEmail.disabled = false;
+    apptCodeEmail.classList.remove('is-sending');
+    apptCodeEmail.innerHTML = originalHTML;
     if(sent.ok){
       apptCodePhoneLabel.textContent = contactData.correo;
       apptCodeError.textContent = 'Te enviamos el código a tu correo. Revisa también la carpeta de spam.';
+      showApptToast(true, 'Correo enviado', 'Mandamos el código a ' + contactData.correo + '. Si no lo ves, revisa la carpeta de spam.');
     } else {
-      apptCodeError.textContent = sent.error || 'No pudimos enviarlo por correo. Intenta de nuevo.';
+      const msg = sent.error || 'No pudimos enviarlo por correo. Intenta de nuevo.';
+      apptCodeError.textContent = msg;
+      showApptToast(false, 'No se pudo enviar el correo', msg);
     }
   });
 }

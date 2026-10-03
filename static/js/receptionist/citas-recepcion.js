@@ -271,6 +271,7 @@ window.CitasFiltro = (function(){
     if (range) range.hidden = state.period !== 'rango';
     if (desdeIn) desdeIn.value = state.desde;
     if (hastaIn) hastaIn.value = state.hasta;
+    Array.prototype.forEach.call(document.querySelectorAll('.cf-dp'), function(p){ if (p._label) p._label(); });
   }
   function renderCaption(total){
     if (!caption) return;
@@ -314,6 +315,88 @@ window.CitasFiltro = (function(){
   }
   desdeIn && desdeIn.addEventListener('change', onDate);
   hastaIn && hastaIn.addEventListener('change', onDate);
+
+  /* ---------- calendarios de Desde / Hasta (mismo picker y animación
+     que el de "Crear cita": .cb-datepicker + .is-open) ---------- */
+  var MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var dps = Array.prototype.slice.call(document.querySelectorAll('.cf-dp'));
+  function closeDps(except){ dps.forEach(function(p){ if (p !== except) p.classList.remove('is-open'); }); }
+  dps.forEach(function(picker){
+    var input = document.getElementById(picker.dataset.input);
+    var trigger = picker.querySelector('.cb-datepicker-trigger');
+    var valueEl = picker.querySelector('.cb-datepicker-value');
+    var monthEl = picker.querySelector('.cf-dp-month');
+    var grid = picker.querySelector('.cb-datepicker-grid');
+    var vy, vm;
+    function label(){
+      var v = input.value;
+      if (!v) { valueEl.textContent = 'dd/mm/aaaa'; return; }
+      var p = v.split('-');
+      valueEl.textContent = p[2] + '/' + p[1] + '/' + p[0];
+    }
+    function render(){
+      monthEl.textContent = MESES_LARGOS[vm].charAt(0).toUpperCase() + MESES_LARGOS[vm].slice(1) + ' de ' + vy;
+      var first = new Date(vy, vm, 1).getDay();
+      var dim = new Date(vy, vm + 1, 0).getDate();
+      var dimPrev = new Date(vy, vm, 0).getDate();
+      var cells = Math.ceil((first + dim) / 7) * 7;
+      var todayIso = iso(new Date());
+      var a = state.desde, b = state.hasta;
+      if (a && b && a > b) { var x = a; a = b; b = x; }
+      var html = '';
+      for (var i = 0; i < cells; i++) {
+        var d, y = vy, m = vm, out = false;
+        if (i < first) { d = dimPrev - (first - 1 - i); m -= 1; out = true; }
+        else if (i >= first + dim) { d = i - (first + dim) + 1; m += 1; out = true; }
+        else d = i - first + 1;
+        var ci = iso(new Date(y, m, d));
+        var cls = 'cb-datepicker-day';
+        if (out) cls += ' is-outside';
+        if (ci === todayIso) cls += ' is-today';
+        if (ci === input.value) cls += ' is-selected';
+        else if (a && b && ci > a && ci < b) cls += ' is-inrange';
+        html += '<button type="button" class="' + cls + '" data-iso="' + ci + '">' + d + '</button>';
+      }
+      grid.innerHTML = html;
+    }
+    function setValue(v){
+      input.value = v;
+      label();
+      input.dispatchEvent(new Event('change'));
+    }
+    picker.addEventListener('click', function(e){ e.stopPropagation(); });
+    trigger.addEventListener('click', function(){
+      if (picker.classList.contains('is-open')) { picker.classList.remove('is-open'); return; }
+      closeDps(picker);
+      var base = input.value ? input.value.split('-').map(Number) : null;
+      var t = new Date();
+      vy = base ? base[0] : t.getFullYear();
+      vm = base ? base[1] - 1 : t.getMonth();
+      render();
+      picker.classList.add('is-open');
+    });
+    picker.querySelectorAll('[data-nav]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        vm += Number(btn.dataset.nav);
+        if (vm < 0) { vm = 11; vy -= 1; }
+        if (vm > 11) { vm = 0; vy += 1; }
+        render();
+      });
+    });
+    picker.querySelector('[data-act="hoy"]').addEventListener('click', function(){
+      setValue(iso(new Date()));
+      picker.classList.remove('is-open');
+    });
+    grid.addEventListener('click', function(e){
+      var day = e.target.closest('.cb-datepicker-day');
+      if (!day) return;
+      setValue(day.dataset.iso);
+      picker.classList.remove('is-open');
+    });
+    picker._label = label;
+  });
+  document.addEventListener('click', function(){ closeDps(null); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeDps(null); });
 
   buildTipos();
   renderBar();
