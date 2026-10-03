@@ -1116,9 +1116,12 @@ window.CitaTags = (function(){
       if (chip) { openEventModal(chip.dataset.eventId); return; }
       var more = e.target.closest('[data-more-date]');
       if (more) { openDayModal(more.dataset.moreDate); return; }
-      // Clic en cualquier otra parte del día: abrir ese día en la vista de Día.
+      // Clic en cualquier otra parte del día: "Crear cita" con ese día ya
+      // elegido. Los días que ya pasaron se abren en la vista de Día.
       var cell = e.target.closest('.cal-day[data-date]');
-      if (cell) openDayView(cell.dataset.date);
+      if (!cell) return;
+      if (cell.dataset.date >= todayISO() && window.AvanteCrearCita) window.AvanteCrearCita.open({ fecha: cell.dataset.date });
+      else openDayView(cell.dataset.date);
     });
 
     var tagLegend = document.getElementById('calTagLegend');
@@ -1662,10 +1665,11 @@ window.CitaTags = (function(){
     nacPicker.classList.add('is-open');
   });
 
-  /* ---------- Cuestionario (opcional) ----------
-     Mismas preguntas y mismos valores que el de agendar.html, así el
-     modal "Datos del cliente" lo muestra igual venga de donde venga.
-     Un clic en la opción ya marcada la desmarca (todas son opcionales). */
+  /* ---------- ¿Cómo nos conoció? (opcional) ----------
+     Mismos valores que en agendar.html, así "Datos del cliente" lo
+     muestra igual venga de donde venga. Las preguntas médicas del
+     cuestionario ya no se piden aquí (solo las llena el cliente en
+     Agendar). Un clic en la opción ya marcada la desmarca. */
   form.addEventListener('mousedown', function(e){
     var chip = e.target.closest('.qchip');
     if (!chip) return;
@@ -1723,24 +1727,13 @@ window.CitaTags = (function(){
       var el = form.querySelector('input[name="' + name + '"]:checked');
       return el ? el.value : '';
     }
-    function many(name){
-      return Array.prototype.slice.call(form.querySelectorAll('input[name="' + name + '"]:checked')).map(function(i){ return i.value; });
-    }
     var procedencia = one('procedencia');
     var q = {
       como_se_entero: one('como_se_entero'),
       procedencia: procedencia,
-      empresa: procedencia === 'empresa' ? empresaInput.value.trim() : '',
-      ultimo_examen: one('ultimo_examen'),
-      lentes_armazon: one('lentes_armazon'),
-      lentes_contacto: one('lentes_contacto'),
-      usa_gotitas: one('usa_gotitas'),
-      problemas: many('problemas'),
-      enfermedades: many('enfermedades')
+      empresa: procedencia === 'empresa' ? empresaInput.value.trim() : ''
     };
-    var answered = q.como_se_entero || q.procedencia || q.ultimo_examen || q.lentes_armazon || q.lentes_contacto || q.usa_gotitas ||
-      q.problemas.length || q.enfermedades.length;
-    return answered ? q : null;
+    return (q.como_se_entero || q.procedencia) ? q : null;
   }
 
   /* ---------- Tipo de cita (etiqueta) ---------- */
@@ -1963,11 +1956,15 @@ window.CitaTags = (function(){
     var id = editId;
     var idleLabel = submitBtn.textContent;
     submitBtn.textContent = mode === 'reagendar' ? 'Reagendando...' : 'Guardando...';
-    // Se conservan respuestas que el formulario no conoce (p. ej. de una
-    // versión vieja del cuestionario público). Si borraron todas, null.
-    if (payload.cuestionario && editOrig && editOrig.q) {
-      payload.cuestionario = Object.assign({}, editOrig.q, payload.cuestionario);
-    }
+    // El formulario solo trae "¿Cómo nos conoció?": las demás respuestas
+    // (las médicas que llenó el cliente en Agendar) se conservan tal cual.
+    var merged = Object.assign({}, (editOrig && editOrig.q) || {},
+      { como_se_entero: '', procedencia: '', empresa: '' }, payload.cuestionario || {});
+    var hasAnswers = Object.keys(merged).some(function(k){
+      var v = merged[k];
+      return Array.isArray(v) ? v.length > 0 : !!v;
+    });
+    payload.cuestionario = hasAnswers ? merged : null;
     var tagChanged = editOrig && newTag !== editOrig.tag;
     fetch('/admin/citas/' + encodeURIComponent(id), {
       method: 'PUT',

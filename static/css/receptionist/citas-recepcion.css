@@ -1431,6 +1431,9 @@ body.dark .tag-whatsapp{ --tag:#5be08e; --tag-bg:rgba(31,168,85,.18); }
 
 /* En el detalle de la cita */
 .cita-tag-pick{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+/* En el detalle de la cita: línea también abajo, para separar de los botones. */
+.cal-event-modal .cita-tag-pick{ padding-bottom:16px; border-bottom:1px solid var(--line); }
+.cal-event-modal .cita-tag-pick + .cal-event-actions{ margin-top:16px; }
 .cita-tag-pick-label{ display:block; font-size:11px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--muted); margin-bottom:9px; }
 .cal-event-modal .cita-tag-options{ display:grid; grid-template-columns:1fr 1fr; }
 .cal-event-modal .cita-tag-opt{ justify-content:flex-start; border-radius:12px; }
