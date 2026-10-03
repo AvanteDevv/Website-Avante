@@ -121,7 +121,7 @@
           </thead>
           <tbody id="citasTableBody">
             {{range .Citas}}
-            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-celular="{{.Celular}}" data-correo="{{.Correo}}" data-fecha-nacimiento="{{.FechaNacimiento}}" data-cuestionario="{{.Cuestionario}}" data-cancel-reason="{{.CancelReason}}">
+            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-nombre-solo="{{.Nombre}}" data-apellido="{{.Apellido}}" data-celular="{{.Celular}}" data-correo="{{.Correo}}" data-fecha-nacimiento="{{.FechaNacimiento}}" data-cuestionario="{{.Cuestionario}}" data-cancel-reason="{{.CancelReason}}">
               <td>{{.ID}}</td>
               <td class="cita-cliente">{{.Nombre}}</td>
               <td class="cita-cliente">{{.Apellido}}</td>
@@ -140,6 +140,12 @@
                   <div class="row-menu-dropdown">
                     <button type="button" class="row-menu-item" data-action="cliente" data-id="{{.ID}}">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> Ver cliente
+                    </button>
+                    <button type="button" class="row-menu-item" data-action="editar" data-id="{{.ID}}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar
+                    </button>
+                    <button type="button" class="row-menu-item" data-action="reagendar" data-id="{{.ID}}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M10 15h5m-2-2 2 2-2 2"/></svg> Reagendar
                     </button>
                     <div class="row-menu-sep"></div>
                     <button type="button" class="row-menu-item" data-action="cancel" data-id="{{.ID}}">
@@ -322,6 +328,14 @@
           <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
           Ver cliente
         </button>
+        <button type="button" class="cal-action cal-action-edit" data-action="editar" id="calEventEditar">
+          <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+          Editar cita
+        </button>
+        <button type="button" class="cal-action cal-action-reagendar" data-action="reagendar" id="calEventReagendar">
+          <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M10 15h5m-2-2 2 2-2 2"/></svg></span>
+          Reagendar
+        </button>
         <button type="button" class="cal-action cal-action-cancel" data-action="cancel" id="calEventCancel">
           <span class="cal-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></span>
           Cancelar cita
@@ -402,13 +416,22 @@
 <div class="admin-modal-overlay" id="crearCitaModalOverlay">
   <div class="admin-modal-card crear-cita-card">
     <div class="admin-modal-head">
-      <h3>Crear cita</h3>
+      <h3 id="crearCitaTitle">Crear cita</h3>
       <button type="button" class="admin-modal-close" id="crearCitaModalClose" aria-label="Cerrar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
     <div class="admin-modal-body">
       <form id="crearCitaForm" class="staff-form" novalidate>
+        {{/* Editar / Reagendar: dónde está la cita ahora (lo llena citas-recepcion.js). */}}
+        <div class="crear-cita-current" id="crearCitaCurrent" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <div>
+            <span id="crearCitaCurrentWho"></span>
+            <strong id="crearCitaCurrentWhen"></strong>
+          </div>
+          <p class="crear-cita-current-note" id="crearCitaCurrentNote" hidden></p>
+        </div>
         <div class="crear-cita-tipo">
           <span class="crear-cita-tipo-label">Tipo de cita <em>(opcional)</em></span>
           <div class="cita-tag-options" id="crearCitaTags"></div>
@@ -453,6 +476,7 @@
             <input type="hidden" id="crearCitaTime" name="time" required>
           </label>
         </div>
+        <div class="crear-cita-extra" id="crearCitaExtra">
         <div class="form-section-title"><span class="form-section-num">2</span>Datos del cliente</div>
         <div class="staff-form-row">
           <label class="staff-field">
@@ -587,6 +611,7 @@
               <input type="text" id="crearCitaEmpresa" name="empresa" maxlength="120" placeholder="¿De qué empresa?" tabindex="-1">
             </div>
           </div>
+        </div>
         </div>
         <p class="staff-error" id="crearCitaError"></p>
         <div class="staff-form-actions">

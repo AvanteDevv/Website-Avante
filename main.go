@@ -450,6 +450,8 @@ func main() {
 		adminGroup.GET("/citas", citasStaff, adminHandlers.Appointments)
 		adminGroup.POST("/citas", citasStaff, adminHandlers.CreateAppointmentByStaff)
 		adminGroup.PATCH("/citas/:id/estado", citasStaff, adminHandlers.UpdateAppointmentStatus)
+		// Editar datos de la cita y/o reagendarla (recepción → Citas).
+		adminGroup.PUT("/citas/:id", citasStaff, adminHandlers.UpdateAppointmentByStaff)
 		adminGroup.DELETE("/citas/:id", citasStaff, adminHandlers.DeleteAppointment)
 		adminGroup.GET("/configuracion", onlyAdmin, adminHandlers.Settings)
 		adminGroup.POST("/configuracion/horarios", onlyAdmin, adminHandlers.UpdateAgendaHours)

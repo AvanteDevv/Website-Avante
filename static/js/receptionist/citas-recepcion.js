@@ -415,6 +415,8 @@ window.CitaTags = (function(){
     if (btn.dataset.action === 'no_asistio') updateStatus(id, 'no_asistio');
     if (btn.dataset.action === 'delete') deleteCita(id);
     if (btn.dataset.action === 'cliente') openClienteModal(id);
+    if (btn.dataset.action === 'editar' && window.AvanteEditarCita) window.AvanteEditarCita.open(id, 'editar');
+    if (btn.dataset.action === 'reagendar' && window.AvanteEditarCita) window.AvanteEditarCita.open(id, 'reagendar');
     closeAllMenus();
   });
 
@@ -857,6 +859,8 @@ window.CitaTags = (function(){
       document.getElementById('calEventAsistio').onclick = function(){ updateStatus(id, 'asistio'); };
       document.getElementById('calEventNoAsistio').onclick = function(){ updateStatus(id, 'no_asistio'); };
       document.getElementById('calEventCliente').onclick = function(){ closeEventModal(); openClienteModal(id); };
+      document.getElementById('calEventEditar').onclick = function(){ closeEventModal(); window.AvanteEditarCita && window.AvanteEditarCita.open(id, 'editar'); };
+      document.getElementById('calEventReagendar').onclick = function(){ closeEventModal(); window.AvanteEditarCita && window.AvanteEditarCita.open(id, 'reagendar'); };
       document.getElementById('calEventDelete').onclick = function(){ closeEventModal(); deleteCita(id); };
 
       eventModal.classList.add('open');
@@ -1338,6 +1342,13 @@ window.CitaTags = (function(){
   var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var HOURS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30'];
 
+  /* Modo del modal: 'create' (Crear cita), 'editar' o 'reagendar'.
+     En editar/reagendar, editOrig guarda cómo estaba la cita para no
+     contar su propia hora como "Ocupada" y saber si se movió. */
+  var mode = 'create';
+  var editId = null;
+  var editOrig = null; // { date, time, tag, q, status }
+
   function toTimeStr(mins){ return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0'); }
   function toMinutes(t){ var p = t.split(':').map(Number); return p[0] * 60 + p[1]; }
   function to12h(t){
@@ -1389,7 +1400,7 @@ window.CitaTags = (function(){
 
   function occupiedFromPage(dateISO){
     return Array.prototype.slice.call(document.querySelectorAll('#citasTableBody tr[data-id]'))
-      .filter(function(r){ return r.dataset.date === dateISO && r.dataset.status !== 'cancelada'; })
+      .filter(function(r){ return r.dataset.date === dateISO && r.dataset.status !== 'cancelada' && !(editId && r.dataset.id === String(editId)); })
       .map(function(r){ return (r.dataset.time || '').slice(0, 5); });
   }
 
@@ -1404,6 +1415,8 @@ window.CitaTags = (function(){
         if (req !== occupiedReq || !data) return;
         (data.ocupadas || []).forEach(function(t){
           t = String(t).slice(0, 5);
+          // La propia cita que se está editando no se cuenta como ocupada.
+          if (editOrig && dateISO === editOrig.date && t === editOrig.time) return;
           if (occupied.indexOf(t) === -1) occupied.push(t);
         });
         fillTimeMenu();
@@ -1414,6 +1427,7 @@ window.CitaTags = (function(){
   function isPastToday(t){
     if (dateHidden.value !== todayISO) return false;
     if (newTag === 'sin_cita') return false; // vino sin cita: se registra ya pasada la hora
+    if (editOrig && dateHidden.value === editOrig.date && t === editOrig.time) return false; // su hora de siempre
     var now = new Date();
     return t < pad(now.getHours()) + ':' + pad(now.getMinutes());
   }
@@ -1487,7 +1501,7 @@ window.CitaTags = (function(){
       if (outside) cls += ' is-outside';
       if (cellISO === todayISO) cls += ' is-today';
       if (cellISO === dateHidden.value) cls += ' is-selected';
-      if (cellISO < todayISO) cls += ' is-disabled';
+      if (cellISO < todayISO && !(editOrig && cellISO === editOrig.date)) cls += ' is-disabled';
       html += '<button type="button" class="' + cls + '" data-iso="' + cellISO + '">' + dayNum + '</button>';
     }
     dateGrid.innerHTML = html;
@@ -1671,12 +1685,32 @@ window.CitaTags = (function(){
   /* "Empresa" → aparece el campo "¿De qué empresa?" (deslizándose). */
   var empresaWrap = document.getElementById('crearCitaEmpresaWrap');
   var empresaInput = document.getElementById('crearCitaEmpresa');
-  function syncEmpresa(){
+  function syncEmpresa(noFocus){
     var sel = form.querySelector('input[name="procedencia"]:checked');
     var on = !!sel && sel.value === 'empresa';
     empresaWrap.classList.toggle('is-open', on);
     empresaInput.tabIndex = on ? 0 : -1;
-    if (on) setTimeout(function(){ empresaInput.focus(); }, 250);
+    if (on && noFocus !== true) setTimeout(function(){ empresaInput.focus(); }, 250);
+  }
+
+  // Marca en el formulario las respuestas guardadas (editar cita).
+  function fillQuestionnaire(q){
+    form.querySelectorAll('.qchip input').forEach(function(i){ i.checked = false; i.dataset.wasChecked = ''; });
+    empresaInput.value = '';
+    if (q && typeof q === 'object') {
+      Object.keys(q).forEach(function(name){
+        var vals = Array.isArray(q[name]) ? q[name] : [q[name]];
+        vals.forEach(function(v){
+          if (v === null || v === undefined || v === '') return;
+          var el = Array.prototype.filter.call(form.querySelectorAll('.qchip input'), function(i){
+            return i.name === name && i.value === String(v);
+          })[0];
+          if (el) el.checked = true;
+        });
+      });
+      empresaInput.value = q.empresa ? String(q.empresa) : '';
+    }
+    syncEmpresa(true);
   }
   form.addEventListener('change', function(e){ if (e.target.name === 'procedencia') syncEmpresa(); });
   // El clic que desmarca un chip no dispara "change": se revisa después del clic.
@@ -1728,8 +1762,8 @@ window.CitaTags = (function(){
     if (!b) return;
     newTag = b.classList.contains('is-on') ? '' : b.dataset.tag;
     renderNewTags();
-    tagHint.hidden = newTag !== 'sin_cita';
-    if (newTag === 'sin_cita') {
+    tagHint.hidden = newTag !== 'sin_cita' || mode !== 'create';
+    if (newTag === 'sin_cita' && mode === 'create') {
       viewYear = today.getFullYear(); viewMonth = today.getMonth();
       var p = loadOccupiedFor(today);
       renderDateGrid();
@@ -1748,7 +1782,21 @@ window.CitaTags = (function(){
   }
 
   /* ---------- abrir / cerrar el modal ---------- */
+  function setMode(m){
+    mode = m;
+    var titles = { create: 'Crear cita', editar: 'Editar cita', reagendar: 'Reagendar cita' };
+    var labels = { create: 'Crear cita', editar: 'Guardar cambios', reagendar: 'Reagendar' };
+    document.getElementById('crearCitaTitle').textContent = titles[m] + (m !== 'create' && editId ? ' #' + editId : '');
+    submitBtn.textContent = labels[m];
+    form.classList.toggle('is-editar', m === 'editar');
+    form.classList.toggle('is-reagendar', m === 'reagendar');
+    document.getElementById('crearCitaCurrent').hidden = m === 'create';
+  }
+
   function openModal(){
+    editId = null;
+    editOrig = null;
+    setMode('create');
     form.reset();
     newTag = '';
     renderNewTags();
@@ -1775,6 +1823,8 @@ window.CitaTags = (function(){
     nacHidden.value = '';
     nacLabel.textContent = 'dd/mm/aaaa';
 
+    var body = overlay.querySelector('.admin-modal-body');
+    if (body) body.scrollTop = 0; // que no se quede donde iba la vez anterior
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -1787,6 +1837,91 @@ window.CitaTags = (function(){
   openBtn.addEventListener('click', function(){
     loadHours().then(openModal);
   });
+
+  // Pone lada (+52 / +1) y los 10 dígitos a partir de "+526621234567".
+  function setCelular(cel){
+    var tel = String(cel || '').replace(/\D/g, '');
+    var lada = tel.length > 10 ? '+' + tel.slice(0, tel.length - 10) : '+52';
+    var opt = ladaMenu.querySelector('.admin-role-option[data-lada="' + lada + '"]');
+    if (opt) {
+      selectedLada = lada;
+      ladaLabel.textContent = lada;
+      ladaMenu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.toggle('active', o === opt); });
+    }
+    document.getElementById('crearCitaCelular').value = tel.slice(-10);
+  }
+
+  var DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  function fechaLargaISO(isoStr){
+    var p = isoStr.split('-').map(Number);
+    var d = new Date(p[0], p[1] - 1, p[2]);
+    var txt = DIAS[d.getDay()] + ' ' + p[2] + ' de ' + MESES[p[1] - 1] + ' de ' + p[0];
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  }
+
+  /* ---------- Editar / Reagendar una cita existente ----------
+     Mismo modal que "Crear cita", ya llenado con lo que tiene la cita.
+     - editar: todo el formulario (datos, cuestionario, etiqueta y, si
+       quieren, también día/hora).
+     - reagendar: solo día y hora; hay que elegir una hora nueva.
+     Guarda con PUT /admin/citas/:id. Si cambió el día o la hora, el
+     servidor la reagenda: revisa que esté libre, la reactiva si estaba
+     cancelada o "no asistió" y le avisa al cliente por WhatsApp. */
+  function openEdit(id, m){
+    var row = document.querySelector('#citasTableBody tr[data-id="' + id + '"]');
+    if (!row) return;
+    loadHours().then(function(){
+      openModal();
+      var q = null;
+      try { q = row.dataset.cuestionario ? JSON.parse(row.dataset.cuestionario) : null; } catch (e) { q = null; }
+      editId = String(id);
+      editOrig = {
+        date: row.dataset.date,
+        time: String(row.dataset.time || '').slice(0, 5),
+        tag: (window.CitaTags && CitaTags.get(id)) || '',
+        q: q && typeof q === 'object' ? q : null,
+        status: row.dataset.status || ''
+      };
+      setMode(m === 'reagendar' ? 'reagendar' : 'editar');
+
+      // Datos del cliente (data-nombre-solo/-apellido; si faltan, se
+      // parte "Nombre Apellido" en el primer espacio).
+      var full = String(row.dataset.nombre || '').trim();
+      var nom = row.dataset.nombreSolo != null ? row.dataset.nombreSolo : full.split(' ')[0];
+      var ape = row.dataset.apellido != null ? row.dataset.apellido : full.split(' ').slice(1).join(' ');
+      document.getElementById('crearCitaNombre').value = nom;
+      document.getElementById('crearCitaApellido').value = ape;
+      document.getElementById('crearCitaCorreo').value = row.dataset.correo || '';
+      setCelular(row.dataset.celular);
+      var n = /^(\d{4})-(\d{2})-(\d{2})$/.exec(row.dataset.fechaNacimiento || '');
+      if (n) setNacimiento(+n[1], +n[2] - 1, +n[3]);
+      fillQuestionnaire(editOrig.q);
+      newTag = editOrig.tag;
+      renderNewTags();
+
+      // Día y hora actuales (en reagendar la hora se deja vacía para
+      // que elijan la nueva).
+      var f = editOrig.date.split('-').map(Number);
+      viewYear = f[0]; viewMonth = f[1] - 1;
+      setDate(f[0], f[1] - 1, f[2]);
+      // Se recalculan las ocupadas ya sabiendo qué cita es (openModal las
+      // pidió antes, cuando todavía contaba su propia hora como ocupada).
+      loadOccupied(dateHidden.value);
+      renderDateGrid();
+      if (mode === 'editar' && editOrig.time) setTime(editOrig.time);
+
+      // Aviso de arriba: de quién es y cuándo está ahora.
+      document.getElementById('crearCitaCurrentWho').textContent = (full || 'Cita') + ' · ahora:';
+      document.getElementById('crearCitaCurrentWhen').textContent = fechaLargaISO(editOrig.date) + (editOrig.time ? ' · ' + to12h(editOrig.time) : '');
+      var note = document.getElementById('crearCitaCurrentNote');
+      var reactiva = editOrig.status === 'cancelada' || editOrig.status === 'no_asistio';
+      note.textContent = mode === 'reagendar'
+        ? 'Elige el nuevo día y hora. Se le avisa al cliente por WhatsApp' + (reactiva ? ' y la cita vuelve a quedar como Verificada.' : '.')
+        : 'Si cambias el día o la hora, la cita se reagenda y se le avisa al cliente por WhatsApp.';
+      note.hidden = false;
+    });
+  }
+  window.AvanteEditarCita = { open: openEdit };
 
   // Abrir "Crear cita" ya llenado (lo usa Revisión anual del calendario).
   // prefill: { nombre, apellido, celular, correo, nacimiento, fecha }
@@ -1824,6 +1959,42 @@ window.CitaTags = (function(){
   cancelBtn && cancelBtn.addEventListener('click', closeModal);
   overlay.addEventListener('click', function(e){ if (e.target === overlay) closeModal(); });
 
+  function saveEdit(payload){
+    var id = editId;
+    var idleLabel = submitBtn.textContent;
+    submitBtn.textContent = mode === 'reagendar' ? 'Reagendando...' : 'Guardando...';
+    // Se conservan respuestas que el formulario no conoce (p. ej. de una
+    // versión vieja del cuestionario público). Si borraron todas, null.
+    if (payload.cuestionario && editOrig && editOrig.q) {
+      payload.cuestionario = Object.assign({}, editOrig.q, payload.cuestionario);
+    }
+    var tagChanged = editOrig && newTag !== editOrig.tag;
+    fetch('/admin/citas/' + encodeURIComponent(id), {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(data){
+        if (res.status === 409) {
+          loadOccupied(payload.date);
+          throw new Error(data.error || 'Esa hora ya está ocupada, elige otra.');
+        }
+        if (!res.ok) throw new Error(data.error || 'No se pudo guardar la cita.');
+        return data;
+      });
+    }).then(function(){
+      if (!tagChanged) return;
+      return CitaTags.set(id, newTag).catch(function(){ /* la cita sí se guardó */ });
+    }).then(function(){
+      window.location.reload();
+    }).catch(function(err){
+      errorEl.textContent = err.message || 'No se pudo guardar. Intenta de nuevo.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = idleLabel;
+    });
+  }
+
   form.addEventListener('submit', function(e){
     e.preventDefault();
 
@@ -1843,7 +2014,11 @@ window.CitaTags = (function(){
     var date = dateHidden.value;
     var time = timeHidden.value;
 
-    if (!date || !time) { errorEl.textContent = 'Selecciona día y hora.'; return; }
+    if (!date || !time) { errorEl.textContent = mode === 'reagendar' ? 'Elige el nuevo día y la hora.' : 'Selecciona día y hora.'; return; }
+    if (mode === 'reagendar' && editOrig && date === editOrig.date && time === editOrig.time) {
+      errorEl.textContent = 'Elige un día u hora diferente a la que ya tiene.';
+      return;
+    }
     if (occupied.indexOf(time) !== -1) { errorEl.textContent = 'Esa hora ya está ocupada, elige otra.'; return; }
     if (!nombre || !apellido) { errorEl.textContent = 'Completa nombre y apellido.'; return; }
     if (!/^\d{10}$/.test(celularDigits)) { errorEl.textContent = 'Ingresa un celular a 10 dígitos.'; return; }
@@ -1851,6 +2026,21 @@ window.CitaTags = (function(){
 
     errorEl.textContent = '';
     submitBtn.disabled = true;
+
+    if (mode !== 'create') {
+      saveEdit({
+        date: date,
+        time: time,
+        nombre: nombre,
+        apellido: apellido,
+        celular: selectedLada + celularDigits,
+        correo: correo,
+        fecha_nacimiento: nacimiento,
+        cuestionario: cuestionario
+      });
+      return;
+    }
+
     submitBtn.textContent = 'Creando...';
 
     fetch('/admin/citas', {

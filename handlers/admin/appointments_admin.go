@@ -1,11 +1,14 @@
 package admin
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -148,6 +151,9 @@ func DeleteAppointment(c *gin.Context) {
 // verificación SMS, no hay ninguna dependencia de proveedor que lo
 // restrinja a México.
 var staffCelularRe = regexp.MustCompile(`^\+(52|1)\d{10}$`)
+var staffEmailRe = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+var staffTimeRe = regexp.MustCompile(`^([01]\d|2[0-3]):[0-5]\d$`)
+var staffBirthRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
 type createAppointmentByStaffInput struct {
 	Date            string `json:"date" binding:"required"` // "2026-08-20"
@@ -158,6 +164,27 @@ type createAppointmentByStaffInput struct {
 	Correo          string `json:"correo"`
 	FechaNacimiento string `json:"fecha_nacimiento"` // "YYYY-MM-DD", opcional
 	Status          string `json:"status"`           // opcional, default "verificada"
+	// Cuestionario opcional del modal "Crear cita" (null si no se
+	// contestó). Se guarda tal cual como JSON, igual que el público.
+	Cuestionario json.RawMessage `json:"cuestionario"`
+}
+
+// cuestionarioFromRaw valida el cuestionario que manda el panel y lo
+// regresa como texto JSON listo para guardar. "" = sin cuestionario
+// (null, vacío o {} sin respuestas) → la columna queda NULL.
+func cuestionarioFromRaw(raw json.RawMessage) (string, error) {
+	txt := strings.TrimSpace(string(raw))
+	if txt == "" || txt == "null" || txt == "{}" {
+		return "", nil
+	}
+	if len(txt) > 8<<10 {
+		return "", errors.New("El cuestionario es demasiado largo.")
+	}
+	var obj map[string]interface{}
+	if err := json.Unmarshal([]byte(txt), &obj); err != nil {
+		return "", errors.New("El cuestionario no es válido.")
+	}
+	return txt, nil
 }
 
 // CreateAppointmentByStaff crea una cita desde el botón "+ Crear cita"
@@ -185,6 +212,12 @@ func CreateAppointmentByStaff(c *gin.Context) {
 		return
 	}
 
+	cuestionario, err := cuestionarioFromRaw(input.Cuestionario)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	// Mismo anti-doble-booking que el flujo público, para que recepción
 	// no pueda crear dos citas encimadas en el mismo horario por error.
 	booked, err := models.IsSlotBooked(date, input.Time)
@@ -197,12 +230,140 @@ func CreateAppointmentByStaff(c *gin.Context) {
 		return
 	}
 
-	if _, err := models.CreateAppointmentByStaff(date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, input.FechaNacimiento, input.Status); err != nil {
+	appt, err := models.CreateAppointmentByStaff(date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, input.FechaNacimiento, cuestionario, input.Status)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear la cita."})
 		return
 	}
 
 	whatsapp.NotifyBooked(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Cita creada."})
+	// El id lo usa el panel para guardar la etiqueta ("¿Cómo llegó?")
+	// de la cita recién creada sin tener que buscarla después.
+	c.JSON(http.StatusCreated, gin.H{"message": "Cita creada.", "id": appt.ID})
+}
+
+// ---------------------------------------------------------------------
+// Editar / reagendar una cita desde recepción/admin
+// ---------------------------------------------------------------------
+
+type updateAppointmentByStaffInput struct {
+	Date            string          `json:"date" binding:"required"` // "2026-08-20"
+	Time            string          `json:"time" binding:"required"` // "10:00"
+	Nombre          string          `json:"nombre" binding:"required"`
+	Apellido        string          `json:"apellido" binding:"required"`
+	Celular         string          `json:"celular" binding:"required"` // "+52XXXXXXXXXX"
+	Correo          string          `json:"correo"`
+	FechaNacimiento string          `json:"fecha_nacimiento"` // "YYYY-MM-DD" o ""
+	Cuestionario    json.RawMessage `json:"cuestionario"`     // null = sin respuestas
+}
+
+// UpdateAppointmentByStaff edita una cita existente — PUT
+// /admin/citas/:id (grupo citasStaff: admin, optometrista y recepción).
+// Sirve para dos cosas desde el panel de recepción:
+//
+//   - "Editar": corregir nombre, celular, correo, fecha de nacimiento o
+//     el cuestionario (y, si quieren, también el día/hora).
+//   - "Reagendar": mover la cita a otro día/hora.
+//
+// Si el día o la hora cambian se trata como reagendar: se revisa que el
+// horario nuevo esté libre (sin contar la propia cita), si estaba
+// cancelada o "no asistió" vuelve a "verificada", se reinician los
+// recordatorios y se avisa al cliente por WhatsApp con la fecha nueva
+// (mismo aviso que cuando el cliente reagenda desde "Mis citas").
+func UpdateAppointmentByStaff(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido."})
+		return
+	}
+
+	var input updateAppointmentByStaffInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Completa día, hora, nombre, apellido y celular."})
+		return
+	}
+	input.Nombre = strings.TrimSpace(input.Nombre)
+	input.Apellido = strings.TrimSpace(input.Apellido)
+	input.Correo = strings.TrimSpace(input.Correo)
+	input.FechaNacimiento = strings.TrimSpace(input.FechaNacimiento)
+	if input.Nombre == "" || input.Apellido == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Completa nombre y apellido."})
+		return
+	}
+	if !staffCelularRe.MatchString(input.Celular) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Número de celular inválido. Debe incluir la lada y 10 dígitos."})
+		return
+	}
+	if input.Correo != "" && !staffEmailRe.MatchString(input.Correo) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "El correo no es válido."})
+		return
+	}
+	if input.FechaNacimiento != "" && !staffBirthRe.MatchString(input.FechaNacimiento) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha de nacimiento inválida."})
+		return
+	}
+	if !staffTimeRe.MatchString(input.Time) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Hora inválida."})
+		return
+	}
+	date, err := time.Parse("2006-01-02", input.Date)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha inválida."})
+		return
+	}
+	cuestionario, err := cuestionarioFromRaw(input.Cuestionario)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	current, err := models.GetAppointmentByID(id)
+	if errors.Is(err, models.ErrAppointmentNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Esa cita ya no existe. Recarga la página."})
+		return
+	}
+	if err != nil {
+		log.Println("admin.UpdateAppointmentByStaff: error al leer la cita:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer la cita."})
+		return
+	}
+
+	// appt_time puede venir de MySQL como "10:00:00": se comparan HH:MM.
+	oldTime := current.Time
+	if len(oldTime) > 5 {
+		oldTime = oldTime[:5]
+	}
+	moved := current.Date.Format("2006-01-02") != input.Date || oldTime != input.Time
+
+	if moved {
+		booked, err := models.IsSlotBookedExcluding(date, input.Time, id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo verificar el horario."})
+			return
+		}
+		if booked {
+			c.JSON(http.StatusConflict, gin.H{"error": "Esa hora ya está ocupada. Elige otra."})
+			return
+		}
+	}
+
+	if err := models.UpdateAppointmentByStaff(id, date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, input.FechaNacimiento, cuestionario, moved); err != nil {
+		log.Println("admin.UpdateAppointmentByStaff: error al guardar:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar la cita."})
+		return
+	}
+
+	if moved {
+		if err := models.ResetAppointmentReminders(id); err != nil {
+			log.Println("admin.UpdateAppointmentByStaff: no se reiniciaron los recordatorios:", err)
+		}
+		whatsapp.NotifyRescheduled(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
+	}
+
+	msg := "Cita actualizada."
+	if moved {
+		msg = "Cita reagendada."
+	}
+	c.JSON(http.StatusOK, gin.H{"message": msg, "id": id, "reagendada": moved})
 }

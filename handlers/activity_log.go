@@ -355,6 +355,33 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 			e.Context += " · Motivo: " + r
 		}
 
+	case method == http.MethodPut && route == "/admin/citas/:id":
+		nombre := strings.TrimSpace(actStr(p, "nombre") + " " + actStr(p, "apellido"))
+		d, t := actStr(p, "date"), actStr(p, "time")
+		oldHora := ""
+		if before != nil {
+			oldHora = before.Hora
+			if len(oldHora) > 5 {
+				oldHora = oldHora[:5]
+			}
+		}
+		moved := before != nil && before.Fecha != "" && (before.Fecha != d || oldHora != t)
+		if moved {
+			e.Action = "cita.reagendar"
+			e.Description, intento = "Reagendó la cita"+quien, "reagendar la cita"+quien
+			e.Context = "Antes: " + actFechaCorta(before.Fecha) + " " + oldHora + " → Ahora: " + actFechaCorta(d) + " " + t
+			if before.Status == "cancelada" || before.Status == "no_asistio" {
+				e.Context += " · Estaba: " + activityCitaStatusLabel(before.Status) + " → Verificada"
+			}
+		} else {
+			e.Action = "cita.editar"
+			e.Description, intento = "Editó los datos de la cita"+quien, "editar los datos de la cita"+quien
+			e.Context = before.String()
+		}
+		if before != nil && before.Nombre != "" && nombre != "" && !strings.EqualFold(before.Nombre, nombre) {
+			e.Context += " · Nombre: " + before.Nombre + " → " + nombre
+		}
+
 	case method == http.MethodDelete && route == "/admin/citas/:id":
 		e.Action = "cita.eliminar"
 		e.Description, intento = "Eliminó la cita"+quien, "eliminar la cita"+quien

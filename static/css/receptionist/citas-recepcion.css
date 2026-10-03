@@ -570,7 +570,7 @@ body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
 .cb-datepicker.is-open .cb-datepicker-menu{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
 
 .cb-datepicker-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.cb-datepicker-nav span{ font-size:12.5px; font-weight:700; color:var(--ink); text-transform:capitalize; }
+.cb-datepicker-nav span{ font-size:12.5px; font-weight:700; color:var(--ink); }
 .cb-datepicker-nav > button{
   width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
   border:none; background:none; color:var(--muted); cursor:pointer;
@@ -834,6 +834,11 @@ body.dark .cal-action-noasistio:hover{ border-color:#666; background:rgba(255,25
 
 .cal-action-cliente .cal-action-icon{ background:var(--accent-soft); color:var(--accent); }
 .cal-action-cliente:hover{ border-color:var(--accent-border); background:var(--accent-soft); }
+
+.cal-action-edit .cal-action-icon,
+.cal-action-reagendar .cal-action-icon{ background:var(--accent-soft); color:var(--accent); }
+.cal-action-edit:hover,
+.cal-action-reagendar:hover{ border-color:var(--accent-border); background:var(--accent-soft); }
 
 /* =========================================================
    MODAL: CREAR CITA (recepción/admin)
@@ -1449,3 +1454,24 @@ body.dark .crear-cita-tipo-hint{ color:#ffc04d; }
   /* en el calendario del celular las citas son puntitos: sin ícono */
   .cal-event-chip .cita-tag-ico{ display:none; }
 }
+
+/* =========================================================
+   EDITAR / REAGENDAR CITA (mismo modal que "Crear cita")
+   ========================================================= */
+.crear-cita-current{
+  display:grid; grid-template-columns:auto 1fr; align-items:center; gap:4px 12px;
+  padding:12px 14px; border-radius:14px;
+  background:var(--accent-soft); border:1px solid var(--accent-border);
+}
+.crear-cita-current[hidden]{ display:none !important; }
+.crear-cita-current > svg{ width:20px; height:20px; color:var(--accent); }
+.crear-cita-current > div{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.crear-cita-current span{ font-size:12px; font-weight:600; color:var(--muted); }
+.crear-cita-current strong{ font-size:14px; font-weight:700; color:var(--ink); }
+.crear-cita-current-note{ grid-column:1 / -1; font-size:12px; color:var(--muted); line-height:1.5; margin:4px 0 0; }
+.crear-cita-current-note[hidden]{ display:none !important; }
+
+/* Reagendar: solo día y hora. */
+#crearCitaForm.is-reagendar .crear-cita-tipo,
+#crearCitaForm.is-reagendar .crear-cita-extra{ display:none; }
+#crearCitaForm.is-reagendar .form-section-num{ display:none; }

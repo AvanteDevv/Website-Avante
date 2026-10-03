@@ -181,15 +181,18 @@ func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular, corr
 // CreateAppointment (flujo público de agendar.js/mis-citas.js), NO pasa
 // por verificación de código SMS: quien la crea ya es personal
 // autenticado del panel, así que no hace falta confirmar el celular del
-// cliente. Tampoco lleva cuestionario (eso solo lo llena el cliente en
-// el flujo público) ni user_id (no hay sesión de cliente involucrada;
-// si el cliente ya tiene cuenta y quieres ligarla, tendría que
+// cliente. No lleva user_id (no hay sesión de cliente involucrada; si
+// el cliente ya tiene cuenta y quieres ligarla, tendría que
 // reagendar/agendar él mismo desde su panel).
+//
+// cuestionarioJSON: el cuestionario opcional que llena recepción en
+// "Crear cita" (mismo formato que el público + "como_se_entero",
+// "procedencia" y "empresa"). "" = no se contestó → se guarda NULL.
 //
 // status: si viene vacío, nace "verificada" (igual que las públicas) —
 // normalmente se crea así porque el cliente ya llamó o se presentó
 // directamente a agendar.
-func CreateAppointmentByStaff(date time.Time, apptTime, nombre, apellido, celular, correo, fechaNacimiento, status string) (*Appointment, error) {
+func CreateAppointmentByStaff(date time.Time, apptTime, nombre, apellido, celular, correo, fechaNacimiento, cuestionarioJSON, status string) (*Appointment, error) {
 	if status == "" {
 		status = "verificada"
 	}
@@ -197,10 +200,14 @@ func CreateAppointmentByStaff(date time.Time, apptTime, nombre, apellido, celula
 	if fechaNacimiento != "" {
 		fechaNacimientoArg = fechaNacimiento
 	}
+	var cuestionarioArg interface{}
+	if cuestionarioJSON != "" {
+		cuestionarioArg = cuestionarioJSON
+	}
 
 	result, err := db.DB.Exec(
-		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		date.Format("2006-01-02"), apptTime, nombre, apellido, celular, correo, fechaNacimientoArg, status,
+		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		date.Format("2006-01-02"), apptTime, nombre, apellido, celular, correo, fechaNacimientoArg, cuestionarioArg, status,
 	)
 	if err != nil {
 		return nil, err
@@ -212,9 +219,65 @@ func CreateAppointmentByStaff(date time.Time, apptTime, nombre, apellido, celula
 	return &Appointment{
 		ID: id, Date: date, Time: apptTime,
 		Nombre: nombre, Apellido: apellido, Celular: celular,
-		Correo: correo, FechaNacimiento: fechaNacimiento,
+		Correo: correo, FechaNacimiento: fechaNacimiento, Cuestionario: cuestionarioJSON,
 		Status: status,
 	}, nil
+}
+
+// UpdateAppointmentByStaff edita una cita desde el panel de recepción /
+// admin: datos del cliente, cuestionario y, si cambió, día y hora
+// (reagendar). A diferencia de RescheduleAppointmentByUser NO filtra
+// por user_id: el personal del panel puede mover cualquier cita (la
+// ruta ya está protegida por sesión de staff). El anti-doble-booking
+// (IsSlotBookedExcluding) lo hace el handler antes de llamar aquí.
+//
+// cuestionarioJSON "" → la columna queda NULL (se borraron todas las
+// respuestas).
+//
+// reactivate: true cuando se está reagendando. Si la cita estaba
+// "cancelada" o "no_asistio", vuelve a "verificada" y se limpia el
+// motivo de cancelación — reagendar es justo darle una nueva fecha.
+// (cancel_reason va ANTES que status en el SET porque MySQL evalúa las
+// asignaciones en orden: si status cambiara primero, el CASE de
+// cancel_reason ya no vería "cancelada".)
+//
+// No regresa ErrAppointmentNotFound con 0 filas afectadas: MySQL
+// cuenta 0 cuando los valores nuevos son iguales a los de antes. El
+// handler revisa que la cita exista con GetAppointmentByID.
+func UpdateAppointmentByStaff(id int64, date time.Time, apptTime, nombre, apellido, celular, correo, fechaNacimiento, cuestionarioJSON string, reactivate bool) error {
+	var fechaNacimientoArg interface{}
+	if fechaNacimiento != "" {
+		fechaNacimientoArg = fechaNacimiento
+	}
+	var cuestionarioArg interface{}
+	if cuestionarioJSON != "" {
+		cuestionarioArg = cuestionarioJSON
+	}
+	_, err := db.DB.Exec(
+		`UPDATE appointments SET
+			appt_date = ?, appt_time = ?,
+			nombre = ?, apellido = ?, celular = ?, correo = ?,
+			fecha_nacimiento = ?, cuestionario = ?,
+			cancel_reason = CASE WHEN ? AND status IN ('cancelada','no_asistio') THEN NULL ELSE cancel_reason END,
+			status = CASE WHEN ? AND status IN ('cancelada','no_asistio') THEN 'verificada' ELSE status END
+		 WHERE id = ?`,
+		date.Format("2006-01-02"), apptTime,
+		nombre, apellido, celular, correo,
+		fechaNacimientoArg, cuestionarioArg,
+		reactivate, reactivate,
+		id,
+	)
+	return err
+}
+
+// ResetAppointmentReminders vuelve a dejar en NULL las marcas de
+// recordatorio (ver appointment_reminders.go) para que, después de
+// reagendar, el cliente reciba los recordatorios de 24 h y 1 h de la
+// fecha NUEVA. Se llama aparte (y su error se ignora en el handler)
+// para que, si esas columnas no existieran, reagendar siga funcionando.
+func ResetAppointmentReminders(id int64) error {
+	_, err := db.DB.Exec("UPDATE appointments SET reminder_24h_sent_at = NULL, reminder_1h_sent_at = NULL WHERE id = ?", id)
+	return err
 }
 
 // GetAppointmentByID busca una cita por su id. La usa
