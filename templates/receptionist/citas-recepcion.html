@@ -227,12 +227,13 @@
             <h3 class="cal-month-label" id="calMonthLabel">—</h3>
           </div>
           <div class="cal-toolbar-right">
-            {{/* Revisión anual: muestra a quién le toca volver (un año
-                 después de su última cita) en lugar de las citas. */}}
-            <label class="cal-remind-toggle" title="Ver a quién le toca su revisión anual">
+            {{/* Revisiones: muestra a quién le toca volver (3 meses, 6 meses
+                 o 1 año después de su última cita, según lo que se eligió
+                 al marcar "Asistió"; si no compró, no aparece). */}}
+            <label class="cal-remind-toggle" title="Ver a quién le toca su próxima revisión">
               <input type="checkbox" id="calRemindToggle">
               <span class="cal-remind-track"></span>
-              <span class="cal-remind-text">Revisión anual</span>
+              <span class="cal-remind-text">Revisiones</span>
               <span class="cal-remind-count" id="calRemindCount" hidden></span>
             </label>
             <button type="button" class="btn thin" id="calTodayBtn">Hoy</button>
@@ -278,6 +279,53 @@
   </div>
 </div>
 
+<!-- Asistió: ¿compró? → cada cuánto le toca su próxima revisión -->
+<div class="admin-modal-overlay" id="asistioModalOverlay">
+  <div class="admin-modal-card asistio-card" role="dialog" aria-modal="true" aria-labelledby="asistioTitle">
+    <div class="admin-modal-head">
+      <h3 id="asistioTitle">Asistió a su cita</h3>
+      <button type="button" class="admin-modal-close" id="asistioClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="asistio-who"><strong id="asistioWho"></strong><span id="asistioWhen"></span></p>
+
+      <div class="asistio-step">
+        <span class="asistio-label">¿Compró algo?</span>
+        <div class="asistio-choice" id="asistioCompro">
+          <button type="button" class="asistio-opt is-yes" data-compro="1" aria-pressed="false">
+            <span class="asistio-opt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+            <strong>Sí compró</strong>
+            <small>Se le programa su revisión</small>
+          </button>
+          <button type="button" class="asistio-opt is-no" data-compro="0" aria-pressed="false">
+            <span class="asistio-opt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></span>
+            <strong>No compró</strong>
+            <small>No se le programa revisión</small>
+          </button>
+        </div>
+      </div>
+
+      <div class="asistio-step asistio-meses-wrap" id="asistioMesesWrap" hidden>
+        <span class="asistio-label">Próxima revisión</span>
+        <div class="asistio-meses" id="asistioMeses" role="radiogroup" aria-label="Próxima revisión">
+          <button type="button" data-meses="3" role="radio" aria-checked="false">3 meses</button>
+          <button type="button" data-meses="6" role="radio" aria-checked="false">6 meses</button>
+          <button type="button" data-meses="12" role="radio" aria-checked="true" class="is-on">1 año</button>
+        </div>
+        <p class="asistio-due" id="asistioDue"></p>
+      </div>
+
+      <p class="staff-error" id="asistioError"></p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="asistioCancel">Cancelar</button>
+        <button type="button" class="btn small solid" id="asistioSave" disabled>Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal-overlay" id="cancelCitaModalOverlay">
   <div class="admin-modal-card admin-modal-card--sm">
     <div class="admin-modal-head">
@@ -315,6 +363,11 @@
       </div>
       <span class="admin-badge" id="calEventStatus"></span>
       <p class="cal-event-reason" id="calEventReason" hidden></p>
+      {{/* Si asistió: si compró y cuándo le toca su revisión (lo llena citas-recepcion.js). */}}
+      <div class="cal-event-seg" id="calEventSeg" hidden>
+        <span id="calEventSegText"></span>
+        <button type="button" class="cal-event-seg-btn" id="calEventSegBtn">Cambiar</button>
+      </div>
 
       {{/* Etiqueta de la cita: cómo llegó (vino sin cita, chequeo,
            teléfono, WhatsApp). La llena citas-recepcion.js. */}}
@@ -371,11 +424,11 @@
   </div>
 </div>
 
-<!-- Revisión anual: a quién le toca volver -->
+<!-- Revisiones: a quién le toca volver -->
 <div class="admin-modal-overlay" id="remindModalOverlay">
   <div class="admin-modal-card cal-event-modal remind-modal">
     <div class="admin-modal-head">
-      <h3>Revisión anual</h3>
+      <h3>Próxima revisión</h3>
       <button type="button" class="admin-modal-close" id="remindModalClose" aria-label="Cerrar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>

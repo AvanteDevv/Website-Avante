@@ -1478,3 +1478,70 @@ body.dark .crear-cita-tipo-hint{ color:#ffc04d; }
 #crearCitaForm.is-reagendar .crear-cita-tipo,
 #crearCitaForm.is-reagendar .crear-cita-extra{ display:none; }
 #crearCitaForm.is-reagendar .form-section-num{ display:none; }
+
+/* =========================================================
+   ASISTIÓ → ¿COMPRÓ? → PRÓXIMA REVISIÓN
+   ========================================================= */
+.asistio-card{ max-width:440px; }
+.asistio-who{ display:flex; flex-direction:column; gap:2px; margin:0 0 16px; }
+.asistio-who strong{ font-size:15px; font-weight:700; color:var(--ink); }
+.asistio-who span{ font-size:12.5px; color:var(--muted); }
+.asistio-step{ display:flex; flex-direction:column; gap:9px; }
+.asistio-step + .asistio-step{ margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
+.asistio-step[hidden]{ display:none !important; }
+.asistio-label{ font-size:11.5px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--muted); }
+
+.asistio-choice{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.asistio-opt{
+  display:flex; flex-direction:column; align-items:flex-start; gap:3px; text-align:left;
+  padding:13px 14px; border-radius:16px; border:1.5px solid var(--line); background:var(--white);
+  font-family:var(--sans); color:var(--ink); cursor:pointer;
+  transition:border-color .18s var(--ease), background .18s var(--ease), transform .16s var(--ease), box-shadow .18s var(--ease);
+}
+.asistio-opt:hover{ transform:translateY(-1px); border-color:var(--accent-border); }
+.asistio-opt strong{ font-size:14px; font-weight:700; }
+.asistio-opt small{ font-size:11.5px; color:var(--muted); line-height:1.35; }
+.asistio-opt-icon{
+  width:30px; height:30px; border-radius:50%; margin-bottom:5px;
+  display:flex; align-items:center; justify-content:center;
+}
+.asistio-opt-icon svg{ width:16px; height:16px; }
+.asistio-opt.is-yes .asistio-opt-icon{ background:#dff5e8; color:#1f7a4d; }
+.asistio-opt.is-no .asistio-opt-icon{ background:#ececec; color:#6b6b6b; }
+.asistio-opt.is-yes.is-on{ border-color:#1f9d55; background:#f1fbf5; box-shadow:0 0 0 4px rgba(31,157,85,.12); }
+.asistio-opt.is-no.is-on{ border-color:#9a9a9a; background:#f6f6f6; box-shadow:0 0 0 4px rgba(0,0,0,.05); }
+body.dark .asistio-opt.is-yes.is-on{ background:rgba(31,157,85,.14); }
+body.dark .asistio-opt.is-no.is-on{ background:rgba(255,255,255,.06); }
+body.dark .asistio-opt.is-yes .asistio-opt-icon{ background:rgba(31,157,85,.2); color:#6ee7a6; }
+body.dark .asistio-opt.is-no .asistio-opt-icon{ background:rgba(255,255,255,.1); color:#cfcfcf; }
+
+.asistio-meses{ display:flex; gap:6px; padding:4px; border-radius:100px; background:var(--accent-soft); }
+.asistio-meses button{
+  flex:1; padding:9px 10px; border:0; border-radius:100px; background:transparent; cursor:pointer;
+  font-family:var(--sans); font-size:13px; font-weight:700; color:var(--muted);
+  transition:background .2s var(--ease), color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.asistio-meses button:hover{ color:var(--accent); }
+.asistio-meses button.is-on{ background:var(--accent); color:#fff; box-shadow:0 6px 16px -4px rgba(4,28,255,.4); }
+.asistio-due{ font-size:12.5px; color:var(--muted); margin:2px 0 0; }
+.asistio-card .staff-error{ margin-top:12px; }
+.asistio-card .admin-confirm-actions{ margin-top:18px; }
+
+/* Detalle de la cita: si compró y cuándo le toca */
+.cal-event-seg{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-top:10px; padding:9px 12px; border-radius:12px;
+  background:#f1fbf5; color:#1f7a4d; font-size:12.5px; font-weight:600;
+}
+.cal-event-seg[hidden]{ display:none !important; }
+.cal-event-seg.is-missing{ background:var(--accent-soft); color:var(--muted); }
+body.dark .cal-event-seg{ background:rgba(31,157,85,.14); color:#6ee7a6; }
+body.dark .cal-event-seg.is-missing{ background:var(--accent-soft); color:var(--muted); }
+.cal-event-seg-btn{
+  flex-shrink:0; border:0; background:none; padding:2px 0; cursor:pointer;
+  font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--accent);
+  text-decoration:underline; text-underline-offset:3px;
+}
+@media (max-width:420px){
+  .asistio-choice{ grid-template-columns:1fr; }
+}

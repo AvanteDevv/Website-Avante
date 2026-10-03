@@ -74,6 +74,49 @@ window.CitaTags = (function(){
   };
 })();
 
+/* =========================================================
+   SEGUIMIENTO AL ASISTIR — ¿compró? y cada cuánto le toca su
+   próxima revisión (3 meses, 6 meses o 1 año). Si no compró, no
+   se le programa revisión. Se guarda aparte de la cita:
+     GET /api/receptionist/citas/seguimiento
+         → { items: { "12": { compro: true, meses: 6 }, "15": { compro: false } } }
+     PUT /api/receptionist/citas/:id/seguimiento  { compro, meses }
+         (además marca la cita como "asistio" si no lo estaba)
+   ========================================================= */
+window.CitaSeg = (function(){
+  var byId = {};
+  var MESES_LABEL = { 3: '3 meses', 6: '6 meses', 12: '1 año' };
+  function load(){
+    return fetch('/api/receptionist/citas/seguimiento', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function(r){ return r.ok ? r.json() : { items: {} }; })
+      .then(function(d){ byId = (d && d.items) || {}; return byId; })
+      .catch(function(){ return byId; });
+  }
+  function set(id, compro, meses){
+    var body = compro ? { compro: true, meses: meses || 12 } : { compro: false };
+    return fetch('/api/receptionist/citas/' + encodeURIComponent(id) + '/seguimiento', {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(d){
+        if (!r.ok) throw new Error(d.error || 'No se pudo guardar.');
+        byId[String(id)] = body;
+        return body;
+      });
+    });
+  }
+  // "Compró · revisión en 6 meses" / "No compró · sin revisión"
+  function label(f){
+    if (!f) return '';
+    return f.compro ? 'Compró · revisión en ' + (MESES_LABEL[f.meses] || '1 año') : 'No compró · sin revisión';
+  }
+  return {
+    load: load, set: set, label: label, MESES_LABEL: MESES_LABEL,
+    get: function(id){ return byId[String(id)] || null; }
+  };
+})();
+
 (function(){
   var tbody = document.getElementById('citasTableBody');
   if (!tbody) return;
@@ -220,6 +263,94 @@ window.CitaTags = (function(){
       if (res.ok) window.location.reload();
       else if (onFail) onFail();
     }).catch(function(){ if (onFail) onFail(); });
+  }
+
+  /* ---------- Modal: Asistió → ¿compró? → próxima revisión ----------
+     Sí compró: se elige cuándo le toca volver (3 meses, 6 meses o 1 año,
+     por defecto 1 año) y aparece en el calendario en "Revisiones".
+     No compró: no se le programa revisión. Guardar también marca la
+     cita como "asistio" (PUT .../seguimiento lo hace en el servidor). */
+  var asOverlay = document.getElementById('asistioModalOverlay');
+  var asId = null, asCompro = null, asMeses = 12, asDate = '';
+  function asAddMonths(iso, months){
+    var p = iso.split('-').map(Number);
+    var y = p[0], m = p[1] - 1 + months, d = p[2];
+    y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+    var last = new Date(y, m + 1, 0).getDate();
+    return d > last ? [y, m, last] : [y, m, d];
+  }
+  function asRender(){
+    asOverlay.querySelectorAll('.asistio-opt').forEach(function(b){
+      var on = asCompro !== null && b.dataset.compro === (asCompro ? '1' : '0');
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var wrap = document.getElementById('asistioMesesWrap');
+    wrap.hidden = asCompro !== true;
+    asOverlay.querySelectorAll('#asistioMeses button').forEach(function(b){
+      var on = Number(b.dataset.meses) === asMeses;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    if (asDate) {
+      var due = asAddMonths(asDate, asMeses);
+      document.getElementById('asistioDue').textContent = 'Le tocará volver el ' + due[2] + ' de ' + MESES[due[1]] + ' de ' + due[0] + '.';
+    }
+    document.getElementById('asistioSave').disabled = asCompro === null;
+  }
+  function openAsistio(id){
+    var row = tbody.querySelector('tr[data-id="' + id + '"]');
+    if (!row || !asOverlay) { updateStatus(id, 'asistio'); return; }
+    var prev = CitaSeg.get(id);
+    asId = id;
+    asCompro = prev ? !!prev.compro : null;
+    asMeses = prev && prev.compro && prev.meses ? Number(prev.meses) : 12;
+    asDate = row.dataset.date || '';
+    var dia = row.querySelector('.cita-dia') ? row.querySelector('.cita-dia').textContent.trim() : asDate;
+    document.getElementById('asistioTitle').textContent = row.dataset.status === 'asistio' ? '¿Compró algo?' : 'Asistió a su cita';
+    document.getElementById('asistioWho').textContent = (row.dataset.nombre || '').trim() || 'Sin nombre';
+    document.getElementById('asistioWhen').textContent = dia + (row.dataset.time ? ' · ' + String(row.dataset.time).slice(0, 5) : '');
+    document.getElementById('asistioError').textContent = '';
+    var save = document.getElementById('asistioSave');
+    save.textContent = 'Guardar';
+    asRender();
+    asOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeAsistio(){
+    if (!asOverlay) return;
+    asOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  if (asOverlay) {
+    document.getElementById('asistioCompro').addEventListener('click', function(e){
+      var b = e.target.closest('.asistio-opt');
+      if (!b) return;
+      asCompro = b.dataset.compro === '1';
+      asRender();
+    });
+    document.getElementById('asistioMeses').addEventListener('click', function(e){
+      var b = e.target.closest('button[data-meses]');
+      if (!b) return;
+      asMeses = Number(b.dataset.meses);
+      asRender();
+    });
+    document.getElementById('asistioClose').addEventListener('click', closeAsistio);
+    document.getElementById('asistioCancel').addEventListener('click', closeAsistio);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && asOverlay.classList.contains('open')) closeAsistio(); });
+    document.getElementById('asistioSave').addEventListener('click', function(){
+      if (asCompro === null) return;
+      var save = this;
+      save.disabled = true;
+      save.textContent = 'Guardando...';
+      CitaSeg.set(asId, asCompro, asMeses).then(function(){
+        window.location.reload();
+      }).catch(function(err){
+        document.getElementById('asistioError').textContent = err.message || 'No se pudo guardar. Intenta de nuevo.';
+        save.disabled = false;
+        save.textContent = 'Guardar';
+      });
+    });
   }
 
   /* ---------- Modal: ver datos del cliente ---------- */
@@ -411,7 +542,7 @@ window.CitaTags = (function(){
     if (!btn) return;
     var id = btn.dataset.id;
     if (btn.dataset.action === 'cancel') askCancel(id);
-    if (btn.dataset.action === 'asistio') updateStatus(id, 'asistio');
+    if (btn.dataset.action === 'asistio') openAsistio(id);
     if (btn.dataset.action === 'no_asistio') updateStatus(id, 'no_asistio');
     if (btn.dataset.action === 'delete') deleteCita(id);
     if (btn.dataset.action === 'cliente') openClienteModal(id);
@@ -441,6 +572,10 @@ window.CitaTags = (function(){
     allRows.forEach(applyRowTag);
     document.dispatchEvent(new CustomEvent('citatags:change'));
     applyPendingTag();
+  });
+  // Seguimiento (¿compró?): con esto se calculan las "Revisiones".
+  CitaSeg.load().then(function(){
+    document.dispatchEvent(new CustomEvent('citatags:change'));
   });
 
   // Etiqueta de una cita recién creada cuyo id no venía en la respuesta.
@@ -634,13 +769,20 @@ window.CitaTags = (function(){
         var pr = people[k];
         if (!pr.last || pr.upcoming) return;
         var row = pr.last;
-        var due = addMonthsISO(row.dataset.date, REMIND_MONTHS);
+        // Lo que se registró al marcar "Asistió": si no compró, no se le
+        // recuerda; si compró, a los meses que se eligieron (3, 6 o 12).
+        // Citas sin ese dato (las de antes): 1 año, como siempre.
+        var seg = CitaSeg.get(row.dataset.id);
+        if (seg && !seg.compro) return;
+        var meses = seg && seg.meses ? Number(seg.meses) : REMIND_MONTHS;
+        var due = addMonthsISO(row.dataset.date, meses);
         var tds = row.querySelectorAll('td');
         var r = {
           key: k,
           due: due,
           last: row.dataset.date,
           lastId: row.dataset.id,
+          meses: meses,
           visits: pr.visits,
           overdue: due < todayStr,
           nombre: (row.dataset.nombre || '').trim(),
@@ -712,8 +854,8 @@ window.CitaTags = (function(){
       if (remindBar) {
         var mes = MESES[viewMonth];
         var txt = inMonth === 0
-          ? 'Nadie tiene su revisión anual en ' + mes + '.'
-          : (inMonth === 1 ? '1 persona tiene' : inMonth + ' personas tienen') + ' su revisión anual en ' + mes +
+          ? 'Nadie tiene su revisión en ' + mes + '.'
+          : (inMonth === 1 ? '1 persona tiene' : inMonth + ' personas tienen') + ' su revisión en ' + mes +
             (overdueInMonth ? ' · ' + (overdueInMonth === 1 ? '1 ya pasó su fecha y no ha agendado' : overdueInMonth + ' ya pasaron su fecha y no han agendado') : '') + '.';
         remindBar.textContent = txt;
       }
@@ -769,7 +911,8 @@ window.CitaTags = (function(){
         : diff > 1 ? 'Le toca en ' + diff + ' días'
         : diff === -1 ? 'Le tocaba ayer' : 'Le tocaba hace ' + (-diff) + ' días';
       document.getElementById('remindDue').textContent = fechaLarga(r.due);
-      document.getElementById('remindLast').textContent = fechaLarga(r.last) + ' · Cita #' + r.lastId;
+      document.getElementById('remindLast').textContent = fechaLarga(r.last) + ' · Cita #' + r.lastId +
+        ' · revisión a ' + (CitaSeg.MESES_LABEL[r.meses] || '1 año');
       document.getElementById('remindPhone').textContent = r.celular || '—';
       document.getElementById('remindMail').textContent = r.correo || '—';
       document.getElementById('remindMailRow').hidden = !r.correo;
@@ -808,7 +951,7 @@ window.CitaTags = (function(){
     function openRemindDayModal(cellISO){
       var list = (byDate[cellISO] || []);
       var parts = cellISO.split('-').map(Number);
-      dayModalTitle.textContent = 'Revisión anual · ' + parts[2] + ' de ' + MESES[parts[1] - 1];
+      dayModalTitle.textContent = 'Revisiones · ' + parts[2] + ' de ' + MESES[parts[1] - 1];
       dayList.innerHTML = list.length ? list.map(function(r){
         var cls = r.overdue ? 'remind-overdue' : 'remind';
         return '<button type="button" class="day-events-item" data-remind-key="' + escAttr(r.key) + '">' +
@@ -856,7 +999,18 @@ window.CitaTags = (function(){
       renderEventTags(id);
 
       document.getElementById('calEventCancel').onclick = function(){ closeEventModal(); askCancel(id); };
-      document.getElementById('calEventAsistio').onclick = function(){ updateStatus(id, 'asistio'); };
+      document.getElementById('calEventAsistio').onclick = function(){ closeEventModal(); openAsistio(id); };
+      var segBox = document.getElementById('calEventSeg');
+      if (segBox) {
+        var seg = CitaSeg.get(id);
+        segBox.hidden = status !== 'asistio';
+        segBox.classList.toggle('is-missing', !seg);
+        document.getElementById('calEventSegText').textContent = seg ? CitaSeg.label(seg) : '¿Compró algo? Todavía no se registró.';
+        document.getElementById('calEventSegBtn').textContent = seg ? 'Cambiar' : 'Registrar';
+        document.getElementById('calEventSegBtn').onclick = function(){ closeEventModal(); openAsistio(id); };
+      }
+      var asistioLbl = document.getElementById('calEventAsistio');
+      asistioLbl.lastChild.textContent = status === 'asistio' ? ' Cambiar si compró ' : ' Marcar asistió ';
       document.getElementById('calEventNoAsistio').onclick = function(){ updateStatus(id, 'no_asistio'); };
       document.getElementById('calEventCliente').onclick = function(){ closeEventModal(); openClienteModal(id); };
       document.getElementById('calEventEditar').onclick = function(){ closeEventModal(); window.AvanteEditarCita && window.AvanteEditarCita.open(id, 'editar'); };
@@ -1916,7 +2070,7 @@ window.CitaTags = (function(){
   }
   window.AvanteEditarCita = { open: openEdit };
 
-  // Abrir "Crear cita" ya llenado (lo usa Revisión anual del calendario).
+  // Abrir "Crear cita" ya llenado (lo usa Revisiones del calendario).
   // prefill: { nombre, apellido, celular, correo, nacimiento, fecha }
   window.AvanteCrearCita = {
     open: function(prefill){

@@ -201,6 +201,8 @@ func main() {
 	db.EnsureInventoryTable()
 	// Etiquetas de cita (cómo llegó: sin cita, chequeo, teléfono, WhatsApp).
 	db.EnsureAppointmentTagsTable()
+	// Seguimiento al asistir: si compró y cada cuánto le toca su revisión.
+	db.EnsureAppointmentFollowupTable()
 	// Clarito: conexión con Google Drive y formatos subidos.
 	db.EnsureClaritoTables()
 	// Mantiene viva la conexión de Google Drive (renueva el token cada 12 h).
@@ -543,6 +545,9 @@ func main() {
 		// Etiquetas de cita (Citas → calendario / detalle / crear cita)
 		apiReceptionist.GET("/citas/etiquetas", handlers.ListCitaEtiquetas)
 		apiReceptionist.PUT("/citas/:id/etiqueta", handlers.SetCitaEtiqueta)
+		// Seguimiento al asistir (¿compró? → revisión en 3, 6 o 12 meses)
+		apiReceptionist.GET("/citas/seguimiento", handlers.ListCitaSeguimiento)
+		apiReceptionist.PUT("/citas/:id/seguimiento", handlers.SetCitaSeguimiento)
 	}
 
 	// Administración → Clarito: formatos PDF que se llenan y se guardan en

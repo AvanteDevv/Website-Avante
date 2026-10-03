@@ -178,7 +178,7 @@ func ActivityTracker() gin.HandlerFunc {
 
 		route := c.FullPath() // p. ej. "/admin/citas/:id/estado"
 		var before *activityCita
-		if strings.HasPrefix(route, "/admin/citas/:id") {
+		if strings.HasPrefix(route, "/admin/citas/:id") || route == "/api/receptionist/citas/:id/seguimiento" {
 			before = activityFindCita(c.Param("id"))
 		}
 
@@ -519,6 +519,29 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 			e.Description = "Quitó la etiqueta de la cita #" + c.Param("id")
 			intento = "quitar la etiqueta de la cita #" + c.Param("id")
 		}
+
+	/* ----- Recepción: seguimiento al asistir (¿compró?) ----- */
+	case method == http.MethodPut && route == "/api/receptionist/citas/:id/seguimiento":
+		e.Action = "cita.seguimiento"
+		compro, _ := p["compro"].(bool)
+		detalle := "No compró · sin revisión programada"
+		if compro {
+			meses := 12
+			if m, ok := p["meses"].(float64); ok && m > 0 {
+				meses = int(m)
+			}
+			detalle = "Compró · revisión en " + map[int]string{3: "3 meses", 6: "6 meses", 12: "1 año"}[meses]
+		}
+		if before != nil && before.Status != "" && before.Status != "asistio" {
+			e.Description, intento = "Marcó que asistió a su cita"+quien, "marcar que asistió a su cita"+quien
+		} else {
+			e.Description, intento = "Actualizó si compró en la cita"+quien, "actualizar si compró en la cita"+quien
+		}
+		e.Context = before.String()
+		if e.Context != "" {
+			e.Context += " · "
+		}
+		e.Context += detalle
 
 	/* ----- Recepción: plantilla del ticket ----- */
 	case method == http.MethodPut && route == "/api/receptionist/ticket-plantilla":
