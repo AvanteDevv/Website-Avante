@@ -666,7 +666,8 @@ window.CitaSeg = (function(){
         var dayEvents = byDate[cellISO] || [];
         var isToday = cellISO === todayStr;
 
-        html += '<div class="cal-day' + (outside ? ' is-outside' : '') + (isToday ? ' is-today' : '') + '" data-date="' + cellISO + '">';
+        var closedDay = (window.AvanteOpenDays || [1, 2, 3, 4, 5, 6]).indexOf(new Date(cellYear, cellMonth, dayNum).getDay()) === -1;
+        html += '<div class="cal-day' + (outside ? ' is-outside' : '') + (isToday ? ' is-today' : '') + (closedDay ? ' is-closed' : '') + '" data-date="' + cellISO + '"' + (closedDay ? ' title="Cerrado: ese día no se dan citas"' : '') + '>';
         html += '<span class="cal-day-num">' + dayNum + '</span>';
         html += '<div class="cal-day-events">';
         var shown = dayEvents.slice(0, 3);
@@ -1274,7 +1275,10 @@ window.CitaSeg = (function(){
       // elegido. Los días que ya pasaron se abren en la vista de Día.
       var cell = e.target.closest('.cal-day[data-date]');
       if (!cell) return;
-      if (cell.dataset.date >= todayISO() && window.AvanteCrearCita) window.AvanteCrearCita.open({ fecha: cell.dataset.date });
+      var cp = cell.dataset.date.split('-').map(Number);
+      var openDays = window.AvanteOpenDays || [1, 2, 3, 4, 5, 6];
+      var isOpenDay = openDays.indexOf(new Date(cp[0], cp[1] - 1, cp[2]).getDay()) !== -1;
+      if (cell.dataset.date >= todayISO() && isOpenDay && window.AvanteCrearCita) window.AvanteCrearCita.open({ fecha: cell.dataset.date });
       else openDayView(cell.dataset.date);
     });
 
@@ -1502,6 +1506,8 @@ window.CitaSeg = (function(){
   /* Modo del modal: 'create' (Crear cita), 'editar' o 'reagendar'.
      En editar/reagendar, editOrig guarda cómo estaba la cita para no
      contar su propia hora como "Ocupada" y saber si se movió. */
+  // Días que se abre (0 = domingo … 6 = sábado), de /api/horarios.
+  var OPEN_DAYS = [1, 2, 3, 4, 5, 6];
   var mode = 'create';
   var editId = null;
   var editOrig = null; // { date, time, tag, q, status }
@@ -1527,6 +1533,8 @@ window.CitaSeg = (function(){
         for (var m = toMinutes(data.open); m <= toMinutes(data.close); m += 30) slots.push(toTimeStr(m));
         HOURS = slots;
       }
+      if (data && Array.isArray(data.days) && data.days.length) OPEN_DAYS = data.days.map(Number);
+      window.AvanteOpenDays = OPEN_DAYS;
     }).catch(function(){ /* se queda con el horario por defecto */ });
   }
 
@@ -1658,8 +1666,10 @@ window.CitaSeg = (function(){
       if (outside) cls += ' is-outside';
       if (cellISO === todayISO) cls += ' is-today';
       if (cellISO === dateHidden.value) cls += ' is-selected';
-      if (cellISO < todayISO && !(editOrig && cellISO === editOrig.date)) cls += ' is-disabled';
-      html += '<button type="button" class="' + cls + '" data-iso="' + cellISO + '">' + dayNum + '</button>';
+      var closedDay = OPEN_DAYS.indexOf(new Date(cellYear, cellMonth, dayNum).getDay()) === -1;
+      if ((cellISO < todayISO || closedDay) && !(editOrig && cellISO === editOrig.date)) cls += ' is-disabled';
+      if (closedDay) cls += ' is-closed';
+      html += '<button type="button" class="' + cls + '" data-iso="' + cellISO + '"' + (closedDay ? ' title="Ese día no se dan citas"' : '') + '>' + dayNum + '</button>';
     }
     dateGrid.innerHTML = html;
   }
@@ -1955,7 +1965,11 @@ window.CitaSeg = (function(){
     timeHidden.value = '';
     timeLabel.textContent = '—';
     dateHidden.value = '';
-    setDate(today.getFullYear(), today.getMonth(), today.getDate()); // también carga las ocupadas
+    // Hoy, o el siguiente día que sí se abre (si hoy es domingo, p. ej.).
+    var start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    for (var k = 0; k < 7 && OPEN_DAYS.indexOf(start.getDay()) === -1; k++) start.setDate(start.getDate() + 1);
+    viewYear = start.getFullYear(); viewMonth = start.getMonth();
+    setDate(start.getFullYear(), start.getMonth(), start.getDate()); // también carga las ocupadas
     renderDateGrid();
     errorEl.textContent = '';
 
@@ -1980,6 +1994,10 @@ window.CitaSeg = (function(){
     overlay.classList.remove('open');
     document.body.style.overflow = '';
   }
+
+  // Lee el horario (y los días que se abre) desde que carga la página,
+  // para que el calendario marque los días cerrados.
+  loadHours().then(function(){ document.dispatchEvent(new CustomEvent('citatags:change')); });
 
   openBtn.addEventListener('click', function(){
     loadHours().then(openModal);
@@ -2166,6 +2184,12 @@ window.CitaSeg = (function(){
     var time = timeHidden.value;
 
     if (!date || !time) { errorEl.textContent = mode === 'reagendar' ? 'Elige el nuevo día y la hora.' : 'Selecciona día y hora.'; return; }
+    var dParts = date.split('-').map(Number);
+    var movedDay = !editOrig || date !== editOrig.date;
+    if (movedDay && OPEN_DAYS.indexOf(new Date(dParts[0], dParts[1] - 1, dParts[2]).getDay()) === -1) {
+      errorEl.textContent = 'Ese día no se dan citas. Elige otro día.';
+      return;
+    }
     if (mode === 'reagendar' && editOrig && date === editOrig.date && time === editOrig.time) {
       errorEl.textContent = 'Elige un día u hora diferente a la que ya tiene.';
       return;

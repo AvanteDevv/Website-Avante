@@ -284,7 +284,7 @@
       </button>
     </div>
     <div class="admin-modal-body">
-      <p class="settings-hint" style="margin-top:0;">Se aplica tanto en la sección "Agenda tu cita" del inicio como en la página /agendar.</p>
+      <p class="settings-hint" style="margin-top:0;">Se aplica en la sección "Agenda tu cita" del inicio, en la página /agendar, en Mis citas y en "Crear cita" de recepción.</p>
       <form class="settings-form" id="horariosForm">
         <div class="settings-row">
           <label class="settings-field">
@@ -312,7 +312,34 @@
             <input type="hidden" id="agendaClose" name="close" value="{{.AgendaClose}}" required>
           </label>
         </div>
-        <p class="settings-hint">Los horarios se dividen en citas cada 30 minutos, desde la hora de apertura hasta la de cierre.</p>
+        {{/* Días en que se dan citas. Los apagados salen deshabilitados en
+             todos los calendarios (inicio, /agendar, Mis citas y recepción). */}}
+        <div class="settings-field agenda-days-field">
+          <span>Días que se abre</span>
+          <div class="agenda-days" id="agendaDays" role="group" aria-label="Días que se abre">
+            <button type="button" class="agenda-day" data-day="1" aria-pressed="true">Lun</button>
+            <button type="button" class="agenda-day" data-day="2" aria-pressed="true">Mar</button>
+            <button type="button" class="agenda-day" data-day="3" aria-pressed="true">Mié</button>
+            <button type="button" class="agenda-day" data-day="4" aria-pressed="true">Jue</button>
+            <button type="button" class="agenda-day" data-day="5" aria-pressed="true">Vie</button>
+            <button type="button" class="agenda-day" data-day="6" aria-pressed="true">Sáb</button>
+            <button type="button" class="agenda-day" data-day="0" aria-pressed="false">Dom</button>
+          </div>
+        </div>
+        <p class="settings-hint">Los horarios se dividen en citas cada 30 minutos, desde la hora de apertura hasta la de cierre. Los días apagados no se pueden agendar.</p>
+        <style>
+          .agenda-days-field{ margin-top:16px; }
+          .agenda-days{ display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:6px; }
+          .agenda-day{
+            padding:10px 0; border-radius:12px; border:1.5px solid var(--line); background:var(--white);
+            font-family:inherit; font-size:13px; font-weight:700; color:var(--muted); cursor:pointer;
+            transition:background .18s ease, color .18s ease, border-color .18s ease, transform .15s ease;
+          }
+          .agenda-day:hover{ transform:translateY(-1px); border-color:var(--accent-border, #8992FF); }
+          .agenda-day[aria-pressed="true"]{ background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 6px 14px -6px rgba(4,28,255,.45); }
+          .agenda-day[aria-pressed="false"]{ text-decoration:line-through; opacity:.7; }
+          @media (max-width:420px){ .agenda-days{ gap:4px; } .agenda-day{ font-size:12px; padding:9px 0; } }
+        </style>
         <div class="settings-actions">
           <button type="submit" class="btn solid" id="horariosSubmit">Guardar horario</button>
           <span class="settings-status" id="horariosStatus"></span>

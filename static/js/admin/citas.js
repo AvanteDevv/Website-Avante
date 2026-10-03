@@ -552,6 +552,7 @@
         if (!data) return;
         if (data.open && pickerSetters.agendaOpen) pickerSetters.agendaOpen(String(data.open).slice(0, 5));
         if (data.close && pickerSetters.agendaClose) pickerSetters.agendaClose(String(data.close).slice(0, 5));
+        if (Array.isArray(data.days)) setDays(data.days);
       })
       .catch(function(){ /* se queda con lo que tenga el formulario */ });
   }
@@ -562,6 +563,28 @@
   openBtn.addEventListener('click', openModal);
   closeBtn && closeBtn.addEventListener('click', closeModal);
   overlay.addEventListener('click', function(e){ if (e.target === overlay) closeModal(); });
+
+  /* ---------- días que se abre (0 = domingo … 6 = sábado) ---------- */
+  var daysWrap = document.getElementById('agendaDays');
+  function setDays(days){
+    if (!daysWrap) return;
+    var on = days.map(Number);
+    daysWrap.querySelectorAll('.agenda-day').forEach(function(b){
+      b.setAttribute('aria-pressed', on.indexOf(Number(b.dataset.day)) !== -1 ? 'true' : 'false');
+    });
+  }
+  function getDays(){
+    if (!daysWrap) return null;
+    return Array.prototype.slice.call(daysWrap.querySelectorAll('.agenda-day[aria-pressed="true"]'))
+      .map(function(b){ return Number(b.dataset.day); });
+  }
+  if (daysWrap) {
+    daysWrap.addEventListener('click', function(e){
+      var b = e.target.closest('.agenda-day');
+      if (!b) return;
+      b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    });
+  }
 
   var statusEl = document.getElementById('horariosStatus');
   var submitBtn = document.getElementById('horariosSubmit');
@@ -655,19 +678,28 @@
       showStatus('La hora de cierre debe ser después de la de apertura.', 'error');
       return;
     }
+    var days = getDays();
+    if (days && !days.length){
+      showStatus('Elige al menos un día en que se den citas.', 'error');
+      return;
+    }
 
     submitBtn.disabled = true;
+    var payload = { open: openVal, close: closeVal };
+    if (days) payload.days = days;
     fetch('/admin/configuracion/horarios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ open: openVal, close: closeVal })
+      body: JSON.stringify(payload)
     })
       .then(function(res){
-        if (!res.ok) throw new Error('request failed');
-        showStatus('Horario guardado.', 'ok');
+        return res.json().catch(function(){ return {}; }).then(function(d){
+          if (!res.ok) throw new Error(d.error || 'No se pudo guardar. Intenta de nuevo.');
+          showStatus('Horario guardado.', 'ok');
+        });
       })
-      .catch(function(){
-        showStatus('No se pudo guardar. Intenta de nuevo.', 'error');
+      .catch(function(err){
+        showStatus(err.message || 'No se pudo guardar. Intenta de nuevo.', 'error');
       })
       .finally(function(){
         submitBtn.disabled = false;

@@ -87,6 +87,9 @@ fetch('/api/mis-citas')
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const WEEKDAYS_FULL = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
 let HOURS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30'];
+// Días de la semana en que se dan citas (0 = domingo … 6 = sábado). Se
+// actualiza con lo que diga /api/horarios ("Horario de citas" del admin).
+let OPEN_DAYS = [1,2,3,4,5,6];
 
 function generateHourSlots(open, close, stepMinutes){
   const toMinutes = (t) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
@@ -105,6 +108,9 @@ async function loadAgendaHours(){
       const data = await res.json();
       if(data.open && data.close){
         HOURS = generateHourSlots(data.open, data.close, 30);
+      }
+      if(Array.isArray(data.days) && data.days.length){
+        OPEN_DAYS = data.days.map(Number);
       }
     }
   } catch(e){ /* si falla, se usa el horario por defecto de arriba */ }
@@ -148,6 +154,16 @@ function renderCalendar(){
       btn.className = 'appt-day';
       btn.textContent = c.day;
       if(sameDay(c.date, today)) btn.classList.add('today');
+      // Día que no se abre (p. ej. domingo): se ve tachado y no se puede elegir.
+      if(!OPEN_DAYS.includes(c.date.getDay())){
+        btn.classList.add('closed');
+        btn.disabled = true;
+        btn.title = 'Ese día no se dan citas';
+        btn.setAttribute('aria-label', c.day + ' — cerrado');
+        btn.style.cssText = 'opacity:.35;text-decoration:line-through;cursor:not-allowed;';
+        apptDayGrid.appendChild(btn);
+        return;
+      }
       if(selectedDate && sameDay(c.date, selectedDate)) btn.classList.add('selected');
       btn.addEventListener('click', () => selectDay(c.date));
       apptDayGrid.appendChild(btn);

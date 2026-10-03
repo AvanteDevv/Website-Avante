@@ -108,6 +108,11 @@ func RescheduleMyAppointment(c *gin.Context) {
 		return
 	}
 
+	if !models.IsAgendaDayOpen(date) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese día no se dan citas. Elige otro día."})
+		return
+	}
+
 	// Última verificación anti-doble-booking, igual que al crear una
 	// cita — excluyendo la propia cita que se está moviendo, por si el
 	// cliente vuelve a elegir el mismo horario que ya tenía.

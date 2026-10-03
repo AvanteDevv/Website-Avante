@@ -218,6 +218,11 @@ func CreateAppointmentByStaff(c *gin.Context) {
 		return
 	}
 
+	if !models.IsAgendaDayOpen(date) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese día no se dan citas. Elige otro día."})
+		return
+	}
+
 	// Mismo anti-doble-booking que el flujo público, para que recepción
 	// no pueda crear dos citas encimadas en el mismo horario por error.
 	booked, err := models.IsSlotBooked(date, input.Time)
@@ -336,6 +341,10 @@ func UpdateAppointmentByStaff(c *gin.Context) {
 	}
 	moved := current.Date.Format("2006-01-02") != input.Date || oldTime != input.Time
 
+	if moved && !models.IsAgendaDayOpen(date) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese día no se dan citas. Elige otro día."})
+		return
+	}
 	if moved {
 		booked, err := models.IsSlotBookedExcluding(date, input.Time, id)
 		if err != nil {

@@ -225,6 +225,13 @@ func CreateAppointment(c *gin.Context) {
 		return
 	}
 
+	// Días que no se abre (p. ej. domingo): se rechaza aunque alguien
+	// mande la petición directo, sin pasar por el calendario.
+	if !models.IsAgendaDayOpen(date) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese día no se dan citas. Elige otro día."})
+		return
+	}
+
 	// Última verificación anti-doble-booking: puede que esa hora se haya
 	// ocupado justo entre que la persona vio el calendario y que terminó
 	// de verificar su código. Si ya está tomada, se rechaza con 409 antes
