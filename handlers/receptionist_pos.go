@@ -17,3 +17,12 @@ func ReceptionistPuntoDeVentaPage(c *gin.Context) {
 		"ActivePage": "receptionist-punto-de-venta",
 	}))
 }
+
+// ReceptionistVentasPage — GET /receptionist/ventas
+// Tabla de ventas del punto de venta: cuánto se pagó en efectivo (y
+// demás formas), cuánto quedó a crédito y cuánto deben todavía.
+func ReceptionistVentasPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "ventas-recepcion.html", WithStaff(c, gin.H{
+		"ActivePage": "receptionist-ventas",
+	}))
+}

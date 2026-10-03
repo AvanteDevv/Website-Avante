@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ventas — Recepción · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/ventas-recepcion.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "receptionist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "receptionist-sidebar" .}}
+
+  <main class="cuenta-main admin-main vt-page" id="vtPage" data-cajero="{{.StaffName}}">
+    <div class="admin-header">
+      <div>
+        <h1>Ventas</h1>
+        <p>Cada venta del punto de venta: cuánto pagó en efectivo y demás formas, cuánto quedó a crédito y cuánto debe todavía.</p>
+      </div>
+    </div>
+
+    <!-- Resumen del periodo -->
+    <div class="vt-stats" id="vtStats">
+      <div class="vt-stat"><small>Ventas</small><strong id="vtStVentas">0</strong></div>
+      <div class="vt-stat"><small>Total vendido</small><strong id="vtStTotal">$0.00</strong></div>
+      <div class="vt-stat is-cash"><small>Efectivo en caja</small><strong id="vtStEfectivo">$0.00</strong></div>
+      <div class="vt-stat"><small>Tarjeta · transf. · otros</small><strong id="vtStOtros">$0.00</strong></div>
+      <div class="vt-stat is-credit"><small>Quedó a crédito</small><strong id="vtStCredito">$0.00</strong></div>
+      <div class="vt-stat is-owes"><small>Todavía deben</small><strong id="vtStSaldo">$0.00</strong></div>
+    </div>
+
+    <div class="admin-panel vt-panel">
+      <div class="vt-filters">
+        <div class="vt-seg" id="vtPeriod" role="tablist" aria-label="Periodo">
+          <button type="button" data-period="hoy" class="is-on">Hoy</button>
+          <button type="button" data-period="ayer">Ayer</button>
+          <button type="button" data-period="7d">7 días</button>
+          <button type="button" data-period="mes">Este mes</button>
+          <button type="button" data-period="mespasado">Mes pasado</button>
+          <button type="button" data-period="rango">Rango</button>
+        </div>
+        <div class="vt-range" id="vtRange" hidden>
+          <label><span>Desde</span><input type="date" id="vtDesde"></label>
+          <label><span>Hasta</span><input type="date" id="vtHasta"></label>
+        </div>
+        <div class="vt-filters-row">
+          <div class="search-box vt-search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="vtSearch" placeholder="Buscar por cliente, ticket o cajero…" autocomplete="off">
+            </div>
+          </div>
+          <div class="vt-chips" id="vtEstado" role="group" aria-label="Estado">
+            <button type="button" data-estado="" class="is-on">Todas</button>
+            <button type="button" data-estado="pagada">Pagadas</button>
+            <button type="button" data-estado="debe">Con saldo</button>
+            <button type="button" data-estado="vencida">Vencidas</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="vt-caption" id="vtCaption"></p>
+      <div class="vt-table-wrap">
+        <table class="vt-table" id="vtTable">
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th class="num">Total</th>
+              <th class="num">Efectivo</th>
+              <th class="num">Tarjeta</th>
+              <th class="num">Transf.</th>
+              <th class="num c-otros" title="Vales y cheque">Otros</th>
+              <th class="num">Pagó</th>
+              <th class="num">A crédito</th>
+              <th class="num">Abonado</th>
+              <th class="num">Debe</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="vtBody"></tbody>
+          <tfoot id="vtFoot" hidden>
+            <tr>
+              <td colspan="3">Totales</td>
+              <td class="num" id="vtFtTotal"></td>
+              <td class="num" id="vtFtEfectivo"></td>
+              <td class="num" id="vtFtTarjeta"></td>
+              <td class="num" id="vtFtTransf"></td>
+              <td class="num c-otros" id="vtFtOtros"></td>
+              <td class="num" id="vtFtPagado"></td>
+              <td class="num" id="vtFtCredito"></td>
+              <td class="num" id="vtFtAbonado"></td>
+              <td class="num" id="vtFtSaldo"></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="vt-empty" id="vtEmpty" hidden></p>
+    </div>
+  </main>
+</div>
+
+<!-- ================= Modal: detalle de la venta ================= -->
+<div class="admin-modal-overlay" id="vtDetailModal">
+  <div class="admin-modal-card vt-detail-card" role="dialog" aria-modal="true" aria-labelledby="vtDetailTitle">
+    <div class="admin-modal-head">
+      <h3 id="vtDetailTitle">Ticket</h3>
+      <button type="button" class="admin-modal-close" id="vtDetailClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body" id="vtDetailBody"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/receptionist/ticket-render.js"></script>
+<script src="/static/js/receptionist/ventas-recepcion.js"></script>
+</body>
+</html>

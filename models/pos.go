@@ -45,6 +45,10 @@ var posLoc = func() *time.Location {
 // PosToday regresa la fecha de hoy en Hermosillo ("YYYY-MM-DD").
 func PosToday() string { return time.Now().In(posLoc).Format("2006-01-02") }
 
+// posNow: fecha y hora de Hermosillo para guardar en created_at (así
+// "hoy", los filtros por fecha y la hora del ticket no se recorren 7 h).
+func posNow() string { return time.Now().In(posLoc).Format("2006-01-02 15:04:05") }
+
 func round2(v float64) float64 { return math.Round(v*100) / 100 }
 
 /* =========================================================
@@ -316,10 +320,10 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 		clientArg = client.ID
 	}
 	res, err := tx.Exec(
-		`INSERT INTO pos_sales (client_id, cliente, cajero, subtotal, descuento, total, efectivo, tarjeta, transferencia, vales, cheque, credito, cambio, referencia)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO pos_sales (client_id, cliente, cajero, subtotal, descuento, total, efectivo, tarjeta, transferencia, vales, cheque, credito, cambio, referencia, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		clientArg, s.Cliente, s.Cajero, s.Subtotal, s.Descuento, s.Total,
-		p.Efectivo, p.Tarjeta, p.Transferencia, p.Vales, p.Cheque, p.Credito, s.Cambio, s.Referencia,
+		p.Efectivo, p.Tarjeta, p.Transferencia, p.Vales, p.Cheque, p.Credito, s.Cambio, s.Referencia, posNow(),
 	)
 	if err != nil {
 		return nil, err
@@ -363,17 +367,17 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
    ========================================================= */
 
 type PosCreditPayment struct {
-	ID         int64     `json:"id"`
-	CreditID   int64     `json:"credit_id"`
-	Monto      float64   `json:"monto"`
-	FormaPago  string    `json:"forma_pago"`
-	Referencia string    `json:"referencia"`
-	Cajero     string    `json:"cajero"`
-	Fecha      string    `json:"fecha"`
-	CreatedAt  time.Time `json:"created_at"`
-	Cancelado  bool      `json:"cancelado"`
-	CancelPor  string    `json:"cancelado_por,omitempty"`
-	Cancelable bool      `json:"cancelable"` // del mismo día y no cancelado
+	ID         int64   `json:"id"`
+	CreditID   int64   `json:"credit_id"`
+	Monto      float64 `json:"monto"`
+	FormaPago  string  `json:"forma_pago"`
+	Referencia string  `json:"referencia"`
+	Cajero     string  `json:"cajero"`
+	Fecha      string  `json:"fecha"`
+	CreatedAt  string  `json:"created_at"` // "YYYY-MM-DDTHH:MM:SS" hora de Hermosillo
+	Cancelado  bool    `json:"cancelado"`
+	CancelPor  string  `json:"cancelado_por,omitempty"`
+	Cancelable bool    `json:"cancelable"` // del mismo día y no cancelado
 }
 
 type PosCredit struct {
@@ -424,7 +428,7 @@ func ListPosClientCredits(clientID int64) ([]PosCredit, error) {
 	}
 
 	prow, err := db.DB.Query(`
-		SELECT id, credit_id, monto, forma_pago, referencia, cajero, DATE_FORMAT(fecha, '%Y-%m-%d'), created_at, cancelado, cancelado_por
+		SELECT id, credit_id, monto, forma_pago, referencia, cajero, DATE_FORMAT(fecha, '%Y-%m-%d'), DATE_FORMAT(created_at, '%Y-%m-%dT%H:%i:%s'), cancelado, cancelado_por
 		FROM pos_credit_payments WHERE client_id = ? ORDER BY id DESC`, clientID)
 	if err != nil {
 		return nil, err
@@ -484,8 +488,8 @@ func AddPosCreditPayment(creditID int64, monto float64, forma, referencia, cajer
 	r.SaldoNuevo = round2(r.SaldoAnterior - monto)
 	today := PosToday()
 	res, err := tx.Exec(
-		"INSERT INTO pos_credit_payments (credit_id, client_id, monto, forma_pago, referencia, cajero, fecha) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		creditID, r.ClientID, monto, forma, referencia, cajero, today,
+		"INSERT INTO pos_credit_payments (credit_id, client_id, monto, forma_pago, referencia, cajero, fecha, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		creditID, r.ClientID, monto, forma, referencia, cajero, today, posNow(),
 	)
 	if err != nil {
 		return nil, err
@@ -498,7 +502,7 @@ func AddPosCreditPayment(creditID int64, monto float64, forma, referencia, cajer
 	}
 	id, _ := res.LastInsertId()
 	r.Payment = PosCreditPayment{ID: id, CreditID: creditID, Monto: monto, FormaPago: forma, Referencia: referencia, Cajero: cajero,
-		Fecha: today, CreatedAt: time.Now().In(posLoc), Cancelable: true}
+		Fecha: today, CreatedAt: time.Now().In(posLoc).Format("2006-01-02T15:04:05"), Cancelable: true}
 	return &r, nil
 }
 
@@ -546,4 +550,220 @@ func CancelPosCreditPayment(paymentID int64, by string) (*PosPaymentResult, erro
 	p.Cancelado, p.CancelPor = true, by
 	r.Payment = p
 	return &r, nil
+}
+
+/* =========================================================
+   VENTAS (Recepción → Ventas): listado y detalle
+   ========================================================= */
+
+// PosSaleRow: una venta en la tabla de Ventas.
+type PosSaleRow struct {
+	Folio         int64   `json:"folio"`
+	Fecha         string  `json:"fecha"` // "YYYY-MM-DDTHH:MM:SS" hora de Hermosillo
+	ClientID      int64   `json:"client_id,omitempty"`
+	Cliente       string  `json:"cliente"`
+	Cajero        string  `json:"cajero"`
+	Articulos     int     `json:"articulos"`
+	Total         float64 `json:"total"`
+	Efectivo      float64 `json:"efectivo"` // lo que se quedó en caja (ya sin el cambio)
+	Tarjeta       float64 `json:"tarjeta"`
+	Transferencia float64 `json:"transferencia"`
+	Vales         float64 `json:"vales"`
+	Cheque        float64 `json:"cheque"`
+	Pagado        float64 `json:"pagado"`  // lo que pagó al momento de la venta (total − crédito)
+	Credito       float64 `json:"credito"` // lo que quedó a deber al vender
+	Abonado       float64 `json:"abonado"` // lo que ya abonó de ese crédito
+	Saldo         float64 `json:"saldo"`   // lo que todavía debe de esa venta
+	Vence         string  `json:"vence"`
+	Estado        string  `json:"estado"` // pagada | debe | vencida
+}
+
+// PosSalesFilter: filtros del listado (fechas "YYYY-MM-DD", ambas incluidas).
+type PosSalesFilter struct {
+	Desde, Hasta string
+	Q            string
+	Estado       string // "" | pagada | debe | vencida
+}
+
+// PosSalesTotals: sumas de lo filtrado.
+type PosSalesTotals struct {
+	Ventas        int     `json:"ventas"`
+	Total         float64 `json:"total"`
+	Efectivo      float64 `json:"efectivo"`
+	Tarjeta       float64 `json:"tarjeta"`
+	Transferencia float64 `json:"transferencia"`
+	Otros         float64 `json:"otros"`
+	Pagado        float64 `json:"pagado"`
+	Credito       float64 `json:"credito"`
+	Saldo         float64 `json:"saldo"`
+}
+
+// ListPosSales regresa las ventas del periodo (más nuevas primero) con lo
+// que se pagó en cada forma, lo que quedó a crédito y lo que todavía deben.
+func ListPosSales(f PosSalesFilter, limit int) ([]PosSaleRow, PosSalesTotals, error) {
+	if limit <= 0 || limit > 1000 {
+		limit = 500
+	}
+	today := PosToday()
+	estadoExpr := `CASE WHEN COALESCE(cr.saldo,0) <= 0 THEN 'pagada'
+		WHEN cr.vence IS NOT NULL AND cr.vence < ? THEN 'vencida' ELSE 'debe' END`
+	query := `SELECT s.id, DATE_FORMAT(s.created_at, '%Y-%m-%dT%H:%i:%s'), COALESCE(s.client_id, 0), s.cliente, s.cajero,
+			COALESCE((SELECT SUM(i.cantidad) FROM pos_sale_items i WHERE i.sale_id = s.id), 0),
+			s.total, s.efectivo - s.cambio, s.tarjeta, s.transferencia, s.vales, s.cheque, s.credito,
+			COALESCE(cr.saldo, 0), COALESCE(DATE_FORMAT(cr.vence, '%Y-%m-%d'), ''), ` + estadoExpr + `
+		FROM pos_sales s LEFT JOIN pos_credits cr ON cr.sale_id = s.id
+		WHERE 1 = 1`
+	args := []interface{}{today}
+	if f.Desde != "" {
+		query += " AND s.created_at >= ?"
+		args = append(args, f.Desde+" 00:00:00")
+	}
+	if f.Hasta != "" {
+		query += " AND s.created_at <= ?"
+		args = append(args, f.Hasta+" 23:59:59")
+	}
+	for _, w := range strings.Fields(strings.ToLower(f.Q)) {
+		like := "%" + w + "%"
+		query += " AND (LOWER(s.cliente) LIKE ? OR CAST(s.id AS CHAR) LIKE ? OR LOWER(s.cajero) LIKE ?)"
+		args = append(args, like, like, like)
+	}
+	if f.Estado == "pagada" || f.Estado == "debe" || f.Estado == "vencida" {
+		query += " AND (" + estadoExpr + ") = ?"
+		args = append(args, today, f.Estado)
+	}
+	query += " ORDER BY s.id DESC LIMIT ?"
+	args = append(args, limit)
+
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		return nil, PosSalesTotals{}, err
+	}
+	defer rows.Close()
+	out := []PosSaleRow{}
+	var t PosSalesTotals
+	for rows.Next() {
+		var r PosSaleRow
+		if err := rows.Scan(&r.Folio, &r.Fecha, &r.ClientID, &r.Cliente, &r.Cajero, &r.Articulos,
+			&r.Total, &r.Efectivo, &r.Tarjeta, &r.Transferencia, &r.Vales, &r.Cheque, &r.Credito,
+			&r.Saldo, &r.Vence, &r.Estado); err != nil {
+			return nil, t, err
+		}
+		r.Efectivo = round2(r.Efectivo)
+		r.Pagado = round2(r.Total - r.Credito)
+		r.Saldo = round2(r.Saldo)
+		r.Abonado = round2(r.Credito - r.Saldo)
+		out = append(out, r)
+		t.Ventas++
+		t.Total += r.Total
+		t.Efectivo += r.Efectivo
+		t.Tarjeta += r.Tarjeta
+		t.Transferencia += r.Transferencia
+		t.Otros += r.Vales + r.Cheque
+		t.Pagado += r.Pagado
+		t.Credito += r.Credito
+		t.Saldo += r.Saldo
+	}
+	for _, v := range []*float64{&t.Total, &t.Efectivo, &t.Tarjeta, &t.Transferencia, &t.Otros, &t.Pagado, &t.Credito, &t.Saldo} {
+		*v = round2(*v)
+	}
+	return out, t, rows.Err()
+}
+
+// PosSaleDetail: una venta con sus productos, pagos y (si quedó a deber)
+// su crédito con los abonos.
+type PosSaleDetail struct {
+	PosSaleRow
+	Subtotal         float64            `json:"subtotal"`
+	Descuento        float64            `json:"descuento"`
+	Cambio           float64            `json:"cambio"`
+	EfectivoRecibido float64            `json:"efectivo_recibido"`
+	Referencia       string             `json:"referencia"`
+	Productos        []PosSaleItem      `json:"productos"`
+	CreditID         int64              `json:"credit_id,omitempty"`
+	Abonos           []PosCreditPayment `json:"abonos"`
+}
+
+var ErrPosSaleNotFound = errors.New("venta no encontrada")
+
+// GetPosSale trae el detalle de una venta.
+func GetPosSale(folio int64) (*PosSaleDetail, error) {
+	rows, _, err := ListPosSalesByID(folio)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, ErrPosSaleNotFound
+	}
+	d := &PosSaleDetail{PosSaleRow: rows[0], Productos: []PosSaleItem{}, Abonos: []PosCreditPayment{}}
+	if err := db.DB.QueryRow("SELECT subtotal, descuento, cambio, efectivo, referencia FROM pos_sales WHERE id = ?", folio).
+		Scan(&d.Subtotal, &d.Descuento, &d.Cambio, &d.EfectivoRecibido, &d.Referencia); err != nil {
+		return nil, err
+	}
+	irows, err := db.DB.Query("SELECT COALESCE(inventory_id,0), clave, descripcion, cantidad, precio, descuento, importe FROM pos_sale_items WHERE sale_id = ? ORDER BY id", folio)
+	if err != nil {
+		return nil, err
+	}
+	defer irows.Close()
+	for irows.Next() {
+		var it PosSaleItem
+		if err := irows.Scan(&it.InventoryID, &it.Clave, &it.Descripcion, &it.Cantidad, &it.Precio, &it.Descuento, &it.Importe); err != nil {
+			return nil, err
+		}
+		d.Productos = append(d.Productos, it)
+	}
+	var creditID sql.NullInt64
+	_ = db.DB.QueryRow("SELECT id FROM pos_credits WHERE sale_id = ?", folio).Scan(&creditID)
+	if creditID.Valid {
+		d.CreditID = creditID.Int64
+		today := PosToday()
+		prows, err := db.DB.Query(`SELECT id, credit_id, monto, forma_pago, referencia, cajero, DATE_FORMAT(fecha, '%Y-%m-%d'),
+			DATE_FORMAT(created_at, '%Y-%m-%dT%H:%i:%s'), cancelado, cancelado_por
+			FROM pos_credit_payments WHERE credit_id = ? ORDER BY id DESC`, d.CreditID)
+		if err != nil {
+			return nil, err
+		}
+		defer prows.Close()
+		for prows.Next() {
+			var p PosCreditPayment
+			if err := prows.Scan(&p.ID, &p.CreditID, &p.Monto, &p.FormaPago, &p.Referencia, &p.Cajero, &p.Fecha, &p.CreatedAt, &p.Cancelado, &p.CancelPor); err != nil {
+				return nil, err
+			}
+			p.Cancelable = !p.Cancelado && p.Fecha == today
+			d.Abonos = append(d.Abonos, p)
+		}
+	}
+	return d, nil
+}
+
+// ListPosSalesByID: la fila de una sola venta (mismo formato que el listado).
+func ListPosSalesByID(folio int64) ([]PosSaleRow, PosSalesTotals, error) {
+	return listPosSalesWhere("s.id = ?", folio)
+}
+
+func listPosSalesWhere(cond string, arg interface{}) ([]PosSaleRow, PosSalesTotals, error) {
+	today := PosToday()
+	rows, err := db.DB.Query(`SELECT s.id, DATE_FORMAT(s.created_at, '%Y-%m-%dT%H:%i:%s'), COALESCE(s.client_id, 0), s.cliente, s.cajero,
+			COALESCE((SELECT SUM(i.cantidad) FROM pos_sale_items i WHERE i.sale_id = s.id), 0),
+			s.total, s.efectivo - s.cambio, s.tarjeta, s.transferencia, s.vales, s.cheque, s.credito,
+			COALESCE(cr.saldo, 0), COALESCE(DATE_FORMAT(cr.vence, '%Y-%m-%d'), ''),
+			CASE WHEN COALESCE(cr.saldo,0) <= 0 THEN 'pagada' WHEN cr.vence IS NOT NULL AND cr.vence < ? THEN 'vencida' ELSE 'debe' END
+		FROM pos_sales s LEFT JOIN pos_credits cr ON cr.sale_id = s.id WHERE `+cond, today, arg)
+	if err != nil {
+		return nil, PosSalesTotals{}, err
+	}
+	defer rows.Close()
+	out := []PosSaleRow{}
+	for rows.Next() {
+		var r PosSaleRow
+		if err := rows.Scan(&r.Folio, &r.Fecha, &r.ClientID, &r.Cliente, &r.Cajero, &r.Articulos,
+			&r.Total, &r.Efectivo, &r.Tarjeta, &r.Transferencia, &r.Vales, &r.Cheque, &r.Credito,
+			&r.Saldo, &r.Vence, &r.Estado); err != nil {
+			return nil, PosSalesTotals{}, err
+		}
+		r.Efectivo, r.Saldo = round2(r.Efectivo), round2(r.Saldo)
+		r.Pagado = round2(r.Total - r.Credito)
+		r.Abonado = round2(r.Credito - r.Saldo)
+		out = append(out, r)
+	}
+	return out, PosSalesTotals{}, rows.Err()
 }

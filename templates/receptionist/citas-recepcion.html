@@ -107,8 +107,10 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Nombre</th>
-              <th>Apellido</th>
+              <th>Primer nombre</th>
+              <th>Segundo nombre</th>
+              <th>Primer apellido</th>
+              <th>Segundo apellido</th>
               <th>Teléfono</th>
               <th>Correo</th>
               <th>Fecha de nacimiento</th>
@@ -123,8 +125,10 @@
             {{range .Citas}}
             <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-nombre-solo="{{.Nombre}}" data-apellido="{{.Apellido}}" data-celular="{{.Celular}}" data-correo="{{.Correo}}" data-fecha-nacimiento="{{.FechaNacimiento}}" data-cuestionario="{{.Cuestionario}}" data-cancel-reason="{{.CancelReason}}">
               <td>{{.ID}}</td>
-              <td class="cita-cliente">{{.Nombre}}</td>
-              <td class="cita-cliente">{{.Apellido}}</td>
+              <td class="cita-cliente">{{with .PrimerNombre}}{{.}}{{else}}—{{end}}</td>
+              <td class="cita-cliente">{{with .SegundoNombre}}{{.}}{{else}}—{{end}}</td>
+              <td class="cita-cliente">{{with .PrimerApellido}}{{.}}{{else}}—{{end}}</td>
+              <td class="cita-cliente">{{with .SegundoApellido}}{{.}}{{else}}—{{end}}</td>
               <td>{{.Celular}}</td>
               <td>{{if .Correo}}{{.Correo}}{{else}}—{{end}}</td>
               <td>{{if .FechaNacimiento}}{{.FechaNacimiento}}{{else}}—{{end}}</td>

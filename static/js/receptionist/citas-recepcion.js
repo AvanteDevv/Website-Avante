@@ -787,8 +787,8 @@ window.CitaSeg = (function(){
           visits: pr.visits,
           overdue: due < todayStr,
           nombre: (row.dataset.nombre || '').trim(),
-          first: tds[1] ? tds[1].textContent.trim() : '',
-          apellido: tds[2] ? tds[2].textContent.trim() : '',
+          first: row.dataset.nombreSolo != null ? row.dataset.nombreSolo : (tds[1] ? tds[1].textContent.trim() : ''),
+          apellido: row.dataset.apellido != null ? row.dataset.apellido : (tds[2] ? tds[2].textContent.trim() : ''),
           celular: row.dataset.celular || '',
           correo: row.dataset.correo || '',
           nacimiento: row.dataset.fechaNacimiento || ''

@@ -236,3 +236,44 @@ func PosCancelPayment(c *gin.Context) {
 		c.JSON(http.StatusOK, r)
 	}
 }
+
+var posDateRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+
+// PosListSales — GET /api/receptionist/pos/ventas?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&q=&estado=
+// (Recepción → Ventas). Sin fechas: las de hoy.
+func PosListSales(c *gin.Context) {
+	f := models.PosSalesFilter{Desde: c.Query("desde"), Hasta: c.Query("hasta"), Q: c.Query("q"), Estado: c.Query("estado")}
+	if f.Desde == "" && f.Hasta == "" {
+		f.Desde, f.Hasta = models.PosToday(), models.PosToday()
+	}
+	if (f.Desde != "" && !posDateRe.MatchString(f.Desde)) || (f.Hasta != "" && !posDateRe.MatchString(f.Hasta)) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Fechas inválidas."})
+		return
+	}
+	items, totals, err := models.ListPosSales(f, 1000)
+	if err != nil {
+		log.Printf("pos.ListSales: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar las ventas."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items, "totales": totals, "hoy": models.PosToday(), "desde": f.Desde, "hasta": f.Hasta})
+}
+
+// PosGetSale — GET /api/receptionist/pos/ventas/:id  (detalle: productos, pagos y abonos)
+func PosGetSale(c *gin.Context) {
+	id, ok := posID(c, "id")
+	if !ok {
+		return
+	}
+	d, err := models.GetPosSale(id)
+	if errors.Is(err, models.ErrPosSaleNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No existe el ticket " + strconv.FormatInt(id, 10) + "."})
+		return
+	}
+	if err != nil {
+		log.Printf("pos.GetSale: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cargar la venta."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"venta": d})
+}
