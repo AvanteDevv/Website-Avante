@@ -543,6 +543,64 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		}
 		e.Context += detalle
 
+	/* ----- Recepción: punto de venta ----- */
+	case method == http.MethodPost && route == "/api/receptionist/pos/clientes":
+		e.Action = "pos.cliente.crear"
+		e.Description = "Creó el cliente " + actOrDash(actStr(p, "nombre")) + " en el punto de venta"
+		intento = "crear el cliente " + actOrDash(actStr(p, "nombre"))
+		ctx := []string{"No. " + actOrDash(actStr(p, "numero"))}
+		if cl := actStr(p, "clave"); cl != "" {
+			ctx = append(ctx, "Clave "+cl)
+		}
+		if l, ok := p["limite"].(float64); ok && l > 0 {
+			ctx = append(ctx, "Límite de crédito $"+strconv.FormatFloat(l, 'f', 2, 64))
+		}
+		if d, ok := p["dias"].(float64); ok && d > 0 {
+			ctx = append(ctx, strconv.Itoa(int(d))+" días de crédito")
+		}
+		e.Context = strings.Join(ctx, " · ")
+
+	case method == http.MethodPost && route == "/api/receptionist/pos/ventas":
+		e.Action = "pos.venta"
+		n := 0
+		if items, ok := p["productos"].([]interface{}); ok {
+			for _, it := range items {
+				if m, ok := it.(map[string]interface{}); ok {
+					if q, ok := m["cantidad"].(float64); ok {
+						n += int(q)
+					}
+				}
+			}
+		}
+		e.Description, intento = "Cobró una venta en el punto de venta", "cobrar una venta"
+		ctx := []string{strconv.Itoa(n) + " artículo(s)"}
+		if pg, ok := p["pagos"].(map[string]interface{}); ok {
+			for _, k := range []string{"efectivo", "tarjeta", "transferencia", "vales", "cheque", "credito"} {
+				if v, ok := pg[k].(float64); ok && v > 0 {
+					label := k
+					if k == "credito" {
+						label = "a crédito (queda a deber)"
+					}
+					ctx = append(ctx, label+" $"+strconv.FormatFloat(v, 'f', 2, 64))
+				}
+			}
+		}
+		e.Context = strings.Join(ctx, " · ")
+
+	case method == http.MethodPost && route == "/api/receptionist/pos/creditos/:id/abonos":
+		e.Action = "pos.abono"
+		monto, _ := p["monto"].(float64)
+		e.Description = "Registró un abono de $" + strconv.FormatFloat(monto, 'f', 2, 64) + " a un crédito"
+		intento = "registrar un abono a un crédito"
+		e.Context = "Crédito #" + c.Param("id") + " · " + actOrDash(actStr(p, "forma_pago"))
+		if r := actStr(p, "referencia"); r != "" {
+			e.Context += " · Ref. " + r
+		}
+
+	case method == http.MethodDelete && route == "/api/receptionist/pos/abonos/:id":
+		e.Action = "pos.abono.cancelar"
+		e.Description, intento = "Canceló el abono #"+c.Param("id"), "cancelar el abono #"+c.Param("id")
+
 	/* ----- Recepción: plantilla del ticket ----- */
 	case method == http.MethodPut && route == "/api/receptionist/ticket-plantilla":
 		e.Action = "ticket.plantilla.guardar"

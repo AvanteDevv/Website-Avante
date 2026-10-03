@@ -23,12 +23,12 @@
     <div class="admin-header pos-header">
       <div>
         <h1>Punto de venta</h1>
-        <p>Busca el producto, elige al cliente y cobra.</p>
+        <p>Busca el producto, elige al cliente y cobra. Lo que quede a deber se abona después en «Créditos y abonos».</p>
       </div>
-      <span class="pos-preview-tag" title="Por ahora la venta no se guarda ni descuenta del inventario">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-        Vista de prueba
-      </span>
+      <button type="button" class="btn small pos-credits-btn" id="posCreditsBtn" title="Créditos del cliente: lo que debe y sus abonos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15h6"/></svg>
+        Créditos y abonos <kbd>F4</kbd>
+      </button>
     </div>
 
     <div class="pos-layout">
@@ -64,6 +64,12 @@
             </div>
             <button type="button" class="pos-client-change" id="posClientBtn">Cambiar</button>
           </div>
+          {{/* Lo que debe el cliente (créditos con saldo). Clic = ver créditos y abonar. */}}
+          <button type="button" class="pos-client-debt" id="posClientDebt" hidden>
+            <span class="pos-client-debt-label" id="posClientDebtLabel">Debe</span>
+            <strong id="posClientDebtAmount">$0.00</strong>
+            <span class="pos-client-debt-go">Abonar ›</span>
+          </button>
           <!-- Buscador de clientes -->
           <div class="pos-client-drop" id="posClientDrop" hidden>
             <div class="pos-client-search">
@@ -201,10 +207,14 @@
           <span class="pos-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-pay="vales" placeholder="0.00"></span></label>
         <label class="pos-method"><span class="pos-method-ico is-cheque"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 14h6M15 14h3"/></svg></span><span>Cheque</span>
           <span class="pos-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-pay="cheque" placeholder="0.00"></span></label>
-        <label class="pos-method pos-method-credit" id="payCreditRow"><span class="pos-method-ico is-credit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span><span>Crédito</span>
+        <label class="pos-method pos-method-credit" id="payCreditRow"><span class="pos-method-ico is-credit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span><span>Crédito <small class="pos-method-hint">queda a deber</small></span>
           <span class="pos-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-pay="credito" placeholder="0.00"></span></label>
       </div>
-      <button type="button" class="pos-rest" id="payRestBtn">Poner lo que falta en <b id="payRestLabel">efectivo</b></button>
+      <div class="pos-rest-row">
+        <button type="button" class="pos-rest" id="payRestBtn">Poner lo que falta en <b id="payRestLabel">efectivo</b></button>
+        <button type="button" class="pos-rest pos-rest-credit" id="payRestCredit" hidden>Dejar lo que falta a crédito</button>
+      </div>
+      <p class="pos-debt-warn" id="payDebtWarn" hidden></p>
 
       <label class="staff-field pos-ref">
         <span>Referencia <em>(opcional — no. de autorización, folio de transferencia…)</em></span>
@@ -239,13 +249,121 @@
       <div class="pos-done-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
       <h3 id="posDoneTitle">Venta lista</h3>
       <p id="posDoneText"></p>
-      <p class="pos-done-note">Vista de prueba: la venta todavía no se guarda ni descuenta del inventario.</p>
+      <p class="pos-done-credit" id="posDoneCredit" hidden></p>
       <div class="pos-done-actions">
         <button type="button" class="btn small" id="posDonePrint">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Imprimir ticket
         </button>
+        <button type="button" class="btn small" id="posDoneCredits" hidden>Ver créditos</button>
         <button type="button" class="btn solid small" id="posDoneNew">Nueva venta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: créditos del cliente ================= -->
+<div class="admin-modal-overlay" id="posCreditsModal">
+  <div class="admin-modal-card pos-credits-card" role="dialog" aria-modal="true" aria-labelledby="posCreditsTitle">
+    <div class="admin-modal-head">
+      <h3 id="posCreditsTitle">Créditos del cliente</h3>
+      <button type="button" class="admin-modal-close" id="posCreditsClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="pos-cr-summary" id="posCrSummary"></div>
+
+      <div class="pos-cr-section">
+        <div class="pos-cr-section-head">
+          <span>Lista de créditos</span>
+          <button type="button" class="btn solid small" id="posCrAbonar" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Abonar <kbd>F3</kbd>
+          </button>
+        </div>
+        <div class="pos-cr-table-wrap">
+          <table class="pos-cr-table">
+            <thead><tr><th>Ticket</th><th>Fecha</th><th>Vence</th><th class="num">Crédito</th><th class="num">Abonado</th><th class="num">Saldo</th><th>Estado</th></tr></thead>
+            <tbody id="posCrList"></tbody>
+          </table>
+        </div>
+        <p class="pos-cr-empty" id="posCrEmpty" hidden>Este cliente no tiene créditos.</p>
+      </div>
+
+      <div class="pos-cr-section">
+        <div class="pos-cr-section-head"><span id="posCrAbonosTitle">Abonos</span></div>
+        <div class="pos-cr-table-wrap">
+          <table class="pos-cr-table">
+            <thead><tr><th>Fecha</th><th>Forma de pago</th><th>Referencia</th><th>Cajero</th><th class="num">Monto</th><th></th></tr></thead>
+            <tbody id="posCrAbonos"></tbody>
+          </table>
+        </div>
+        <p class="pos-cr-empty" id="posCrAbonosEmpty">Elige un crédito para ver sus abonos.</p>
+      </div>
+      <p class="staff-error" id="posCrError"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: abono a crédito ================= -->
+<div class="admin-modal-overlay" id="posAbonoModal">
+  <div class="admin-modal-card pos-abono-card" role="dialog" aria-modal="true" aria-labelledby="posAbonoTitle">
+    <div class="admin-modal-head">
+      <h3 id="posAbonoTitle">Abono a crédito</h3>
+      <button type="button" class="admin-modal-close" id="posAbonoClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="staff-form" id="posAbonoForm" novalidate autocomplete="off">
+        <div class="pos-abono-saldo">
+          <small>Saldo del ticket <b id="posAbonoFolio"></b></small>
+          <strong id="posAbonoSaldo">$0.00</strong>
+        </div>
+        <div class="staff-field">
+          <span>Forma de pago</span>
+          <div class="pos-abono-formas" id="posAbonoFormas">
+            <button type="button" data-forma="efectivo" class="is-on">Efectivo</button>
+            <button type="button" data-forma="tarjeta">Tarjeta</button>
+            <button type="button" data-forma="transferencia">Transferencia</button>
+            <button type="button" data-forma="vales">Vales</button>
+            <button type="button" data-forma="cheque">Cheque</button>
+          </div>
+        </div>
+        <div class="staff-form-row pos-abono-row">
+          <label class="staff-field">
+            <span>Abono</span>
+            <span class="pos-money"><span>$</span><input type="number" id="posAbonoMonto" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span>
+          </label>
+          <label class="pos-abono-total">
+            <input type="checkbox" id="posAbonoSaldar">
+            <span class="pos-abono-check" aria-hidden="true"></span>
+            <span>Saldar total</span>
+          </label>
+        </div>
+        <label class="staff-field">
+          <span>Referencia <em>(opcional — no. de autorización, folio de transferencia…)</em></span>
+          <input type="text" id="posAbonoRef" maxlength="80">
+        </label>
+        <p class="pos-abono-after" id="posAbonoAfter"></p>
+        <p class="staff-error" id="posAbonoError"></p>
+        <div class="staff-form-actions">
+          <button type="button" class="btn small" id="posAbonoCancel">Cancelar</button>
+          <button type="submit" class="btn solid small" id="posAbonoSave">Guardar abono</button>
+        </div>
+      </form>
+      <div class="pos-abono-done" id="posAbonoDone" hidden>
+        <div class="pos-done-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <h3>Abono guardado</h3>
+        <p id="posAbonoDoneText"></p>
+        <div class="pos-done-actions">
+          <button type="button" class="btn small" id="posAbonoPrint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimir recibo
+          </button>
+          <button type="button" class="btn solid small" id="posAbonoOk">Listo</button>
+        </div>
       </div>
     </div>
   </div>

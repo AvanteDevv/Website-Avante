@@ -4,7 +4,16 @@
    .search-box, .staff-field, modales, .qchips).
    ========================================================= */
 .pos-page [hidden],
-.pos-pay-card [hidden], .pos-client-card [hidden], .pos-done-card [hidden]{ display:none !important; }
+.pos-pay-card [hidden], .pos-client-card [hidden], .pos-done-card [hidden],
+.pos-credits-card [hidden], .pos-abono-card [hidden]{ display:none !important; }
+
+/* Sin flechitas de subir/bajar en los campos de números (se escribe a mano). */
+.pos-page input[type="number"],
+.admin-modal-overlay input[type="number"]{ -moz-appearance:textfield; appearance:textfield; }
+.pos-page input[type="number"]::-webkit-outer-spin-button,
+.pos-page input[type="number"]::-webkit-inner-spin-button,
+.admin-modal-overlay input[type="number"]::-webkit-outer-spin-button,
+.admin-modal-overlay input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; appearance:none; margin:0; }
 
 .pos-header{ align-items:flex-end; }
 .pos-preview-tag{
@@ -358,4 +367,143 @@ body.dark .pos-credit-box{ background:rgba(231,76,60,.08); border-color:rgba(231
 }
 @media (prefers-reduced-motion:reduce){
   .pos-prod, .pos-line.is-new, .pos-total strong.is-bump{ animation:none; }
+}
+
+/* =========================================================
+   CRÉDITOS (lo que el cliente queda a deber) Y ABONOS
+   ========================================================= */
+.pos-credits-btn{ display:inline-flex; align-items:center; gap:8px; }
+.pos-credits-btn svg{ width:16px; height:16px; }
+.pos-credits-btn kbd, .pos-cr-section-head kbd{
+  font-family:var(--sans); font-size:10px; font-weight:700; padding:2px 6px; border-radius:6px;
+  background:var(--accent-soft); color:var(--accent);
+}
+.pos-cr-section-head .btn.solid kbd{ background:rgba(255,255,255,.2); color:#fff; }
+
+/* Cliente: lo que debe */
+.pos-client-debt{
+  display:flex; align-items:center; gap:8px; width:100%; margin-top:10px; padding:9px 12px;
+  border-radius:12px; border:1px solid #f0d68f; background:#fffaf0; cursor:pointer; text-align:left;
+  font-family:var(--sans); color:#8a6a12; transition:transform .15s var(--ease), box-shadow .15s var(--ease);
+  animation:dayItemIn .3s var(--ease);
+}
+.pos-client-debt:hover{ transform:translateY(-1px); box-shadow:0 6px 16px -8px rgba(138,106,18,.45); }
+.pos-client-debt-label{ font-size:11.5px; font-weight:700; flex:1; min-width:0; }
+.pos-client-debt strong{ font-size:14px; font-variant-numeric:tabular-nums; }
+.pos-client-debt-go{ font-size:11.5px; font-weight:700; opacity:.8; }
+.pos-client-debt.is-overdue{ background:#b42318; border-color:#b42318; color:#fff; }
+.pos-client-debt.is-overdue .pos-client-debt-label{ text-transform:uppercase; letter-spacing:.04em; }
+body.dark .pos-client-debt{ background:rgba(255,193,7,.1); border-color:rgba(255,193,7,.35); color:#ffd36e; }
+body.dark .pos-client-debt.is-overdue{ background:#b42318; border-color:#b42318; color:#fff; }
+.pos-client-owes{
+  font-style:normal; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:100px; white-space:nowrap;
+  background:#fdf1d6; color:#8a6a12; margin-left:4px;
+}
+.pos-client-owes.is-overdue{ background:#fbe0e0; color:#a3231b; }
+
+/* Cobrar */
+.pos-method-hint{ display:block; font-size:10px; font-weight:600; color:var(--muted); text-transform:none; }
+.pos-rest-row{ display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.pos-rest-row .pos-rest{ margin:0; }
+.pos-rest-credit{ border-color:#f3cfcf !important; color:#a3231b !important; }
+.pos-rest-credit:hover{ background:#fdf3f3 !important; }
+.pos-debt-warn{
+  margin-top:12px; padding:9px 12px; border-radius:12px; font-size:12.5px; font-weight:600;
+  background:#fffaf0; color:#8a6a12; border:1px solid #f0d68f;
+}
+.pos-debt-warn.is-overdue{ background:#fdf3f3; color:#a3231b; border-color:#f3cfcf; }
+.pos-done-credit{
+  font-size:13px !important; padding:10px 14px; border-radius:12px; background:#fdf3f3; color:#a3231b !important;
+}
+.pos-done-credit strong{ color:#a3231b !important; }
+
+/* Modal de créditos */
+.pos-credits-card{ max-width:860px; }
+.pos-cr-summary{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:8px; margin-bottom:16px; }
+.pos-cr-card{ padding:11px 12px; border-radius:14px; background:var(--accent-soft); display:flex; flex-direction:column; gap:3px; }
+.pos-cr-card small{ font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.pos-cr-card strong{ font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; }
+.pos-cr-card.is-owes{ background:#fffaf0; }
+.pos-cr-card.is-owes strong{ color:#8a6a12; }
+.pos-cr-card.is-overdue{ background:#fdf3f3; }
+.pos-cr-card.is-overdue strong{ color:#b42318; }
+body.dark .pos-cr-card.is-owes{ background:rgba(255,193,7,.1); }
+body.dark .pos-cr-card.is-overdue{ background:rgba(231,76,60,.12); }
+
+.pos-cr-section + .pos-cr-section{ margin-top:18px; }
+.pos-cr-section-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+.pos-cr-section-head > span{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.pos-cr-section-head .btn{ display:inline-flex; align-items:center; gap:7px; }
+.pos-cr-section-head .btn svg{ width:14px; height:14px; }
+.pos-cr-table-wrap{ border:1px solid var(--line); border-radius:14px; overflow:auto; max-height:240px; }
+.pos-cr-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+.pos-cr-table th{
+  position:sticky; top:0; z-index:1; background:var(--white); text-align:left; padding:9px 12px;
+  font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid var(--line);
+}
+.pos-cr-table td{ padding:9px 12px; border-bottom:1px solid var(--line); color:var(--ink); white-space:nowrap; }
+.pos-cr-table tr:last-child td{ border-bottom:none; }
+.pos-cr-table .num{ text-align:right; font-variant-numeric:tabular-nums; }
+#posCrList tr{ cursor:pointer; transition:background .15s var(--ease); }
+#posCrList tr:hover td{ background:var(--accent-soft); }
+#posCrList tr.is-selected td{ background:var(--accent); color:#fff; }
+#posCrList tr.is-selected .pos-cr-chip{ background:rgba(255,255,255,.22); color:#fff; }
+#posCrList tr.is-paid:not(.is-selected) td{ color:var(--muted); }
+.pos-cr-table td.is-overdue{ color:#b42318; font-weight:700; }
+#posCrList tr.is-selected td.is-overdue{ color:#fff; }
+.pos-cr-table tr.is-cancelled td{ color:var(--muted); text-decoration:line-through; }
+.pos-cr-table tr.is-cancelled td .pos-cr-chip{ text-decoration:none; }
+.pos-cr-chip{
+  display:inline-block; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:100px;
+  background:#fdf1d6; color:#8a6a12;
+}
+.pos-cr-chip.is-paid{ background:#dff3e4; color:#1f7a3d; }
+.pos-cr-chip.is-overdue{ background:#fbe0e0; color:#a3231b; }
+.pos-cr-chip.is-cancelled{ background:#ececec; color:#6b6b6b; }
+.pos-cr-loading{ text-align:center; color:var(--muted); padding:20px !important; }
+.pos-cr-empty{ font-size:12.5px; color:var(--muted); padding:14px 4px 0; text-align:center; }
+.pos-cr-actions{ text-align:right; }
+.pos-cr-actions button{
+  border:1px solid var(--line); background:var(--white); border-radius:100px; padding:4px 10px; margin-left:4px;
+  font-family:var(--sans); font-size:11.5px; font-weight:700; color:var(--accent); cursor:pointer;
+}
+.pos-cr-actions button:hover{ border-color:var(--accent-border); background:var(--accent-soft); }
+.pos-cr-actions button.is-danger{ color:#b42318; }
+.pos-cr-actions button.is-danger.is-confirm{ background:#b42318; border-color:#b42318; color:#fff; }
+
+/* Modal de abono */
+.pos-abono-card{ max-width:460px; }
+.pos-abono-saldo{ text-align:center; padding:6px 0 14px; border-bottom:1px solid var(--line); }
+.pos-abono-saldo small{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.pos-abono-saldo strong{ display:block; font-family:'Fraunces', serif; font-size:34px; font-weight:600; color:#b42318; line-height:1.2; font-variant-numeric:tabular-nums; }
+.pos-abono-formas{ display:flex; flex-wrap:wrap; gap:6px; }
+.pos-abono-formas button{
+  padding:8px 13px; border-radius:100px; border:1.5px solid var(--line); background:var(--white); cursor:pointer;
+  font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--ink);
+  transition:background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease);
+}
+.pos-abono-formas button:hover{ border-color:var(--accent-border); }
+.pos-abono-formas button.is-on{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.pos-abono-row{ align-items:flex-end; }
+.pos-abono-total{ display:flex; align-items:center; gap:9px; padding:11px 4px; cursor:pointer; font-size:13px; font-weight:700; color:var(--ink); user-select:none; flex:0 0 auto !important; }
+.pos-abono-total input{ position:absolute; opacity:0; pointer-events:none; }
+.pos-abono-check{
+  width:20px; height:20px; border-radius:6px; border:1.5px solid var(--line); background:var(--white);
+  display:flex; align-items:center; justify-content:center; transition:background .15s var(--ease), border-color .15s var(--ease);
+}
+.pos-abono-total input:checked + .pos-abono-check{ background:var(--accent); border-color:var(--accent); }
+.pos-abono-total input:checked + .pos-abono-check::after{ content:''; width:5px; height:10px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg) translate(-1px,-1px); }
+.pos-abono-total input:focus-visible + .pos-abono-check{ box-shadow:0 0 0 4px var(--accent-soft); }
+.pos-abono-after{ font-size:12.5px; font-weight:600; color:var(--muted); min-height:18px; margin:-4px 0 0; }
+.pos-abono-after.is-paid{ color:#1f7a3d; }
+.pos-abono-done{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; padding:14px 6px 6px; }
+.pos-abono-done h3{ font-size:18px; font-weight:700; color:var(--ink); }
+.pos-abono-done p{ font-size:13.5px; color:var(--muted); line-height:1.6; }
+.pos-abono-done p strong{ color:var(--ink); }
+
+@media (max-width:760px){
+  .pos-cr-summary{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .pos-cr-summary .pos-cr-card:first-child{ grid-column:1 / -1; }
+  .pos-credits-btn{ padding-left:12px; padding-right:12px; }
+  .pos-credits-btn kbd, .pos-cr-section-head kbd{ display:none; }
 }

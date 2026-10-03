@@ -6,11 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Recepción → Punto de venta. Por ahora es la vista: busca en el
-// inventario (GET /api/receptionist/inventario), arma la venta, cobra e
-// imprime el ticket con la plantilla. Todavía no guarda la venta ni
-// descuenta del inventario (para eso ya existe
-// models.DecreaseInventoryStock).
+// Recepción → Punto de venta: busca en el inventario, arma la venta,
+// cobra (guarda la venta y descuenta el inventario), deja a crédito lo
+// que el cliente queda a deber y registra sus abonos. La API vive en
+// handlers/pos_api.go.
 
 // ReceptionistPuntoDeVentaPage — GET /receptionist/punto-de-venta
 func ReceptionistPuntoDeVentaPage(c *gin.Context) {

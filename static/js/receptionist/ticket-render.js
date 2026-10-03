@@ -178,6 +178,8 @@
 
   function montoPagare(tpl, venta, total) {
     var pagos = venta.pagos || {};
+    // Venta con algo a crédito (lo que queda a deber): el pagaré es por eso.
+    if ((Number(pagos.credito) || 0) > 0) return Number(pagos.credito) || 0;
     if (tpl.pagare.monto === 'tarjeta') return Number(pagos.tarjeta) || 0;
     if (tpl.pagare.monto === 'credito') return Number(pagos.credito) || 0;
     return total;
@@ -228,6 +230,10 @@
     });
     out.push('<div class="tk-sep"></div>');
     out.push('<div class="tk-kv tk-total"><span>TOTAL:</span><span>' + money(total) + '</span></div>');
+    // Renglones extra (p. ej. recibo de abono: saldo anterior / saldo pendiente).
+    (venta.notas || []).forEach(function (n) {
+      out.push('<div class="tk-kv"><span>' + esc(up(n[0])) + ':</span><span>' + (typeof n[1] === 'number' ? money(n[1]) : esc(up(n[1]))) + '</span></div>');
+    });
 
     // Formas de pago
     if (m.formasPago) {
@@ -252,10 +258,12 @@
     // Pagaré
     var p = tpl.pagare;
     var monto = montoPagare(tpl, venta, total);
-    if (p.activo && monto > 0) {
+    if (p.activo && monto > 0 && !venta.sinPagare) {
+      // Vencimiento real del crédito si la venta lo trae ("YYYY-MM-DD").
+      var vm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(venta.vencimiento || '');
       var vars = {
         beneficiario: esc(up(p.beneficiario)),
-        vencimiento: fechaCorta(addDays(d, p.dias)),
+        vencimiento: vm ? fechaCorta(new Date(+vm[1], +vm[2] - 1, +vm[3])) : fechaCorta(addDays(d, p.dias)),
         monto: money(monto),
         monto_letra: numeroALetras(monto),
         interes: esc(p.interes),
@@ -399,7 +407,7 @@
 
   // Parece ticketera por el nombre (para sugerirla primero).
   function looksLikeTicket(name) {
-    return /wl ?88|pos[- ]?(58|80)|tm-?t|xp-?\d|ticket|thermal|receipt|80 ?mm|58 ?mm|eva58|epson tm/i.test(name || '');
+    return /sicar|wl ?88|pos[- ]?(58|80)|tm-?t|xp-?\d|ticket|thermal|t[eé]rmica|receipt|80 ?mm|58 ?mm|eva58|epson tm/i.test(name || '');
   }
 
   var h2cPromise = null;

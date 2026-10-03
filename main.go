@@ -203,6 +203,8 @@ func main() {
 	db.EnsureAppointmentTagsTable()
 	// Seguimiento al asistir: si compró y cada cuánto le toca su revisión.
 	db.EnsureAppointmentFollowupTable()
+	// Punto de venta: clientes, ventas, créditos (lo que quedan a deber) y abonos.
+	db.EnsurePosTables()
 	// Clarito: conexión con Google Drive y formatos subidos.
 	db.EnsureClaritoTables()
 	// Mantiene viva la conexión de Google Drive (renueva el token cada 12 h).
@@ -548,6 +550,14 @@ func main() {
 		// Seguimiento al asistir (¿compró? → revisión en 3, 6 o 12 meses)
 		apiReceptionist.GET("/citas/seguimiento", handlers.ListCitaSeguimiento)
 		apiReceptionist.PUT("/citas/:id/seguimiento", handlers.SetCitaSeguimiento)
+		// Punto de venta: clientes, cobrar, créditos y abonos (como en SICAR)
+		apiReceptionist.GET("/pos/clientes", handlers.PosListClients)
+		apiReceptionist.GET("/pos/clientes/siguiente", handlers.PosNextClientNumero)
+		apiReceptionist.POST("/pos/clientes", handlers.PosCreateClient)
+		apiReceptionist.GET("/pos/clientes/:id/creditos", handlers.PosClientCredits)
+		apiReceptionist.POST("/pos/ventas", handlers.PosCreateSale)
+		apiReceptionist.POST("/pos/creditos/:id/abonos", handlers.PosAddPayment)
+		apiReceptionist.DELETE("/pos/abonos/:id", handlers.PosCancelPayment)
 	}
 
 	// Administración → Clarito: formatos PDF que se llenan y se guardan en
