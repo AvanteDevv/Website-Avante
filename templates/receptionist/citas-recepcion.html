@@ -26,6 +26,24 @@
       </div>
     </div>
 
+    <!-- Periodo: filtra indicadores y tabla por el día de la cita -->
+    <div class="cf-bar" id="citasFiltro">
+      <span class="cf-label">Periodo</span>
+      <div class="cf-seg" role="tablist" aria-label="Periodo">
+        <button type="button" data-period="todas" class="is-on">Todas</button>
+        <button type="button" data-period="hoy">Hoy</button>
+        <button type="button" data-period="semana">Esta semana</button>
+        <button type="button" data-period="mes">Este mes</button>
+        <button type="button" data-period="mespasado">Mes pasado</button>
+        <button type="button" data-period="rango">Rango</button>
+      </div>
+      <div class="cf-range" hidden>
+        <label><span>Desde</span><input type="date" id="cfDesde"></label>
+        <label><span>Hasta</span><input type="date" id="cfHasta"></label>
+      </div>
+      <span class="cf-caption" id="cfCaption"></span>
+    </div>
+
     <div class="admin-stats">
       <div class="stat-card-wrap">
         <div class="stat-card-glow"></div>
@@ -63,6 +81,10 @@
         </div>
       </div>
     </div>
+
+    <!-- Tipo de cita (cómo llegó) — clic para filtrar la tabla -->
+    <div class="cf-tipos-head"><h3>Tipo de cita</h3><span>Toca uno para filtrar la tabla</span></div>
+    <div class="cf-tipos" id="citasTipos"></div>
 
     <div class="admin-panel">
       <div class="admin-panel-head admin-panel-head--stacked">
