@@ -6,6 +6,238 @@
    filtra con la barra de búsqueda y pagina en el cliente (todas
    las filas ya están en el DOM, solo se muestran/ocultan).
    ========================================================= */
+/* =========================================================
+   CITAS — filtro por fecha + indicadores por tipo de cita
+   Va igual en citas.js (Admin) y citas-recepcion.js (Recepción).
+
+   - Periodo (Todas / Hoy / Esta semana / Este mes / Mes pasado /
+     Rango): filtra por el DÍA de la cita. Cambia los indicadores
+     de estado (totales, verificadas, …), los de tipo y la tabla.
+   - Tipo de cita = la etiqueta de "cómo llegó" (vino sin cita,
+     chequeo, teléfono, WhatsApp). Las citas sin etiqueta cuentan
+     como "Web / sin etiqueta". Clic en un tipo filtra la tabla.
+
+   Recepción ya carga las etiquetas (CitaTags, row.dataset.tag y el
+   evento "citatags:change"). En Admin no existe CitaTags: aquí se
+   piden a data-tags-url y se pone el ícono junto al estado.
+
+   API para citas.js / citas-recepcion.js:
+     CitasFiltro.inRange(row)   → la cita cae en el periodo
+     CitasFiltro.matches(row)   → periodo + tipo seleccionado
+     CitasFiltro.renderTipos(rows)  → pinta los indicadores de tipo
+     CitasFiltro.onChange(fn)   → se llama al cambiar el filtro
+   ========================================================= */
+window.CitasFiltro = (function(){
+  var root = document.getElementById('citasFiltro');
+  var tiposEl = document.getElementById('citasTipos');
+  var STORE = 'avanteCitasFiltro';
+
+  var TIPOS = {
+    web: { label: 'Sin etiqueta', title: 'Citas sin etiqueta: agendadas en la página o sin marcar cómo llegaron',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>' },
+    sin_cita: { label: 'Vino sin cita', title: 'Vino sin cita',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' },
+    chequeo: { label: 'Chequeo', title: 'Chequeo',
+      icon: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.3 3 4.5 6.7 4.5c2.2 0 3.6 1.2 5.3 3.1 1.7-1.9 3.1-3.1 5.3-3.1 3.7 0 5.8 3.8 4.3 7.3C19.5 16.4 12 21 12 21Z"/></svg>' },
+    telefono: { label: 'Por teléfono', title: 'Agendó por teléfono',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>' },
+    whatsapp: { label: 'Por WhatsApp', title: 'Agendó por WhatsApp',
+      icon: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3Z"/></svg>' }
+  };
+  var ORDER = ['web', 'sin_cita', 'chequeo', 'telefono', 'whatsapp'];
+  var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+  var state = { period: 'todas', desde: '', hasta: '', tipo: '' };
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (saved && typeof saved === 'object') {
+      state.period = saved.period || 'todas';
+      state.desde = saved.desde || '';
+      state.hasta = saved.hasta || '';
+    }
+  } catch (e) {}
+
+  var listeners = [];
+  function emit(){ listeners.forEach(function(fn){ try { fn(); } catch (e) {} }); }
+  function save(){
+    try { localStorage.setItem(STORE, JSON.stringify({ period: state.period, desde: state.desde, hasta: state.hasta })); } catch (e) {}
+  }
+
+  /* ---------- fechas ---------- */
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function iso(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function addDays(d, n){ var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
+  function bounds(){
+    var t = new Date(); t = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    switch (state.period) {
+      case 'hoy': return [iso(t), iso(t)];
+      case 'semana': {
+        var dow = (t.getDay() + 6) % 7; // lunes = 0
+        var lun = addDays(t, -dow);
+        return [iso(lun), iso(addDays(lun, 6))];
+      }
+      case 'mes': return [iso(new Date(t.getFullYear(), t.getMonth(), 1)), iso(new Date(t.getFullYear(), t.getMonth() + 1, 0))];
+      case 'mespasado': return [iso(new Date(t.getFullYear(), t.getMonth() - 1, 1)), iso(new Date(t.getFullYear(), t.getMonth(), 0))];
+      case 'rango': {
+        var a = state.desde, b = state.hasta;
+        if (a && b && a > b) { var x = a; a = b; b = x; }
+        return [a || '', b || ''];
+      }
+      default: return ['', ''];
+    }
+  }
+  function fmt(s){
+    if (!s) return '';
+    var p = s.split('-');
+    return Number(p[2]) + ' ' + MESES[Number(p[1]) - 1] + ' ' + p[0];
+  }
+
+  function inRange(row){
+    var b = bounds();
+    var d = row.dataset.date || '';
+    if (b[0] && d < b[0]) return false;
+    if (b[1] && d > b[1]) return false;
+    return true;
+  }
+  function tipoOf(row){ return TIPOS[row.dataset.tag] ? row.dataset.tag : 'web'; }
+  function matches(row){
+    if (!inRange(row)) return false;
+    return !state.tipo || tipoOf(row) === state.tipo;
+  }
+
+  /* ---------- indicadores de tipo ---------- */
+  function buildTipos(){
+    if (!tiposEl) return;
+    tiposEl.innerHTML = ORDER.map(function(k){
+      var t = TIPOS[k];
+      return '<button type="button" class="cf-tipo tag-' + k + '" data-tipo="' + k + '" title="' + t.title + '" aria-pressed="false">' +
+        '<i class="cf-tipo-ico">' + t.icon + '</i>' +
+        '<span class="cf-tipo-txt"><strong class="cf-tipo-num">0</strong><small>' + t.label + '</small></span>' +
+        '<span class="cf-tipo-pct">0%</span>' +
+        '<span class="cf-tipo-bar"><i></i></span>' +
+      '</button>';
+    }).join('');
+    tiposEl.addEventListener('click', function(e){
+      var b = e.target.closest('.cf-tipo');
+      if (!b) return;
+      state.tipo = state.tipo === b.dataset.tipo ? '' : b.dataset.tipo;
+      showTable();
+      emit();
+    });
+  }
+  function renderTipos(rows){
+    if (!tiposEl) return;
+    var counts = { web: 0, sin_cita: 0, chequeo: 0, telefono: 0, whatsapp: 0 };
+    rows.forEach(function(r){ counts[tipoOf(r)]++; });
+    var total = rows.length;
+    ORDER.forEach(function(k){
+      var b = tiposEl.querySelector('[data-tipo="' + k + '"]');
+      if (!b) return;
+      var pct = total ? Math.round(counts[k] * 100 / total) : 0;
+      b.querySelector('.cf-tipo-num').textContent = counts[k];
+      b.querySelector('.cf-tipo-pct').textContent = pct + '%';
+      b.querySelector('.cf-tipo-bar i').style.width = pct + '%';
+      b.classList.toggle('is-on', state.tipo === k);
+      b.classList.toggle('is-zero', counts[k] === 0);
+      b.setAttribute('aria-pressed', state.tipo === k ? 'true' : 'false');
+    });
+    tiposEl.classList.toggle('has-active', !!state.tipo);
+    renderCaption(total);
+  }
+
+  /* ---------- barra de periodo ---------- */
+  var seg = root && root.querySelector('.cf-seg');
+  var range = root && root.querySelector('.cf-range');
+  var desdeIn = document.getElementById('cfDesde');
+  var hastaIn = document.getElementById('cfHasta');
+  var caption = document.getElementById('cfCaption');
+
+  function renderBar(){
+    if (!seg) return;
+    Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){
+      b.classList.toggle('is-on', b.dataset.period === state.period);
+    });
+    if (range) range.hidden = state.period !== 'rango';
+    if (desdeIn) desdeIn.value = state.desde;
+    if (hastaIn) hastaIn.value = state.hasta;
+  }
+  function renderCaption(total){
+    if (!caption) return;
+    var b = bounds();
+    var txt;
+    if (!b[0] && !b[1]) txt = 'Todas las fechas';
+    else if (b[0] === b[1]) txt = fmt(b[0]);
+    else if (b[0] && b[1]) txt = fmt(b[0]) + ' – ' + fmt(b[1]);
+    else if (b[0]) txt = 'Desde el ' + fmt(b[0]);
+    else txt = 'Hasta el ' + fmt(b[1]);
+    txt += ' · ' + total + (total === 1 ? ' cita' : ' citas');
+    if (state.tipo) txt += ' · tabla filtrada: ' + TIPOS[state.tipo].label.toLowerCase();
+    caption.textContent = txt;
+  }
+  // Al filtrar, se pasa a la vista de tabla (Día y Calendario
+  // tienen su propia navegación por fecha).
+  function showTable(){
+    var tablaBtn = document.querySelector('#citasViewSwitch .view-switch-btn[data-view="tabla"]');
+    if (tablaBtn && !tablaBtn.classList.contains('active')) tablaBtn.click();
+  }
+
+  if (seg) {
+    seg.addEventListener('click', function(e){
+      var b = e.target.closest('button[data-period]');
+      if (!b) return;
+      state.period = b.dataset.period;
+      if (state.period === 'rango' && !state.desde && !state.hasta) {
+        var t = new Date();
+        state.desde = iso(new Date(t.getFullYear(), t.getMonth(), 1));
+        state.hasta = iso(t);
+      }
+      save(); renderBar();
+      if (state.period !== 'todas') showTable();
+      emit();
+    });
+  }
+  function onDate(){
+    state.desde = desdeIn ? desdeIn.value : '';
+    state.hasta = hastaIn ? hastaIn.value : '';
+    save(); emit();
+  }
+  desdeIn && desdeIn.addEventListener('change', onDate);
+  hastaIn && hastaIn.addEventListener('change', onDate);
+
+  buildTipos();
+  renderBar();
+
+  /* ---------- etiquetas en Admin (no hay CitaTags) ---------- */
+  document.addEventListener('citatags:change', emit);
+  var tagsUrl = root && root.dataset.tagsUrl;
+  if (tagsUrl && !window.CitaTags) {
+    fetch(tagsUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function(r){ return r.ok ? r.json() : { tags: {} }; })
+      .then(function(d){
+        var tags = (d && d.tags) || {};
+        var rows = document.querySelectorAll('#citasTableBody tr[data-id]');
+        Array.prototype.forEach.call(rows, function(row){
+          var tag = TIPOS[tags[row.dataset.id]] ? tags[row.dataset.id] : '';
+          row.dataset.tag = tag;
+          var badge = row.querySelector('td .admin-badge');
+          if (tag && badge && !badge.parentNode.querySelector('.cita-tag-ico')) {
+            badge.insertAdjacentHTML('afterend', '<i class="cita-tag-ico in-table tag-' + tag + '" title="' + TIPOS[tag].title + '">' + TIPOS[tag].icon + '</i>');
+          }
+        });
+        emit();
+      })
+      .catch(function(){});
+  }
+
+  return {
+    inRange: inRange,
+    matches: matches,
+    renderTipos: renderTipos,
+    onChange: function(fn){ listeners.push(fn); },
+    TIPOS: TIPOS
+  };
+})();
+
 (function(){
   var tbody = document.getElementById('citasTableBody');
   if (!tbody) return;
@@ -15,21 +247,27 @@
   var currentPage = 1;
   var searchTerm = '';
 
-  /* ---------- estadísticas (sobre TODAS las filas, sin filtrar) ---------- */
+  /* ---------- filtro por periodo / tipo (CitasFiltro, arriba) ---------- */
+  var CF = window.CitasFiltro || { inRange: function(){ return true; }, matches: function(){ return true; }, renderTipos: function(){}, onChange: function(){} };
+
+  /* ---------- estadísticas (sobre las citas del periodo elegido) ---------- */
   function renderStats(){
-    var verificadas = allRows.filter(function(r){ return r.dataset.status === 'verificada'; }).length;
-    var canceladas = allRows.filter(function(r){ return r.dataset.status === 'cancelada'; }).length;
+    var periodRows = allRows.filter(CF.inRange);
+    CF.renderTipos(periodRows);
+    var statRows = periodRows.filter(CF.matches);
+    var verificadas = statRows.filter(function(r){ return r.dataset.status === 'verificada'; }).length;
+    var canceladas = statRows.filter(function(r){ return r.dataset.status === 'cancelada'; }).length;
 
     var totalEl = document.getElementById('citasStatTotal');
     var confEl = document.getElementById('citasStatVerificadas');
     var cancEl = document.getElementById('citasStatCanceladas');
-    var asistio = allRows.filter(function(r){ return r.dataset.status === 'asistio'; }).length;
-    var noAsistio = allRows.filter(function(r){ return r.dataset.status === 'no_asistio'; }).length;
+    var asistio = statRows.filter(function(r){ return r.dataset.status === 'asistio'; }).length;
+    var noAsistio = statRows.filter(function(r){ return r.dataset.status === 'no_asistio'; }).length;
     var asisEl = document.getElementById('citasStatAsistio');
     var noAsisEl = document.getElementById('citasStatNoAsistio');
     if (asisEl) asisEl.textContent = asistio;
     if (noAsisEl) noAsisEl.textContent = noAsistio;
-    if (totalEl) totalEl.textContent = allRows.length;
+    if (totalEl) totalEl.textContent = statRows.length;
     if (confEl) confEl.textContent = verificadas;
     if (cancEl) cancEl.textContent = canceladas;
   }
@@ -37,11 +275,12 @@
   /* ---------- filtro + paginación ---------- */
   function getFiltered(){
     var term = searchTerm.toLowerCase().trim();
-    if (term === '') return allRows;
     return allRows.filter(function(row){
-      return row.textContent.toLowerCase().indexOf(term) !== -1;
+      if (!CF.matches(row)) return false;
+      return term === '' || row.textContent.toLowerCase().indexOf(term) !== -1;
     });
   }
+  CF.onChange(function(){ currentPage = 1; renderStats(); renderView(); });
 
   function renderView(){
     var filtered = getFiltered();
@@ -70,7 +309,7 @@
     var emptyEl = document.getElementById('citasEmpty');
     if (emptyEl && allRows.length > 0) {
       emptyEl.style.display = total === 0 ? 'block' : 'none';
-      if (total === 0) emptyEl.textContent = 'No hay citas que coincidan con tu búsqueda.';
+      if (total === 0) emptyEl.textContent = 'No hay citas en este periodo o con esa búsqueda.';
     }
   }
 
