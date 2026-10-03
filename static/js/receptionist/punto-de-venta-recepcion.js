@@ -261,6 +261,7 @@
       else if (client.dias) meta.push(client.dias + ' días de crédito');
     }
     $('posClientMeta').textContent = meta.join(' · ');
+    $('posClientEdit').hidden = !client;
     var av = $('posClientAvatar');
     av.classList.toggle('is-set', !!client);
     av.classList.toggle('is-vip', !!(client && client.clave));
@@ -333,7 +334,7 @@
   }
   function closeDrop() { drop.hidden = true; $('posClient').classList.remove('is-open'); }
   $('posClientBtn').addEventListener('click', function (e) { e.stopPropagation(); drop.hidden ? openDrop() : closeDrop(); });
-  $('posClientPick').addEventListener('click', function (e) { if (!e.target.closest('#posClientBtn') && drop.hidden) openDrop(); });
+  $('posClientPick').addEventListener('click', function (e) { if (!e.target.closest('#posClientBtn, #posClientEdit') && drop.hidden) openDrop(); });
   clientSearch.addEventListener('input', function () { clearTimeout(clientTimer); clientTimer = setTimeout(fetchClients, 220); });
   clientSearch.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
@@ -355,11 +356,18 @@
   document.addEventListener('click', function (e) { if (!drop.hidden && !e.target.closest('#posClient')) closeDrop(); });
   $('posClientDebt').addEventListener('click', function () { openCredits(); });
 
-  /* ---------- modal: nuevo cliente ---------- */
+  /* ---------- modal: nuevo cliente / editar cliente ---------- */
   var clientModal = $('posClientModal');
   var cForm = $('posClientForm');
+  var editingClient = null; // cliente que se está editando (null = nuevo)
+  function setClientModalMode(edit) {
+    $('posClientModalTitle').textContent = edit ? 'Editar cliente' : 'Nuevo cliente';
+    cForm.querySelector('[type="submit"]').textContent = edit ? 'Guardar cambios' : 'Guardar cliente';
+  }
   function openClientModal(prefillName) {
     closeDrop();
+    editingClient = null;
+    setClientModalMode(false);
     cForm.reset();
     $('pcNumero').value = '';
     api('/api/receptionist/pos/clientes/siguiente').then(function (d) {
@@ -374,6 +382,27 @@
     setTimeout(function () { $('pcNombre').focus(); }, 80);
   }
   $('posClientNew').addEventListener('click', function () { openClientModal(clientSearch.value.trim()); });
+
+  // Editar al cliente elegido: mismos campos, ya llenos.
+  function openEditClientModal(c) {
+    if (!c) return;
+    closeDrop();
+    editingClient = c;
+    setClientModalMode(true);
+    cForm.reset();
+    $('pcNumero').value = c.numero || '';
+    pcClave.value = c.clave || '';
+    $('pcNombre').value = c.nombre || '';
+    $('pcCelular').value = c.celular || '';
+    $('pcRepresentante').value = c.representante || '';
+    $('pcDias').value = c.dias ? String(c.dias) : '';
+    $('pcLimite').value = c.limite > 0 ? String(c.limite) : '';
+    $('pcError').textContent = '';
+    syncClaveChips();
+    openModal(clientModal);
+    setTimeout(function () { $('pcNombre').focus(); }, 80);
+  }
+  $('posClientEdit').addEventListener('click', function (e) { e.stopPropagation(); openEditClientModal(client); });
   $('posClientModalClose').addEventListener('click', function () { closeModal(clientModal); });
   $('pcCancel').addEventListener('click', function () { closeModal(clientModal); });
 
@@ -414,17 +443,31 @@
     if (body.celular && body.celular.length !== 10) { err.textContent = 'El celular debe tener 10 dígitos.'; $('pcCelular').focus(); return; }
     if (body.limite < 0 || body.dias < 0) { err.textContent = 'El crédito no puede ser negativo.'; return; }
     var btn = cForm.querySelector('[type="submit"]');
+    var editing = editingClient;
     btn.disabled = true; btn.textContent = 'Guardando…';
     err.textContent = '';
-    api('/api/receptionist/pos/clientes', { method: 'POST', body: body }).then(function (d) {
-      client = d.item;
-      renderClient();
-      closeModal(clientModal);
-      toast('Cliente ' + client.nombre + ' creado y seleccionado.');
+    var req = editing
+      ? api('/api/receptionist/pos/clientes/' + editing.id, { method: 'PUT', body: body })
+      : api('/api/receptionist/pos/clientes', { method: 'POST', body: body });
+    req.then(function (d) {
+      if (editing) {
+        // Si es el cliente de la venta (o el de créditos), se actualiza en pantalla.
+        if (client && client.id === d.item.id) client = d.item;
+        if (crData && crData.cliente && crData.cliente.id === d.item.id) { crData.cliente = d.item; if (crModal.classList.contains('open')) renderCredits(); }
+        clients = clients.map(function (c) { return c.id === d.item.id ? d.item : c; });
+        renderClient();
+        closeModal(clientModal);
+        toast('Se guardaron los cambios de ' + d.item.nombre + '.');
+      } else {
+        client = d.item;
+        renderClient();
+        closeModal(clientModal);
+        toast('Cliente ' + client.nombre + ' creado y seleccionado.');
+      }
     }).catch(function (e2) {
       err.textContent = e2.message;
     }).finally(function () {
-      btn.disabled = false; btn.textContent = 'Guardar cliente';
+      btn.disabled = false; btn.textContent = editing ? 'Guardar cambios' : 'Guardar cliente';
     });
   });
 

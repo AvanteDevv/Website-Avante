@@ -560,6 +560,22 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		}
 		e.Context = strings.Join(ctx, " · ")
 
+	case method == http.MethodPut && route == "/api/receptionist/pos/clientes/:id":
+		e.Action = "pos.cliente.editar"
+		e.Description = "Editó el cliente " + actOrDash(actStr(p, "nombre")) + " en el punto de venta"
+		intento = "editar el cliente " + actOrDash(actStr(p, "nombre"))
+		ctx := []string{"No. " + actOrDash(actStr(p, "numero"))}
+		if cl := actStr(p, "clave"); cl != "" {
+			ctx = append(ctx, "Clave "+cl)
+		}
+		if l, ok := p["limite"].(float64); ok {
+			ctx = append(ctx, "Límite de crédito $"+strconv.FormatFloat(l, 'f', 2, 64))
+		}
+		if d, ok := p["dias"].(float64); ok {
+			ctx = append(ctx, strconv.Itoa(int(d))+" días de crédito")
+		}
+		e.Context = strings.Join(ctx, " · ")
+
 	case method == http.MethodPost && route == "/api/receptionist/pos/ventas":
 		e.Action = "pos.venta"
 		n := 0

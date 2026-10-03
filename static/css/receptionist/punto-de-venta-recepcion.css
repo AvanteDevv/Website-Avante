@@ -124,6 +124,15 @@ body.dark .pos-stock.is-out{ background:rgba(231,76,60,.16); color:#ff8b7d; }
   transition:border-color .2s var(--ease), background .2s var(--ease);
 }
 .pos-client-change:hover{ border-color:var(--accent-border); background:var(--accent-soft); }
+.pos-client-edit{
+  width:32px; height:32px; flex-shrink:0; border-radius:50%; border:1.5px solid var(--line); background:var(--white);
+  display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted);
+  transition:border-color .2s var(--ease), background .2s var(--ease), color .2s var(--ease), transform .2s var(--ease);
+  animation:dayItemIn .25s var(--ease);
+}
+.pos-client-edit[hidden]{ display:none; }
+.pos-client-edit svg{ width:14px; height:14px; }
+.pos-client-edit:hover{ border-color:var(--accent-border); background:var(--accent-soft); color:var(--accent); transform:rotate(-8deg); }
 
 .pos-client-drop{
   position:absolute; left:12px; right:12px; top:calc(100% - 6px); z-index:40;

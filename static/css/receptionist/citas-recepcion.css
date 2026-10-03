@@ -1524,6 +1524,14 @@ body.dark .asistio-opt.is-no .asistio-opt-icon{ background:rgba(255,255,255,.1);
 .asistio-meses button:hover{ color:var(--accent); }
 .asistio-meses button.is-on{ background:var(--accent); color:#fff; box-shadow:0 6px 16px -4px rgba(4,28,255,.4); }
 .asistio-due{ font-size:12.5px; color:var(--muted); margin:2px 0 0; }
+.asistio-note{
+  display:flex; align-items:flex-start; gap:10px; margin:0 0 14px; padding:12px 14px; border-radius:14px;
+  background:var(--tag-bg, #fde7ee); color:var(--ink); font-size:13px; line-height:1.45;
+  --tag:#e0245e; --tag-bg:#fde7ee; animation:dayItemIn .3s var(--ease);
+}
+.asistio-note svg{ width:16px; height:16px; flex-shrink:0; margin-top:2px; color:var(--tag); }
+.asistio-note[hidden], .asistio-step[hidden]{ display:none !important; }
+body.dark .asistio-note{ --tag:#ff7aa2; --tag-bg:rgba(224,36,94,.18); }
 .asistio-card .staff-error{ margin-top:12px; }
 .asistio-card .admin-confirm-actions{ margin-top:18px; }
 

@@ -555,6 +555,7 @@ func main() {
 		apiReceptionist.GET("/pos/clientes", handlers.PosListClients)
 		apiReceptionist.GET("/pos/clientes/siguiente", handlers.PosNextClientNumero)
 		apiReceptionist.POST("/pos/clientes", handlers.PosCreateClient)
+		apiReceptionist.PUT("/pos/clientes/:id", handlers.PosUpdateClient)
 		apiReceptionist.GET("/pos/clientes/:id/creditos", handlers.PosClientCredits)
 		apiReceptionist.GET("/pos/ventas", handlers.PosListSales)
 		apiReceptionist.GET("/pos/ventas/:id", handlers.PosGetSale)

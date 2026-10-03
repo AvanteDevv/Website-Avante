@@ -593,7 +593,9 @@ window.CitasFiltro = (function(){
      No compró: no se le programa revisión. Guardar también marca la
      cita como "asistio" (PUT .../seguimiento lo hace en el servidor). */
   var asOverlay = document.getElementById('asistioModalOverlay');
-  var asId = null, asCompro = null, asMeses = 12, asDate = '';
+  var asId = null, asCompro = null, asMeses = 12, asDate = '', asChequeo = false;
+  // Chequeo = ya compró antes: no se pregunta "¿compró?", solo la revisión.
+  function esChequeo(id){ return !!(window.CitaTags && CitaTags.get(id) === 'chequeo'); }
   function asAddMonths(iso, months){
     var p = iso.split('-').map(Number);
     var y = p[0], m = p[1] - 1 + months, d = p[2];
@@ -609,6 +611,10 @@ window.CitasFiltro = (function(){
     });
     var wrap = document.getElementById('asistioMesesWrap');
     wrap.hidden = asCompro !== true;
+    var step = document.getElementById('asistioComproStep');
+    var note = document.getElementById('asistioChequeoNote');
+    if (step) step.hidden = asChequeo;
+    if (note) note.hidden = !asChequeo;
     asOverlay.querySelectorAll('#asistioMeses button').forEach(function(b){
       var on = Number(b.dataset.meses) === asMeses;
       b.classList.toggle('is-on', on);
@@ -625,11 +631,14 @@ window.CitasFiltro = (function(){
     if (!row || !asOverlay) { updateStatus(id, 'asistio'); return; }
     var prev = CitaSeg.get(id);
     asId = id;
-    asCompro = prev ? !!prev.compro : null;
+    asChequeo = esChequeo(id);
+    asCompro = asChequeo ? true : (prev ? !!prev.compro : null);
     asMeses = prev && prev.compro && prev.meses ? Number(prev.meses) : 12;
     asDate = row.dataset.date || '';
     var dia = row.querySelector('.cita-dia') ? row.querySelector('.cita-dia').textContent.trim() : asDate;
-    document.getElementById('asistioTitle').textContent = row.dataset.status === 'asistio' ? '¿Compró algo?' : 'Asistió a su cita';
+    document.getElementById('asistioTitle').textContent = asChequeo
+      ? (row.dataset.status === 'asistio' ? 'Próxima revisión' : 'Asistió a su chequeo')
+      : (row.dataset.status === 'asistio' ? '¿Compró algo?' : 'Asistió a su cita');
     document.getElementById('asistioWho').textContent = (row.dataset.nombre || '').trim() || 'Sin nombre';
     document.getElementById('asistioWhen').textContent = dia + (row.dataset.time ? ' · ' + String(row.dataset.time).slice(0, 5) : '');
     document.getElementById('asistioError').textContent = '';
@@ -719,6 +728,7 @@ window.CitasFiltro = (function(){
     amigos: 'Amigos',
     recomendado: 'Me recomendaron',
     casualidad: 'Pasó por casualidad',
+    recurrente: 'Cliente recurrente',
     empresa: 'Una empresa',
     unison: 'La Unison',
     ninguno: 'Ninguno',
@@ -1328,12 +1338,15 @@ window.CitasFiltro = (function(){
         var seg = CitaSeg.get(id);
         segBox.hidden = status !== 'asistio';
         segBox.classList.toggle('is-missing', !seg);
-        document.getElementById('calEventSegText').textContent = seg ? CitaSeg.label(seg) : '¿Compró algo? Todavía no se registró.';
+        var chequeo = esChequeo(id);
+        document.getElementById('calEventSegText').textContent = chequeo
+          ? (seg && seg.compro ? 'Chequeo · revisión en ' + (CitaSeg.MESES_LABEL[seg.meses] || '1 año') : 'Chequeo · todavía no se eligió su próxima revisión.')
+          : (seg ? CitaSeg.label(seg) : '¿Compró algo? Todavía no se registró.');
         document.getElementById('calEventSegBtn').textContent = seg ? 'Cambiar' : 'Registrar';
         document.getElementById('calEventSegBtn').onclick = function(){ closeEventModal(); openAsistio(id); };
       }
       var asistioLbl = document.getElementById('calEventAsistio');
-      asistioLbl.lastChild.textContent = status === 'asistio' ? ' Cambiar si compró ' : ' Marcar asistió ';
+      asistioLbl.lastChild.textContent = status === 'asistio' ? (esChequeo(id) ? ' Cambiar revisión ' : ' Cambiar si compró ') : ' Marcar asistió ';
       document.getElementById('calEventNoAsistio').onclick = function(){ updateStatus(id, 'no_asistio'); };
       document.getElementById('calEventCliente').onclick = function(){ closeEventModal(); openClienteModal(id); };
       document.getElementById('calEventEditar').onclick = function(){ closeEventModal(); window.AvanteEditarCita && window.AvanteEditarCita.open(id, 'editar'); };

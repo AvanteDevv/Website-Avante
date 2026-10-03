@@ -165,6 +165,27 @@ func CreatePosClient(c PosClient, createdBy string) (*PosClient, error) {
 	return GetPosClient(id)
 }
 
+// UpdatePosClient cambia los datos de un cliente (No., clave, nombre,
+// celular, representante, días y límite de crédito). Sus ventas y
+// créditos se quedan igual; las ventas guardan el nombre que tenía el
+// cliente al momento de venderle.
+func UpdatePosClient(id int64, c PosClient) (*PosClient, error) {
+	_, err := db.DB.Exec(
+		`UPDATE pos_clients SET numero = ?, clave = ?, nombre = ?, celular = ?, representante = ?,
+		        dias_credito = ?, limite_credito = ?
+		 WHERE id = ?`,
+		c.Numero, c.Clave, c.Nombre, c.Celular, c.Representante, c.DiasCredito, round2(c.LimiteCredito), id,
+	)
+	if err != nil {
+		if strings.Contains(err.Error(), "1062") {
+			return nil, ErrPosClientDuplicate
+		}
+		return nil, err
+	}
+	// Si el id no existe, GetPosClient regresa ErrPosClientNotFound.
+	return GetPosClient(id)
+}
+
 /* =========================================================
    VENTAS
    ========================================================= */

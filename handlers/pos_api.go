@@ -21,6 +21,7 @@ import (
 //	GET    /api/receptionist/pos/clientes?q=          buscar clientes (con su saldo)
 //	GET    /api/receptionist/pos/clientes/siguiente   siguiente No. de cliente
 //	POST   /api/receptionist/pos/clientes             nuevo cliente
+//	PUT    /api/receptionist/pos/clientes/:id         editar cliente
 //	GET    /api/receptionist/pos/clientes/:id/creditos  créditos y abonos del cliente
 //	POST   /api/receptionist/pos/ventas               cobrar (guarda la venta y descuenta inventario)
 //	POST   /api/receptionist/pos/creditos/:id/abonos  abonar a un crédito
@@ -63,20 +64,26 @@ func PosNextClientNumero(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"numero": n})
 }
 
-// PosCreateClient — POST /api/receptionist/pos/clientes
-func PosCreateClient(c *gin.Context) {
-	var in struct {
-		Numero        string  `json:"numero"`
-		Clave         string  `json:"clave"`
-		Nombre        string  `json:"nombre"`
-		Celular       string  `json:"celular"`
-		Representante string  `json:"representante"`
-		Dias          int     `json:"dias"`
-		Limite        float64 `json:"limite"`
-	}
+// posClientInput — lo que llega al crear o editar un cliente.
+type posClientInput struct {
+	Numero        string  `json:"numero"`
+	Clave         string  `json:"clave"`
+	Nombre        string  `json:"nombre"`
+	Celular       string  `json:"celular"`
+	Representante string  `json:"representante"`
+	Dias          int     `json:"dias"`
+	Limite        float64 `json:"limite"`
+}
+
+var posCelularRe = regexp.MustCompile(`^\d{10}$`)
+
+// bindPosClient lee y valida los datos del cliente. Si algo está mal ya
+// respondió al navegador y regresa ok=false.
+func bindPosClient(c *gin.Context) (models.PosClient, bool) {
+	var in posClientInput
 	if err := c.ShouldBindJSON(&in); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
-		return
+		return models.PosClient{}, false
 	}
 	in.Numero = strings.TrimSpace(in.Numero)
 	in.Nombre = strings.Join(strings.Fields(in.Nombre), " ")
@@ -85,21 +92,30 @@ func PosCreateClient(c *gin.Context) {
 	switch {
 	case !posNumeroRe.MatchString(in.Numero):
 		c.JSON(http.StatusBadRequest, gin.H{"error": "El No. de cliente solo puede llevar letras, números y guiones."})
-		return
+		return models.PosClient{}, false
 	case in.Nombre == "":
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe el nombre del cliente."})
-		return
-	case in.Celular != "" && !regexp.MustCompile(`^\d{10}$`).MatchString(in.Celular):
+		return models.PosClient{}, false
+	case in.Celular != "" && !posCelularRe.MatchString(in.Celular):
 		c.JSON(http.StatusBadRequest, gin.H{"error": "El celular debe tener 10 dígitos."})
-		return
+		return models.PosClient{}, false
 	case in.Dias < 0 || in.Dias > 365 || in.Limite < 0:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Revisa los días y el límite de crédito."})
-		return
+		return models.PosClient{}, false
 	}
-	cl, err := models.CreatePosClient(models.PosClient{
+	return models.PosClient{
 		Numero: in.Numero, Clave: in.Clave, Nombre: in.Nombre, Celular: in.Celular,
 		Representante: strings.TrimSpace(in.Representante), DiasCredito: in.Dias, LimiteCredito: in.Limite,
-	}, posStaffName(c))
+	}, true
+}
+
+// PosCreateClient — POST /api/receptionist/pos/clientes
+func PosCreateClient(c *gin.Context) {
+	in, ok := bindPosClient(c)
+	if !ok {
+		return
+	}
+	cl, err := models.CreatePosClient(in, posStaffName(c))
 	if errors.Is(err, models.ErrPosClientDuplicate) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Ya existe el cliente No. " + in.Numero + "."})
 		return
@@ -110,6 +126,32 @@ func PosCreateClient(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"item": cl})
+}
+
+// PosUpdateClient — PUT /api/receptionist/pos/clientes/:id
+func PosUpdateClient(c *gin.Context) {
+	id, ok := posID(c, "id")
+	if !ok {
+		return
+	}
+	in, ok := bindPosClient(c)
+	if !ok {
+		return
+	}
+	cl, err := models.UpdatePosClient(id, in)
+	switch {
+	case errors.Is(err, models.ErrPosClientDuplicate):
+		c.JSON(http.StatusConflict, gin.H{"error": "Ya existe otro cliente con el No. " + in.Numero + "."})
+		return
+	case errors.Is(err, models.ErrPosClientNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese cliente ya no existe."})
+		return
+	case err != nil:
+		log.Printf("pos.UpdateClient: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron guardar los cambios."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"item": cl})
 }
 
 // PosClientCredits — GET /api/receptionist/pos/clientes/:id/creditos
