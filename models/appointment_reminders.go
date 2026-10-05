@@ -19,18 +19,31 @@ import (
 // usa el job de reminders/ para no mandar el mismo recordatorio dos
 // veces.
 
-// getAppointmentsInWindow trae las citas confirmadas cuya fecha+hora cae
+// getAppointmentsInWindow trae las citas verificadas cuya fecha+hora cae
 // dentro de [from, to] y que todavía no recibieron el recordatorio de
 // esa ventana. reminderColumn SIEMPRE viene fijo desde las dos
 // funciones públicas de abajo (nunca desde afuera), así que no hay
 // riesgo de inyección SQL aunque se arme con concatenación.
+//
+// No se le recuerda a quien "vino sin cita" (etiqueta sin_cita): ya está
+// en la óptica. Las citas que ya pasaron nunca caen en la ventana (el
+// scheduler solo busca citas que vienen), así que tampoco reciben nada.
+//
+// Antes buscaba status = 'confirmada', pero las citas se guardan como
+// 'verificada' — por eso nunca salía ningún recordatorio. Además faltaba
+// fecha_nacimiento en el SELECT (scanAppointmentRow lee 13 columnas).
 func getAppointmentsInWindow(from, to time.Time, reminderColumn string) ([]Appointment, error) {
 	query := `
-		SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, cuestionario, status, cancel_reason, user_id, created_at
-		FROM appointments
-		WHERE status = 'confirmada'
-		  AND ` + reminderColumn + ` IS NULL
-		  AND TIMESTAMP(appt_date, appt_time) BETWEEN ? AND ?
+		SELECT a.id, a.appt_date, a.appt_time, a.nombre, a.apellido, a.celular, a.correo, a.fecha_nacimiento,
+		       a.cuestionario, a.status, a.cancel_reason, a.user_id, a.created_at
+		FROM appointments a
+		WHERE a.status = 'verificada'
+		  AND a.` + reminderColumn + ` IS NULL
+		  AND TIMESTAMP(a.appt_date, a.appt_time) BETWEEN ? AND ?
+		  AND NOT EXISTS (
+		      SELECT 1 FROM appointment_tags t
+		      WHERE t.appointment_id = a.id AND t.tag = 'sin_cita'
+		  )
 	`
 	rows, err := db.DB.Query(query, from, to)
 	if err != nil {

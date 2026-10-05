@@ -167,6 +167,49 @@ type createAppointmentByStaffInput struct {
 	// Cuestionario opcional del modal "Crear cita" (null si no se
 	// contestó). Se guarda tal cual como JSON, igual que el público.
 	Cuestionario json.RawMessage `json:"cuestionario"`
+	// Etiqueta "¿Cómo llegó?" elegida al crear (sin_cita, chequeo,
+	// telefono, whatsapp). Solo se usa para decidir si se avisa por
+	// WhatsApp: a quien "vino sin cita" no se le manda "tu cita quedó
+	// agendada" porque ya está en la óptica.
+	Tag string `json:"tag"`
+}
+
+// apptLoc: la hora de la óptica (Hermosillo, sin horario de verano). La
+// base guarda appt_date/appt_time en hora local. (No se llama
+// hermosilloLoc porque ads.go ya tiene una variable con ese nombre.)
+var apptLoc = func() *time.Location {
+	if loc, err := time.LoadLocation("America/Hermosillo"); err == nil {
+		return loc
+	}
+	return time.FixedZone("MST", -7*60*60)
+}()
+
+// apptAlreadyStarted indica si el día + hora de la cita ya pasó (o es
+// ahorita) en hora de Hermosillo.
+func apptAlreadyStarted(date time.Time, hhmm string) bool {
+	if len(hhmm) > 5 {
+		hhmm = hhmm[:5]
+	}
+	t, err := time.ParseInLocation("2006-01-02 15:04", date.Format("2006-01-02")+" "+hhmm, apptLoc)
+	if err != nil {
+		return false
+	}
+	return !t.After(time.Now().In(apptLoc))
+}
+
+// shouldNotifyBooked decide si se le manda al cliente "tu cita quedó
+// agendada" al crearla desde el panel. NO se manda cuando:
+//   - vino sin cita (ya está en la óptica, no tiene sentido avisarle),
+//   - la cita se registró con estado de ya atendida o cancelada,
+//   - el día y la hora ya pasaron (se está registrando algo de antes).
+func shouldNotifyBooked(tag, status string, date time.Time, hhmm string) bool {
+	if tag == "sin_cita" {
+		return false
+	}
+	if status != "" && status != "verificada" && status != "pendiente" {
+		return false
+	}
+	return !apptAlreadyStarted(date, hhmm)
 }
 
 // cuestionarioFromRaw valida el cuestionario que manda el panel y lo
@@ -241,7 +284,11 @@ func CreateAppointmentByStaff(c *gin.Context) {
 		return
 	}
 
-	whatsapp.NotifyBooked(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
+	if shouldNotifyBooked(strings.TrimSpace(input.Tag), input.Status, date, input.Time) {
+		whatsapp.NotifyBooked(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
+	} else {
+		log.Printf("admin.CreateAppointmentByStaff: cita #%d sin aviso de WhatsApp (etiqueta %q, estado %q, %s %s)", appt.ID, input.Tag, input.Status, input.Date, input.Time)
+	}
 
 	// El id lo usa el panel para guardar la etiqueta ("¿Cómo llegó?")
 	// de la cita recién creada sin tener que buscarla después.
@@ -367,7 +414,11 @@ func UpdateAppointmentByStaff(c *gin.Context) {
 		if err := models.ResetAppointmentReminders(id); err != nil {
 			log.Println("admin.UpdateAppointmentByStaff: no se reiniciaron los recordatorios:", err)
 		}
-		whatsapp.NotifyRescheduled(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
+		// Si la mueven a un día/hora que ya pasó (corrigiendo un registro)
+		// no se le avisa al cliente.
+		if !apptAlreadyStarted(date, input.Time) {
+			whatsapp.NotifyRescheduled(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
+		}
 	}
 
 	msg := "Cita actualizada."

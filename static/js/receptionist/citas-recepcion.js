@@ -2565,7 +2565,10 @@ window.CitasFiltro = (function(){
         correo: correo,
         fecha_nacimiento: nacimiento,
         status: status,
-        cuestionario: cuestionario
+        cuestionario: cuestionario,
+        // Con "Vino sin cita" el servidor no le manda el WhatsApp de
+        // "tu cita quedó agendada" (ya está aquí).
+        tag: newTag || ''
       })
     }).then(function(res){
       if (res.status === 409) {
