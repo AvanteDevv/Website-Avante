@@ -23,6 +23,7 @@ import (
 //	POST   /api/receptionist/pos/clientes             nuevo cliente
 //	PUT    /api/receptionist/pos/clientes/:id         editar cliente
 //	GET    /api/receptionist/pos/clientes/:id/creditos  créditos y abonos del cliente
+//	GET    /api/receptionist/pos/clientes/:id/ultima-venta  último ticket del cliente (reimprimir)
 //	POST   /api/receptionist/pos/ventas               cobrar (guarda la venta y descuenta inventario)
 //	POST   /api/receptionist/pos/creditos/:id/abonos  abonar a un crédito
 //	DELETE /api/receptionist/pos/abonos/:id           cancelar un abono (mismo día)
@@ -315,6 +316,26 @@ func PosGetSale(c *gin.Context) {
 	if err != nil {
 		log.Printf("pos.GetSale: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cargar la venta."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"venta": d})
+}
+
+// PosClientLastSale — GET /api/receptionist/pos/clientes/:id/ultima-venta
+// La venta más reciente del cliente, con todo lo que lleva el ticket.
+func PosClientLastSale(c *gin.Context) {
+	id, ok := posID(c, "id")
+	if !ok {
+		return
+	}
+	d, err := models.LastPosSaleOfClient(id)
+	if errors.Is(err, models.ErrPosSaleNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Este cliente todavía no tiene ventas."})
+		return
+	}
+	if err != nil {
+		log.Printf("pos.ClientLastSale: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cargar su última venta."})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"venta": d})

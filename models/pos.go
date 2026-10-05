@@ -706,6 +706,22 @@ type PosSaleDetail struct {
 
 var ErrPosSaleNotFound = errors.New("venta no encontrada")
 
+// LastPosSaleOfClient trae la venta más reciente del cliente (para
+// reimprimir su último ticket desde el punto de venta).
+func LastPosSaleOfClient(clientID int64) (*PosSaleDetail, error) {
+	var folio int64
+	err := db.DB.QueryRow(
+		"SELECT id FROM pos_sales WHERE client_id = ? ORDER BY created_at DESC, id DESC LIMIT 1", clientID,
+	).Scan(&folio)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrPosSaleNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return GetPosSale(folio)
+}
+
 // GetPosSale trae el detalle de una venta.
 func GetPosSale(folio int64) (*PosSaleDetail, error) {
 	rows, _, err := ListPosSalesByID(folio)

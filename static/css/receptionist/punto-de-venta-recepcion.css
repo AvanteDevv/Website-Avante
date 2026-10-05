@@ -131,6 +131,20 @@ body.dark .pos-stock.is-out{ background:rgba(231,76,60,.16); color:#ff8b7d; }
   animation:dayItemIn .25s var(--ease);
 }
 .pos-client-edit[hidden]{ display:none; }
+.pos-client-reprint{
+  display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:10px; padding:9px 12px;
+  border-radius:12px; border:1.5px dashed var(--line); background:transparent; cursor:pointer;
+  font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--accent);
+  transition:border-color .2s var(--ease), background .2s var(--ease), transform .15s var(--ease);
+  animation:dayItemIn .3s var(--ease);
+}
+.pos-client-reprint[hidden]{ display:none; }
+.pos-client-reprint svg{ width:15px; height:15px; flex-shrink:0; }
+.pos-client-reprint:hover{ border-color:var(--accent-border); border-style:solid; background:var(--accent-soft); }
+.pos-client-reprint:active{ transform:scale(.98); }
+.pos-client-reprint.is-loading{ cursor:wait; opacity:.75; }
+.pos-client-reprint.is-loading svg{ animation:posReprintPulse .8s ease-in-out infinite alternate; }
+@keyframes posReprintPulse{ from{ transform:translateY(0); } to{ transform:translateY(-2px); } }
 .pos-client-edit svg{ width:14px; height:14px; }
 .pos-client-edit:hover{ border-color:var(--accent-border); background:var(--accent-soft); color:var(--accent); transform:rotate(-8deg); }
 

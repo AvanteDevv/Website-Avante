@@ -262,6 +262,7 @@
     }
     $('posClientMeta').textContent = meta.join(' · ');
     $('posClientEdit').hidden = !client;
+    $('posClientReprint').hidden = !client;
     var av = $('posClientAvatar');
     av.classList.toggle('is-set', !!client);
     av.classList.toggle('is-vip', !!(client && client.clave));
@@ -633,6 +634,45 @@
       .then(function (d) { tplCache = T.merge(d && d.data); return tplCache; })
       .catch(function () { tplCache = T.defaults(); return tplCache; });
   }
+  /* ---------- reimprimir el último ticket del cliente elegido ---------- */
+  function saleFecha(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(s || '');
+    return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) : new Date();
+  }
+  var reprintBtn = $('posClientReprint');
+  reprintBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (!T || !client || reprintBtn.disabled) return;
+    var txt = reprintBtn.querySelector('.pos-client-reprint-txt');
+    var label = txt.textContent;
+    reprintBtn.disabled = true;
+    reprintBtn.classList.add('is-loading');
+    txt.textContent = 'Buscando su última venta…';
+    Promise.all([api('/api/receptionist/pos/clientes/' + client.id + '/ultima-venta'), loadTemplate()])
+      .then(function (res) {
+        var v = res[0].venta, tpl = res[1];
+        T.print(tpl, {
+          folio: v.folio,
+          fecha: saleFecha(v.fecha),
+          caja: 'Caja 1',
+          cliente: v.cliente,
+          cajero: v.cajero || cajero,
+          productos: (v.productos || []).map(function (p) { return { descripcion: p.descripcion, cantidad: p.cantidad, precio: p.precio, descuento: p.descuento || 0 }; }),
+          pagos: { efectivo: v.efectivo_recibido, tarjeta: v.tarjeta, transferencia: v.transferencia, vales: v.vales, cheque: v.cheque, credito: v.credito },
+          cambio: v.cambio,
+          referencia: v.referencia,
+          vencimiento: v.vence || ''
+        });
+        toast('Imprimiendo el ticket ' + v.folio + ' del ' + fechaISO(v.fecha) + ' (' + mxn.format(v.total) + ').');
+      })
+      .catch(function (err) { toast(err.message); })
+      .finally(function () {
+        reprintBtn.disabled = false;
+        reprintBtn.classList.remove('is-loading');
+        txt.textContent = label;
+      });
+  });
+
   $('posDonePrint').addEventListener('click', function () {
     if (!T || !lastSale) return;
     loadTemplate().then(function (tpl) { T.print(tpl, lastSale); });
