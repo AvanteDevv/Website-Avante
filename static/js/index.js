@@ -1054,12 +1054,13 @@ document.getElementById('trackBtn').addEventListener('click', () => { window.loc
     nogales: {
       name: 'Avante Optics — Nogales',
       address: 'Carretera Internacional Km 5.5, Plaza Kino, Local 36, Nogales, Son.',
-      query: 'Plaza Kino, Carretera Internacional Km 5.5, Nogales, Sonora'
+      // Coordenadas exactas del pin en Maps (más precisas que buscar por dirección)
+      query: '31.279023387184616,-110.93977855488038'
     },
     empalme: {
       name: 'Avante Optics — Empalme',
-      address: 'Calle 9, Manzana 39, Col. Oriente, Empalme, Son.',
-      query: 'Calle 9, Colonia Oriente, Empalme, Sonora'
+      address: 'Dentro del Sindicato de Trabajadores de Maquilas Tetakawi, Calle 9, Manzana 39, Col. Oriente, Empalme, Son.',
+      query: '27.95627417128884,-110.80448875474683'
     }
   };
 
