@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movimientos — Inventario · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/inventario/inventario.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "inventario-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "inventario-sidebar" .}}
+
+  <main class="cuenta-main admin-main inv-page" id="invMovimientos">
+    <div class="admin-header">
+      <div>
+        <h1>Movimientos</h1>
+        <p>El kárdex: cada vez que cambia la existencia de un artículo queda aquí — ventas del Punto de venta, entradas, salidas, ajustes y altas — con quién lo hizo y cuándo.</p>
+      </div>
+    </div>
+
+    <div class="inv-stats is-3">
+      <div class="inv-stat"><small>Movimientos</small><strong id="stMovs">0</strong></div>
+      <div class="inv-stat is-in"><small>Entraron</small><strong id="stIn">0</strong></div>
+      <div class="inv-stat is-out"><small>Salieron</small><strong id="stOut">0</strong></div>
+    </div>
+
+    <section class="admin-panel inv-count-panel">
+      <div class="inv-kx-art" id="kxArt" hidden></div>
+      <div class="inv-count-tools">
+        <div class="inv-pick" id="pick">
+          <div class="search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="mvSearch" placeholder="Buscar artículo, comentario o usuario…" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+          <div class="inv-pick-results" id="pickResults" role="listbox"></div>
+        </div>
+      </div>
+      <div class="inv-chips" id="mvTipo" role="group" aria-label="Tipo de movimiento">
+        <button type="button" data-tipo="" class="is-on">Todos</button>
+        <button type="button" data-tipo="venta">Ventas</button>
+        <button type="button" data-tipo="entrada">Entradas</button>
+        <button type="button" data-tipo="salida">Salidas</button>
+        <button type="button" data-tipo="ajuste">Ajustes</button>
+        <button type="button" data-tipo="inicial">Altas</button>
+      </div>
+      <div class="inv-period" style="margin-top:12px">
+        <div class="inv-seg" id="perSeg">
+          <button type="button" data-p="hoy">Hoy</button>
+          <button type="button" data-p="7d">7 días</button>
+          <button type="button" data-p="30d" class="is-on">30 días</button>
+          <button type="button" data-p="mes">Este mes</button>
+          <button type="button" data-p="mespasado">Mes pasado</button>
+          <button type="button" data-p="todo">Todo</button>
+          <button type="button" data-p="rango">Rango</button>
+        </div>
+        <div class="inv-range" id="perRange" hidden>
+          <div class="inv-range-field"><span>Desde</span><div id="perDesde"></div></div>
+          <div class="inv-range-field"><span>Hasta</span><div id="perHasta"></div></div>
+        </div>
+      </div>
+
+      <p class="inv-caption" id="mvCaption">Cargando…</p>
+      <div class="inv-table-wrap">
+        <table class="inv-table is-kardex">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Artículo</th>
+              <th>Movimiento</th>
+              <th class="num">Cantidad</th>
+              <th class="num">Existencia</th>
+              <th>Usuario</th>
+              <th>Comentario</th>
+            </tr>
+          </thead>
+          <tbody id="mvBody"></tbody>
+        </table>
+        <p class="inv-empty" id="mvEmpty" hidden></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/inventario/inventario-comun.js"></script>
+<script src="/static/js/inventario/movimientos.js"></script>
+</body>
+</html>

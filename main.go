@@ -171,6 +171,8 @@ func loadTemplates() *template.Template {
 	tmpl = template.Must(tmpl.ParseGlob("templates/auth-admin/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/receptionist/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/optometrist/*.html"))
+	// Panel de Inventario (artículos, departamentos, ajustes, movimientos).
+	tmpl = template.Must(tmpl.ParseGlob("templates/inventario/*.html"))
 	// Panel del empleado (Comunicación: avisos + chats + grupos).
 	tmpl = template.Must(tmpl.ParseGlob("templates/employee/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/ecommerce/*.html"))
@@ -199,6 +201,11 @@ func main() {
 	db.EnsureTicketTemplateTable()
 	// Crea la tabla del inventario si todavía no existe.
 	db.EnsureInventoryTable()
+	// Panel de Inventario: columnas nuevas de artículos, departamentos,
+	// categorías, ajustes y kárdex (movimientos).
+	db.EnsureInventarioProTables()
+	// Cuenta del panel de Inventario (inventario@avanteoptics.mx).
+	db.EnsureInventoryUsersTable()
 	// Etiquetas de cita (cómo llegó: sin cita, chequeo, teléfono, WhatsApp).
 	db.EnsureAppointmentTagsTable()
 	// Seguimiento al asistir: si compró y cada cuánto le toca su revisión.
@@ -539,6 +546,37 @@ func main() {
 	}
 
 	// API de recepción: plantilla del ticket (Plantillas → Ticket de venta).
+	// Panel de Inventario (como el inventario de SICAR): el usuario de
+	// inventario (inventario@avanteoptics.mx) y el admin.
+	inventarioStaff := handlers.RequireRole(handlers.RoleAdmin, handlers.RoleInventario)
+	inventarioGroup := router.Group("/inventario", handlers.RequireAdminAuth(), inventarioStaff)
+	{
+		inventarioGroup.GET("", func(c *gin.Context) { c.Redirect(http.StatusFound, "/inventario/articulos") })
+		inventarioGroup.GET("/articulos", handlers.InventarioArticulosPage)
+		inventarioGroup.GET("/departamentos", handlers.InventarioDepartamentosPage)
+		inventarioGroup.GET("/ajustes", handlers.InventarioAjustesPage)
+		inventarioGroup.GET("/movimientos", handlers.InventarioMovimientosPage)
+	}
+	apiInventario := router.Group("/api/inventario", handlers.RequireAdminAuth(), inventarioStaff)
+	{
+		apiInventario.GET("/articulos", handlers.InvListArticulos)
+		apiInventario.POST("/articulos", handlers.InvCreateArticulo)
+		apiInventario.PUT("/articulos/:id", handlers.InvUpdateArticulo)
+		apiInventario.DELETE("/articulos/:id", handlers.InvDeleteArticulo)
+		apiInventario.POST("/articulos/:id/ajustar", handlers.InvAjustarArticulo)
+		apiInventario.GET("/departamentos", handlers.InvListDepartamentos)
+		apiInventario.POST("/departamentos", handlers.InvCreateDepartamento)
+		apiInventario.PUT("/departamentos/:id", handlers.InvRenameDepartamento)
+		apiInventario.DELETE("/departamentos/:id", handlers.InvDeleteDepartamento)
+		apiInventario.POST("/categorias", handlers.InvCreateCategoria)
+		apiInventario.PUT("/categorias/:id", handlers.InvUpdateCategoria)
+		apiInventario.DELETE("/categorias/:id", handlers.InvDeleteCategoria)
+		apiInventario.GET("/ajustes", handlers.InvListAjustes)
+		apiInventario.GET("/ajustes/:id", handlers.InvGetAjuste)
+		apiInventario.POST("/ajustes", handlers.InvAplicarAjuste)
+		apiInventario.GET("/movimientos", handlers.InvListMovimientos)
+	}
+
 	apiReceptionist := router.Group("/api/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
 	{
 		apiReceptionist.GET("/ticket-plantilla", handlers.GetTicketTemplate)

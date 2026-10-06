@@ -37,6 +37,7 @@ const (
 	RoleReceptionist = "receptionist"
 	RoleOptometrist  = "optometrist"
 	RoleEmployee     = "employee"
+	RoleInventario   = "inventario"
 )
 
 type adminLoginInput struct {
@@ -44,10 +45,11 @@ type adminLoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// AdminLogin valida credenciales contra las cuatro tablas de staff, en
-// este orden: admins -> receptionists -> optometrists -> employees. La
+// AdminLogin valida credenciales contra las tablas de staff, en este
+// orden: admins -> receptionists -> optometrists -> employees ->
+// inventory_users. La
 // primera que tenga ese correo (y cuya contraseña haga match) es la que
-// arranca sesión. Un correo solo debería existir en una de las cuatro
+// arranca sesión. Un correo solo debería existir en una de las
 // tablas a la vez — tú controlas eso al crear las cuentas, aquí no se
 // valida.
 //
@@ -118,7 +120,21 @@ func AdminLogin(c *gin.Context) {
 		return
 	}
 
-	// No apareció en ninguna de las cuatro tablas.
+	// 5) Inventario
+	if u, err := models.GetInventoryUserByEmail(input.Email); err == nil {
+		if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(input.Password)) == nil {
+			finishStaffLogin(c, RoleInventario, u.ID, u.Name, u.Email, "/inventario/articulos")
+			return
+		}
+		LogStaffLoginFailed(c, RoleInventario, u.ID, u.Name)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
+		return
+	} else if !errors.Is(err, models.ErrInventoryUserNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error del servidor. Intenta de nuevo."})
+		return
+	}
+
+	// No apareció en ninguna de las cinco tablas.
 	c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
 }
 
@@ -239,6 +255,8 @@ func roleLabel(role string) string {
 		return "Optometrista"
 	case RoleEmployee:
 		return "Empleado"
+	case RoleInventario:
+		return "Inventario"
 	default:
 		return role
 	}

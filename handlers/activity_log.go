@@ -44,6 +44,7 @@ var TrackedActivityRoles = map[string]bool{
 	RoleReceptionist: true,
 	RoleOptometrist:  true,
 	RoleEmployee:     true,
+	RoleInventario:   true,
 }
 
 // ActivityRetentionDays: lo más viejo que esto se borra solo (una vez al
@@ -616,6 +617,69 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 	case method == http.MethodDelete && route == "/api/receptionist/pos/abonos/:id":
 		e.Action = "pos.abono.cancelar"
 		e.Description, intento = "Canceló el abono #"+c.Param("id"), "cancelar el abono #"+c.Param("id")
+
+	/* ----- Inventario ----- */
+	case method == http.MethodPost && route == "/api/inventario/articulos":
+		e.Action = "inv.articulo.crear"
+		e.Description = "Agregó el artículo " + actOrDash(actStr(p, "clave")) + " · " + actOrDash(actStr(p, "descripcion"))
+		intento = "agregar el artículo " + actOrDash(actStr(p, "clave"))
+		if x, ok := p["existencia"].(float64); ok && x != 0 {
+			e.Context = "Existencia inicial " + strconv.Itoa(int(x))
+		}
+	case method == http.MethodPut && route == "/api/inventario/articulos/:id":
+		e.Action = "inv.articulo.editar"
+		e.Description = "Editó el artículo " + actOrDash(actStr(p, "clave")) + " · " + actOrDash(actStr(p, "descripcion"))
+		intento = "editar el artículo " + actOrDash(actStr(p, "clave"))
+		if v, ok := p["precio_1"].(float64); ok {
+			e.Context = "Precio 1 $" + strconv.FormatFloat(v, 'f', 2, 64)
+		}
+	case method == http.MethodDelete && route == "/api/inventario/articulos/:id":
+		e.Action = "inv.articulo.eliminar"
+		e.Description, intento = "Eliminó el artículo #"+c.Param("id")+" del inventario", "eliminar el artículo #"+c.Param("id")
+	case method == http.MethodPost && route == "/api/inventario/articulos/:id/ajustar":
+		e.Action = "inv.ajuste.articulo"
+		modo := map[string]string{"entrada": "una entrada de", "salida": "una salida de", "fijar": "fijó la existencia en"}[actStr(p, "modo")]
+		cant := 0
+		if x, ok := p["cantidad"].(float64); ok {
+			cant = int(x)
+		}
+		if actStr(p, "modo") == "fijar" {
+			e.Description = "Ajustó el artículo #" + c.Param("id") + ": " + modo + " " + strconv.Itoa(cant)
+		} else {
+			e.Description = "Ajustó el artículo #" + c.Param("id") + ": " + actOrDash(modo) + " " + strconv.Itoa(cant) + " piezas"
+		}
+		intento = "ajustar la existencia del artículo #" + c.Param("id")
+		e.Context = actStr(p, "comentario")
+	case method == http.MethodPost && route == "/api/inventario/ajustes":
+		e.Action = "inv.ajuste.fisico"
+		n := 0
+		if l, ok := p["lineas"].([]interface{}); ok {
+			n = len(l)
+		}
+		e.Description, intento = "Aplicó un inventario físico de "+strconv.Itoa(n)+" artículos", "aplicar un inventario físico"
+		e.Context = actStr(p, "comentario")
+	case route == "/api/inventario/departamentos" || route == "/api/inventario/departamentos/:id":
+		e.Action = "inv.departamento"
+		verbo := map[string]string{http.MethodPost: "Creó", http.MethodPut: "Renombró", http.MethodDelete: "Borró"}[method]
+		if verbo == "" {
+			return "", false
+		}
+		e.Description = verbo + " el departamento " + actOrDash(actStr(p, "nombre"))
+		if method == http.MethodDelete {
+			e.Description = "Borró el departamento #" + c.Param("id")
+		}
+		intento = strings.ToLower(verbo[:1]) + verbo[1:] + " un departamento"
+	case route == "/api/inventario/categorias" || route == "/api/inventario/categorias/:id":
+		e.Action = "inv.categoria"
+		verbo := map[string]string{http.MethodPost: "Creó", http.MethodPut: "Editó", http.MethodDelete: "Borró"}[method]
+		if verbo == "" {
+			return "", false
+		}
+		e.Description = verbo + " la categoría " + actOrDash(actStr(p, "nombre"))
+		if method == http.MethodDelete {
+			e.Description = "Borró la categoría #" + c.Param("id")
+		}
+		intento = strings.ToLower(verbo[:1]) + verbo[1:] + " una categoría"
 
 	/* ----- Recepción: plantilla del ticket ----- */
 	case method == http.MethodPut && route == "/api/receptionist/ticket-plantilla":

@@ -250,6 +250,7 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 
 	// Productos: precio y existencia salen del inventario.
 	var subtotal, total float64
+	stocks := make([]int, len(s.Items)) // existencia antes de vender (kárdex)
 	for i := range s.Items {
 		it := &s.Items[i]
 		var desc, clave string
@@ -282,6 +283,7 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 		if _, err := tx.Exec("UPDATE inventory_items SET cantidad_actual = cantidad_actual - ? WHERE id = ?", it.Cantidad, it.InventoryID); err != nil {
 			return nil, err
 		}
+		stocks[i] = stock
 	}
 	s.Subtotal, s.Total = round2(subtotal), round2(total)
 	s.Descuento = round2(s.Subtotal - s.Total)
@@ -350,13 +352,15 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 		return nil, err
 	}
 	s.ID, _ = res.LastInsertId()
-	for _, it := range s.Items {
+	for i, it := range s.Items {
 		if _, err := tx.Exec(
 			`INSERT INTO pos_sale_items (sale_id, inventory_id, clave, descripcion, cantidad, precio, descuento, importe) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 			s.ID, it.InventoryID, it.Clave, it.Descripcion, it.Cantidad, it.Precio, it.Descuento, it.Importe,
 		); err != nil {
 			return nil, err
 		}
+		// Kárdex (Inventario → Movimientos): salida por venta.
+		logInvVenta(tx, it.InventoryID, it.Cantidad, stocks[i], s.ID, s.Cajero)
 	}
 
 	if p.Credito > 0 {

@@ -1,0 +1,94 @@
+{{define "inventario-sidebar"}}
+{{/* Marca del sidebar. Los estilos van aquí mismo para que se vean
+   igual en todas las páginas, sin importar qué CSS cargue cada una
+   (o si el navegador tiene en caché un sidebar.css viejo). */}}
+<style>
+.cuenta-sidebar a.cuenta-brand{
+  display:flex !important; flex-direction:row !important; align-items:center; gap:12px;
+  padding:4px 6px 16px; margin:0 0 14px;
+  border-bottom:1px solid var(--line);
+  color:var(--ink); text-decoration:none;
+  flex-shrink:0; overflow:hidden; white-space:nowrap;
+  transition:gap .3s var(--ease, ease), padding .3s var(--ease, ease);
+}
+.cuenta-sidebar .cuenta-brand-logo{
+  width:36px; height:36px; object-fit:contain; flex-shrink:0; display:block; margin:0;
+  transition:transform .3s cubic-bezier(.22,1.4,.36,1);
+}
+.cuenta-sidebar a.cuenta-brand:hover .cuenta-brand-logo{ transform:rotate(-6deg) scale(1.06); }
+.cuenta-sidebar a.cuenta-brand:active .cuenta-brand-logo{ transform:scale(.94); }
+.cuenta-sidebar .cuenta-brand-text{
+  display:block; font-family:inherit; font-size:17px; font-weight:800; letter-spacing:-.01em; line-height:1.1;
+  color:var(--ink); white-space:nowrap; overflow:hidden;
+  max-width:170px; opacity:1;
+  transition:max-width .3s var(--ease, ease), opacity .2s var(--ease, ease), color .2s var(--ease, ease);
+}
+.cuenta-sidebar a.cuenta-brand:hover .cuenta-brand-text{ color:var(--blue-600); }
+.cuenta-sidebar.shrink a.cuenta-brand{ gap:0; padding-left:0; padding-right:0; justify-content:center; }
+.cuenta-sidebar.shrink .cuenta-brand-text{ max-width:0; opacity:0; }
+@media (max-width:900px){
+  /* Menú del celular: marca completa aunque en compu esté retraído */
+  .cuenta-sidebar.shrink a.cuenta-brand{ gap:12px; padding:4px 2px 16px; justify-content:flex-start; }
+  .cuenta-sidebar.shrink .cuenta-brand-text{ max-width:170px; opacity:1; }
+}
+</style>
+{{/* Celular (≤900px): botón de menú arriba a la izquierda + el mismo
+     sidebar como panel que se desliza desde la izquierda. En
+     computadora estos dos elementos no se ven. */}}
+<button type="button" class="mnav-toggle" id="mnavToggle" aria-label="Abrir menú" aria-controls="cuentaSidebar" aria-expanded="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/></svg>
+</button>
+<div class="mnav-backdrop" id="mnavBackdrop"></div>
+<aside class="cuenta-sidebar" id="cuentaSidebar">
+  <div class="mnav-head">
+    <div class="mnav-who">
+      <span class="userbar-avatar">{{if .StaffInitials}}{{.StaffInitials}}{{else}}IN{{end}}</span>
+      <div>
+        <div class="mnav-name">{{if .StaffName}}{{.StaffName}}{{else}}Inventario{{end}}</div>
+        <div class="mnav-role">Inventario</div>
+      </div>
+    </div>
+    <button type="button" class="mnav-close" id="mnavClose" aria-label="Cerrar menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <button type="button" class="cuenta-sidebar-toggle" id="sidebarToggle" aria-label="Colapsar menú" title="Colapsar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </button>
+
+  <a href="/" class="cuenta-brand" aria-label="Avante Optics — ir al inicio" title="Ir al inicio">
+    <img src="/static/images/avante-logo.png" alt="" class="cuenta-brand-logo" width="36" height="36">
+    <span class="cuenta-brand-text">Avante Optics</span>
+  </a>
+
+  <div class="cuenta-themeContainer">
+    <label class="cuenta-themeLabel" id="cuentaThemeLabel">
+      <input class="cuenta-themeInput" type="checkbox" id="cuentaThemeToggle">
+      <div class="cuenta-themeType light">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span>Light</span>
+      </div>
+      <div class="cuenta-themeType dark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span>Dark</span>
+      </div>
+    </label>
+  </div>
+
+  <nav class="cuenta-nav-group">
+    <span class="cuenta-nav-blob" aria-hidden="true"></span>
+    {{/* Como el módulo de inventario de SICAR: el catálogo de artículos,
+         su clasificación, los ajustes (inventario físico) y el kárdex. */}}
+    <a href="/inventario/articulos" class="cuenta-nav-link{{if eq .ActivePage "inv-articulos"}} active{{end}}"><i data-feather="package"></i><span>Artículos</span><span class="cuenta-nav-tooltip">Artículos</span></a>
+    <a href="/inventario/departamentos" class="cuenta-nav-link{{if eq .ActivePage "inv-departamentos"}} active{{end}}"><i data-feather="layers"></i><span>Departamentos</span><span class="cuenta-nav-tooltip">Departamentos y categorías</span></a>
+    <a href="/inventario/ajustes" class="cuenta-nav-link{{if eq .ActivePage "inv-ajustes"}} active{{end}}"><i data-feather="sliders"></i><span>Ajustes</span><span class="cuenta-nav-tooltip">Ajustes de inventario</span></a>
+    <a href="/inventario/movimientos" class="cuenta-nav-link{{if eq .ActivePage "inv-movimientos"}} active{{end}}"><i data-feather="repeat"></i><span>Movimientos</span><span class="cuenta-nav-tooltip">Movimientos (kárdex)</span></a>
+  </nav>
+
+  <div class="cuenta-nav-divider"></div>
+
+  <nav class="cuenta-nav-group cuenta-nav-group--plain">
+    <a href="/admin/logout" class="cuenta-nav-link logout"><i data-feather="log-out"></i><span>Cerrar sesión</span><span class="cuenta-nav-tooltip">Cerrar sesión</span></a>
+  </nav>
+</aside>
+{{end}}

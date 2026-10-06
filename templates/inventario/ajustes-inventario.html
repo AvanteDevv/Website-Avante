@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ajustes — Inventario · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/inventario/inventario.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "inventario-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "inventario-sidebar" .}}
+
+  <main class="cuenta-main admin-main inv-page" id="invAjustes">
+    <div class="admin-header">
+      <div>
+        <h1>Ajustes de inventario</h1>
+        <p>Inventario físico: cuenta lo que hay en la óptica y el sistema corrige las existencias. Cada ajuste queda con su folio para consultarlo después.</p>
+      </div>
+    </div>
+
+    <div class="inv-seg inv-mode-switch" id="ajMode" role="tablist">
+      <button type="button" data-mode="nuevo" class="is-on" role="tab"><i data-feather="clipboard"></i>Nuevo conteo</button>
+      <button type="button" data-mode="consultar" role="tab"><i data-feather="search"></i>Consultar ajustes</button>
+    </div>
+
+    <!-- ===== Nuevo conteo ===== -->
+    <section class="admin-panel inv-count-panel" id="paneNuevo">
+      <div class="inv-count-tools">
+        <div class="inv-pick" id="pick">
+          <div class="search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="pickInput" placeholder="Escanea o escribe la clave / descripción para agregar…" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+          <div class="inv-pick-results" id="pickResults" role="listbox"></div>
+        </div>
+        <div class="inv-bulk">
+          <div class="inv-filter-select" id="bulkDep"></div>
+          <div class="inv-filter-select" id="bulkCat"></div>
+          <button type="button" class="inv-btn-ghost" id="bulkAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Agregar todos</button>
+        </div>
+      </div>
+
+      <p class="inv-caption" id="cntCaption"></p>
+      <div class="inv-table-wrap">
+        <table class="inv-table is-count">
+          <thead>
+            <tr>
+              <th>Clave / Descripción</th>
+              <th class="num c-sis">En sistema</th>
+              <th class="num">Contado</th>
+              <th class="num">Diferencia</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cntBody"></tbody>
+        </table>
+        <p class="inv-empty" id="cntEmpty">Agrega artículos con el buscador (o todos los de un departamento) y escribe cuántos contaste.</p>
+      </div>
+
+      <div class="inv-count-foot">
+        <div class="inv-count-sum" id="cntSum"></div>
+        <div class="inv-count-note"><input type="text" id="cntComentario" maxlength="250" placeholder="Comentario (ej. Conteo de fin de mes)"></div>
+        <button type="button" class="inv-btn-ghost" id="cntClear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Vaciar</button>
+        <button type="button" class="btn solid small" id="cntApply" disabled>Aplicar ajuste</button>
+      </div>
+    </section>
+
+    <!-- ===== Consultar ===== -->
+    <section class="admin-panel inv-count-panel" id="paneConsultar" hidden>
+      <div class="inv-period">
+        <div class="inv-seg" id="perSeg">
+          <button type="button" data-p="hoy">Hoy</button>
+          <button type="button" data-p="7d">7 días</button>
+          <button type="button" data-p="mes" class="is-on">Este mes</button>
+          <button type="button" data-p="mespasado">Mes pasado</button>
+          <button type="button" data-p="rango">Rango</button>
+        </div>
+        <div class="inv-range" id="perRange" hidden>
+          <div class="inv-range-field"><span>Desde</span><div id="perDesde"></div></div>
+          <div class="inv-range-field"><span>Hasta</span><div id="perHasta"></div></div>
+        </div>
+      </div>
+      <p class="inv-caption" id="ajCaption"></p>
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Folio</th>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th class="num">Artículos</th>
+              <th class="num">Sobrantes</th>
+              <th class="num">Faltantes</th>
+              <th>Usuario</th>
+              <th>Comentario</th>
+            </tr>
+          </thead>
+          <tbody id="ajBody"></tbody>
+        </table>
+        <p class="inv-empty" id="ajEmpty" hidden></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ================= Modal: confirmar ajuste ================= -->
+<div class="admin-modal-overlay" id="confirmModal">
+  <div class="admin-modal-card inv-confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="admin-modal-head">
+      <h3 id="confirmTitle">Aplicar ajuste</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="inv-confirm-text" id="confirmText"></p>
+      <div class="inv-count-sum" id="confirmSum"></div>
+      <p class="staff-error" id="confirmError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-close-modal>Revisar</button>
+        <button type="button" class="btn solid small" id="confirmOk">Sí, aplicar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: detalle del ajuste ================= -->
+<div class="admin-modal-overlay" id="detModal">
+  <div class="admin-modal-card inv-detail-card" role="dialog" aria-modal="true" aria-labelledby="detTitle">
+    <div class="admin-modal-head">
+      <h3 id="detTitle">Ajuste</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body" id="detBody"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/inventario/inventario-comun.js"></script>
+<script src="/static/js/inventario/ajustes.js"></script>
+</body>
+</html>

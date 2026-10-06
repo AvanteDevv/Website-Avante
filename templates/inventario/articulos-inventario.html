@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artículos — Inventario · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/inventario/inventario.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "inventario-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "inventario-sidebar" .}}
+
+  <main class="cuenta-main admin-main inv-page" id="invArticulos">
+    <div class="admin-header">
+      <div>
+        <h1>Artículos</h1>
+        <p>El catálogo del inventario: claves, precios, existencias y dónde está cada cosa. Lo que se vende en el Punto de venta sale de aquí.</p>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="inv-stats">
+      <div class="inv-stat"><small>Artículos</small><strong id="stArticulos">0</strong></div>
+      <div class="inv-stat"><small>Piezas</small><strong id="stPiezas">0</strong></div>
+      <div class="inv-stat"><small>Valor (a costo)</small><strong id="stCosto">$0.00</strong></div>
+      <div class="inv-stat is-sale"><small>Valor (a precio de venta)</small><strong id="stVenta">$0.00</strong></div>
+      <button type="button" class="inv-stat is-warn" data-goto="bajo"><small>Bajo mínimo</small><strong id="stBajo">0</strong><span>Ver ›</span></button>
+      <button type="button" class="inv-stat is-danger" data-goto="agotado"><small>Agotados</small><strong id="stAgotados">0</strong><span>Ver ›</span></button>
+    </div>
+
+    <!-- Barra de acciones (como la de SICAR) -->
+    <div class="inv-toolbar" role="toolbar" aria-label="Acciones de artículos">
+      <button type="button" class="inv-tool is-primary" id="tbAgregar"><i data-feather="plus-circle"></i><span>Agregar</span><kbd>F3</kbd></button>
+      <button type="button" class="inv-tool" id="tbEditar" disabled><i data-feather="edit-3"></i><span>Editar</span><kbd>F4</kbd></button>
+      <button type="button" class="inv-tool" id="tbRecargar"><i data-feather="refresh-cw"></i><span>Recargar</span><kbd>F5</kbd></button>
+      <button type="button" class="inv-tool is-danger" id="tbEliminar" disabled><i data-feather="trash-2"></i><span>Eliminar</span><kbd>F6</kbd></button>
+      <span class="inv-tool-sep"></span>
+      <button type="button" class="inv-tool" id="tbAjustar" disabled><i data-feather="sliders"></i><span>Ajustar</span><kbd>F8</kbd></button>
+      <button type="button" class="inv-tool" id="tbClonar" disabled><i data-feather="copy"></i><span>Clonar</span><kbd>F9</kbd></button>
+      <a class="inv-tool" id="tbKardex" href="/inventario/movimientos" aria-disabled="true"><i data-feather="repeat"></i><span>Movimientos</span></a>
+    </div>
+
+    <div class="inv-layout">
+      <section class="admin-panel inv-list-panel">
+        <div class="inv-filters">
+          <div class="search-box inv-search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="invSearch" placeholder="Clave, clave alterna o descripción…  (F2)" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+          <div class="inv-filter-selects">
+            <div class="inv-filter-select" id="fDepartamento"></div>
+            <div class="inv-filter-select" id="fCategoria"></div>
+          </div>
+        </div>
+        <div class="inv-chips" id="fEstado" role="group" aria-label="Estado">
+          <button type="button" data-estado="" class="is-on">Todos</button>
+          <button type="button" data-estado="bajo">Bajo mínimo</button>
+          <button type="button" data-estado="agotado">Agotados</button>
+          <button type="button" data-estado="sobre">Sobre máximo</button>
+          <button type="button" data-estado="servicio">Servicios</button>
+        </div>
+
+        <p class="inv-caption" id="invCaption">Cargando…</p>
+        <div class="inv-table-wrap">
+          <table class="inv-table" id="invTable">
+            <thead>
+              <tr>
+                <th>Clave / Descripción</th>
+                <th class="c-dep">Departamento · Categoría</th>
+                <th class="num">Exist.</th>
+                <th class="num">Precio</th>
+              </tr>
+            </thead>
+            <tbody id="invBody"></tbody>
+          </table>
+          <p class="inv-empty" id="invEmpty" hidden></p>
+        </div>
+        <div class="inv-pager" id="invPager" hidden>
+          <button type="button" class="inv-pager-btn" id="pgPrev" aria-label="Página anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+          <span id="pgLabel">Página 1 de 1</span>
+          <button type="button" class="inv-pager-btn" id="pgNext" aria-label="Página siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+        </div>
+      </section>
+
+      <!-- Artículo seleccionado -->
+      <aside class="admin-panel inv-detail" id="invDetail">
+        <div class="inv-detail-empty" id="invDetailEmpty">
+          <span class="inv-detail-empty-ico"><i data-feather="package"></i></span>
+          <strong>Artículo seleccionado</strong>
+          <p>Elige un artículo de la lista para ver su precio, existencia y dónde está.</p>
+        </div>
+        <div class="inv-detail-body" id="invDetailBody" hidden></div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<!-- ================= Modal: agregar / editar artículo ================= -->
+<div class="admin-modal-overlay" id="artModal">
+  <div class="admin-modal-card inv-art-card" role="dialog" aria-modal="true" aria-labelledby="artTitle">
+    <div class="admin-modal-head">
+      <h3 id="artTitle">Agregar artículo</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="inv-tabs" role="tablist">
+      <span class="inv-tabs-glow" id="artTabsGlow"></span>
+      <button type="button" class="inv-tab is-on" data-tab="general" role="tab">General</button>
+      <button type="button" class="inv-tab" data-tab="precios" role="tab">Precios</button>
+      <button type="button" class="inv-tab" data-tab="inventario" role="tab">Inventario</button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="staff-form inv-art-form" id="artForm" novalidate autocomplete="off">
+        <!-- General -->
+        <div class="inv-tabpane is-on" data-pane="general">
+          <div class="staff-form-row">
+            <label class="staff-field">
+              <span>Clave</span>
+              <input type="text" id="aClave" maxlength="60" required placeholder="Ej. AC13" spellcheck="false">
+            </label>
+            <label class="staff-field">
+              <span>Clave alterna <em>(opcional)</em></span>
+              <input type="text" id="aClaveAlt" maxlength="60" placeholder="Ej. ARZL-GUE-2702-07" spellcheck="false">
+            </label>
+          </div>
+          <label class="staff-field">
+            <span>Descripción</span>
+            <input type="text" id="aDesc" maxlength="200" required placeholder="Ej. ARMAZON GUESS PASTA ROJO">
+          </label>
+          <div class="staff-form-row">
+            <div class="staff-field">
+              <span>Departamento</span>
+              <div id="aDepartamento"></div>
+            </div>
+            <div class="staff-field">
+              <span>Categoría</span>
+              <div id="aCategoria"></div>
+            </div>
+          </div>
+          <div class="staff-form-row inv-row-3">
+            <div class="staff-field">
+              <span>Unidad de compra</span>
+              <div id="aUCompra"></div>
+            </div>
+            <div class="staff-field">
+              <span>Unidad de venta</span>
+              <div id="aUVenta"></div>
+            </div>
+            <label class="staff-field">
+              <span>Factor <em>(piezas por unidad de compra)</em></span>
+              <input type="number" id="aFactor" min="1" step="1" inputmode="numeric" value="1">
+            </label>
+          </div>
+          <label class="inv-check">
+            <input type="checkbox" id="aServicio">
+            <span class="inv-check-box"></span>
+            <span><strong>Es un servicio</strong><small>No lleva existencia (ej. examen de la vista, ajuste de armazón).</small></span>
+          </label>
+        </div>
+
+        <!-- Precios -->
+        <div class="inv-tabpane" data-pane="precios">
+          <div class="staff-form-row">
+            <label class="staff-field">
+              <span>Precio de compra <em>(lo que cuesta, con IVA)</em></span>
+              <span class="inv-money"><span>$</span><input type="number" id="aCompra" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span>
+            </label>
+            <div class="staff-field">
+              <span>Impuestos</span>
+              <label class="inv-check is-inline">
+                <input type="checkbox" id="aIva" checked>
+                <span class="inv-check-box"></span>
+                <span><strong>I.V.A. 16 %</strong><small>Los precios de venta ya lo incluyen (neto).</small></span>
+              </label>
+            </div>
+          </div>
+          <p class="inv-hint">Escribe el <strong>% de utilidad</strong> o el <strong>precio de venta</strong>: el otro se calcula solo. El precio 1 es el que usa el Punto de venta.</p>
+          <div class="inv-prices" id="aPrices">
+            <!-- se llena con JS: precio 1 a 4 -->
+          </div>
+        </div>
+
+        <!-- Inventario -->
+        <div class="inv-tabpane" data-pane="inventario">
+          <div class="staff-form-row inv-row-3">
+            <label class="staff-field" id="aExistField">
+              <span>Existencia inicial</span>
+              <input type="number" id="aExistencia" min="0" step="1" inputmode="numeric" placeholder="0">
+            </label>
+            <label class="staff-field">
+              <span>Inventario mínimo</span>
+              <input type="number" id="aMinimo" min="0" step="1" inputmode="numeric" placeholder="0">
+            </label>
+            <label class="staff-field">
+              <span>Inventario máximo</span>
+              <input type="number" id="aMaximo" min="0" step="1" inputmode="numeric" placeholder="0">
+            </label>
+          </div>
+          <p class="inv-hint" id="aExistHint" hidden>La existencia no se cambia aquí: usa <strong>Ajustar (F8)</strong> para que quede registrada en los movimientos.</p>
+          <label class="staff-field">
+            <span>Localización <em>(dónde está guardado)</em></span>
+            <input type="text" id="aLocal" maxlength="60" placeholder="Ej. VITRINA 2 · CAJÓN 3">
+          </label>
+          <p class="inv-hint">Con el mínimo te avisa cuando hay que resurtir (filtro <strong>Bajo mínimo</strong>); con el máximo, cuando hay de más.</p>
+        </div>
+
+        <p class="staff-error" id="artError"></p>
+        <div class="staff-form-actions">
+          <button type="button" class="btn small" data-close-modal>Cancelar</button>
+          <button type="submit" class="btn solid small" id="artSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: ajustar existencia ================= -->
+<div class="admin-modal-overlay" id="ajModal">
+  <div class="admin-modal-card inv-aj-card" role="dialog" aria-modal="true" aria-labelledby="ajTitle">
+    <div class="admin-modal-head">
+      <h3 id="ajTitle">Ajustar existencia</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="staff-form" id="ajForm" novalidate autocomplete="off">
+        <div class="inv-aj-who">
+          <strong id="ajDesc">—</strong>
+          <span id="ajClave"></span>
+        </div>
+        <div class="inv-seg inv-aj-modes" id="ajModo" role="radiogroup" aria-label="Tipo de ajuste">
+          <button type="button" data-modo="entrada" class="is-on" role="radio" aria-checked="true"><i data-feather="plus"></i>Entrada</button>
+          <button type="button" data-modo="salida" role="radio" aria-checked="false"><i data-feather="minus"></i>Salida</button>
+          <button type="button" data-modo="fijar" role="radio" aria-checked="false"><i data-feather="hash"></i>Fijar existencia</button>
+        </div>
+        <div class="inv-aj-grid">
+          <div class="inv-aj-box"><small>Existencia actual</small><strong id="ajActual">0</strong></div>
+          <label class="inv-aj-box is-input">
+            <small id="ajCantLabel">Piezas que entran</small>
+            <input type="number" id="ajCantidad" min="0" step="1" inputmode="numeric" placeholder="0">
+          </label>
+          <div class="inv-aj-box is-result"><small>Queda en</small><strong id="ajNueva">0</strong></div>
+        </div>
+        <div class="staff-field">
+          <span>Motivo</span>
+          <div class="qchips inv-motivos" id="ajMotivos"></div>
+          <input type="text" id="ajComentario" maxlength="250" placeholder="Comentario (opcional)">
+        </div>
+        <p class="staff-error" id="ajError"></p>
+        <div class="staff-form-actions">
+          <button type="button" class="btn small" data-close-modal>Cancelar</button>
+          <button type="submit" class="btn solid small" id="ajSave">Guardar ajuste</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: eliminar ================= -->
+<div class="admin-modal-overlay" id="delModal">
+  <div class="admin-modal-card inv-confirm-card" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+    <div class="admin-modal-head">
+      <h3 id="delTitle">Eliminar artículo</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="inv-confirm-text" id="delText"></p>
+      <p class="staff-error" id="delError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-close-modal>Cancelar</button>
+        <button type="button" class="btn solid small inv-btn-danger" id="delOk">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: nueva categoría (como el de SICAR) ================= -->
+<div class="admin-modal-overlay" id="catModal">
+  <div class="admin-modal-card inv-confirm-card" role="dialog" aria-modal="true" aria-labelledby="catTitle">
+    <div class="admin-modal-head">
+      <h3 id="catTitle">Nueva categoría</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="staff-form" id="catForm" novalidate autocomplete="off">
+        <div class="staff-field">
+          <span>Departamento</span>
+          <div id="cDepartamento"></div>
+        </div>
+        <label class="staff-field">
+          <span>Categoría</span>
+          <input type="text" id="cNombre" maxlength="60" placeholder="Ej. PASTA GUESS ROJO">
+        </label>
+        <label class="staff-field">
+          <span>Comisión <em>(%)</em></span>
+          <input type="number" id="cComision" min="0" max="100" step="0.01" inputmode="decimal" placeholder="0">
+        </label>
+        <p class="staff-error" id="catError"></p>
+        <div class="staff-form-actions">
+          <button type="button" class="btn small" data-close-modal>Cancelar</button>
+          <button type="submit" class="btn solid small" id="catSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/inventario/inventario-comun.js"></script>
+<script src="/static/js/inventario/articulos.js"></script>
+</body>
+</html>
