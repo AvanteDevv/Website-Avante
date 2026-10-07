@@ -334,6 +334,20 @@ body.dark .inv-rs-st{ background:rgba(31,157,85,.2); color:#6ee7a6; }
 body.dark .inv-rs-item.is-vendida .inv-rs-st{ background:rgba(217,45,32,.2); color:#ff8b7d; }
 body.dark .inv-rs-item.is-baja .inv-rs-st{ background:rgba(255,193,7,.16); color:#ffd36e; }
 
+.inv-rs-actions{ flex-wrap:wrap; align-items:center; }
+.inv-rs-spacer{ flex:1; }
+.inv-rs-actions .inv-btn-ghost span{ max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+.inv-lbl-card{ max-width:520px; }
+.inv-lbl-card .admin-modal-body{ display:flex; flex-direction:column; gap:14px; }
+.inv-lbl-status{ padding:12px 14px; border-radius:14px; background:var(--accent-soft); font-size:13px; line-height:1.5; color:var(--ink); }
+.inv-lbl-status.is-on{ background:#e3f6ea; color:#1f7a3d; }
+.inv-lbl-status.is-off{ background:#fff5f4; color:#b42318; }
+.inv-lbl-status a{ color:inherit; font-weight:700; }
+body.dark .inv-lbl-status.is-on{ background:rgba(31,157,85,.18); color:#6ee7a6; }
+body.dark .inv-lbl-status.is-off{ background:rgba(217,45,32,.14); color:#ff8b7d; }
+.inv-lbl-card .inv-seg{ max-width:300px; }
+.inv-lbl-card .staff-field > small{ margin-top:2px; }
+
 /* ---------- Aviso ---------- */
 .inv-toast{
   position:fixed; left:50%; bottom:26px; z-index:400; max-width:calc(100vw - 32px);

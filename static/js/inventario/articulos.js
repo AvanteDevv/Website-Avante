@@ -713,9 +713,111 @@
     var ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove();
   }
-  // Etiquetas con código de barras (para pegarlas en cada pieza y escanearlas).
+  /* ---------- etiquetas: directo a la etiquetadora (Avante Impresión) ---------- */
+  var L = window.InvLabels;
+  function labelsOf(list) {
+    var line = rsArt.clave + '  ' + mxn.format(rsArt.precio_1);
+    return list.map(function (p) { return { numero: p.numero, desc: rsArt.descripcion, linea: line }; });
+  }
+  function syncLblName() {
+    var c = L ? L.config() : null;
+    $('rsLblName').textContent = c && c.printer ? c.printer + ' · ' + c.lang.toUpperCase() : 'Impresora de etiquetas';
+  }
   $('rsPrint').addEventListener('click', function () {
     var list = rsFiltered();
+    if (!list.length || !rsArt) return;
+    var cfg = L ? L.config() : null;
+    if (!cfg || !cfg.printer || !cfg.enabled) {
+      I.toast('Elige la impresora de etiquetas para imprimir directo. Mientras, se abrió la vista previa.');
+      previewLabels(list);
+      return;
+    }
+    var btn = this; btn.disabled = true; btn.textContent = 'Imprimiendo…';
+    L.print(labelsOf(list), cfg).then(function () {
+      I.toast('Se mandaron ' + list.length + (list.length === 1 ? ' etiqueta' : ' etiquetas') + ' a ' + cfg.printer + '.');
+    }, function (err) {
+      I.toast((err.offline ? 'Avante Impresión no está abierto en esta compu.' : 'No se pudo imprimir directo: ' + err.message + '.') + ' Se abrió la vista previa.', 'error');
+      previewLabels(list);
+    }).finally(function () { btn.disabled = false; btn.textContent = 'Imprimir etiquetas'; });
+  });
+  $('rsPreview').addEventListener('click', function () { var l = rsFiltered(); if (l.length) previewLabels(l); });
+
+  // Configurar la etiquetadora (se guarda en esta compu).
+  var lblModal = $('lblModal'), lblLang = 'tspl', lblPrinters = [];
+  var LANG_HINT = {
+    tspl: 'TSC, Xprinter (XP-360B, XP-365B, XP-420B), 3nStar, Rongta, Beeprt y la mayoría de las genéricas.',
+    zpl: 'Zebra (ZD220, ZD230, ZD410, GC420, GK420, GX420).',
+    epl: 'Zebra viejitas (LP2824, TLP2844). Si con ZPL no imprime, prueba esta.'
+  };
+  var lblSel = I.select($('lblPrinter'), { placeholder: 'Elige la impresora', onChange: function (v) {
+    if (v && L) { lblLang = L.guess(v); syncLang(); }
+  } });
+  function syncLang() {
+    Array.prototype.forEach.call($('lblLang').querySelectorAll('button'), function (b) { b.classList.toggle('is-on', b.getAttribute('data-lang') === lblLang); });
+    $('lblLangHint').textContent = LANG_HINT[lblLang];
+  }
+  $('lblLang').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-lang]');
+    if (b) { lblLang = b.getAttribute('data-lang'); syncLang(); }
+  });
+  function openLblCfg() {
+    if (!L) return;
+    var c = L.config();
+    lblLang = c.lang; syncLang();
+    $('lblW').value = c.w; $('lblH').value = c.h; $('lblGap').value = c.gap;
+    $('lblDirect').checked = !!c.enabled;
+    $('lblError').textContent = '';
+    lblSel.setOptions(c.printer ? [{ value: c.printer, label: c.printer }] : []);
+    lblSel.set(c.printer, true);
+    var st = $('lblStatus');
+    st.className = 'inv-lbl-status'; st.textContent = 'Buscando Avante Impresión…';
+    I.openModal(lblModal);
+    L.status().then(function (s) {
+      if (!s) {
+        st.className = 'inv-lbl-status is-off';
+        st.innerHTML = '<strong>Avante Impresión no está abierto en esta compu.</strong> Ábrelo (el mismo programa que imprime los tickets) y vuelve a abrir esta ventana. ' +
+          '<a href="/static/downloads/avante-impresion.exe" download>Descargar Avante Impresión</a>';
+        return;
+      }
+      lblPrinters = s.printers || [];
+      var sorted = lblPrinters.slice().sort(function (a, b) { return (L.looksLikeLabel(b) ? 1 : 0) - (L.looksLikeLabel(a) ? 1 : 0); });
+      lblSel.setOptions(sorted.map(function (p) { return { value: p, label: p, hint: L.looksLikeLabel(p) ? 'etiquetas' : (p === s.default ? 'predeterminada' : '') }; }));
+      var cur = c.printer && lblPrinters.indexOf(c.printer) !== -1 ? c.printer : (sorted.filter(L.looksLikeLabel)[0] || '');
+      lblSel.set(cur, true);
+      if (!c.printer && cur) { lblLang = L.guess(cur); syncLang(); }
+      st.className = 'inv-lbl-status is-on';
+      st.innerHTML = '<strong>Avante Impresión conectado.</strong> ' + lblPrinters.length + (lblPrinters.length === 1 ? ' impresora encontrada.' : ' impresoras encontradas.');
+    });
+  }
+  function readLblForm() {
+    return {
+      printer: lblSel.get(), lang: lblLang,
+      w: Math.min(110, Math.max(20, parseFloat($('lblW').value) || 50)),
+      h: Math.min(100, Math.max(10, parseFloat($('lblH').value) || 25)),
+      gap: Math.min(10, Math.max(0, parseFloat($('lblGap').value) || 0)),
+      enabled: $('lblDirect').checked
+    };
+  }
+  $('rsLblCfg').addEventListener('click', openLblCfg);
+  $('lblSave').addEventListener('click', function () {
+    var c = readLblForm();
+    if (c.enabled && !c.printer) { $('lblError').textContent = 'Elige la impresora de etiquetas.'; return; }
+    L.setConfig(c); syncLblName();
+    I.closeModal(lblModal);
+    I.toast(c.printer ? 'Las etiquetas se imprimirán en ' + c.printer + '.' : 'Se guardó.');
+  });
+  $('lblTest').addEventListener('click', function () {
+    var c = readLblForm();
+    if (!c.printer) { $('lblError').textContent = 'Elige la impresora de etiquetas.'; return; }
+    var btn = this; btn.disabled = true; $('lblError').textContent = '';
+    L.test(c).then(function () { I.toast('Se mandó una etiqueta de prueba a ' + c.printer + '.'); },
+      function (err) { $('lblError').textContent = err.message; })
+      .finally(function () { btn.disabled = false; });
+  });
+  syncLblName();
+
+  // Vista previa en una ventana (también sirve para imprimir en hoja normal).
+  function previewLabels(list) {
     if (!list.length || !rsArt) return;
     var w = window.open('', '_blank', 'width=900,height=700');
     if (!w) { I.toast('Permite las ventanas emergentes para imprimir las etiquetas.', 'error'); return; }
@@ -735,7 +837,7 @@
       '<script>window.addEventListener("load",function(){document.querySelectorAll(".bc").forEach(function(s){try{JsBarcode(s,s.getAttribute("data-v"),{format:"CODE128",height:34,margin:0,displayValue:false})}catch(e){}});});<\/script>' +
       '</body></html>');
     w.document.close();
-  });
+  }
 
   /* ---------- barra de acciones y atajos ---------- */
   $('tbAgregar').addEventListener('click', openAdd);
