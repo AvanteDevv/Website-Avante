@@ -255,8 +255,30 @@
     }
     var otros = [2, 3, 4].filter(function (n) { return a['precio_' + n] > 0; }).map(function (n) {
       var m = a['mayoreo_' + n];
-      return '<div class="inv-d-row"><span>Precio ' + n + (m > 0 ? ' <small>desde ' + m + ' ' + esc(a.unidad_venta.toLowerCase()) + '</small>' : '') + '</span><strong>' + mxn.format(a['precio_' + n]) + '</strong></div>';
+      var g = I.canCost && a.precio_compra > 0 ? a['precio_' + n] - a.precio_compra : null;
+      return '<div class="inv-d-row"><span>Precio ' + n + (m > 0 ? ' <small>desde ' + m + ' ' + esc(a.unidad_venta.toLowerCase()) + '</small>' : '') + '</span><strong>' + mxn.format(a['precio_' + n]) +
+        (g != null ? ' <small class="inv-d-gan' + (g < 0 ? ' is-neg' : '') + '">' + (g >= 0 ? '+' : '−') + mxn.format(Math.abs(g)) + '</small>' : '') + '</strong></div>';
     }).join('');
+    // Solo admin: utilidad y ganancia por producto.
+    var profit = '';
+    if (I.canCost) {
+      if (a.precio_compra > 0 && a.precio_1 > 0) {
+        var gan = a.precio_1 - a.precio_compra;
+        var margen = gan / a.precio_1 * 100;
+        var neg = gan < 0 ? ' is-neg' : '';
+        var sg = function (v) { return (v >= 0 ? '+' : '−') + mxn.format(Math.abs(v)); };
+        profit = '<div class="inv-d-profit' + neg + '">' +
+          '<div class="inv-d-profit-main"><small>Ganancia por ' + esc(!a.unidad_venta || /^(pza|pz|pieza)$/i.test(a.unidad_venta) ? 'pieza' : a.unidad_venta.toLowerCase()) + '</small><strong>' + sg(gan) + '</strong></div>' +
+          '<div class="inv-d-profit-grid">' +
+            '<div><small>Utilidad</small><strong>' + (u1 >= 0 ? '+' : '') + I.round2(u1).toFixed(1) + ' %</strong><em>sobre costo</em></div>' +
+            '<div><small>Margen</small><strong>' + I.round2(margen).toFixed(1) + ' %</strong><em>sobre venta</em></div>' +
+            (!a.servicio && a.existencia > 0 ? '<div class="is-wide"><small>Ganancia de la existencia</small><strong>' + sg(gan * a.existencia) + '</strong><em>' + I.num(a.existencia) + ' × ' + mxn.format(gan) + '</em></div>' : '') +
+          '</div>' +
+        '</div>';
+      } else {
+        profit = '<div class="inv-d-profit is-empty"><small>Utilidad y ganancia</small><span>Captura el precio de compra para ver cuánto se gana por este artículo.</span></div>';
+      }
+    }
     body.innerHTML =
       '<button type="button" class="inv-sheet-close" data-sheet-close aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>' +
       '<small class="inv-d-kicker">Artículo seleccionado</small>' +
@@ -267,7 +289,7 @@
       '<div class="inv-d-stock is-' + st + '">' +
         '<div><small>Cantidad disponible</small><strong>' + (a.servicio ? '—' : I.num(a.existencia)) + '</strong><em>' + esc(a.unidad_venta) + '</em></div>' +
         '<span class="inv-d-chip is-' + st + '">' + stLabel + '</span>' +
-      '</div>' + bar +
+      '</div>' + bar + profit +
       '<div class="inv-d-rows">' +
         '<div class="inv-d-row"><span>Departamento</span><strong>' + esc(a.departamento || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Categoría</span><strong>' + esc(a.categoria || '—') + '</strong></div>' +
