@@ -1,0 +1,87 @@
+/* =========================================================
+   Página pública: el cliente firma su formato de Clarito
+   desde su celular (/firmar/:token).
+   ========================================================= */
+:root{
+  --ink:#15161a; --muted:#767b8a; --line:#DDE3FA; --accent:#041cff; --accent-soft:#F5F7FF;
+  --ok:#1f9d55; --bad:#c0392b; --white:#fff; --bg:#f4f6ff;
+  --sans:'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+html, body{ background:var(--bg); }
+body{
+  min-height:100vh; min-height:100dvh; font-family:var(--sans); color:var(--ink);
+  background:radial-gradient(1200px 500px at 50% -200px, #dfe4ff, transparent), var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+[hidden]{ display:none !important; }
+.fc{ max-width:620px; margin:0 auto; padding:18px 16px calc(28px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:16px; }
+.fc-head{ display:flex; align-items:center; gap:10px; padding:4px 2px; }
+.fc-logo{ width:38px; height:38px; object-fit:contain; }
+.fc-brand{ font-size:17px; font-weight:800; letter-spacing:-.01em; }
+
+.fc-card{
+  background:var(--white); border:1px solid var(--line); border-radius:24px; padding:22px 18px;
+  box-shadow:0 18px 40px -24px rgba(4,28,255,.35);
+  display:flex; flex-direction:column; gap:16px;
+  animation:fcIn .45s var(--ease);
+}
+@keyframes fcIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+.fc-kicker{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); }
+.fc-card h1{ font-size:26px; line-height:1.15; font-weight:800; letter-spacing:-.02em; margin-top:-8px; }
+.fc-info{ display:grid; gap:8px; padding:12px 14px; border-radius:16px; background:var(--accent-soft); }
+.fc-info div{ display:flex; justify-content:space-between; gap:12px; font-size:14px; }
+.fc-info dt{ color:var(--muted); font-weight:600; }
+.fc-info dd{ font-weight:700; text-align:right; word-break:break-word; }
+
+.fc-doc-toggle{
+  display:flex; align-items:center; gap:10px; width:100%; padding:13px 14px; border-radius:14px;
+  border:1.5px solid var(--line); background:var(--white); cursor:pointer; text-align:left;
+  font-family:var(--sans); font-size:14px; font-weight:700; color:var(--ink);
+}
+.fc-doc-toggle svg{ width:18px; height:18px; color:var(--accent); flex-shrink:0; }
+.fc-doc-toggle span{ flex:1; }
+.fc-chev{ transition:transform .2s var(--ease); color:var(--muted) !important; }
+.fc-doc-toggle[aria-expanded="true"] .fc-chev{ transform:rotate(180deg); }
+.fc-doc{ display:flex; flex-direction:column; gap:10px; max-height:70vh; overflow:auto; padding:10px; border-radius:14px; background:#eef1ff; -webkit-overflow-scrolling:touch; }
+.fc-doc canvas{ width:100%; height:auto; background:#fff; border-radius:4px; box-shadow:0 6px 18px -8px rgba(10,10,40,.35); }
+.fc-muted{ font-size:13px; color:var(--muted); text-align:center; padding:14px; }
+
+.fc-pad-wrap{ display:flex; flex-direction:column; gap:8px; }
+.fc-pad-head{ display:flex; align-items:center; justify-content:space-between; }
+.fc-pad-head strong{ font-size:15px; }
+.fc-link{ border:none; background:none; color:var(--accent); font-family:var(--sans); font-size:14px; font-weight:700; text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:6px 2px; }
+.fc-pad{ position:relative; height:210px; border-radius:18px; border:2px dashed #b9c3ff; background:#fff; overflow:hidden; touch-action:none; }
+.fc-pad canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; z-index:2; }
+.fc-pad-line{ position:absolute; left:22px; right:22px; bottom:46px; height:1.5px; background:#dde3fa; z-index:1; }
+.fc-pad-hint{ position:absolute; left:0; right:0; bottom:18px; text-align:center; font-size:12.5px; color:#a3a9bb; z-index:1; transition:opacity .2s; pointer-events:none; }
+.fc-pad.has-ink .fc-pad-hint{ opacity:0; }
+.fc-tip{ font-size:12px; color:var(--muted); }
+@media (orientation:landscape) and (max-height:500px){
+  .fc-pad{ height:58vh; }
+  .fc-tip{ display:none; }
+}
+
+.fc-check{ display:flex; align-items:flex-start; gap:10px; font-size:14px; line-height:1.45; cursor:pointer; }
+.fc-check input{ width:20px; height:20px; margin-top:1px; accent-color:var(--accent); flex-shrink:0; }
+.fc-error{ font-size:13.5px; font-weight:600; color:var(--bad); min-height:0; }
+.fc-error:empty{ display:none; }
+.fc-btn{
+  width:100%; padding:16px; border:none; border-radius:16px; cursor:pointer;
+  background:var(--accent); color:#fff; font-family:var(--sans); font-size:16px; font-weight:800; letter-spacing:.01em;
+  box-shadow:0 12px 24px -10px rgba(4,28,255,.6);
+  transition:transform .15s var(--ease), opacity .2s, box-shadow .2s;
+}
+.fc-btn:active{ transform:scale(.98); }
+.fc-btn:disabled{ opacity:.4; box-shadow:none; cursor:not-allowed; }
+
+.fc-done{ align-items:center; text-align:center; padding:36px 22px; }
+.fc-done h1{ margin-top:0; font-size:24px; }
+.fc-done p{ font-size:15px; color:var(--muted); line-height:1.5; max-width:360px; }
+.fc-done-ico{ width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#e7f6ee; color:var(--ok); animation:fcPop .5s var(--ease); }
+.fc-done-ico svg{ width:36px; height:36px; }
+.fc-done-ico.is-off{ background:#fdecea; color:var(--bad); }
+@keyframes fcPop{ 0%{ transform:scale(.4); opacity:0; } 70%{ transform:scale(1.08); } 100%{ transform:scale(1); opacity:1; } }
+.fc-foot{ text-align:center; font-size:12px; color:#a3a9bb; }
+@media (prefers-reduced-motion:reduce){ .fc-card, .fc-done-ico{ animation:none; } }

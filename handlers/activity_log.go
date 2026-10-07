@@ -543,6 +543,15 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		e.Action = "clarito.archivo_eliminar"
 		n := actOrDash(actCtxStr(c, "clarito_name"))
 		e.Description, intento = "Eliminó el formato “"+n+"” de Clarito", "eliminar el formato “"+n+"”"
+	case method == http.MethodPost && route == "/api/clarito/sign-requests":
+		e.Action = "clarito.firma_link"
+		cliente := strings.TrimSpace(c.PostForm("client"))
+		quien := ""
+		if cliente != "" {
+			quien = " a " + cliente
+		}
+		e.Description, intento = "Envió un link para firmar desde el celular"+quien, "crear un link de firma"+quien
+		e.Context = strings.TrimSpace(c.PostForm("form_name") + " · " + c.PostForm("field_label"))
 	case method == http.MethodPut && route == "/api/clarito/settings":
 		e.Action = "clarito.config"
 		e.Description, intento = "Cambió cómo se organizan los formatos de Clarito", "cambiar la organización de Clarito"

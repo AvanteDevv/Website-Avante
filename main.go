@@ -634,7 +634,15 @@ func main() {
 		apiClarito.DELETE("/file", handlers.ClaritoDeleteFile)
 		apiClarito.GET("/documents", handlers.ClaritoDocuments)
 		apiClarito.POST("/documents", handlers.ClaritoSaveDocument)
+		// Firma desde el celular del cliente (handlers/clarito_firma.go)
+		apiClarito.POST("/sign-requests", handlers.ClaritoCreateSignRequest)
+		apiClarito.GET("/sign-requests/:token", handlers.ClaritoGetSignRequest)
+		apiClarito.DELETE("/sign-requests/:token", handlers.ClaritoCancelSignRequest)
 	}
+	// Página pública donde el cliente firma con su celular (sin sesión).
+	router.GET("/firmar/:token", handlers.ClaritoSignPage)
+	router.GET("/firmar/:token/documento", handlers.ClaritoSignDocument)
+	router.POST("/firmar/:token", handlers.ClaritoSignSubmit)
 
 	// Optometrist panel (templates/optometrist/*.html) — mismo login y
 	// misma cookie que /admin, pero solo entra role "admin" u
