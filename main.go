@@ -214,12 +214,14 @@ func main() {
 	db.EnsureAppointmentFollowupTable()
 	// Punto de venta: clientes, ventas, créditos (lo que quedan a deber) y abonos.
 	db.EnsurePosTables()
-	// Clarito: conexión con Google Drive y formatos subidos.
+	// Clarito: registro de formatos guardados y su configuración
+	// (los PDF viven en el bucket de Railway).
 	db.EnsureClaritoTables()
-	// Mantiene viva la conexión de Google Drive (renueva el token cada 12 h).
-	go handlers.StartDriveKeepAlive()
 
 	storage.Connect()
+	// Clarito: sube una sola vez los 3 formatos de static/pdf/clarito al
+	// bucket como plantillas (si todavía no hay ninguna).
+	go handlers.SeedClaritoTemplates()
 
 	// Recordatorios de citas por WhatsApp (24h y 1h antes) — corre en
 	// segundo plano cada 15 min. Si faltan las variables de entorno de
@@ -614,20 +616,24 @@ func main() {
 		apiReceptionist.DELETE("/pos/abonos/:id", handlers.PosCancelPayment)
 	}
 
-	// Administración → Clarito: formatos PDF que se llenan y se guardan en
-	// Google Drive (handlers/clarito_drive.go). Recepción y admin.
+	// Administración → Clarito: plantillas PDF que se llenan aquí y se
+	// guardan en el bucket de Railway (handlers/clarito.go). Recepción y admin.
 	apiClarito := router.Group("/api/clarito", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
 	{
-		apiClarito.GET("/drive/status", handlers.ClaritoDriveStatus)
-		apiClarito.GET("/drive/connect", handlers.ClaritoDriveConnect)
-		apiClarito.GET("/drive/callback", handlers.ClaritoDriveCallback)
-		apiClarito.POST("/drive/disconnect", handlers.ClaritoDriveDisconnect)
-		apiClarito.PUT("/drive/settings", handlers.ClaritoDriveSettings)
-		apiClarito.GET("/drive/folder", handlers.ClaritoDriveList)
-		apiClarito.POST("/drive/folder", handlers.ClaritoDriveCreateFolder)
-		apiClarito.GET("/drive/file/:id", handlers.ClaritoDriveFile)
+		apiClarito.GET("/status", handlers.ClaritoStatus)
+		apiClarito.PUT("/settings", handlers.ClaritoSaveSettings)
+		apiClarito.GET("/templates", handlers.ClaritoTemplates)
+		apiClarito.POST("/templates", handlers.ClaritoUploadTemplate)
+		apiClarito.DELETE("/templates", handlers.ClaritoDeleteTemplate)
+		apiClarito.GET("/folders", handlers.ClaritoFolder)
+		apiClarito.POST("/folders", handlers.ClaritoCreateFolder)
+		apiClarito.PUT("/folders", handlers.ClaritoRenameFolder)
+		apiClarito.DELETE("/folders", handlers.ClaritoDeleteFolder)
+		apiClarito.GET("/file", handlers.ClaritoFile)
+		apiClarito.PUT("/file", handlers.ClaritoUpdateFile)
+		apiClarito.DELETE("/file", handlers.ClaritoDeleteFile)
 		apiClarito.GET("/documents", handlers.ClaritoDocuments)
-		apiClarito.POST("/documents", handlers.ClaritoUpload)
+		apiClarito.POST("/documents", handlers.ClaritoSaveDocument)
 	}
 
 	// Optometrist panel (templates/optometrist/*.html) — mismo login y

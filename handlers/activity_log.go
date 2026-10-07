@@ -293,6 +293,13 @@ func activityFindCita(id string) *activityCita {
 	return &activityCita{ID: id}
 }
 
+// actCtxStr lee un texto que el handler dejó con c.Set(...).
+func actCtxStr(c *gin.Context, key string) string {
+	v, _ := c.Get(key)
+	s, _ := v.(string)
+	return s
+}
+
 func actStr(m map[string]interface{}, key string) string {
 	if m == nil {
 		return ""
@@ -486,28 +493,59 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		e.Action = "plantilla.eliminar"
 		e.Description, intento = "Eliminó la plantilla de examen #"+c.Param("id"), "eliminar la plantilla #"+c.Param("id")
 
-	/* ----- Administración → Clarito (Google Drive) ----- */
+	/* ----- Administración → Clarito (bucket de Railway) ----- */
 	case method == http.MethodPost && route == "/api/clarito/documents":
 		e.Action = "clarito.guardar"
-		formato := actOrDash(c.PostForm("form_name"))
-		cliente := strings.TrimSpace(c.PostForm("client"))
-		e.Description = "Guardó en Drive el formato “" + formato + "”"
-		intento = "guardar en Drive el formato “" + formato + "”"
-		if cliente != "" {
-			e.Description += " de " + cliente
-			intento += " de " + cliente
+		archivo := actOrDash(actCtxStr(c, "clarito_name"))
+		if strings.TrimSpace(c.PostForm("form_key")) == "" {
+			e.Description, intento = "Subió el PDF “"+archivo+"” a Clarito", "subir un PDF a Clarito"
+		} else {
+			formato := actOrDash(c.PostForm("form_name"))
+			cliente := strings.TrimSpace(c.PostForm("client"))
+			e.Description = "Guardó el formato “" + formato + "”"
+			intento = "guardar el formato “" + formato + "”"
+			if cliente != "" {
+				e.Description += " de " + cliente
+				intento += " de " + cliente
+			}
 		}
-		e.Context = c.PostForm("file_name")
-	case method == http.MethodPost && route == "/api/clarito/drive/folder":
+		e.Context = strings.TrimSpace(archivo + " · " + actCtxStr(c, "clarito_folder"))
+	case method == http.MethodPost && route == "/api/clarito/templates":
+		e.Action = "clarito.plantilla"
+		n := actOrDash(actCtxStr(c, "clarito_name"))
+		if v, _ := c.Get("clarito_replaced"); v == true {
+			e.Description, intento = "Reemplazó la plantilla “"+n+"” de Clarito", "reemplazar la plantilla “"+n+"”"
+		} else {
+			e.Description, intento = "Subió la plantilla “"+n+"” a Clarito", "subir la plantilla “"+n+"”"
+		}
+	case method == http.MethodDelete && route == "/api/clarito/templates":
+		e.Action = "clarito.plantilla_eliminar"
+		n := actOrDash(actCtxStr(c, "clarito_name"))
+		e.Description, intento = "Eliminó la plantilla “"+n+"” de Clarito", "eliminar la plantilla “"+n+"”"
+	case method == http.MethodPost && route == "/api/clarito/folders":
 		e.Action = "clarito.carpeta"
 		n := actOrDash(actStr(p, "name"))
-		e.Description, intento = "Creó la carpeta “"+n+"” en Drive", "crear la carpeta “"+n+"” en Drive"
-	case method == http.MethodPut && route == "/api/clarito/drive/settings":
+		e.Description, intento = "Creó la carpeta “"+n+"” en Clarito", "crear la carpeta “"+n+"” en Clarito"
+		e.Context = actStr(p, "parent")
+	case method == http.MethodPut && route == "/api/clarito/folders":
+		e.Action = "clarito.carpeta_renombrar"
+		e.Description, intento = "Renombró una carpeta de Clarito", "renombrar una carpeta de Clarito"
+		e.Context = actCtxStr(c, "clarito_name")
+	case method == http.MethodDelete && route == "/api/clarito/folders":
+		e.Action = "clarito.carpeta_eliminar"
+		n := actOrDash(actCtxStr(c, "clarito_name"))
+		e.Description, intento = "Eliminó la carpeta “"+n+"” de Clarito", "eliminar la carpeta “"+n+"”"
+	case method == http.MethodPut && route == "/api/clarito/file":
+		e.Action = "clarito.archivo_mover"
+		e.Description, intento = "Renombró o movió un formato de Clarito", "renombrar o mover un formato de Clarito"
+		e.Context = actCtxStr(c, "clarito_name")
+	case method == http.MethodDelete && route == "/api/clarito/file":
+		e.Action = "clarito.archivo_eliminar"
+		n := actOrDash(actCtxStr(c, "clarito_name"))
+		e.Description, intento = "Eliminó el formato “"+n+"” de Clarito", "eliminar el formato “"+n+"”"
+	case method == http.MethodPut && route == "/api/clarito/settings":
 		e.Action = "clarito.config"
-		e.Description, intento = "Cambió cómo se organizan los formatos de Clarito en Drive", "cambiar la organización de Clarito en Drive"
-	case method == http.MethodPost && route == "/api/clarito/drive/disconnect":
-		e.Action = "clarito.desconectar"
-		e.Description, intento = "Desconectó la cuenta de Google Drive", "desconectar Google Drive"
+		e.Description, intento = "Cambió cómo se organizan los formatos de Clarito", "cambiar la organización de Clarito"
 
 	/* ----- Recepción: etiqueta de cita ----- */
 	case method == http.MethodPut && route == "/api/receptionist/citas/:id/etiqueta":
