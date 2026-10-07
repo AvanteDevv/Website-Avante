@@ -154,6 +154,20 @@ body.dark .inv-exist.is-over{ background:rgba(37,99,235,.22); color:#8fb4ff; }
 .inv-d-price small{ display:block; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; opacity:.8; }
 .inv-d-price strong{ display:block; font-family:'Fraunces', serif; font-size:30px; font-weight:600; font-variant-numeric:tabular-nums; margin:2px 0; }
 .inv-d-util{ font-size:11.5px; font-weight:700; opacity:.85; }
+/* Utilidad y ganancia (solo admin) */
+.inv-d-profit{ margin-top:10px; padding:12px 14px; border-radius:14px; background:#ecf7ef; border:1px solid #cde9d5; color:#14532d; }
+.inv-d-profit small{ display:block; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; opacity:.75; }
+.inv-d-profit-main strong{ display:block; font-family:'Fraunces', serif; font-size:24px; font-weight:600; font-variant-numeric:tabular-nums; margin-top:1px; }
+.inv-d-profit-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(20,83,45,.22); }
+.inv-d-profit-grid > div.is-wide{ grid-column:1 / -1; }
+.inv-d-profit-grid strong{ display:block; font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+.inv-d-profit-grid em{ display:block; font-style:normal; font-size:11px; opacity:.7; }
+.inv-d-profit.is-neg{ background:#fdeceb; border-color:#f6cfcb; color:#912018; }
+.inv-d-profit.is-neg .inv-d-profit-grid{ border-top-color:rgba(145,32,24,.22); }
+.inv-d-profit.is-empty{ background:transparent; border-style:dashed; border-color:var(--line); color:var(--muted); }
+.inv-d-profit.is-empty span{ display:block; font-size:12.5px; margin-top:3px; }
+.inv-d-gan{ font-size:11px; font-weight:700; color:#1b7a3d; margin-left:4px; }
+.inv-d-gan.is-neg{ color:#b42318; }
 .inv-d-stock{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-radius:14px; border:1px solid var(--line); }
 .inv-d-stock small{ display:block; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
 .inv-d-stock strong{ font-family:'Fraunces', serif; font-size:26px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
