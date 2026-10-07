@@ -35,6 +35,8 @@ import (
 //	GET    /api/inventario/ajustes/:id             un ajuste con sus artículos
 //	POST   /api/inventario/ajustes                 aplicar inventario físico
 //	GET    /api/inventario/movimientos?item=&desde=&hasta=&tipo=&q=   kárdex
+//	GET    /api/inventario/articulos/:id/rastreo?estado=   números de rastreo del artículo
+//	GET    /api/inventario/rastreo/:numero          buscar un número de rastreo (AVT000123)
 
 var (
 	invClaveRe = regexp.MustCompile(`^[A-Z0-9][A-Z0-9./-]*$`)
@@ -241,6 +243,8 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 
 func invArticuloErr(c *gin.Context, where string, err error, clave string) {
 	switch {
+	case errors.Is(err, models.ErrDemasiadasPiezas):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Máximo 10,000 piezas por movimiento (cada una lleva su número de rastreo)."})
 	case errors.Is(err, models.ErrInventoryClaveTaken):
 		c.JSON(http.StatusConflict, gin.H{"error": "Ya existe un artículo con la clave " + clave + "."})
 	case errors.Is(err, models.ErrInventoryNotFound):
@@ -350,6 +354,8 @@ func InvAjustarArticulo(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ese artículo ya no existe."})
 	case errors.Is(err, models.ErrInvServicio):
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Los servicios no llevan existencia."})
+	case errors.Is(err, models.ErrDemasiadasPiezas):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Máximo 10,000 piezas por movimiento (cada una lleva su número de rastreo)."})
 	case errors.Is(err, models.ErrInvSinExistencia):
 		c.JSON(http.StatusConflict, gin.H{"error": "No puedes sacar más piezas de las que hay (" + strings.TrimPrefix(err.Error(), models.ErrInvSinExistencia.Error()+": ") + ")."})
 	case err != nil:
@@ -625,6 +631,10 @@ func InvAplicarAjuste(c *gin.Context) {
 		}
 	}
 	r, err := models.AplicarInventarioFisico(in.Lineas, in.Comentario, invUser(c))
+	if errors.Is(err, models.ErrDemasiadasPiezas) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Un artículo sube más de 10,000 piezas en este conteo; revisa la cantidad."})
+		return
+	}
 	if err != nil {
 		if strings.Contains(err.Error(), "quítalo") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": strings.ToUpper(err.Error()[:1]) + err.Error()[1:] + "."})
@@ -675,4 +685,57 @@ func InvListMovimientos(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+/* ---------------- números de rastreo ---------------- */
+
+// InvListRastreo — GET /api/inventario/articulos/:id/rastreo?estado=
+func InvListRastreo(c *gin.Context) {
+	id, ok := invID(c)
+	if !ok {
+		return
+	}
+	estado := c.Query("estado")
+	switch estado {
+	case "", models.PiezaDisponible, models.PiezaVendida, models.PiezaBaja:
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Estado inválido."})
+		return
+	}
+	a, err := models.GetInvArticulo(id)
+	if errors.Is(err, models.ErrInventoryNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese artículo ya no existe."})
+		return
+	}
+	if err != nil {
+		invFail(c, "ListRastreo", err, "No se pudieron cargar los números de rastreo.")
+		return
+	}
+	items, tot, err := models.ListInvPiezas(id, estado)
+	if err != nil {
+		invFail(c, "ListRastreo", err, "No se pudieron cargar los números de rastreo.")
+		return
+	}
+	invHideCost(c, a)
+	c.JSON(http.StatusOK, gin.H{"items": items, "totales": tot, "articulo": a})
+}
+
+// InvGetRastreo — GET /api/inventario/rastreo/:numero
+func InvGetRastreo(c *gin.Context) {
+	p, err := models.GetInvPieza(c.Param("numero"))
+	if errors.Is(err, models.ErrRastreoNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No existe el número de rastreo " + strings.ToUpper(c.Param("numero")) + "."})
+		return
+	}
+	if err != nil {
+		invFail(c, "GetRastreo", err, "No se pudo buscar el número de rastreo.")
+		return
+	}
+	a, err := models.GetInvArticulo(p.ItemID)
+	if err != nil && !errors.Is(err, models.ErrInventoryNotFound) {
+		invFail(c, "GetRastreo", err, "No se pudo buscar el número de rastreo.")
+		return
+	}
+	invHideCost(c, a)
+	c.JSON(http.StatusOK, gin.H{"pieza": p, "articulo": a})
 }

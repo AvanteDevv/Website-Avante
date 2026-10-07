@@ -180,6 +180,8 @@ body.dark .inv-d-stock.is-bajo strong{ color:#ffd36e; }
 .inv-d-row strong{ color:var(--ink); text-align:right; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
 .inv-d-row small{ font-size:10.5px; color:var(--muted); }
 .inv-d-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+.inv-d-actions .btn[data-act="rastreo"]{ flex:1 1 calc(50% - 4px); }
+.inv-d-actions a.btn{ flex:1 1 calc(50% - 4px); }
 .inv-d-actions .btn{ flex:1 1 100%; text-align:center; justify-content:center; text-decoration:none; padding:11px 14px; letter-spacing:.6px; white-space:nowrap; }
 .inv-sheet-backdrop{ display:none; }
 
@@ -299,6 +301,38 @@ body.dark .inv-aj-box.is-result.is-bad{ background:rgba(217,45,32,.12); border-c
 .inv-confirm-text{ font-size:14px; line-height:1.6; color:var(--ink); margin:0 0 6px; }
 .inv-btn-danger{ background:#d92d20 !important; border-color:#d92d20 !important; }
 .inv-btn-danger:hover{ background:#b42318 !important; border-color:#b42318 !important; box-shadow:0 14px 30px rgba(217,45,32,.3) !important; }
+
+/* ---------- Números de rastreo ---------- */
+.inv-rs-card{ max-width:720px; }
+.inv-rs-tools{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-top:12px; }
+.inv-rs-tools .inv-chips{ margin-top:0; }
+.inv-chips button b{ font-weight:800; margin-left:4px; opacity:.7; font-variant-numeric:tabular-nums; }
+.inv-rs-search{
+  flex:0 1 180px; min-width:0; font-family:var(--sans); font-size:13px; color:var(--ink); padding:9px 12px;
+  border:1px solid var(--line); border-radius:12px; background:var(--white); text-transform:uppercase;
+}
+.inv-rs-search::placeholder{ text-transform:none; }
+.inv-rs-search:focus{ outline:none; border-color:var(--accent); background:var(--accent-soft); }
+.inv-rs-list{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px;
+  max-height:46vh; overflow:auto; padding:2px; margin-bottom:6px;
+}
+.inv-rs-item{
+  position:relative; display:flex; flex-direction:column; gap:3px; padding:10px 12px; border-radius:12px;
+  border:1px solid var(--line); background:var(--white); animation:dayItemIn .3s var(--ease) backwards; animation-delay:calc(var(--i,0) * 12ms);
+}
+.inv-rs-item strong{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13.5px; letter-spacing:.02em; color:var(--ink); }
+.inv-rs-item small{ font-size:10.5px; color:var(--muted); line-height:1.35; }
+.inv-rs-meta{ display:flex; align-items:center; gap:6px; }
+.inv-rs-meta em{ font-style:normal; font-size:9.5px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.04em; }
+.inv-rs-st{ font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:2px 7px; border-radius:100px; background:#dff3e4; color:#1f7a3d; }
+.inv-rs-item.is-vendida .inv-rs-st{ background:#fbe0e0; color:#a3231b; }
+.inv-rs-item.is-baja .inv-rs-st{ background:#fdf1d6; color:#8a6a12; }
+.inv-rs-item.is-vendida strong, .inv-rs-item.is-baja strong{ color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px; }
+.inv-rs-item.is-new{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+body.dark .inv-rs-st{ background:rgba(31,157,85,.2); color:#6ee7a6; }
+body.dark .inv-rs-item.is-vendida .inv-rs-st{ background:rgba(217,45,32,.2); color:#ff8b7d; }
+body.dark .inv-rs-item.is-baja .inv-rs-st{ background:rgba(255,193,7,.16); color:#ffd36e; }
 
 /* ---------- Aviso ---------- */
 .inv-toast{

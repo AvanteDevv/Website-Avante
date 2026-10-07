@@ -7,24 +7,40 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+{{if eq .Panel "admin"}}
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+{{else}}
 <link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
 <link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+{{end}}
 <link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
 <link rel="stylesheet" href="/static/css/inventario/inventario.css">
 </head>
 <body class="cuenta-body admin-body">
 
-{{template "inventario-userbar" .}}
+{{if eq .Panel "admin"}}{{template "admin-userbar" .}}{{else}}{{template "inventario-userbar" .}}{{end}}
 
 <div class="cuenta-shell">
-  {{template "inventario-sidebar" .}}
+  {{if eq .Panel "admin"}}{{template "admin-sidebar" .}}{{else}}{{template "inventario-sidebar" .}}{{end}}
 
-  <main class="cuenta-main admin-main inv-page" id="invAjustes">
+  <main class="cuenta-main admin-main inv-page" id="invAjustes" data-inv-base="{{.InvBase}}" data-can-cost="{{if .CanCost}}1{{end}}">
     <div class="admin-header">
       <div>
         <h1>Ajustes de inventario</h1>
         <p>Inventario físico: cuenta lo que hay en la óptica y el sistema corrige las existencias. Cada ajuste queda con su folio para consultarlo después.</p>
       </div>
+
+    {{/* Admin → Inventario: pestañas para moverse entre las 4 secciones
+         (la cuenta de Inventario las tiene en su sidebar). */}}
+    {{if eq .Panel "admin"}}
+    <nav class="inv-seg inv-subnav" aria-label="Secciones de inventario">
+      <a href="/admin/inventario" class="{{if eq .InvTab "articulos"}}is-on{{end}}">Artículos</a>
+      <a href="/admin/inventario/departamentos" class="{{if eq .InvTab "departamentos"}}is-on{{end}}">Departamentos</a>
+      <a href="/admin/inventario/ajustes" class="{{if eq .InvTab "ajustes"}}is-on{{end}}">Ajustes</a>
+      <a href="/admin/inventario/movimientos" class="{{if eq .InvTab "movimientos"}}is-on{{end}}">Movimientos</a>
+    </nav>
+    {{end}}
     </div>
 
     <div class="inv-seg inv-mode-switch" id="ajMode" role="tablist">
@@ -40,7 +56,7 @@
             <div class="search-box-glow"></div>
             <div class="search-box-inner">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              <input type="search" id="pickInput" placeholder="Escanea o escribe la clave / descripción para agregar…" autocomplete="off" spellcheck="false">
+              <input type="search" id="pickInput" placeholder="Escanea el número AVT o escribe la clave / descripción…" autocomplete="off" spellcheck="false">
             </div>
           </div>
           <div class="inv-pick-results" id="pickResults" role="listbox"></div>
@@ -146,8 +162,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+{{if eq .Panel "admin"}}
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+{{else}}
 <script src="/static/js/receptionist/sidebar-receptionist.js"></script>
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
+{{end}}
 <script src="/static/js/inventario/inventario-comun.js"></script>
 <script src="/static/js/inventario/ajustes.js"></script>
 </body>

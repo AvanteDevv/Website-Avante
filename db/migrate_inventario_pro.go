@@ -14,6 +14,7 @@ import "log"
 //   - inv_departamentos / inv_categorias: la clasificación de artículos.
 //   - inv_ajustes: cada ajuste (folio) — inventario físico, entrada o
 //     salida.
+//   - inv_piezas: un número de rastreo (AVT000001…) por cada pieza.
 //   - inv_movimientos: el kárdex. Cada cambio de existencia queda aquí
 //     (ventas del POS, ajustes, entradas, salidas, inventario inicial).
 //
@@ -69,6 +70,20 @@ func EnsureInventarioProTables() {
 			articulos  INT          NOT NULL DEFAULT 0,
 			created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			INDEX idx_inv_ajustes_fecha (created_at)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`},
+		{"inv_piezas", `CREATE TABLE IF NOT EXISTS inv_piezas (
+			id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+			numero           VARCHAR(24)  NULL,
+			item_id          BIGINT       NOT NULL,
+			estado           VARCHAR(12)  NOT NULL DEFAULT 'disponible',
+			origen           VARCHAR(20)  NOT NULL DEFAULT '',
+			ajuste_id        BIGINT       NULL,
+			venta_id         BIGINT       NULL,
+			salida_ajuste_id BIGINT       NULL,
+			created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			salida_at        DATETIME     NULL,
+			UNIQUE KEY uq_inv_piezas_numero (numero),
+			INDEX idx_inv_piezas_item (item_id, estado, id)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`},
 		{"inv_movimientos", `CREATE TABLE IF NOT EXISTS inv_movimientos (
 			id                 BIGINT AUTO_INCREMENT PRIMARY KEY,

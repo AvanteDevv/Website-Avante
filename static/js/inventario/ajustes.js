@@ -75,7 +75,20 @@
   pickInput.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowDown') { e.preventDefault(); hl = Math.min(results.length - 1, hl + 1); renderPick(); }
     if (e.key === 'ArrowUp') { e.preventDefault(); hl = Math.max(0, hl - 1); renderPick(); }
-    if (e.key === 'Enter') { e.preventDefault(); if (results[hl]) addLine(results[hl].id, true); }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var v = pickInput.value.trim();
+      // Número de rastreo escaneado (AVT000123): cuenta 1 de su artículo.
+      if (I.isRastreo(v)) {
+        I.lookupRastreo(v).then(function (d) {
+          if (!d.articulo || !byId[d.articulo.id]) { I.toast(v.toUpperCase() + ': su artículo ya no existe o es servicio.', 'error'); return; }
+          if (d.pieza.estado !== 'disponible') I.toast(d.pieza.numero + ' aparece como ' + (d.pieza.estado === 'vendida' ? 'vendida' : 'dada de baja') + '; revisa esa pieza.', 'error');
+          addLine(d.articulo.id, true);
+        }).catch(function (err) { I.toast(err.message, 'error'); });
+        return;
+      }
+      if (results[hl]) addLine(results[hl].id, true);
+    }
     if (e.key === 'Escape') { pick.classList.remove('is-open'); }
   });
   pickRes.addEventListener('mousedown', function (e) { e.preventDefault(); });

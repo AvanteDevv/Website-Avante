@@ -204,6 +204,8 @@ func main() {
 	// Panel de Inventario: columnas nuevas de artículos, departamentos,
 	// categorías, ajustes y kárdex (movimientos).
 	db.EnsureInventarioProTables()
+	// Números de rastreo (AVT…) para la existencia que ya había.
+	go models.BackfillInvPiezas()
 	// Cuenta del panel de Inventario (inventario@avanteoptics.mx).
 	db.EnsureInventoryUsersTable()
 	// Etiquetas de cita (cómo llegó: sin cita, chequeo, teléfono, WhatsApp).
@@ -475,7 +477,14 @@ func main() {
 		adminGroup.GET("/comunicacion", onlyAdmin, adminHandlers.Communication)
 		// Bitácora: qué hace cada persona del staff (solo admin).
 		adminGroup.GET("/bitacora", onlyAdmin, adminHandlers.Bitacora)
-		adminGroup.GET("/inventario", onlyAdmin, adminHandlers.Inventario)
+		// Admin → Inventario: las mismas 4 secciones que la cuenta de
+		// Inventario (artículos, departamentos, ajustes, movimientos), con
+		// el sidebar del admin. Solo el admin pone el precio de compra.
+		adminGroup.GET("/inventario", onlyAdmin, handlers.AdminInventarioArticulosPage)
+		adminGroup.GET("/inventario/articulos", onlyAdmin, handlers.AdminInventarioArticulosPage)
+		adminGroup.GET("/inventario/departamentos", onlyAdmin, handlers.AdminInventarioDepartamentosPage)
+		adminGroup.GET("/inventario/ajustes", onlyAdmin, handlers.AdminInventarioAjustesPage)
+		adminGroup.GET("/inventario/movimientos", onlyAdmin, handlers.AdminInventarioMovimientosPage)
 		// Logs del servidor (errores incluidos) sin entrar a Railway.
 		adminGroup.GET("/logs", onlyAdmin, handlers.ViewLogs)
 	}
@@ -575,6 +584,8 @@ func main() {
 		apiInventario.GET("/ajustes/:id", handlers.InvGetAjuste)
 		apiInventario.POST("/ajustes", handlers.InvAplicarAjuste)
 		apiInventario.GET("/movimientos", handlers.InvListMovimientos)
+		apiInventario.GET("/articulos/:id/rastreo", handlers.InvListRastreo)
+		apiInventario.GET("/rastreo/:numero", handlers.InvGetRastreo)
 	}
 
 	apiReceptionist := router.Group("/api/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))

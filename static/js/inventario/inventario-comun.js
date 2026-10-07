@@ -257,7 +257,15 @@ window.Inv = (function () {
   var base = (pageEl && pageEl.getAttribute('data-inv-base')) || '/inventario';
   var canCost = !!(pageEl && pageEl.getAttribute('data-can-cost') === '1');
 
+  // Números de rastreo: AVT seguido de números (AVT000123).
+  var RASTREO_RE = /^AVT\d{3,}$/i;
+  function isRastreo(s) { return RASTREO_RE.test(String(s || '').trim()); }
+  function lookupRastreo(num) {
+    return api('/api/inventario/rastreo/' + encodeURIComponent(String(num).trim().toUpperCase()));
+  }
+
   return {
+    isRastreo: isRastreo, lookupRastreo: lookupRastreo,
     base: base, canCost: canCost,
     select: select,
     $: $, esc: esc, norm: norm, mxn: mxn, num: num, round2: round2, api: api, toast: toast,

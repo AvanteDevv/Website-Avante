@@ -7,31 +7,47 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+{{if eq .Panel "admin"}}
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+{{else}}
 <link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
 <link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+{{end}}
 <link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
 <link rel="stylesheet" href="/static/css/inventario/inventario.css">
 </head>
 <body class="cuenta-body admin-body">
 
-{{template "inventario-userbar" .}}
+{{if eq .Panel "admin"}}{{template "admin-userbar" .}}{{else}}{{template "inventario-userbar" .}}{{end}}
 
 <div class="cuenta-shell">
-  {{template "inventario-sidebar" .}}
+  {{if eq .Panel "admin"}}{{template "admin-sidebar" .}}{{else}}{{template "inventario-sidebar" .}}{{end}}
 
-  <main class="cuenta-main admin-main inv-page" id="invArticulos">
+  <main class="cuenta-main admin-main inv-page" id="invArticulos" data-inv-base="{{.InvBase}}" data-can-cost="{{if .CanCost}}1{{end}}">
     <div class="admin-header">
       <div>
         <h1>Artículos</h1>
         <p>El catálogo del inventario: claves, precios, existencias y dónde está cada cosa. Lo que se vende en el Punto de venta sale de aquí.</p>
       </div>
+
+    {{/* Admin → Inventario: pestañas para moverse entre las 4 secciones
+         (la cuenta de Inventario las tiene en su sidebar). */}}
+    {{if eq .Panel "admin"}}
+    <nav class="inv-seg inv-subnav" aria-label="Secciones de inventario">
+      <a href="/admin/inventario" class="{{if eq .InvTab "articulos"}}is-on{{end}}">Artículos</a>
+      <a href="/admin/inventario/departamentos" class="{{if eq .InvTab "departamentos"}}is-on{{end}}">Departamentos</a>
+      <a href="/admin/inventario/ajustes" class="{{if eq .InvTab "ajustes"}}is-on{{end}}">Ajustes</a>
+      <a href="/admin/inventario/movimientos" class="{{if eq .InvTab "movimientos"}}is-on{{end}}">Movimientos</a>
+    </nav>
+    {{end}}
     </div>
 
     <!-- Resumen -->
     <div class="inv-stats">
       <div class="inv-stat"><small>Artículos</small><strong id="stArticulos">0</strong></div>
       <div class="inv-stat"><small>Piezas</small><strong id="stPiezas">0</strong></div>
-      <div class="inv-stat"><small>Valor (a costo)</small><strong id="stCosto">$0.00</strong></div>
+      {{if .CanCost}}<div class="inv-stat"><small>Valor (a costo)</small><strong id="stCosto">$0.00</strong></div>{{end}}
       <div class="inv-stat is-sale"><small>Valor (a precio de venta)</small><strong id="stVenta">$0.00</strong></div>
       <button type="button" class="inv-stat is-warn" data-goto="bajo"><small>Bajo mínimo</small><strong id="stBajo">0</strong><span>Ver ›</span></button>
       <button type="button" class="inv-stat is-danger" data-goto="agotado"><small>Agotados</small><strong id="stAgotados">0</strong><span>Ver ›</span></button>
@@ -46,7 +62,7 @@
       <span class="inv-tool-sep"></span>
       <button type="button" class="inv-tool" id="tbAjustar" disabled><i data-feather="sliders"></i><span>Ajustar</span><kbd>F8</kbd></button>
       <button type="button" class="inv-tool" id="tbClonar" disabled><i data-feather="copy"></i><span>Clonar</span><kbd>F9</kbd></button>
-      <a class="inv-tool" id="tbKardex" href="/inventario/movimientos" aria-disabled="true"><i data-feather="repeat"></i><span>Movimientos</span></a>
+      <a class="inv-tool" id="tbKardex" href="{{.InvBase}}/movimientos" aria-disabled="true"><i data-feather="repeat"></i><span>Movimientos</span></a>
     </div>
 
     <div class="inv-layout">
@@ -56,7 +72,7 @@
             <div class="search-box-glow"></div>
             <div class="search-box-inner">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              <input type="search" id="invSearch" placeholder="Clave, clave alterna o descripción…  (F2)" autocomplete="off" spellcheck="false">
+              <input type="search" id="invSearch" placeholder="Clave, descripción o número de rastreo AVT…  (F2)" autocomplete="off" spellcheck="false">
             </div>
           </div>
           <div class="inv-filter-selects">
@@ -174,10 +190,17 @@
         <!-- Precios -->
         <div class="inv-tabpane" data-pane="precios">
           <div class="staff-form-row">
+            {{if .CanCost}}
             <label class="staff-field">
               <span>Precio de compra <em>(lo que cuesta, con IVA)</em></span>
               <span class="inv-money"><span>$</span><input type="number" id="aCompra" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span>
             </label>
+            {{else}}
+            <div class="staff-field">
+              <span>Precio de compra</span>
+              <p class="inv-hint inv-cost-note">Lo pone el administrador.</p>
+            </div>
+            {{end}}
             <div class="staff-field">
               <span>Impuestos</span>
               <label class="inv-check is-inline">
@@ -187,7 +210,7 @@
               </label>
             </div>
           </div>
-          <p class="inv-hint">Escribe el <strong>% de utilidad</strong> o el <strong>precio de venta</strong>: el otro se calcula solo. El precio 1 es el que usa el Punto de venta.</p>
+          {{if .CanCost}}<p class="inv-hint">Escribe el <strong>% de utilidad</strong> o el <strong>precio de venta</strong>: el otro se calcula solo. El precio 1 es el que usa el Punto de venta.</p>{{else}}<p class="inv-hint">Escribe el <strong>precio de venta</strong> (con IVA). El precio 1 es el que usa el Punto de venta.</p>{{end}}
           <div class="inv-prices" id="aPrices">
             <!-- se llena con JS: precio 1 a 4 -->
           </div>
@@ -270,6 +293,37 @@
   </div>
 </div>
 
+<!-- ================= Modal: números de rastreo ================= -->
+<div class="admin-modal-overlay" id="rsModal">
+  <div class="admin-modal-card inv-rs-card" role="dialog" aria-modal="true" aria-labelledby="rsTitle">
+    <div class="admin-modal-head">
+      <h3 id="rsTitle">Números de rastreo</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="inv-aj-who"><strong id="rsDesc">—</strong><span id="rsClave"></span></div>
+      <p class="inv-hint" style="margin-top:10px">Cada pieza tiene su número (empiezan con <strong>AVT</strong>). Escanéalo o escríbelo en el buscador de Artículos para saber de qué artículo es y si ya se vendió.</p>
+      <div class="inv-rs-tools">
+        <div class="inv-chips" id="rsChips">
+          <button type="button" data-e="disponible" class="is-on">Disponibles <b>0</b></button>
+          <button type="button" data-e="vendida">Vendidas <b>0</b></button>
+          <button type="button" data-e="baja">Bajas <b>0</b></button>
+          <button type="button" data-e="">Todas <b>0</b></button>
+        </div>
+        <input type="search" id="rsSearch" class="inv-rs-search" placeholder="Buscar AVT…" autocomplete="off" spellcheck="false">
+      </div>
+      <p class="inv-caption" id="rsCount"></p>
+      <div class="inv-rs-list" id="rsList"></div>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" id="rsCopy">Copiar números</button>
+        <button type="button" class="btn solid small" id="rsPrint">Imprimir etiquetas</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ================= Modal: eliminar ================= -->
 <div class="admin-modal-overlay" id="delModal">
   <div class="admin-modal-card inv-confirm-card" role="dialog" aria-modal="true" aria-labelledby="delTitle">
@@ -324,8 +378,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+{{if eq .Panel "admin"}}
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+{{else}}
 <script src="/static/js/receptionist/sidebar-receptionist.js"></script>
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
+{{end}}
 <script src="/static/js/inventario/inventario-comun.js"></script>
 <script src="/static/js/inventario/articulos.js"></script>
 </body>

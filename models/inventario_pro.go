@@ -79,6 +79,8 @@ type InvArticulo struct {
 	Maximo         int     `json:"maximo"`
 	Localizacion   string  `json:"localizacion"`
 	UpdatedAt      string  `json:"updated_at"`
+	// Solo al crear: los números de rastreo que se generaron.
+	NuevosRastreo []string `json:"nuevos_rastreo,omitempty"`
 }
 
 const invArticuloSelect = `
@@ -216,10 +218,20 @@ func CreateInvArticulo(a InvArticulo, usuario string) (*InvArticulo, error) {
 			return nil, err
 		}
 	}
+	// Un número de rastreo por cada pieza (AVT000001…).
+	nuevos, err := addPiezas(tx, id, a.Existencia, "alta", 0, invNow())
+	if err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return GetInvArticulo(id)
+	item, err := GetInvArticulo(id)
+	if err != nil {
+		return nil, err
+	}
+	item.NuevosRastreo = nuevos
+	return item, nil
 }
 
 // UpdateInvArticulo guarda los datos del artículo. La existencia NO se
@@ -288,6 +300,10 @@ type InvAjusteResult struct {
 	Articulo  *InvArticulo `json:"articulo,omitempty"`
 	Cambiados int          `json:"cambiados"`
 	Articulos int          `json:"articulos"`
+	// Números de rastreo que se generaron (si entró mercancía) y cuántas
+	// piezas se dieron de baja (si salió).
+	NuevosRastreo []string `json:"nuevos_rastreo,omitempty"`
+	Bajas         int      `json:"bajas,omitempty"`
 }
 
 // AjustarInvArticulo hace un ajuste a un solo artículo (botón Ajustar):
@@ -347,6 +363,10 @@ func AjustarInvArticulo(itemID int64, modo string, cantidad int, comentario, usu
 	); err != nil {
 		return nil, err
 	}
+	nuevos, err := ajustarPiezas(tx, itemID, diff, tipoAjuste, folio, now)
+	if err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -358,7 +378,11 @@ func AjustarInvArticulo(itemID int64, modo string, cantidad int, comentario, usu
 	if diff != 0 {
 		cambiados = 1
 	}
-	return &InvAjusteResult{Folio: folio, Articulo: a, Cambiados: cambiados, Articulos: 1}, nil
+	bajas := 0
+	if diff < 0 {
+		bajas = -diff
+	}
+	return &InvAjusteResult{Folio: folio, Articulo: a, Cambiados: cambiados, Articulos: 1, NuevosRastreo: nuevos, Bajas: bajas}, nil
 }
 
 // InvConteo — una línea del inventario físico: lo que se contó.
@@ -387,6 +411,7 @@ func AplicarInventarioFisico(lines []InvConteo, comentario, usuario string) (*In
 	folio, _ := res.LastInsertId()
 	cambiados := 0
 	seen := map[int64]bool{}
+	out := &InvAjusteResult{}
 	for _, l := range lines {
 		if seen[l.ItemID] {
 			continue
@@ -419,6 +444,14 @@ func AplicarInventarioFisico(lines []InvConteo, comentario, usuario string) (*In
 		); err != nil {
 			return nil, err
 		}
+		nuevos, err := ajustarPiezas(tx, l.ItemID, diff, "fisico", folio, now)
+		if err != nil {
+			return nil, err
+		}
+		out.NuevosRastreo = append(out.NuevosRastreo, nuevos...)
+		if diff < 0 {
+			out.Bajas -= diff
+		}
 	}
 	if _, err := tx.Exec("UPDATE inv_ajustes SET articulos = ? WHERE id = ?", len(seen), folio); err != nil {
 		return nil, err
@@ -426,7 +459,8 @@ func AplicarInventarioFisico(lines []InvConteo, comentario, usuario string) (*In
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return &InvAjusteResult{Folio: folio, Cambiados: cambiados, Articulos: len(seen)}, nil
+	out.Folio, out.Cambiados, out.Articulos = folio, cambiados, len(seen)
+	return out, nil
 }
 
 // InvAjusteRow — un folio de ajuste en la lista.
@@ -630,6 +664,10 @@ func logInvVenta(tx *sql.Tx, itemID int64, cantidad, antes int, ventaID int64, c
 		itemID, InvMovVenta, -cantidad, antes, antes-cantidad, ventaID, fmt.Sprintf("Ticket %d", ventaID), cajero, invNow(),
 	); err != nil {
 		log.Printf("inventario: no se pudo registrar la venta %d en el kárdex: %v", ventaID, err)
+	}
+	// Las piezas que salen (las más viejas primero) quedan como vendidas.
+	if err := removePiezas(tx, itemID, cantidad, PiezaVendida, ventaID, 0, invNow()); err != nil {
+		log.Printf("inventario: no se pudieron marcar como vendidas las piezas de la venta %d: %v", ventaID, err)
 	}
 }
 

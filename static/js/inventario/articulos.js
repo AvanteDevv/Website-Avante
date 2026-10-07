@@ -101,7 +101,22 @@
     if (f.cat && !cats.some(function (c) { return String(c.id) === f.cat; })) f.cat = '';
     catSel.set(f.cat, true);
   }
-  $('invSearch').addEventListener('input', I.debounce(function () { f.q = this.value; apply(); }, 120));
+  $('invSearch').addEventListener('input', I.debounce(function () {
+    var v = this.value.trim();
+    // Si escanean / escriben un número de rastreo (AVT000123) se busca su artículo.
+    if (I.isRastreo(v)) { findRastreo(v); return; }
+    f.q = this.value; apply();
+  }, 120));
+  function findRastreo(num) {
+    I.lookupRastreo(num).then(function (d) {
+      if (!d.articulo || !byId[d.articulo.id]) { I.toast(num.toUpperCase() + ' es de un artículo que ya no existe.', 'error'); return; }
+      $('invSearch').value = ''; f.q = '';
+      selectedId = d.articulo.id;
+      apply(); revealSelected();
+      var p = d.pieza, st = { disponible: 'disponible', vendida: 'vendida' + (p.venta_id ? ' (ticket ' + p.venta_id + ')' : ''), baja: 'dada de baja' }[p.estado] || p.estado;
+      I.toast(p.numero + ' · ' + d.articulo.descripcion + ' · ' + st + '.');
+    }).catch(function (e) { I.toast(e.message, 'error'); });
+  }
   $('fEstado').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-estado]');
     if (!b) return;
@@ -263,6 +278,7 @@
       '</div>' +
       '<div class="inv-d-actions">' +
         (a.servicio ? '' : '<button type="button" class="btn solid small" data-act="ajustar">Ajustar existencia</button>') +
+        (a.servicio ? '' : '<button type="button" class="btn small" data-act="rastreo">Números de rastreo</button>') +
         '<a class="btn small" href="' + I.base + '/movimientos?item=' + a.id + '">Ver movimientos</a>' +
       '</div>';
   }
@@ -270,6 +286,7 @@
     if (e.target.closest('[data-sheet-close]')) { closeSheet(); return; }
     var b = e.target.closest('[data-act]');
     if (b && b.getAttribute('data-act') === 'ajustar') { closeSheet(); openAjuste(current()); }
+    if (b && b.getAttribute('data-act') === 'rastreo') { closeSheet(); openRastreo(current()); }
   });
   // Celular: el detalle sale como hoja desde abajo.
   var backdrop = document.createElement('div');
@@ -451,9 +468,14 @@
       : I.api('/api/inventario/articulos', { method: 'POST', body: body });
     req.then(function (d) {
       I.closeModal(artModal);
-      I.toast(editing ? 'Se guardaron los cambios de ' + d.item.descripcion + '.' : 'Artículo ' + d.item.clave + ' agregado.');
+      var nuevos = d.item.nuevos_rastreo || [];
+      I.toast(editing ? 'Se guardaron los cambios de ' + d.item.descripcion + '.'
+        : 'Artículo ' + d.item.clave + ' agregado' + (nuevos.length ? ' con ' + nuevos.length + (nuevos.length === 1 ? ' número' : ' números') + ' de rastreo.' : '.'));
       selectedId = d.item.id;
-      return load(true).then(function () { revealSelected(); });
+      return load(true).then(function () {
+        revealSelected();
+        if (!editing && nuevos.length) openRastreo(byId[d.item.id], nuevos);
+      });
     }).catch(function (e2) {
       err.textContent = e2.message;
     }).finally(function () {
@@ -578,12 +600,15 @@
       .then(function (d) {
         var a = d.ajuste.articulo;
         I.closeModal(ajModal);
-        I.toast('Ajuste #' + d.ajuste.folio + ': ' + a.descripcion + ' quedó en ' + I.num(a.existencia) + '.');
+        var nuevos = d.ajuste.nuevos_rastreo || [];
+        I.toast('Ajuste #' + d.ajuste.folio + ': ' + a.descripcion + ' quedó en ' + I.num(a.existencia) + '.' +
+          (nuevos.length ? ' Se generaron ' + nuevos.length + ' números de rastreo.' : d.ajuste.bajas ? ' ' + d.ajuste.bajas + ' números de rastreo quedaron de baja.' : ''));
         var i = items.findIndex(function (x) { return x.id === a.id; });
         if (i >= 0) items[i] = a;
         byId[a.id] = a;
         renderStats();
         apply(true);
+        if (nuevos.length) openRastreo(a, nuevos);
       })
       .catch(function (e2) { $('ajError').textContent = e2.message; })
       .finally(function () { btn.textContent = 'Guardar ajuste'; ajRender(); });
@@ -618,6 +643,98 @@
       return load(false);
     }).catch(function (e2) { $('delError').textContent = e2.message; })
       .finally(function () { btn.disabled = false; });
+  });
+
+  /* =======================================================
+     NÚMEROS DE RASTREO (uno por pieza: AVT000001…)
+     ======================================================= */
+  var rsModal = $('rsModal'), rsArt = null, rsEstado = 'disponible', rsItems = [], rsNuevos = {};
+  var RS_LABEL = { disponible: 'Disponible', vendida: 'Vendida', baja: 'Baja' };
+  function openRastreo(a, nuevos) {
+    if (!a) return;
+    rsArt = a; rsEstado = 'disponible'; rsNuevos = {};
+    (nuevos || []).forEach(function (n) { rsNuevos[n] = true; });
+    $('rsTitle').textContent = nuevos && nuevos.length ? 'Se generaron ' + nuevos.length + ' números de rastreo' : 'Números de rastreo';
+    $('rsDesc').textContent = a.descripcion;
+    $('rsClave').textContent = a.clave;
+    $('rsSearch').value = '';
+    I.openModal(rsModal);
+    loadRastreo();
+  }
+  function loadRastreo() {
+    $('rsList').innerHTML = '<p class="inv-empty">Cargando…</p>';
+    I.api('/api/inventario/articulos/' + rsArt.id + '/rastreo').then(function (d) {
+      rsItems = d.items || [];
+      var t = d.totales || {};
+      $('rsChips').querySelector('[data-e="disponible"] b').textContent = t.disponibles || 0;
+      $('rsChips').querySelector('[data-e="vendida"] b').textContent = t.vendidas || 0;
+      $('rsChips').querySelector('[data-e="baja"] b').textContent = t.bajas || 0;
+      $('rsChips').querySelector('[data-e=""] b').textContent = (t.disponibles || 0) + (t.vendidas || 0) + (t.bajas || 0);
+      renderRastreo();
+    }).catch(function (e) { $('rsList').innerHTML = '<p class="inv-empty">' + esc(e.message) + '</p>'; });
+  }
+  function rsFiltered() {
+    var q = $('rsSearch').value.trim().toUpperCase();
+    return rsItems.filter(function (p) {
+      if (rsEstado && p.estado !== rsEstado) return false;
+      return !q || p.numero.indexOf(q) !== -1;
+    });
+  }
+  function renderRastreo() {
+    Array.prototype.forEach.call($('rsChips').querySelectorAll('button'), function (b) { b.classList.toggle('is-on', b.getAttribute('data-e') === rsEstado); });
+    var list = rsFiltered();
+    $('rsCount').textContent = list.length + (list.length === 1 ? ' número' : ' números');
+    $('rsPrint').disabled = !list.length;
+    $('rsCopy').disabled = !list.length;
+    if (!list.length) { $('rsList').innerHTML = '<p class="inv-empty">No hay números ' + (rsEstado ? RS_LABEL[rsEstado].toLowerCase().replace(/a$/, 'as').replace(/e$/, 'es') + ' ' : '') + 'para este artículo.</p>'; return; }
+    $('rsList').innerHTML = list.map(function (p, i) {
+      var sal = p.estado === 'vendida' ? (p.venta_id ? 'Ticket ' + p.venta_id : 'Vendida') : p.estado === 'baja' ? (p.salida_ajuste_id ? 'Ajuste #' + p.salida_ajuste_id : 'Baja') : '';
+      return '<div class="inv-rs-item is-' + p.estado + (rsNuevos[p.numero] ? ' is-new' : '') + '" style="--i:' + Math.min(i, 30) + '">' +
+        '<strong>' + esc(p.numero) + '</strong>' +
+        '<span class="inv-rs-meta"><span class="inv-rs-st">' + RS_LABEL[p.estado] + '</span>' + (rsNuevos[p.numero] ? '<em>Nuevo</em>' : '') + '</span>' +
+        '<small>Alta ' + esc(I.fecha(p.created_at)) + (sal ? ' · ' + esc(sal) + (p.salida_at ? ' ' + esc(I.fecha(p.salida_at)) : '') : '') + '</small>' +
+      '</div>';
+    }).join('');
+  }
+  $('rsChips').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-e]');
+    if (!b) return;
+    rsEstado = b.getAttribute('data-e');
+    renderRastreo();
+  });
+  $('rsSearch').addEventListener('input', renderRastreo);
+  $('rsCopy').addEventListener('click', function () {
+    var txt = rsFiltered().map(function (p) { return p.numero; }).join('\n');
+    var done = function () { I.toast('Se copiaron ' + rsFiltered().length + ' números.'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt); done(); });
+    else { fallbackCopy(txt); done(); }
+  });
+  function fallbackCopy(txt) {
+    var ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove();
+  }
+  // Etiquetas con código de barras (para pegarlas en cada pieza y escanearlas).
+  $('rsPrint').addEventListener('click', function () {
+    var list = rsFiltered();
+    if (!list.length || !rsArt) return;
+    var w = window.open('', '_blank', 'width=900,height=700');
+    if (!w) { I.toast('Permite las ventanas emergentes para imprimir las etiquetas.', 'error'); return; }
+    var desc = esc(rsArt.descripcion), price = mxn.format(rsArt.precio_1);
+    w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Etiquetas · ' + desc + '</title>' +
+      '<style>@page{margin:8mm}body{font-family:Arial,sans-serif;margin:0}' +
+      '.grid{display:grid;grid-template-columns:repeat(auto-fill,50mm);gap:3mm}' +
+      '.lbl{width:50mm;height:25mm;box-sizing:border-box;border:1px dashed #bbb;padding:1.5mm 2mm;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;page-break-inside:avoid}' +
+      '.d{font-size:7pt;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
+      '.p{font-size:6.5pt}.n{font-family:monospace;font-size:9pt;font-weight:bold;letter-spacing:.5px}svg{width:100%;height:10mm}@media print{.lbl{border-color:transparent}.bar{display:none}}' +
+      '.bar{padding:10px;font-size:13px;display:flex;gap:10px;align-items:center}.bar button{padding:8px 14px;font-size:13px;cursor:pointer}</style></head><body>' +
+      '<div class="bar"><button onclick="window.print()">Imprimir</button><span>' + list.length + ' etiquetas · ' + desc + '</span></div><div class="grid">' +
+      list.map(function (p) {
+        return '<div class="lbl"><div class="d">' + desc + '</div><svg class="bc" data-v="' + esc(p.numero) + '"></svg><div class="n">' + esc(p.numero) + '</div><div class="p">' + esc(rsArt.clave) + ' · ' + price + '</div></div>';
+      }).join('') +
+      '</div><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>' +
+      '<script>window.addEventListener("load",function(){document.querySelectorAll(".bc").forEach(function(s){try{JsBarcode(s,s.getAttribute("data-v"),{format:"CODE128",height:34,margin:0,displayValue:false})}catch(e){}});});<\/script>' +
+      '</body></html>');
+    w.document.close();
   });
 
   /* ---------- barra de acciones y atajos ---------- */
