@@ -767,16 +767,24 @@
   // Configurar la etiquetadora (se guarda en esta compu).
   var lblModal = $('lblModal'), lblLang = 'tspl', lblPrinters = [];
   var LANG_HINT = {
-    tspl: 'TSC, Xprinter (XP-360B, XP-365B, XP-420B), 3nStar, Rongta, Beeprt y la mayoría de las genéricas.',
+    tspl: 'SICAR EVA58, TSC, Xprinter (XP-360B, XP-365B, XP-420B), 3nStar, Rongta, Beeprt y la mayoría de las genéricas.',
     zpl: 'Zebra (ZD220, ZD230, ZD410, GC420, GK420, GX420).',
     epl: 'Zebra viejitas (LP2824, TLP2844). Si con ZPL no imprime, prueba esta.'
   };
   var lblSel = I.select($('lblPrinter'), { placeholder: 'Elige la impresora', onChange: function (v) {
-    if (v && L) { lblLang = L.guess(v); syncLang(); }
+    if (v && L) {
+      lblLang = L.guess(v);
+      // SICAR EVA58: el rollo es de 58 mm como máximo.
+      if (L.isEva(v) && (parseFloat($('lblW').value) || 0) > 58) $('lblW').value = 50;
+      syncLang();
+    }
   } });
   function syncLang() {
     Array.prototype.forEach.call($('lblLang').querySelectorAll('button'), function (b) { b.classList.toggle('is-on', b.getAttribute('data-lang') === lblLang); });
-    $('lblLangHint').textContent = LANG_HINT[lblLang];
+    var eva = L && L.isEva(lblSel.get());
+    $('lblLangHint').textContent = eva
+      ? 'SICAR EVA58: usa TSPL y debe estar en modo etiqueta (en modo ticket imprime los comandos como texto). Rollo de hasta 58 mm.'
+      : LANG_HINT[lblLang];
   }
   $('lblLang').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-lang]');
@@ -790,7 +798,7 @@
     $('lblDirect').checked = !!c.enabled;
     $('lblError').textContent = '';
     lblSel.setOptions(c.printer ? [{ value: c.printer, label: c.printer }] : []);
-    lblSel.set(c.printer, true);
+    lblSel.set(c.printer, true); syncLang();
     var st = $('lblStatus');
     st.className = 'inv-lbl-status'; st.textContent = 'Buscando Avante Impresión…';
     I.openModal(lblModal);
@@ -806,7 +814,8 @@
       lblSel.setOptions(sorted.map(function (p) { return { value: p, label: p, hint: L.looksLikeLabel(p) ? 'etiquetas' : (p === s.default ? 'predeterminada' : '') }; }));
       var cur = c.printer && lblPrinters.indexOf(c.printer) !== -1 ? c.printer : (sorted.filter(L.looksLikeLabel)[0] || '');
       lblSel.set(cur, true);
-      if (!c.printer && cur) { lblLang = L.guess(cur); syncLang(); }
+      if (!c.printer && cur) lblLang = L.guess(cur);
+      syncLang();
       st.className = 'inv-lbl-status is-on';
       st.innerHTML = '<strong>Avante Impresión conectado.</strong> ' + lblPrinters.length + (lblPrinters.length === 1 ? ' impresora encontrada.' : ' impresoras encontradas.');
     });
@@ -814,7 +823,7 @@
   function readLblForm() {
     return {
       printer: lblSel.get(), lang: lblLang,
-      w: Math.min(110, Math.max(20, parseFloat($('lblW').value) || 50)),
+      w: Math.min(L && L.isEva(lblSel.get()) ? 58 : 110, Math.max(20, parseFloat($('lblW').value) || 50)),
       h: Math.min(100, Math.max(10, parseFloat($('lblH').value) || 25)),
       gap: Math.min(10, Math.max(0, parseFloat($('lblGap').value) || 0)),
       enabled: $('lblDirect').checked

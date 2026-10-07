@@ -8,6 +8,8 @@
      · TSPL — TSC, Xprinter (XP-360B/365B/420B…), 3nStar, Rongta, Beeprt…
      · ZPL  — Zebra (ZD220, ZD230, GC420, GK420…)
      · EPL  — Zebra viejitas (LP2824, TLP2844…)
+   La de Avante es la SICAR EVA58 (etiqueta y ticket, 58 mm, 203 dpi):
+   habla TSPL en modo etiqueta y ESC/POS en modo ticket. Área útil 56 mm.
    Lo elegido se guarda en ESTA compu (localStorage, 'avante.etiquetadora').
 
    window.InvLabels = { config, setConfig, status, print, test, guess }
@@ -55,12 +57,15 @@ window.InvLabels = (function () {
   // {ok, printers:[], default} o null si el programa no está abierto.
   function status() { return agentFetch('/status', null, 1500).catch(function () { return null; }); }
 
+  // SICAR EVA58 (= MPRINT LP58 EVA): 58 mm de papel, 56 mm de impresión.
+  function isEva(name) { return /eva ?-?58|lp ?-?58/i.test(name || ''); }
   // Parece impresora de etiquetas por el nombre (para sugerirla primero).
   function looksLikeLabel(name) {
-    return /zebra|\bzd\d{3}|\bgc4\d\d|\bgk4\d\d|\bgx4\d\d|lp ?28|tlp|\btsc\b|\bttp|\bte2\d\d|xp-?(3|4)\d\db|xprinter|label|etiq|3nstar|\bltt|rongta|beeprt|godex|argox/i.test(name || '');
+    return /eva ?-?58|lp ?-?58|zebra|\bzd\d{3}|\bgc4\d\d|\bgk4\d\d|\bgx4\d\d|lp ?28|tlp|\btsc\b|\bttp|\bte2\d\d|xp-?(3|4)\d\db|xprinter|label|etiq|3nstar|\bltt|rongta|beeprt|godex|argox/i.test(name || '');
   }
   // Idioma probable según la marca.
   function guess(name) {
+    if (isEva(name)) return 'tspl';
     if (/lp ?28|tlp ?28/i.test(name || '')) return 'epl';
     if (/zebra|\bzd\d{3}|\bgc4\d\d|\bgk4\d\d|\bgx4\d\d/i.test(name || '')) return 'zpl';
     return 'tspl';
@@ -79,7 +84,8 @@ window.InvLabels = (function () {
 
   // labels: [{numero, desc, linea}]  ·  203 dpi = 8 puntos por mm
   function build(cfg, labels) {
-    var W = Math.round(cfg.w * 8), H = Math.round(cfg.h * 8);
+    // La EVA58 no imprime en el último milímetro de cada lado: se centra en 56 mm.
+    var W = Math.round((isEva(cfg.printer) ? Math.min(cfg.w, 56) : cfg.w) * 8), H = Math.round(cfg.h * 8);
     var maxChars = Math.max(10, Math.floor((W - 16) / 12));
     var out = '';
     if (cfg.lang === 'zpl') {
@@ -150,5 +156,5 @@ window.InvLabels = (function () {
     return print([{ numero: 'AVT000000', desc: 'Prueba de etiqueta', linea: 'Avante Optics' }], cfg);
   }
 
-  return { config: config, setConfig: setConfig, status: status, print: print, test: test, guess: guess, looksLikeLabel: looksLikeLabel, build: build };
+  return { config: config, setConfig: setConfig, status: status, print: print, test: test, guess: guess, looksLikeLabel: looksLikeLabel, isEva: isEva, build: build };
 })();
