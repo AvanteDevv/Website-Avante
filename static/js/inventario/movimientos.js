@@ -109,7 +109,7 @@
 
   function refHTML(m) {
     if (m.venta_id) return '<span>Ticket ' + m.venta_id + '</span>';
-    if (m.ajuste_id) return '<a href="/inventario/ajustes?folio=' + m.ajuste_id + '">Ajuste #' + m.ajuste_id + '</a>';
+    if (m.ajuste_id) return '<a href="' + I.base + '/ajustes?folio=' + m.ajuste_id + '">Ajuste #' + m.ajuste_id + '</a>';
     return '';
   }
   function render(d, p) {

@@ -48,18 +48,62 @@ func invUser(c *gin.Context) string {
 	return s
 }
 
-func invPage(file, active string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.HTML(http.StatusOK, file, WithStaff(c, gin.H{"ActivePage": active}))
+// invCanCost: solo el admin ve y captura el precio de compra (costo).
+// La cuenta de Inventario da de alta y ajusta artículos, pero el costo lo
+// pone el admin.
+func invCanCost(c *gin.Context) bool {
+	v, _ := c.Get("staff_role")
+	r, _ := v.(string)
+	return r == RoleAdmin
+}
+
+// invHideCost borra el costo de lo que se le manda a quien no es admin.
+func invHideCost(c *gin.Context, items ...*models.InvArticulo) {
+	if invCanCost(c) {
+		return
+	}
+	for _, a := range items {
+		if a != nil {
+			a.PrecioCompra = 0
+		}
 	}
 }
 
-// Páginas del panel de Inventario.
+// invPage arma una página del panel. Se usa en dos lugares con la misma
+// plantilla:
+//   - /inventario/…        cuenta de Inventario (su propio sidebar)
+//   - /admin/inventario/…  el admin, dentro de su panel (sidebar de admin
+//     y pestañas arriba para moverse entre las 4 secciones)
+func invPage(file, tab string, admin bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		data := gin.H{"InvTab": tab, "CanCost": invCanCost(c)}
+		if admin {
+			data["Panel"] = "admin"
+			data["ActivePage"] = "admin-inventario"
+			data["InvBase"] = "/admin/inventario"
+		} else {
+			data["Panel"] = "inventario"
+			data["ActivePage"] = "inv-" + tab
+			data["InvBase"] = "/inventario"
+		}
+		c.HTML(http.StatusOK, file, WithStaff(c, data))
+	}
+}
+
+// Páginas del panel de Inventario (cuenta de Inventario).
 var (
-	InventarioArticulosPage     = invPage("articulos-inventario.html", "inv-articulos")
-	InventarioDepartamentosPage = invPage("departamentos-inventario.html", "inv-departamentos")
-	InventarioAjustesPage       = invPage("ajustes-inventario.html", "inv-ajustes")
-	InventarioMovimientosPage   = invPage("movimientos-inventario.html", "inv-movimientos")
+	InventarioArticulosPage     = invPage("articulos-inventario.html", "articulos", false)
+	InventarioDepartamentosPage = invPage("departamentos-inventario.html", "departamentos", false)
+	InventarioAjustesPage       = invPage("ajustes-inventario.html", "ajustes", false)
+	InventarioMovimientosPage   = invPage("movimientos-inventario.html", "movimientos", false)
+)
+
+// Las mismas páginas dentro del panel del admin (Admin → Inventario).
+var (
+	AdminInventarioArticulosPage     = invPage("articulos-inventario.html", "articulos", true)
+	AdminInventarioDepartamentosPage = invPage("departamentos-inventario.html", "departamentos", true)
+	AdminInventarioAjustesPage       = invPage("ajustes-inventario.html", "ajustes", true)
+	AdminInventarioMovimientosPage   = invPage("movimientos-inventario.html", "movimientos", true)
 )
 
 func invID(c *gin.Context) (int64, bool) {
@@ -90,7 +134,10 @@ func InvListArticulos(c *gin.Context) {
 		invFail(c, "ListArticulos.deps", err, "No se pudieron cargar los departamentos.")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"items": items, "departamentos": deps})
+	for i := range items {
+		invHideCost(c, &items[i])
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items, "departamentos": deps, "can_cost": invCanCost(c)})
 }
 
 type invArticuloBody struct {
@@ -215,11 +262,15 @@ func InvCreateArticulo(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if !invCanCost(c) {
+		a.PrecioCompra = 0 // el costo lo pone el admin
+	}
 	item, err := models.CreateInvArticulo(a, invUser(c))
 	if err != nil {
 		invArticuloErr(c, "CreateArticulo", err, a.Clave)
 		return
 	}
+	invHideCost(c, item)
 	c.JSON(http.StatusCreated, gin.H{"item": item})
 }
 
@@ -234,11 +285,12 @@ func InvUpdateArticulo(c *gin.Context) {
 		return
 	}
 	a.ID = id
-	item, err := models.UpdateInvArticulo(a)
+	item, err := models.UpdateInvArticulo(a, !invCanCost(c))
 	if err != nil {
 		invArticuloErr(c, "UpdateArticulo", err, a.Clave)
 		return
 	}
+	invHideCost(c, item)
 	c.JSON(http.StatusOK, gin.H{"item": item})
 }
 
@@ -303,6 +355,7 @@ func InvAjustarArticulo(c *gin.Context) {
 	case err != nil:
 		invFail(c, "AjustarArticulo", err, "No se pudo hacer el ajuste.")
 	default:
+		invHideCost(c, r.Articulo)
 		c.JSON(http.StatusOK, gin.H{"ajuste": r})
 	}
 }
@@ -617,6 +670,7 @@ func InvListMovimientos(c *gin.Context) {
 	resp := gin.H{"items": items, "totales": tot, "hoy": models.PosToday()}
 	if f.ItemID > 0 {
 		if a, err := models.GetInvArticulo(f.ItemID); err == nil {
+			invHideCost(c, a)
 			resp["articulo"] = a
 		}
 	}

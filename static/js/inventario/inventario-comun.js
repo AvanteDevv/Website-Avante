@@ -250,7 +250,15 @@ window.Inv = (function () {
     };
   }
 
+  // Dónde vive el panel: /inventario (cuenta de Inventario) o
+  // /admin/inventario (el admin). Y si quien lo usa puede ver/poner el
+  // precio de compra (solo el admin).
+  var pageEl = document.querySelector('[data-inv-base]');
+  var base = (pageEl && pageEl.getAttribute('data-inv-base')) || '/inventario';
+  var canCost = !!(pageEl && pageEl.getAttribute('data-can-cost') === '1');
+
   return {
+    base: base, canCost: canCost,
     select: select,
     $: $, esc: esc, norm: norm, mxn: mxn, num: num, round2: round2, api: api, toast: toast,
     openModal: openModal, closeModal: closeModal, fecha: fecha, fechaHora: fechaHora,

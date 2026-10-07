@@ -225,13 +225,19 @@ func CreateInvArticulo(a InvArticulo, usuario string) (*InvArticulo, error) {
 // UpdateInvArticulo guarda los datos del artículo. La existencia NO se
 // cambia aquí (como en SICAR): eso se hace con Ajustar, para que quede
 // en el kárdex.
-func UpdateInvArticulo(a InvArticulo) (*InvArticulo, error) {
+//
+// keepCost = true deja el precio de compra que ya tenía (la cuenta de
+// Inventario no lo puede cambiar; solo el admin).
+func UpdateInvArticulo(a InvArticulo, keepCost bool) (*InvArticulo, error) {
 	if err := checkInvClasificacion(&a); err != nil {
 		return nil, err
 	}
 	cur, err := GetInvArticulo(a.ID)
 	if err != nil {
 		return nil, err
+	}
+	if keepCost {
+		a.PrecioCompra = cur.PrecioCompra
 	}
 	if a.Servicio && cur.Existencia != 0 {
 		return nil, fmt.Errorf("para marcarlo como servicio primero deja su existencia en 0 (Ajustar)")

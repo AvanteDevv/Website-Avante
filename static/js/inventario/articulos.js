@@ -72,7 +72,7 @@
     });
     $('stArticulos').textContent = I.num(arts);
     $('stPiezas').textContent = I.num(piezas);
-    $('stCosto').textContent = mxn.format(costo);
+    if ($('stCosto')) $('stCosto').textContent = mxn.format(costo);
     $('stVenta').textContent = mxn.format(venta);
     $('stBajo').textContent = I.num(bajo);
     $('stAgotados').textContent = I.num(agot);
@@ -220,7 +220,7 @@
     ['tbEditar', 'tbEliminar', 'tbAjustar', 'tbClonar'].forEach(function (id) { $(id).disabled = !a; });
     $('tbAjustar').disabled = !a || a.servicio;
     var kx = $('tbKardex');
-    kx.href = a ? '/inventario/movimientos?item=' + a.id : '/inventario/movimientos';
+    kx.href = a ? I.base + '/movimientos?item=' + a.id : I.base + '/movimientos';
     kx.setAttribute('aria-disabled', a ? 'false' : 'true');
     $('invDetailEmpty').hidden = !!a;
     var body = $('invDetailBody');
@@ -228,7 +228,7 @@
     if (!a) return;
     var st = estadoOf(a);
     var stLabel = { servicio: 'Servicio', agotado: 'Agotado', bajo: 'Bajo mínimo', sobre: 'Sobre máximo', ok: 'En existencia' }[st];
-    var u1 = utilidad(a.precio_compra, a.precio_1);
+    var u1 = I.canCost ? utilidad(a.precio_compra, a.precio_1) : null;
     var bar = '';
     if (!a.servicio && (a.minimo > 0 || a.maximo > 0)) {
       var top = Math.max(a.maximo || 0, a.minimo * 2 || 0, a.existencia, 1);
@@ -257,13 +257,13 @@
         '<div class="inv-d-row"><span>Departamento</span><strong>' + esc(a.departamento || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Categoría</span><strong>' + esc(a.categoria || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Localización</span><strong>' + esc(a.localizacion || '—') + '</strong></div>' +
-        '<div class="inv-d-row"><span>Precio de compra</span><strong>' + mxn.format(a.precio_compra) + '</strong></div>' +
+        (I.canCost ? '<div class="inv-d-row"><span>Precio de compra</span><strong>' + mxn.format(a.precio_compra) + '</strong></div>' : '') +
         otros +
         (a.factor > 1 || a.unidad_compra !== a.unidad_venta ? '<div class="inv-d-row"><span>Compra / venta</span><strong>1 ' + esc(a.unidad_compra) + ' = ' + I.num(a.factor) + ' ' + esc(a.unidad_venta) + '</strong></div>' : '') +
       '</div>' +
       '<div class="inv-d-actions">' +
         (a.servicio ? '' : '<button type="button" class="btn solid small" data-act="ajustar">Ajustar existencia</button>') +
-        '<a class="btn small" href="/inventario/movimientos?item=' + a.id + '">Ver movimientos</a>' +
+        '<a class="btn small" href="' + I.base + '/movimientos?item=' + a.id + '">Ver movimientos</a>' +
       '</div>';
   }
   $('invDetailBody').addEventListener('click', function (e) {
@@ -317,17 +317,19 @@
 
   // Precios 1 a 4: % utilidad ↔ precio de venta neto
   var pricesEl = $('aPrices');
+  pricesEl.classList.toggle('is-nocost', !I.canCost);
   pricesEl.innerHTML = [1, 2, 3, 4].map(function (n) {
     return '<div class="inv-price-row' + (n === 1 ? ' is-main' : '') + '" data-n="' + n + '">' +
       '<div class="inv-price-name"><strong>Precio ' + n + '</strong><small>' + (n === 1 ? 'Público (Punto de venta)' : 'Mayoreo / especial') + '</small></div>' +
-      '<label class="inv-price-field"><span>% Utilidad</span><span class="inv-pct"><input type="number" step="0.01" inputmode="decimal" data-util placeholder="0"><em>%</em></span></label>' +
+      (I.canCost ? '<label class="inv-price-field"><span>% Utilidad</span><span class="inv-pct"><input type="number" step="0.01" inputmode="decimal" data-util placeholder="0"><em>%</em></span></label>' : '') +
       '<label class="inv-price-field"><span>Precio venta neto</span><span class="inv-money"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-precio placeholder="0.00"></span></label>' +
       (n === 1 ? '<div class="inv-price-field is-static"><span>Sin IVA</span><b data-siniva>$0.00</b></div>'
                : '<label class="inv-price-field"><span>Desde (piezas)</span><input type="number" min="0" step="1" inputmode="numeric" data-mayoreo placeholder="0"></label>') +
     '</div>';
   }).join('');
   function priceRow(n) { return pricesEl.querySelector('[data-n="' + n + '"]'); }
-  function compra() { return parseFloat($('aCompra').value) || 0; }
+  // Solo el admin pone el precio de compra (sin él no hay % de utilidad).
+  function compra() { return $('aCompra') ? (parseFloat($('aCompra').value) || 0) : 0; }
   function syncSinIva() {
     var p = parseFloat(priceRow(1).querySelector('[data-precio]').value) || 0;
     priceRow(1).querySelector('[data-siniva]').textContent = mxn.format($('aIva').checked ? p / 1.16 : p);
@@ -335,7 +337,8 @@
   function utilFromPrice(row) {
     var p = parseFloat(row.querySelector('[data-precio]').value);
     var u = utilidad(compra(), p);
-    row.querySelector('[data-util]').value = u == null ? '' : I.round2(u);
+    var uIn = row.querySelector('[data-util]');
+    if (uIn) uIn.value = u == null ? '' : I.round2(u);
   }
   pricesEl.addEventListener('input', function (e) {
     var row = e.target.closest('.inv-price-row');
@@ -348,7 +351,7 @@
     }
     syncSinIva();
   });
-  $('aCompra').addEventListener('input', function () {
+  if ($('aCompra')) $('aCompra').addEventListener('input', function () {
     [1, 2, 3, 4].forEach(function (n) { utilFromPrice(priceRow(n)); });
     pricesEl.classList.toggle('no-cost', !(compra() > 0));
   });
@@ -381,7 +384,7 @@
     aUV.set(a ? a.unidad_venta : 'PZA', true);
     $('aFactor').value = a ? (a.factor || 1) : 1;
     $('aServicio').checked = !!(a && a.servicio);
-    $('aCompra').value = a && a.precio_compra ? a.precio_compra.toFixed(2) : '';
+    if ($('aCompra')) $('aCompra').value = a && a.precio_compra ? a.precio_compra.toFixed(2) : '';
     $('aIva').checked = a ? !!a.iva : true;
     [1, 2, 3, 4].forEach(function (n) {
       var row = priceRow(n), p = a ? a['precio_' + n] : 0;

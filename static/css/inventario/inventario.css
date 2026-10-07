@@ -17,7 +17,7 @@
 .inv-page .admin-panel{ overflow:visible; }
 
 /* ---------- Resumen ---------- */
-.inv-stats{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+.inv-stats{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:18px; }
 .inv-stat{
   position:relative; padding:14px 16px; border-radius:var(--radius-md); background:var(--white); border:1px solid var(--line);
   display:flex; flex-direction:column; gap:4px; min-width:0; text-align:left; font-family:var(--sans);
@@ -242,6 +242,18 @@ body.dark .inv-d-stock.is-bajo strong{ color:#ffd36e; }
 .inv-price-field > span{ font-size:10.5px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--muted); }
 .inv-price-field.is-static b{ font-size:14px; color:var(--ink); padding:11px 0; font-variant-numeric:tabular-nums; }
 .inv-prices.no-cost [data-util]{ opacity:.45; }
+.inv-prices.is-nocost .inv-price-row{ grid-template-columns:150px repeat(2, minmax(0,1fr)); }
+.inv-cost-note{ padding:11px 0; }
+
+/* Admin → Inventario: pestañas entre las 4 secciones */
+.inv-subnav{ display:inline-flex; flex-wrap:wrap; margin:-6px 0 18px; max-width:100%; }
+.inv-subnav a{
+  padding:9px 16px; border-radius:100px; text-decoration:none;
+  font-family:var(--sans); font-size:13px; font-weight:700; color:var(--muted);
+  transition:background .2s var(--ease), color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.inv-subnav a:hover{ color:var(--accent); }
+.inv-subnav a.is-on{ background:var(--accent); color:#fff; box-shadow:0 6px 16px -4px rgba(4,28,255,.4); }
 
 /* ---------- Modal de ajuste ---------- */
 .inv-aj-card{ max-width:520px; }
@@ -491,7 +503,6 @@ body.dark .inv-qty.is-down{ color:#ff8b7d; }
 
 /* ---------- Responsivo ---------- */
 @media (max-width:1280px){
-  .inv-stats{ grid-template-columns:repeat(3, minmax(0,1fr)); }
   .inv-layout{ grid-template-columns:minmax(0,1fr) 300px; }
 }
 @media (max-width:1000px){

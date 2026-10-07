@@ -111,7 +111,7 @@
     }
     $('catHead').textContent = d.nombre;
     $('catSub').textContent = d.categorias.length + (d.categorias.length === 1 ? ' categoría' : ' categorías');
-    $('catVerArts').href = '/inventario/articulos?dep=' + d.id;
+    $('catVerArts').href = I.base + '/articulos?dep=' + d.id;
     $('catEmpty').hidden = d.categorias.length > 0;
     $('catEmpty').textContent = 'Este departamento todavía no tiene categorías. Agrega la primera arriba.';
     $('catBody').innerHTML = d.categorias.map(function (c, i) {
@@ -127,7 +127,7 @@
       return '<tr data-id="' + c.id + '" style="--i:' + i + '">' +
         '<td><strong>' + esc(c.nombre) + '</strong></td>' +
         '<td class="num">' + (c.comision ? I.round2(c.comision) + ' %' : '<span class="inv-muted">—</span>') + '</td>' +
-        '<td class="num">' + (c.articulos ? '<a href="/inventario/articulos?dep=' + d.id + '&amp;cat=' + c.id + '">' + c.articulos + '</a>' : '<span class="inv-muted">0</span>') + '</td>' +
+        '<td class="num">' + (c.articulos ? '<a href="' + I.base + '/articulos?dep=' + d.id + '&amp;cat=' + c.id + '">' + c.articulos + '</a>' : '<span class="inv-muted">0</span>') + '</td>' +
         '<td class="act">' +
           '<button type="button" class="inv-icon-btn" data-act="edit" title="Editar">' + PENCIL + '</button>' +
           (deps.length > 1 ? '<button type="button" class="inv-icon-btn" data-act="move" title="Mover a otro departamento">' + MOVE + '</button>' : '') +
