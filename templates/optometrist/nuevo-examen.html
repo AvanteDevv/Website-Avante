@@ -32,6 +32,21 @@
       </div>
     </div>
 
+    <!-- Cómo llenar: onboarding (una pregunta a la vez) o directo sobre la hoja -->
+    <div class="exam-mode-row">
+      <div class="view-switch exam-mode-switch" id="examModeSwitch" hidden>
+        <span class="view-switch-glow"></span>
+        <button type="button" class="view-switch-btn active" data-mode="pasos" title="Una pregunta a la vez">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>
+          Paso a paso
+        </button>
+        <button type="button" class="view-switch-btn" data-mode="hoja" title="Escribir directo sobre el formato">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+          Sobre la hoja
+        </button>
+      </div>
+    </div>
+
     <p class="tpl-status" id="examStatus"></p>
 
     <div class="exam-wizard-progress" id="examWizardProgress" style="display:none;">
@@ -45,6 +60,15 @@
 
     <div id="examFormWrap" style="display:none;">
       <div class="exam-wizard-card" id="examWizardStep"></div>
+
+      <!-- Modo "Sobre la hoja": el mismo formato de la plantilla con
+           los campos editables; Enter salta al siguiente campo. -->
+      <div class="exam-sheet" id="examSheetWrap" hidden>
+        <p class="exam-sheet-hint">Escribe directo en la hoja. <kbd>Enter</kbd> pasa al siguiente campo.</p>
+        <div class="exf-canvas-wrap exam-sheet-scroll">
+          <div class="exam-sheet-scale" id="examSheetScale"><div id="examSheetCanvas"></div></div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -52,6 +76,7 @@
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/optometrist/userbar-optometrist.js"></script>
+<script src="/static/js/optometrist/examen-render.js"></script>
 <script src="/static/js/optometrist/nuevo-examen.js"></script>
 </body>
 </html>

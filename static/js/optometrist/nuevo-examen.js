@@ -10,6 +10,15 @@
    forma que ya esperan ver-examen.js y el backend, y se arma el
    payload directo de ahí al guardar.
 
+   Hay dos formas de llenar (toggle "Paso a paso | Sobre la hoja",
+   misma idea que Clarito):
+   - Paso a paso: el onboarding de arriba.
+   - Sobre la hoja: se monta AvanteExamRender editable con el
+     formato tal cual y se escribe directo en él; Enter salta al
+     siguiente campo. Los dos modos comparten el mismo objeto
+     `values`, así que se puede cambiar de uno a otro sin perder
+     nada. La preferencia se recuerda en este navegador.
+
    El campo NOMBRE, además, busca contra la base de clientes
    mientras se escribe: si la persona ya tiene cuenta, el examen
    queda ligado a ella (userId) y podrá verlo en "Mis exámenes";
@@ -25,6 +34,14 @@
   var progressEl = document.getElementById('examWizardProgress');
   var progressFill = document.getElementById('examWizardProgressFill');
   var progressLabel = document.getElementById('examWizardProgressLabel');
+  var modeSwitch = document.getElementById('examModeSwitch');
+  var sheetWrap = document.getElementById('examSheetWrap');
+  var sheetScale = document.getElementById('examSheetScale');
+  var sheetCanvas = document.getElementById('examSheetCanvas');
+
+  var MODE_KEY = 'avanteExamFillMode';
+  var mode = 'pasos'; // 'pasos' | 'hoja'
+  try { if (localStorage.getItem(MODE_KEY) === 'hoja') mode = 'hoja'; } catch (e) {}
 
   var template = null;
   var steps = [];
@@ -39,8 +56,16 @@
 
   /* ---------- autocompletado de paciente en el campo NOMBRE ---------- */
   var patientDropdown = null;
+  var patientDropdownInput = null;
   function closePatientDropdown(){
-    if (patientDropdown){ patientDropdown.remove(); patientDropdown = null; }
+    if (patientDropdown){ patientDropdown.remove(); patientDropdown = null; patientDropdownInput = null; }
+  }
+  function positionPatientDropdown(){
+    if (!patientDropdown || !patientDropdownInput) return;
+    var rect = patientDropdownInput.getBoundingClientRect();
+    patientDropdown.style.left = (rect.left + window.scrollX) + 'px';
+    patientDropdown.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    patientDropdown.style.width = Math.max(rect.width, 220) + 'px';
   }
   function attachPatientSearch(input, telefonoStep){
     var debounceTimer;
@@ -58,12 +83,10 @@
             closePatientDropdown();
             if (!matches.length) return;
 
-            var rect = input.getBoundingClientRect();
             patientDropdown = document.createElement('div');
             patientDropdown.className = 'patient-search-dropdown';
-            patientDropdown.style.left = (rect.left + window.scrollX) + 'px';
-            patientDropdown.style.top = (rect.bottom + window.scrollY + 4) + 'px';
-            patientDropdown.style.width = rect.width + 'px';
+            patientDropdownInput = input;
+            positionPatientDropdown();
             patientDropdown.innerHTML = matches.map(function(m){
               return '<button type="button" class="patient-search-item" data-id="' + m.id + '" data-name="' +
                 m.name.replace(/"/g, '&quot;') + '" data-phone="' + (m.phone || '') + '">' +
@@ -79,18 +102,28 @@
                 values.fields.nombre = item.dataset.name;
                 selectedPatientId = parseInt(item.dataset.id, 10);
                 if (telefonoStep && item.dataset.phone) values.fields[telefonoStep.fieldKey] = item.dataset.phone;
+                syncSheetFields();
                 closePatientDropdown();
+                if (mode === 'hoja') focusNextSheetInput(input, 1);
               });
             });
           })
           .catch(function(){ /* si falla la búsqueda, se sigue escribiendo el nombre a mano */ });
       }, 280);
     });
-
-    document.addEventListener('click', function(e){
-      if (e.target !== input && !(patientDropdown && patientDropdown.contains(e.target))) closePatientDropdown();
-    });
   }
+
+  // Un solo listener para cerrar la lista al dar clic afuera (antes
+  // se agregaba uno nuevo en cada paso).
+  document.addEventListener('click', function(e){
+    if (!patientDropdown) return;
+    if (patientDropdown.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('.exam-wizard-input, .exf-input[data-field-key="nombre"]')) return;
+    closePatientDropdown();
+  });
+  // Si se desplaza la página (o la hoja), la lista sigue pegada al campo
+  window.addEventListener('scroll', positionPatientDropdown, true);
+  window.addEventListener('resize', function(){ closePatientDropdown(); if (mode === 'hoja') fitSheet(); });
 
   // Si llegó desde "Realizar examen" en la tarjeta de próxima cita, ya
   // sabemos nombre/apellido/teléfono (y userId si esa cita estaba
@@ -260,13 +293,18 @@
   }
 
   function updateProgress(){
-    if (!steps.length){ progressEl.style.display = 'none'; return; }
+    if (mode === 'hoja' || !steps.length){ progressEl.style.display = 'none'; return; }
     progressEl.style.display = 'flex';
     progressFill.style.width = Math.round((currentIndex / steps.length) * 100) + '%';
     progressLabel.textContent = 'Paso ' + (currentIndex + 1) + ' de ' + steps.length;
   }
 
   function updateNavButtons(){
+    if (mode === 'hoja'){
+      backBtn.style.display = 'none';
+      nextBtn.textContent = 'Guardar examen';
+      return;
+    }
     if (!steps.length){
       backBtn.style.display = 'none';
       nextBtn.textContent = 'Guardar examen';
@@ -293,7 +331,7 @@
 
   nextBtn.addEventListener('click', function(){
     if (!template) return;
-    if (!steps.length){ saveExam(); return; }
+    if (mode === 'hoja' || !steps.length){ saveExam(); return; }
 
     var step = steps[currentIndex];
     if (!isStepFilled(step)){
@@ -312,12 +350,14 @@
     steps = (template.elements || []).filter(function(el){
       return (el.type === 'text' && el.fieldKey) || el.type === 'table';
     });
+    applyMode();
+  }
 
+  // Si algo ya venía lleno (precarga desde la próxima cita, o lo que
+  // se escribió en la hoja), no obliga a pasar por ahí de nuevo —
+  // arranca en el primer paso que sigue vacío.
+  function startWizardAtFirstEmpty(){
     if (!steps.length){ updateNavButtons(); progressEl.style.display = 'none'; return; }
-
-    // Si algo ya venía lleno (precarga desde la próxima cita), no
-    // obliga a pasar por ahí de nuevo — arranca en el primer paso
-    // que sigue vacío.
     var firstUnfilled = -1;
     for (var i = 0; i < steps.length; i++){
       if (!isStepFilled(steps[i])){ firstUnfilled = i; break; }
@@ -326,10 +366,181 @@
     renderStep();
   }
 
+  /* ---------- modo "Sobre la hoja" ---------- */
+  function applyMode(){
+    closePatientDropdown();
+    showStatus('');
+    modeSwitch.hidden = false;
+    modeSwitch.classList.toggle('on-hoja', mode === 'hoja');
+    modeSwitch.querySelectorAll('.view-switch-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+
+    if (mode === 'hoja'){
+      stepContainer.hidden = true;
+      stepContainer.innerHTML = '';
+      sheetWrap.hidden = false;
+      mountSheet();
+      updateProgress();
+      updateNavButtons();
+      var first = firstEmptySheetInput();
+      if (first) first.focus({ preventScroll: true });
+    } else {
+      sheetWrap.hidden = true;
+      sheetCanvas.innerHTML = '';
+      stepContainer.hidden = false;
+      startWizardAtFirstEmpty();
+    }
+  }
+
+  modeSwitch.addEventListener('click', function(e){
+    var btn = e.target.closest('.view-switch-btn');
+    if (!btn || !template || btn.dataset.mode === mode) return;
+    mode = btn.dataset.mode;
+    try { localStorage.setItem(MODE_KEY, mode); } catch (err) {}
+    applyMode();
+  });
+
+  // Elementos editables en orden de lectura (arriba→abajo, izq→der);
+  // es el orden que sigue Enter.
+  function sheetOrder(){
+    return (template.elements || []).filter(function(el){
+      return (el.type === 'text' && el.fieldKey) || el.type === 'table';
+    }).slice().sort(function(a, b){
+      var dy = (a.y || 0) - (b.y || 0);
+      if (Math.abs(dy) > 10) return dy;
+      return (a.x || 0) - (b.x || 0);
+    });
+  }
+
+  var sheetInputs = [];
+
+  function mountSheet(){
+    AvanteExamRender.mount(sheetCanvas, {
+      canvasW: template.canvasW || 816,
+      canvasH: template.canvasH || 1056,
+      elements: template.elements || [],
+      readonly: false,
+      data: values
+    });
+
+    sheetInputs = [];
+    sheetOrder().forEach(function(el){
+      var node = sheetCanvas.querySelector('.exf-el[data-id="' + el.id + '"]');
+      if (!node) return;
+      if (el.type === 'table'){
+        node.querySelectorAll('tbody tr').forEach(function(tr, r){
+          tr.querySelectorAll('.exf-cell-input').forEach(function(input, c){
+            input.dataset.tableId = el.id;
+            input.dataset.row = r;
+            input.dataset.col = c;
+            sheetInputs.push(input);
+          });
+        });
+      } else {
+        var input = node.querySelector('.exf-input');
+        if (!input) return;
+        input.autocomplete = 'off';
+        sheetInputs.push(input);
+      }
+    });
+
+    var nombreInput = sheetCanvas.querySelector('.exf-input[data-field-key="nombre"]');
+    if (nombreInput) attachPatientSearch(nombreInput, findTelefonoStep());
+
+    fitSheet();
+  }
+
+  // La hoja mide 816px; en pantallas más angostas se escala para que
+  // quepa completa sin scroll de lado.
+  function fitSheet(){
+    if (!template || sheetWrap.hidden) return;
+    var w = template.canvasW || 816, h = template.canvasH || 1056;
+    var avail = sheetScale.parentNode.clientWidth;
+    var s = avail && avail < w ? avail / w : 1;
+    sheetCanvas.style.transform = s < 1 ? 'scale(' + s + ')' : '';
+    sheetScale.style.width = Math.floor(w * s) + 'px';
+    sheetScale.style.height = Math.ceil(h * s) + 'px';
+  }
+
+  function firstEmptySheetInput(){
+    for (var i = 0; i < sheetInputs.length; i++){
+      if (!sheetInputs[i].value.trim()) return sheetInputs[i];
+    }
+    return null;
+  }
+
+  function focusNextSheetInput(from, dir){
+    var i = sheetInputs.indexOf(from);
+    var next = sheetInputs[i + dir];
+    if (next){
+      next.focus();
+      next.select();
+      var r = next.getBoundingClientRect();
+      if (r.top < 70 || r.bottom > window.innerHeight - 20){
+        next.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    } else if (dir > 0){
+      nextBtn.focus(); // ya era el último: el siguiente Enter guarda
+    }
+  }
+
+  // Todo lo que se escribe en la hoja va directo a `values`.
+  sheetCanvas.addEventListener('input', function(e){
+    var t = e.target;
+    if (t.matches('.exf-input[data-field-key]')){
+      var key = t.dataset.fieldKey;
+      values.fields[key] = t.value;
+      // Si la plantilla repite el mismo campo en dos lugares, que
+      // ambos muestren lo mismo.
+      sheetCanvas.querySelectorAll('.exf-input[data-field-key="' + key + '"]').forEach(function(o){
+        if (o !== t) o.value = t.value;
+      });
+    } else if (t.matches('.exf-cell-input') && t.dataset.tableId){
+      var id = t.dataset.tableId, r = +t.dataset.row, c = +t.dataset.col;
+      values.tables[id] = values.tables[id] || [];
+      values.tables[id][r] = values.tables[id][r] || [];
+      values.tables[id][r][c] = t.value;
+    }
+  });
+
+  sheetCanvas.addEventListener('keydown', function(e){
+    if (e.key !== 'Enter' || !e.target.matches('input')) return;
+    e.preventDefault();
+    // Si está abierta la lista de pacientes, Enter elige el primero
+    if (patientDropdown && e.target.dataset.fieldKey === 'nombre' && !e.shiftKey){
+      var firstItem = patientDropdown.querySelector('.patient-search-item');
+      if (firstItem){ firstItem.click(); return; }
+    }
+    closePatientDropdown();
+    focusNextSheetInput(e.target, e.shiftKey ? -1 : 1);
+  });
+
+  // Refleja en la hoja lo que cambió por fuera (p. ej. el teléfono al
+  // elegir un paciente de la lista).
+  function syncSheetFields(){
+    if (sheetWrap.hidden) return;
+    sheetCanvas.querySelectorAll('.exf-input[data-field-key]').forEach(function(input){
+      var v = values.fields[input.dataset.fieldKey] || '';
+      if (input.value !== v && document.activeElement !== input) input.value = v;
+    });
+  }
+
   function saveExam(){
     var name = (values.fields.nombre || '').trim();
     if (!name){
       showStatus('Escribe el nombre del paciente.', 'error');
+      if (mode === 'hoja'){
+        var ni = sheetCanvas.querySelector('.exf-input[data-field-key="nombre"]');
+        if (ni){
+          ni.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          ni.focus();
+          var holder = ni.closest('.exf-el');
+          holder.classList.add('exam-step-shake', 'exam-sheet-missing');
+          setTimeout(function(){ holder.classList.remove('exam-step-shake'); }, 400);
+          ni.addEventListener('input', function clear(){ holder.classList.remove('exam-sheet-missing'); ni.removeEventListener('input', clear); });
+        }
+      }
       return;
     }
 

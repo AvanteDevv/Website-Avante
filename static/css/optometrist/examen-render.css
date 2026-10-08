@@ -109,6 +109,38 @@
   40%, 80%{ transform:translateX(6px); }
 }
 
+/* ---------- Nuevo examen: toggle "Paso a paso | Sobre la hoja" ----------
+   Reusa el .view-switch de examen-vista.css; aquí solo se igualan las
+   dos mitades y se mueve el fondo azul a la segunda opción. */
+.exam-mode-switch[hidden]{ display:none; }
+.exam-mode-switch{ min-width:320px; }
+.exam-mode-switch .view-switch-btn{ flex:1; justify-content:center; }
+@media (max-width:520px){ .exam-mode-switch{ min-width:0; } }
+.exam-mode-switch.on-hoja .view-switch-glow{ transform:translateX(100%); }
+
+/* ---------- Nuevo examen: modo "Sobre la hoja" ---------- */
+.exam-sheet[hidden], .exam-wizard-card[hidden]{ display:none; }
+.exam-sheet-hint{ text-align:center; font-size:12.5px; color:var(--grey); margin:0 0 6px; }
+.exam-sheet-hint kbd{
+  font-family:var(--sans); font-size:11px; font-weight:700; color:var(--ink);
+  background:var(--blue-50); border:1px solid var(--line); border-radius:6px; padding:1px 6px;
+}
+.exam-sheet-scroll{ overflow-x:hidden; }
+.exam-sheet-scale{ margin:0 auto; }
+.exam-sheet-scale .exf-canvas{ transform-origin:top left; margin:0; }
+/* Campos de la hoja: se nota dónde escribir sin ensuciar el formato */
+.exam-sheet .exf-input{ transition:background .15s var(--ease); border-radius:3px 3px 0 0; }
+.exam-sheet .exf-input:hover{ background:var(--blue-50); }
+.exam-sheet .exf-input:focus{ background:var(--blue-50); border-bottom-width:2px; }
+.exam-sheet .exf-cell-input:hover{ background:var(--blue-50); }
+.exam-sheet .exf-cell-input:focus{ box-shadow:inset 0 0 0 1.5px var(--blue-600); }
+.exam-sheet-missing .exf-input{ border-bottom-color:#c0392b; background:#fdecea; }
+
+.exam-mode-row{ display:flex; justify-content:center; margin:0 0 18px; }
+@media (max-width:520px){
+  .exam-mode-row .exam-mode-switch{ width:100%; }
+}
+
 /* ---------- Autocompletado de paciente (Nuevo examen) ---------- */
 .patient-search-dropdown{
   position:absolute; z-index:50;
