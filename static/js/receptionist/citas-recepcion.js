@@ -1926,32 +1926,50 @@ window.CitasFiltro = (function(){
       .catch(function(){ /* se queda con lo de la página */ });
   }
 
-  function isPastToday(t){
-    if (dateHidden.value !== todayISO) return false;
-    if (newTag === 'sin_cita') return false; // vino sin cita: se registra ya pasada la hora
-    if (editOrig && dateHidden.value === editOrig.date && t === editOrig.time) return false; // su hora de siempre
+  // ¿Ese día + hora ya pasó? Se PUEDE elegir (para registrar citas que
+  // se olvidaron capturar y que les salga su revisión); solo se marca
+  // "Ya pasó" y el servidor no le manda WhatsApp al cliente.
+  function isPastSlot(t){
+    var d = dateHidden.value;
+    if (!d) return false;
+    if (d < todayISO) return true;
+    if (d > todayISO || !t) return false;
     var now = new Date();
     return t < pad(now.getHours()) + ':' + pad(now.getMinutes());
+  }
+  var pastHint = document.createElement('p');
+  pastHint.className = 'crear-cita-tipo-hint';
+  pastHint.id = 'crearCitaPastHint';
+  pastHint.hidden = true;
+  pastHint.textContent = 'Esta cita es de una fecha u hora que ya pasó: se registra sin mandarle WhatsApp al cliente.';
+  (function(){
+    var row = timeBtn.closest('.staff-form-row');
+    if (row && row.parentNode) row.parentNode.insertBefore(pastHint, row.nextSibling);
+  })();
+  function syncPastHint(){
+    var t = timeHidden.value;
+    pastHint.hidden = !(mode === 'create' && newTag !== 'sin_cita' && dateHidden.value && (dateHidden.value < todayISO || (t && isPastSlot(t))));
   }
 
   function fillTimeMenu(){
     // Si la hora elegida resultó ocupada (o ya pasó), se quita.
-    if (timeHidden.value && (occupied.indexOf(timeHidden.value) !== -1 || isPastToday(timeHidden.value))) {
+    if (timeHidden.value && occupied.indexOf(timeHidden.value) !== -1) {
       timeHidden.value = '';
       timeLabel.textContent = '—';
       errorEl.textContent = 'Esa hora ya está ocupada, elige otra.';
     }
     timeMenu.innerHTML = HOURS.map(function(t){
       var busy = occupied.indexOf(t) !== -1;
-      var past = !busy && isPastToday(t);
-      var cls = 'time-picker-option' + (t === timeHidden.value ? ' active' : '') + (busy ? ' is-occupied' : '') + (past ? ' is-past' : '');
+      var past = !busy && isPastSlot(t);
+      var cls = 'time-picker-option' + (t === timeHidden.value ? ' active' : '') + (busy ? ' is-occupied' : '') + (past ? ' is-before' : '');
       var tag = busy ? '<small>Ocupada</small>' : (past ? '<small>Ya pasó</small>' : '');
-      return '<button type="button" class="' + cls + '" data-time="' + t + '"' + (busy || past ? ' disabled' : '') + '>' +
+      return '<button type="button" class="' + cls + '" data-time="' + t + '"' + (busy ? ' disabled' : '') + '>' +
         '<span>' + to12h(t) + '</span>' + tag + '</button>';
     }).join('');
   }
   function setTime(t){
     timeHidden.value = t;
+    syncPastHint();
     timeLabel.textContent = to12h(t);
     timeMenu.querySelectorAll('.time-picker-option').forEach(function(opt){
       opt.classList.toggle('active', opt.dataset.time === t);
@@ -2004,7 +2022,8 @@ window.CitasFiltro = (function(){
       if (cellISO === todayISO) cls += ' is-today';
       if (cellISO === dateHidden.value) cls += ' is-selected';
       var closedDay = OPEN_DAYS.indexOf(new Date(cellYear, cellMonth, dayNum).getDay()) === -1;
-      if ((cellISO < todayISO || closedDay) && !(editOrig && cellISO === editOrig.date)) cls += ' is-disabled';
+      // Los días anteriores sí se pueden elegir (citas que se olvidaron capturar).
+      if (closedDay && !(editOrig && cellISO === editOrig.date)) cls += ' is-disabled';
       if (closedDay) cls += ' is-closed';
       html += '<button type="button" class="' + cls + '" data-iso="' + cellISO + '"' + (closedDay ? ' title="Ese día no se dan citas"' : '') + '>' + dayNum + '</button>';
     }
@@ -2015,6 +2034,7 @@ window.CitasFiltro = (function(){
     dateHidden.value = iso(y, m, d);
     dateLabel.textContent = pad(d) + '/' + pad(m + 1) + '/' + y;
     if (changed) loadOccupied(dateHidden.value);
+    syncPastHint();
   }
   document.getElementById('crearCitaDatePrev').addEventListener('click', function(e){
     e.stopPropagation();
@@ -2257,6 +2277,7 @@ window.CitasFiltro = (function(){
     newTag = b.classList.contains('is-on') ? '' : b.dataset.tag;
     renderNewTags();
     tagHint.hidden = newTag !== 'sin_cita' || mode !== 'create';
+    syncPastHint();
     if (newTag === 'sin_cita' && mode === 'create') {
       viewYear = today.getFullYear(); viewMonth = today.getMonth();
       var p = loadOccupiedFor(today);
@@ -2295,6 +2316,7 @@ window.CitasFiltro = (function(){
     newTag = '';
     renderNewTags();
     if (tagHint) tagHint.hidden = true;
+    pastHint.hidden = true;
     errorEl.textContent = '';
 
     viewYear = today.getFullYear();
