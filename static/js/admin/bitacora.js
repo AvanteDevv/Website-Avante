@@ -17,8 +17,8 @@
   var POLL_MS = 8000;
   var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-  var ROLE_LABELS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleado' };
-  var ROLE_GROUPS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleados' };
+  var ROLE_LABELS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleado', inventario: 'Inventario', blogger: 'Blog' };
+  var ROLE_GROUPS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleados', inventario: 'Inventario', blogger: 'Blog' };
   var KIND_LABELS = { accion: 'Acción', clic: 'Clic', vista: 'Página', busqueda: 'Búsqueda', sesion: 'Sesión' };
   var PAGE_NAMES = {
     '/receptionist/citas': 'Citas',

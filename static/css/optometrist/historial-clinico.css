@@ -479,3 +479,20 @@ body.dark .cmp-mark{ color:#f2c26b; background:rgba(154,91,0,.3); }
 body.dark .pf-link, body.dark .pf-tab.active{ color:#aab2ff; }
 body.dark .pf-tab.active{ border-bottom-color:#aab2ff; }
 body.dark .hc-chip.active{ color:#fff; }
+/* ---------- Contadores con la luz LED animada (igual que los
+   círculos de recepción: borde con degradado que gira) ---------- */
+@property --stat-angle{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+@keyframes statBorderSpin{ to{ --stat-angle:360deg; } }
+.hc-stat{
+  border:2px solid transparent;
+  background:
+    linear-gradient(var(--white), var(--white)) padding-box,
+    conic-gradient(from var(--stat-angle,0deg), var(--blue-600), var(--blue-300), #ffffff, var(--blue-500,var(--blue-600)), var(--blue-600)) border-box;
+  animation:statBorderSpin 3.2s linear infinite;
+}
+.hc-stat:hover{ border-color:transparent; }
+/* El filtro activo se marca con un aro azul por fuera (el borde ya es la luz) */
+.hc-stat.active{ border-color:transparent; box-shadow:0 0 0 3px var(--blue-100), var(--shadow-md); }
+.hc-stat.active .hc-stat-label{ color:var(--blue-600); }
+body.dark .hc-stat.active .hc-stat-label{ color:#aab2ff; }
+@media (prefers-reduced-motion:reduce){ .hc-stat{ animation:none; } }

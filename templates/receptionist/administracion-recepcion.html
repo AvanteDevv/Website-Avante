@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
 <link rel="stylesheet" href="/static/css/receptionist/administracion-recepcion.css">
 <link rel="stylesheet" href="/static/css/receptionist/clarito-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/documentacion-recepcion.css">
 </head>
 <body class="cuenta-body admin-body">
 
@@ -24,7 +25,7 @@
     <div class="admin-header">
       <div>
         <h1>Administración</h1>
-        <p>Reportes del negocio y los formatos de Clarito.</p>
+        <p>Reportes del negocio, los formatos de Clarito y la documentación para compartir.</p>
       </div>
     </div>
 
@@ -39,6 +40,11 @@
               aria-controls="admPanelClarito" aria-selected="{{if eq .Tab "clarito"}}true{{else}}false{{end}}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9.5a3.5 3.5 0 1 0 0 5"/></svg>
         Clarito
+      </button>
+      <button type="button" class="adm-tab{{if eq .Tab "documentacion"}} active{{end}}" role="tab" id="admTabDocs" data-tab="documentacion"
+              aria-controls="admPanelDocs" aria-selected="{{if eq .Tab "documentacion"}}true{{else}}false{{end}}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>
+        Documentación
       </button>
     </div>
 
@@ -118,6 +124,47 @@
         <div class="clr-items is-grid" id="clrItems"></div>
         <p class="clr-empty" id="clrItemsEmpty" hidden></p>
         <div class="clr-drop-hint" aria-hidden="true"><span>Suelta aquí los PDF para guardarlos en esta carpeta</span></div>
+      </div>
+    </section>
+      <!-- ================= Documentación (requisitos para compartir) ================= -->
+    <section class="adm-panel doc-page" id="admPanelDocs" role="tabpanel" aria-labelledby="admTabDocs"{{if ne .Tab "documentacion"}} hidden{{end}}>
+      <div class="admin-panel clr-drive clr-store doc-head">
+        <span class="clr-drive-logo clr-store-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg></span>
+        <div class="clr-drive-text">
+          <strong>Documentación</strong>
+          <span id="docSub">Requisitos de UNISON, de empresas y más. Cada documento tiene su link y su código QR para compartir.</span>
+        </div>
+        <div class="clr-drive-actions">
+          <button type="button" class="btn solid small clr-up-btn" id="docUploadBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+            Subir documento
+          </button>
+        </div>
+      </div>
+      <input type="file" id="docFileInput" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+      <input type="file" id="docReplaceInput" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+
+      <div class="doc-bar">
+        <div class="doc-chips" id="docChips" role="tablist" aria-label="Filtrar por categoría">
+          <button type="button" class="doc-chip active" data-cat="">Todos <span class="doc-chip-n" data-n=""></span></button>
+          <button type="button" class="doc-chip" data-cat="unison">UNISON <span class="doc-chip-n" data-n="unison"></span></button>
+          <button type="button" class="doc-chip" data-cat="empresas">Empresas <span class="doc-chip-n" data-n="empresas"></span></button>
+          <button type="button" class="doc-chip" data-cat="otros">Otros <span class="doc-chip-n" data-n="otros"></span></button>
+        </div>
+        <label class="doc-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="docSearch" placeholder="Buscar documento…" autocomplete="off">
+        </label>
+      </div>
+
+      <div class="doc-drop" id="docDrop">
+        <div class="doc-grid" id="docGrid"></div>
+        <div class="doc-empty" id="docEmpty" hidden>
+          <div class="adm-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/></svg></div>
+          <h2 id="docEmptyTitle">Todavía no hay documentos</h2>
+          <p id="docEmptyText">Sube los requisitos en PDF o Word (o arrástralos aquí) y compártelos con un link o un código QR.</p>
+        </div>
+        <div class="doc-drop-hint" aria-hidden="true"><span>Suelta aquí el PDF o Word para subirlo</span></div>
       </div>
     </section>
   </main>
@@ -367,6 +414,85 @@
   </div>
 </div>
 
+<!-- ================= Documentación: subir / editar ================= -->
+<div class="admin-modal-overlay" id="docFormModal">
+  <div class="admin-modal-card doc-form-card" role="dialog" aria-modal="true" aria-labelledby="docFormTitle">
+    <div class="admin-modal-head">
+      <h3 id="docFormTitle">Subir documento</h3>
+      <button type="button" class="admin-modal-close" id="docFormClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <form class="admin-modal-body doc-form" id="docForm" autocomplete="off">
+      <div class="doc-form-file" id="docFormFile"></div>
+      <label class="doc-field"><span>Nombre del documento</span><input type="text" id="docFormName" maxlength="200" placeholder="Ej. Requisitos de prácticas profesionales" required></label>
+      <div class="doc-field"><span>Categoría</span>
+        <div class="doc-cats" id="docFormCats">
+          <label><input type="radio" name="docCat" value="unison"><span>UNISON</span></label>
+          <label><input type="radio" name="docCat" value="empresas"><span>Empresas</span></label>
+          <label><input type="radio" name="docCat" value="otros" checked><span>Otros</span></label>
+        </div>
+      </div>
+      <div class="doc-progress" id="docProgress" hidden><span id="docProgressBar"></span></div>
+      <p class="doc-form-err" id="docFormErr" hidden></p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="docFormCancel">Cancelar</button>
+        <button type="submit" class="btn solid small" id="docFormSave">Subir</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= Documentación: compartir (link + QR) ================= -->
+<div class="admin-modal-overlay" id="docShareModal">
+  <div class="admin-modal-card clr-remote-card doc-share-card" role="dialog" aria-modal="true" aria-labelledby="docShareTitle">
+    <div class="admin-modal-head">
+      <div>
+        <h3 id="docShareTitle">Compartir documento</h3>
+        <small class="clr-fill-sub" id="docShareSub"></small>
+      </div>
+      <button type="button" class="admin-modal-close" id="docShareClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="clr-remote">
+        <div class="clr-remote-qr" id="docShareQr"></div>
+        <div class="clr-remote-side">
+          <p class="clr-remote-step">Que lo escaneen con la cámara del celular, o mándales el link.</p>
+          <div class="clr-remote-link"><input type="text" id="docShareUrl" readonly><button type="button" class="btn small" id="docShareCopy">Copiar</button></div>
+          <div class="clr-remote-share">
+            <a class="btn small clr-wa" id="docShareWa" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.4-.2Z"/></svg> WhatsApp</a>
+            <button type="button" class="btn small" id="docShareNative" hidden>Compartir…</button>
+            <button type="button" class="btn small" id="docShareQrPng">Descargar QR</button>
+            <a class="btn small" id="docShareOpen" href="#" target="_blank" rel="noopener">Abrir</a>
+          </div>
+          <small class="clr-remote-exp">El link no vence. Si reemplazas el archivo, el link y el QR siguen siendo los mismos; si eliminas el documento, dejan de funcionar.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Documentación: confirmar eliminar ================= -->
+<div class="admin-modal-overlay" id="docDelModal">
+  <div class="admin-modal-card admin-modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="docDelTitle">
+    <div class="admin-modal-head">
+      <h3 id="docDelTitle">Eliminar documento</h3>
+      <button type="button" class="admin-modal-close" id="docDelClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="admin-confirm-text">¿Eliminar <strong id="docDelName"></strong>? El link y el código QR dejarán de funcionar.</p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="docDelCancel">Cancelar</button>
+        <button type="button" class="btn solid small danger" id="docDelConfirm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/receptionist/sidebar-receptionist.js"></script>
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
@@ -376,5 +502,6 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="/static/js/receptionist/clarito-recepcion.js"></script>
+<script src="/static/js/receptionist/documentacion-recepcion.js"></script>
 </body>
 </html>

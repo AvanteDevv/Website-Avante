@@ -16,6 +16,10 @@
           <div class="email">{{if .StaffEmail}}{{.StaffEmail}}{{else}}admin@avanteoptics.mx{{end}}</div>
         </div>
       </div>
+        {{if and .StaffRoleKey (eq .StaffRoleKey "blogger")}}
+        <a href="/admin/blogs" class="userbar-menu-link{{if eq .ActivePage "admin-blogs"}} active{{end}}"><i data-feather="edit-3"></i>Blog</a>
+        <a href="/blog" class="userbar-menu-link" target="_blank" rel="noopener"><i data-feather="external-link"></i>Ver el blog</a>
+        {{else}}
         <a href="/admin/dashboard" class="userbar-menu-link{{if eq .ActivePage "admin-dashboard"}} active{{end}}"><i data-feather="grid"></i>Resumen</a>
         <a href="/admin/citas" class="userbar-menu-link{{if eq .ActivePage "admin-citas"}} active{{end}}"><i data-feather="calendar"></i>Citas</a>
         <a href="/admin/pedidos" class="userbar-menu-link{{if eq .ActivePage "admin-pedidos"}} active{{end}}"><i data-feather="shopping-bag"></i>Pedidos</a>
@@ -23,6 +27,7 @@
         <a href="/admin/comunicacion" class="userbar-menu-link{{if eq .ActivePage "admin-comunicacion"}} active{{end}}"><i data-feather="send"></i>Comunicación</a>
         <a href="/admin/bitacora" class="userbar-menu-link{{if eq .ActivePage "admin-bitacora"}} active{{end}}"><i data-feather="activity"></i>Bitácora</a>
         <a href="/admin/configuracion" class="userbar-menu-link{{if eq .ActivePage "admin-configuracion"}} active{{end}}"><i data-feather="settings"></i>Configuración</a>
+        {{end}}
       <div class="userbar-menu-divider"></div>
       <a href="/admin/logout" class="userbar-menu-link logout"><i data-feather="log-out"></i>Cerrar sesión</a>
     </div>

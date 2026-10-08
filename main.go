@@ -208,6 +208,8 @@ func main() {
 	go models.BackfillInvPiezas()
 	// Cuenta del panel de Inventario (inventario@avanteoptics.mx).
 	db.EnsureInventoryUsersTable()
+	// Cuenta del Blog (blogger@avanteoptics.mx): solo administra el Blog.
+	db.EnsureBlogUsersTable()
 	// Etiquetas de cita (cómo llegó: sin cita, chequeo, teléfono, WhatsApp).
 	db.EnsureAppointmentTagsTable()
 	// Seguimiento al asistir: si compró y cada cuánto le toca su revisión.
@@ -217,6 +219,9 @@ func main() {
 	// Clarito: registro de formatos guardados y su configuración
 	// (los PDF viven en el bucket de Railway).
 	db.EnsureClaritoTables()
+	// Administración → Documentación: requisitos (UNISON, empresas…) que se
+	// comparten con link o QR (los archivos viven en el bucket de Railway).
+	db.EnsureDocumentacionTable()
 	// Optometría: cita de la que salió cada examen (eye_exams.appointment_id)
 	// y antecedentes del paciente (Historial clínico).
 	db.EnsureOptometristTables()
@@ -446,6 +451,8 @@ func main() {
 	onlyAdmin := handlers.RequireRole(handlers.RoleAdmin)
 	pedidosStaff := handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist)
 	citasStaff := handlers.RequireRole(handlers.RoleAdmin, handlers.RoleOptometrist, handlers.RoleReceptionist)
+	// Blog: el admin y la cuenta del Blog (blogger@avanteoptics.mx).
+	blogStaff := handlers.RequireRole(handlers.RoleAdmin, handlers.RoleBlogger)
 
 	adminGroup := router.Group("/admin", handlers.RequireAdminAuth())
 	{
@@ -462,9 +469,9 @@ func main() {
 				"ActivePage": "admin-automatizaciones",
 			})
 		})
-		adminGroup.GET("/blogs", onlyAdmin, adminHandlers.Blogs)
-		adminGroup.GET("/blogs/nuevo", onlyAdmin, adminHandlers.NewBlogForm)
-		adminGroup.GET("/blogs/:id/editar", onlyAdmin, adminHandlers.EditBlogForm)
+		adminGroup.GET("/blogs", blogStaff, adminHandlers.Blogs)
+		adminGroup.GET("/blogs/nuevo", blogStaff, adminHandlers.NewBlogForm)
+		adminGroup.GET("/blogs/:id/editar", blogStaff, adminHandlers.EditBlogForm)
 		adminGroup.GET("/citas", citasStaff, adminHandlers.Appointments)
 		adminGroup.POST("/citas", citasStaff, adminHandlers.CreateAppointmentByStaff)
 		adminGroup.PATCH("/citas/:id/estado", citasStaff, adminHandlers.UpdateAppointmentStatus)
@@ -645,6 +652,19 @@ func main() {
 		apiClarito.GET("/sign-requests/:token", handlers.ClaritoGetSignRequest)
 		apiClarito.DELETE("/sign-requests/:token", handlers.ClaritoCancelSignRequest)
 	}
+	// Administración → Documentación (handlers/documentacion.go). Recepción y admin.
+	apiDocs := router.Group("/api/documentacion", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
+	{
+		apiDocs.GET("", handlers.DocList)
+		apiDocs.POST("", handlers.DocUpload)
+		apiDocs.PUT("/:id", handlers.DocUpdate)
+		apiDocs.PUT("/:id/archivo", handlers.DocReplaceFile)
+		apiDocs.DELETE("/:id", handlers.DocDelete)
+	}
+	// Link público de un documento (lo que abre el QR) — sin sesión.
+	router.GET("/documento/:token", handlers.DocPublicPage)
+	router.GET("/documento/:token/archivo", handlers.DocPublicFile)
+
 	// Página pública donde el cliente firma con su celular (sin sesión).
 	router.GET("/firmar/:token", handlers.ClaritoSignPage)
 	router.GET("/firmar/:token/documento", handlers.ClaritoSignDocument)
@@ -763,13 +783,13 @@ func main() {
 		apiAdmin.POST("/productos", onlyAdmin, adminHandlers.CreateProduct)
 		apiAdmin.PUT("/productos/:id", onlyAdmin, adminHandlers.UpdateProduct)
 		apiAdmin.DELETE("/productos/:id", onlyAdmin, adminHandlers.DeleteProduct)
-		apiAdmin.POST("/blogs", onlyAdmin, adminHandlers.CreateBlog)
-		apiAdmin.PUT("/blogs/:id", onlyAdmin, adminHandlers.UpdateBlog)
-		apiAdmin.DELETE("/blogs/:id", onlyAdmin, adminHandlers.DeleteBlog)
-		apiAdmin.POST("/blog-categorias", onlyAdmin, adminHandlers.CreateBlogCategory)
-		apiAdmin.DELETE("/blog-categorias/:id", onlyAdmin, adminHandlers.DeleteBlogCategory)
-		apiAdmin.POST("/blog-etiquetas", onlyAdmin, adminHandlers.CreateBlogTag)
-		apiAdmin.DELETE("/blog-etiquetas/:id", onlyAdmin, adminHandlers.DeleteBlogTag)
+		apiAdmin.POST("/blogs", blogStaff, adminHandlers.CreateBlog)
+		apiAdmin.PUT("/blogs/:id", blogStaff, adminHandlers.UpdateBlog)
+		apiAdmin.DELETE("/blogs/:id", blogStaff, adminHandlers.DeleteBlog)
+		apiAdmin.POST("/blog-categorias", blogStaff, adminHandlers.CreateBlogCategory)
+		apiAdmin.DELETE("/blog-categorias/:id", blogStaff, adminHandlers.DeleteBlogCategory)
+		apiAdmin.POST("/blog-etiquetas", blogStaff, adminHandlers.CreateBlogTag)
+		apiAdmin.DELETE("/blog-etiquetas/:id", blogStaff, adminHandlers.DeleteBlogTag)
 
 		// Comunicación interna (avisos + grupos de chat)
 		apiAdmin.GET("/comunicacion/directorio", onlyAdmin, adminHandlers.CommsDirectory)

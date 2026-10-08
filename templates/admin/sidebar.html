@@ -57,6 +57,11 @@
 
   <nav class="cuenta-nav-group">
     <span class="cuenta-nav-blob" aria-hidden="true"></span>
+    {{if and .StaffRoleKey (eq .StaffRoleKey "blogger")}}
+    {{/* Cuenta del Blog (blogger@avanteoptics.mx): solo ve Blog. */}}
+    <a href="/admin/blogs" class="cuenta-nav-link{{if eq .ActivePage "admin-blogs"}} active{{end}}"><i data-feather="edit-3"></i><span>Blog</span><span class="cuenta-nav-tooltip">Blog</span></a>
+    <a href="/blog" class="cuenta-nav-link" target="_blank" rel="noopener"><i data-feather="external-link"></i><span>Ver el blog</span><span class="cuenta-nav-tooltip">Ver el blog</span></a>
+    {{else}}
     <a href="/admin/dashboard" class="cuenta-nav-link{{if eq .ActivePage "admin-dashboard"}} active{{end}}"><i data-feather="grid"></i><span>Resumen</span><span class="cuenta-nav-tooltip">Resumen</span></a>
     <a href="/admin/citas" class="cuenta-nav-link{{if eq .ActivePage "admin-citas"}} active{{end}}"><i data-feather="calendar"></i><span>Citas</span><span class="cuenta-nav-tooltip">Citas</span></a>
     <a href="/admin/pedidos" class="cuenta-nav-link{{if eq .ActivePage "admin-pedidos"}} active{{end}}"><i data-feather="shopping-bag"></i><span>Pedidos</span><span class="cuenta-nav-tooltip">Pedidos</span></a>
@@ -70,6 +75,7 @@
     <a href="/admin/automatizaciones" class="cuenta-nav-link{{if eq .ActivePage "admin-automatizaciones"}} active{{end}}"><i data-feather="zap"></i><span>Automatizaciones</span><span class="cuenta-nav-tooltip">Automatizaciones</span></a>
     <a href="/admin/blogs" class="cuenta-nav-link{{if eq .ActivePage "admin-blogs"}} active{{end}}"><i data-feather="edit-3"></i><span>Blog</span><span class="cuenta-nav-tooltip">Blog</span></a>
     <a href="/admin/configuracion" class="cuenta-nav-link{{if eq .ActivePage "admin-configuracion"}} active{{end}}"><i data-feather="settings"></i><span>Configuración</span><span class="cuenta-nav-tooltip">Configuración</span></a>
+    {{end}}
   </nav>
 
   <div class="cuenta-nav-divider"></div>

@@ -45,6 +45,7 @@ var TrackedActivityRoles = map[string]bool{
 	RoleOptometrist:  true,
 	RoleEmployee:     true,
 	RoleInventario:   true,
+	RoleBlogger:      true,
 }
 
 // ActivityRetentionDays: lo más viejo que esto se borra solo (una vez al
@@ -450,6 +451,25 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		e.Action = "aviso.leer_todos"
 		e.Description, intento = "Marcó todos sus avisos como leídos", "marcar todos sus avisos como leídos"
 
+	/* ----- Blog ----- */
+	case method == http.MethodPost && route == "/api/admin/blogs":
+		e.Action = "blog.crear"
+		t := actOrDash(strings.TrimSpace(c.PostForm("title")))
+		e.Description, intento = "Creó la entrada del blog “"+t+"”", "crear la entrada del blog “"+t+"”"
+		if st := strings.TrimSpace(c.PostForm("status")); st != "" {
+			e.Context = "Estado: " + st
+		}
+	case method == http.MethodPut && route == "/api/admin/blogs/:id":
+		e.Action = "blog.editar"
+		t := actOrDash(strings.TrimSpace(c.PostForm("title")))
+		e.Description, intento = "Editó la entrada del blog “"+t+"” (#"+c.Param("id")+")", "editar la entrada del blog “"+t+"”"
+		if st := strings.TrimSpace(c.PostForm("status")); st != "" {
+			e.Context = "Estado: " + st
+		}
+	case method == http.MethodDelete && route == "/api/admin/blogs/:id":
+		e.Action = "blog.eliminar"
+		e.Description, intento = "Eliminó la entrada #"+c.Param("id")+" del blog", "eliminar la entrada #"+c.Param("id")+" del blog"
+
 	/* ----- Optometría: exámenes ----- */
 	case method == http.MethodPost && route == "/api/optometrist/examenes":
 		e.Action = "examen.crear"
@@ -502,6 +522,31 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 	case method == http.MethodDelete && route == "/api/optometrist/plantillas/:id":
 		e.Action = "plantilla.eliminar"
 		e.Description, intento = "Eliminó la plantilla de examen #"+c.Param("id"), "eliminar la plantilla #"+c.Param("id")
+
+	/* ----- Administración → Documentación ----- */
+	case method == http.MethodPost && route == "/api/documentacion":
+		e.Action = "documentacion.subir"
+		n := actOrDash(actCtxStr(c, "doc_name"))
+		e.Description, intento = "Subió el documento “"+n+"”", "subir el documento “"+n+"”"
+		if cat := strings.TrimSpace(c.PostForm("category")); cat != "" {
+			e.Context = "Categoría: " + cat
+		}
+	case method == http.MethodPut && route == "/api/documentacion/:id":
+		e.Action = "documentacion.editar"
+		n := actOrDash(actCtxStr(c, "doc_name"))
+		e.Description, intento = "Editó el documento “"+n+"”", "editar el documento “"+n+"”"
+		if cat := actStr(p, "category"); cat != "" {
+			e.Context = "Categoría: " + cat
+		}
+	case method == http.MethodPut && route == "/api/documentacion/:id/archivo":
+		e.Action = "documentacion.reemplazar"
+		n := actOrDash(actCtxStr(c, "doc_name"))
+		e.Description, intento = "Reemplazó el archivo de “"+n+"”", "reemplazar el archivo de “"+n+"”"
+		e.Context = "El link y el QR siguen siendo los mismos"
+	case method == http.MethodDelete && route == "/api/documentacion/:id":
+		e.Action = "documentacion.eliminar"
+		n := actOrDash(actCtxStr(c, "doc_name"))
+		e.Description, intento = "Eliminó el documento “"+n+"”", "eliminar el documento “"+n+"”"
 
 	/* ----- Administración → Clarito (bucket de Railway) ----- */
 	case method == http.MethodPost && route == "/api/clarito/documents":

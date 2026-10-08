@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#041cff">
+<title>{{if eq .State "ok"}}{{.Title}} · {{end}}Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/pages/documento.css">
+</head>
+<body>
+<main class="dc">
+  <header class="dc-head">
+    <img src="/static/images/avante-logo.png" alt="Avante Optics" class="dc-logo">
+    <span class="dc-brand">Avante Optics</span>
+  </header>
+
+  {{if eq .State "ok"}}
+  <section class="dc-card">
+    <div class="dc-file dc-file--{{.Kind}}" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      <span>{{if eq .Kind "pdf"}}PDF{{else}}WORD{{end}}</span>
+    </div>
+    {{if .Category}}<small class="dc-kicker">{{.Category}}</small>{{end}}
+    <h1>{{.Title}}</h1>
+    <dl class="dc-info">
+      <div><dt>Archivo</dt><dd>{{.FileName}}</dd></div>
+      <div><dt>Tamaño</dt><dd>{{.Size}}</dd></div>
+      <div><dt>Actualizado</dt><dd>{{.Updated}}</dd></div>
+    </dl>
+
+    <div class="dc-actions">
+      {{if eq .Kind "pdf"}}
+      <a class="dc-btn dc-btn--solid" href="{{.FileURL}}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+        Ver documento
+      </a>
+      {{else if .OfficeViewURL}}
+      <a class="dc-btn dc-btn--solid" href="{{.OfficeViewURL}}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+        Ver en línea
+      </a>
+      {{end}}
+      <a class="dc-btn" href="{{.DownloadURL}}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 10l6 6 6-6"/><path d="M4 20h16"/></svg>
+        Descargar
+      </a>
+    </div>
+    {{if eq .Kind "word"}}<p class="dc-note">Es un archivo de Word: se abre con Word, Google Docs o la app de documentos de tu celular.</p>{{end}}
+  </section>
+  {{else}}
+  <section class="dc-card dc-card--empty">
+    <div class="dc-file dc-file--none" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9.5 12.5l5 5M14.5 12.5l-5 5"/></svg>
+    </div>
+    <h1>Este documento ya no está disponible</h1>
+    <p class="dc-note">Puede que lo hayan quitado o que el link esté incompleto. Pídele a Avante Optics que te lo comparta de nuevo.</p>
+  </section>
+  {{end}}
+
+  <footer class="dc-foot">Avante Optics · Hermosillo, Sonora</footer>
+</main>
+</body>
+</html>

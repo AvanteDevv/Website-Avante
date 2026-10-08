@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"avante-optics/db"
+	"avante-optics/handlers"
 	"avante-optics/storage"
 )
 
@@ -67,10 +68,10 @@ func Blogs(c *gin.Context) {
 		ORDER BY created_at DESC
 	`)
 	if err != nil {
-		c.HTML(http.StatusOK, "blogs.html", gin.H{
+		c.HTML(http.StatusOK, "blogs.html", handlers.WithStaff(c, gin.H{
 			"ActivePage": "admin-blogs",
 			"BlogsError": "No se pudieron cargar las entradas.",
-		})
+		}))
 		return
 	}
 	defer rows.Close()
@@ -101,7 +102,7 @@ func Blogs(c *gin.Context) {
 	categories, _ := fetchCategories()
 	tags, _ := fetchTags()
 
-	c.HTML(http.StatusOK, "blogs.html", gin.H{
+	c.HTML(http.StatusOK, "blogs.html", handlers.WithStaff(c, gin.H{
 		"ActivePage":  "admin-blogs",
 		"Blogs":       blogs,
 		"TotalBlogs":  len(blogs),
@@ -110,18 +111,18 @@ func Blogs(c *gin.Context) {
 		"Borradores":  borradores,
 		"Categories":  categories,
 		"Tags":        tags,
-	})
+	}))
 }
 
 // NewBlogForm — GET /admin/blogs/nuevo
 func NewBlogForm(c *gin.Context) {
 	categories, _ := fetchCategories()
 	tags, _ := fetchTags()
-	c.HTML(http.StatusOK, "crear-blog.html", gin.H{
+	c.HTML(http.StatusOK, "crear-blog.html", handlers.WithStaff(c, gin.H{
 		"ActivePage": "admin-blogs",
 		"Categories": categories,
 		"Tags":       tags,
-	})
+	}))
 }
 
 // EditBlogForm — GET /admin/blogs/:id/editar
@@ -135,10 +136,10 @@ func EditBlogForm(c *gin.Context) {
 		FROM blog_posts WHERE id = ?
 	`, id).Scan(&b.ID, &b.Title, &b.Category, &b.Excerpt, &b.Content, &b.ImageKey, &author, &b.Status, &b.PublishedAt, &b.CreatedAt)
 	if err != nil {
-		c.HTML(http.StatusOK, "crear-blog.html", gin.H{
+		c.HTML(http.StatusOK, "crear-blog.html", handlers.WithStaff(c, gin.H{
 			"ActivePage": "admin-blogs",
 			"BlogError":  "No se encontró esa entrada.",
-		})
+		}))
 		return
 	}
 	b.Author = author.String
@@ -168,13 +169,13 @@ func EditBlogForm(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "crear-blog.html", gin.H{
+	c.HTML(http.StatusOK, "crear-blog.html", handlers.WithStaff(c, gin.H{
 		"ActivePage":   "admin-blogs",
 		"Blog":         b,
 		"Categories":   categories,
 		"Tags":         tags,
 		"SelectedTags": selectedTags,
-	})
+	}))
 }
 
 var allowedBlogImageExt = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
