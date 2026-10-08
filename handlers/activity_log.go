@@ -468,7 +468,17 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		if t := actStr(p, "templateId"); t != "" {
 			ctx = append(ctx, "Plantilla #"+t)
 		}
+		if a := actStr(p, "appointmentId"); a != "" && a != "0" {
+			ctx = append(ctx, "Desde la cita #"+a+" (se marcó como asistió)")
+		} else {
+			ctx = append(ctx, "Sin cita")
+		}
 		e.Context = strings.Join(ctx, " · ")
+	case method == http.MethodPut && route == "/api/optometrist/pacientes/antecedentes":
+		e.Action = "paciente.antecedentes"
+		paciente := actOrDash(actCtxStr(c, "patient_name"))
+		e.Description = "Actualizó los antecedentes de " + paciente
+		intento = "guardar los antecedentes de " + paciente
 	case method == http.MethodDelete && route == "/api/optometrist/examenes/:id":
 		e.Action = "examen.eliminar"
 		e.Description, intento = "Eliminó el examen #"+c.Param("id"), "eliminar el examen #"+c.Param("id")

@@ -217,6 +217,9 @@ func main() {
 	// Clarito: registro de formatos guardados y su configuración
 	// (los PDF viven en el bucket de Railway).
 	db.EnsureClaritoTables()
+	// Optometría: cita de la que salió cada examen (eye_exams.appointment_id)
+	// y antecedentes del paciente (Historial clínico).
+	db.EnsureOptometristTables()
 
 	storage.Connect()
 	// Clarito: sube una sola vez los 3 formatos de static/pdf/clarito al
@@ -649,9 +652,7 @@ func main() {
 
 	// Optometrist panel (templates/optometrist/*.html) — mismo login y
 	// misma cookie que /admin, pero solo entra role "admin" u
-	// "optometrist". Las dos páginas por ahora son cascarones sin
-	// backend (ver el aviso dentro de cada .html) — no hay modelo de
-	// historial clínico ni de examen de la vista todavía.
+	// "optometrist".
 	optometristGroup := router.Group("/optometrist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleOptometrist))
 	{
 		// Comunicación: solo optometría (el admin no chatea ni recibe avisos).
@@ -699,7 +700,18 @@ func main() {
 		apiOptometrist.GET("/examenes", handlers.ListEyeExams)
 		apiOptometrist.GET("/examenes/:id", handlers.GetEyeExam)
 		apiOptometrist.POST("/examenes", handlers.CreateEyeExam)
+		apiOptometrist.DELETE("/examenes/:id", handlers.DeleteEyeExam)
+
+		// Pacientes: autocompletado de Nuevo examen + Historial clínico
+		// (directorio, ficha y antecedentes).
+		apiOptometrist.GET("/pacientes", handlers.SearchPatients)
+		apiOptometrist.GET("/pacientes/directorio", handlers.ListPatientDirectory)
+		apiOptometrist.GET("/pacientes/ficha", handlers.GetPatientFile)
+		apiOptometrist.PUT("/pacientes/antecedentes", handlers.SavePatientAntecedentes)
 	}
+
+	// Citas en JSON — "Citas de hoy" en Examen de la vista.
+	router.GET("/api/citas", handlers.RequireAdminAuth(), citasStaff, adminHandlers.ListAppointmentsJSON)
 
 	// Auth API — called from iniciar-sesion.js / registro.js
 	api := router.Group("/api")
@@ -788,6 +800,8 @@ func main() {
 		apiClient.GET("/mis-citas", handlers.GetMyAppointments)
 		apiClient.POST("/mis-citas/:id/cancelar", handlers.CancelMyAppointment)
 		apiClient.POST("/mis-citas/:id/reagendar", handlers.RescheduleMyAppointment)
+		// Exámenes de la vista ligados a la cuenta del cliente.
+		apiClient.GET("/mis-examenes", handlers.GetMyEyeExams)
 		apiClient.PUT("/mi-perfil", handlers.UpdateMyProfile)
 		apiClient.PATCH("/mi-perfil/password", handlers.UpdateMyPassword)
 	}

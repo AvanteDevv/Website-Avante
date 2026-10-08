@@ -22,20 +22,44 @@
     <div class="cuenta-header admin-header-row">
       <div>
         <h1>Examen de la vista</h1>
-        <p>Registra los resultados de un nuevo examen (OD/OI, esfera, cilindro, eje, adición).</p>
+        <p>El trabajo del día: tus citas de hoy, los exámenes que se van haciendo y cuántos llevan.</p>
       </div>
       <a href="/optometrist/examen-vista/nuevo" class="btn thin" id="newExamBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Nuevo examen</a>
     </div>
 
-    <section class="panel" id="nextApptPanel" style="display:none; margin-bottom:22px;">
-      <div class="panel-body next-appt-body">
-        <div>
-          <div class="next-appt-label">Tu próxima cita</div>
-          <div class="next-appt-name" id="nextApptName"></div>
-          <div class="next-appt-date" id="nextApptDate"></div>
+    <!-- Contadores (se calculan con la lista de exámenes) -->
+    <div class="ev-stats" id="evStats">
+      <div class="ev-stat"><span class="ev-stat-label">Hoy</span><strong class="ev-stat-value" id="statToday">—</strong><span class="ev-stat-sub" id="statTodaySub">exámenes</span></div>
+      <div class="ev-stat"><span class="ev-stat-label">Esta semana</span><strong class="ev-stat-value" id="statWeek">—</strong><span class="ev-stat-sub" id="statWeekSub">exámenes</span></div>
+      <div class="ev-stat"><span class="ev-stat-label">Este mes</span><strong class="ev-stat-value" id="statMonth">—</strong><span class="ev-stat-sub" id="statMonthSub">exámenes</span></div>
+      <div class="ev-stat ev-stat--split">
+        <span class="ev-stat-label">Este mes · origen</span>
+        <div class="ev-split">
+          <div><strong id="statConCita">—</strong><span>con cita</span></div>
+          <div><strong id="statSinCita">—</strong><span>sin cita</span></div>
         </div>
-        <a href="#" class="btn solid thin" id="nextApptBtn">Realizar examen</a>
+        <div class="ev-split-bar" aria-hidden="true"><span id="statSplitBar"></span></div>
       </div>
+      <div class="ev-stat ev-stat--staff">
+        <span class="ev-stat-label">Este mes · por optometrista</span>
+        <ul class="ev-staff-list" id="statStaff"><li class="ev-staff-empty">—</li></ul>
+      </div>
+    </div>
+
+    <!-- Citas de hoy -->
+    <section class="panel ev-today" id="todayPanel">
+      <div class="panel-head">
+        <div>
+          <h2>Citas de hoy</h2>
+          <p id="todayCount">Cargando…</p>
+        </div>
+        <div class="ev-today-legend" aria-hidden="true">
+          <span class="appt-chip is-pending">Pendiente</span>
+          <span class="appt-chip is-now">En consulta</span>
+          <span class="appt-chip is-done">Terminado</span>
+        </div>
+      </div>
+      <div class="ev-today-list" id="todayList"></div>
     </section>
 
     <section class="panel">
@@ -65,6 +89,21 @@
             <input type="text" id="examSearch" placeholder="Buscar por nombre o apellido...">
           </div>
         </div>
+        <div class="ev-filters">
+          <label class="ev-select">
+            <span>Periodo</span>
+            <select id="examPeriod">
+              <option value="all">Todo</option>
+              <option value="today">Hoy</option>
+              <option value="week">Esta semana</option>
+              <option value="month">Este mes</option>
+            </select>
+          </label>
+          <label class="ev-select">
+            <span>Optometrista</span>
+            <select id="examStaff"><option value="">Todos</option></select>
+          </label>
+        </div>
       </div>
 
       <div id="examTableView">
@@ -75,6 +114,8 @@
                 <th>Nombre</th>
                 <th>Apellido</th>
                 <th>Fecha</th>
+                <th>Realizó</th>
+                <th>Origen</th>
                 <th></th>
               </tr>
             </thead>

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"avante-optics/db"
@@ -31,6 +32,9 @@ import (
 //
 //	ALTER TABLE eye_exams ADD COLUMN user_id BIGINT NULL, ADD INDEX idx_eye_exams_user_id (user_id);
 //
+// La columna appointment_id (la cita de la que salió el examen, NULL si
+// fue sin cita) la agrega sola db.EnsureOptometristTables() al arrancar.
+//
 // `data` guarda un JSON con dos partes que arma el frontend:
 //   - fields: { "<fieldKey del elemento de texto>": "valor escrito" }
 //   - tables: { "<id del elemento de tabla>": [["fila1col1","fila1col2"], ...] }
@@ -52,9 +56,15 @@ type EyeExam struct {
 	// 0 si el paciente no tiene cuenta en Avante Optics (en ese caso el
 	// examen solo se puede compartir por WhatsApp/correo, no aparece en
 	// ningún "Mis exámenes").
-	UserID    int64     `json:"userId,omitempty"`
-	CreatedAt time.Time `json:"createdAt"`
+	UserID int64 `json:"userId,omitempty"`
+	// AppointmentID: la cita de la que salió el examen ("Realizar examen"
+	// en Citas de hoy) — 0 si se hizo sin cita.
+	AppointmentID int64     `json:"appointmentId,omitempty"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
+
+// eyeExamCols: columnas en el orden que espera scanEyeExamRow.
+const eyeExamCols = `id, template_id, patient_name, patient_phone, data, created_by_role, created_by_id, created_by_name, user_id, appointment_id, created_at`
 
 // PatientMatch es lo mínimo que necesita el autocompletado de
 // "Nombre" en Nuevo examen para ofrecer resultados de la tabla
@@ -96,21 +106,23 @@ var ErrEyeExamNotFound = errors.New("examen no encontrado")
 // paquete `models` — se reutiliza aquí tal cual, no hace falta
 // declararlo otra vez (Go tronaba con "redeclared in this block").
 
-// scanEyeExamRow escanea una fila con las columnas "id, template_id,
-// patient_name, patient_phone, data, created_by_role, created_by_id,
-// created_by_name, user_id, created_at" (en ese orden) — la usan
+// scanEyeExamRow escanea una fila con las columnas de eyeExamCols
+// (en ese orden) — la usan
 // GetEyeExamByID, ListEyeExams, ListEyeExamsByPatientName y
 // ListEyeExamsByUser, para no repetir el manejo de user_id (nullable
 // en la tabla, int64 plano en el struct) cuatro veces.
 func scanEyeExamRow(row rowScanner, e *EyeExam) error {
 	var raw []byte
-	var userID sql.NullInt64
-	if err := row.Scan(&e.ID, &e.TemplateID, &e.PatientName, &e.PatientPhone, &raw, &e.CreatedByRole, &e.CreatedByID, &e.CreatedByName, &userID, &e.CreatedAt); err != nil {
+	var userID, apptID sql.NullInt64
+	if err := row.Scan(&e.ID, &e.TemplateID, &e.PatientName, &e.PatientPhone, &raw, &e.CreatedByRole, &e.CreatedByID, &e.CreatedByName, &userID, &apptID, &e.CreatedAt); err != nil {
 		return err
 	}
 	e.Data = json.RawMessage(raw)
 	if userID.Valid {
 		e.UserID = userID.Int64
+	}
+	if apptID.Valid {
+		e.AppointmentID = apptID.Int64
 	}
 	return nil
 }
@@ -119,16 +131,20 @@ func scanEyeExamRow(row rowScanner, e *EyeExam) error {
 // optometrista encontró y seleccionó al paciente en la búsqueda contra
 // la base (tiene cuenta), pásalo; si no, pasa 0 y el examen queda sin
 // ligar a ninguna cuenta — solo se podrá compartir por WhatsApp/correo.
-func CreateEyeExam(templateID int64, patientName, patientPhone string, data json.RawMessage, createdByRole string, createdByID int64, createdByName string, userID int64) (*EyeExam, error) {
-	var userIDArg interface{}
+// appointmentID igual: la cita de la que salió, o 0 si fue sin cita.
+func CreateEyeExam(templateID int64, patientName, patientPhone string, data json.RawMessage, createdByRole string, createdByID int64, createdByName string, userID, appointmentID int64) (*EyeExam, error) {
+	var userIDArg, apptArg interface{}
 	if userID > 0 {
 		userIDArg = userID
 	}
+	if appointmentID > 0 {
+		apptArg = appointmentID
+	}
 
 	result, err := db.DB.Exec(
-		`INSERT INTO eye_exams (template_id, patient_name, patient_phone, data, created_by_role, created_by_id, created_by_name, user_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		templateID, patientName, patientPhone, []byte(data), createdByRole, createdByID, createdByName, userIDArg,
+		`INSERT INTO eye_exams (template_id, patient_name, patient_phone, data, created_by_role, created_by_id, created_by_name, user_id, appointment_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		templateID, patientName, patientPhone, []byte(data), createdByRole, createdByID, createdByName, userIDArg, apptArg,
 	)
 	if err != nil {
 		return nil, err
@@ -145,7 +161,7 @@ func CreateEyeExam(templateID int64, patientName, patientPhone string, data json
 func GetEyeExamByID(id int64) (*EyeExam, error) {
 	var e EyeExam
 	row := db.DB.QueryRow(
-		`SELECT id, template_id, patient_name, patient_phone, data, created_by_role, created_by_id, created_by_name, user_id, created_at
+		`SELECT `+eyeExamCols+`
 		 FROM eye_exams WHERE id = ?`,
 		id,
 	)
@@ -164,7 +180,7 @@ func GetEyeExamByID(id int64) (*EyeExam, error) {
 // más adelante.
 func ListEyeExams() ([]EyeExam, error) {
 	rows, err := db.DB.Query(
-		`SELECT id, template_id, patient_name, patient_phone, data, created_by_role, created_by_id, created_by_name, user_id, created_at
+		`SELECT ` + eyeExamCols + `
 		 FROM eye_exams ORDER BY created_at DESC`,
 	)
 	if err != nil {
@@ -188,7 +204,7 @@ func ListEyeExams() ([]EyeExam, error) {
 // exactas) — para el buscador de historial-clinico.html.
 func ListEyeExamsByPatientName(term string) ([]EyeExam, error) {
 	rows, err := db.DB.Query(
-		`SELECT id, template_id, patient_name, patient_phone, data, created_by_role, created_by_id, created_by_name, user_id, created_at
+		`SELECT `+eyeExamCols+`
 		 FROM eye_exams WHERE patient_name LIKE ? ORDER BY created_at DESC`,
 		"%"+term+"%",
 	)
@@ -212,7 +228,7 @@ func ListEyeExamsByPatientName(term string) ([]EyeExam, error) {
 // cliente — usado por el panel "Mis exámenes".
 func ListEyeExamsByUser(userID int64) ([]EyeExam, error) {
 	rows, err := db.DB.Query(
-		`SELECT id, template_id, patient_name, patient_phone, data, created_by_role, created_by_id, created_by_name, user_id, created_at
+		`SELECT `+eyeExamCols+`
 		 FROM eye_exams WHERE user_id = ? ORDER BY created_at DESC`,
 		userID,
 	)
@@ -248,4 +264,77 @@ func DeleteEyeExam(id int64) error {
 		return ErrEyeExamNotFound
 	}
 	return nil
+}
+
+// EyeExamLite es un examen sin `data` — lo que necesitan los contadores
+// de "Examen de la vista" y el directorio de pacientes, sin cargar los
+// resultados de cada examen.
+type EyeExamLite struct {
+	ID            int64     `json:"id"`
+	PatientName   string    `json:"patientName"`
+	PatientPhone  string    `json:"patientPhone"`
+	CreatedByName string    `json:"createdByName"`
+	UserID        int64     `json:"userId,omitempty"`
+	AppointmentID int64     `json:"appointmentId,omitempty"`
+	CreatedAt     time.Time `json:"createdAt"`
+}
+
+// ListEyeExamsLite: todos los exámenes sin sus resultados, más reciente primero.
+func ListEyeExamsLite() ([]EyeExamLite, error) {
+	rows, err := db.DB.Query(
+		`SELECT id, patient_name, patient_phone, created_by_name, user_id, appointment_id, created_at
+		 FROM eye_exams ORDER BY created_at DESC, id DESC`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	list := []EyeExamLite{}
+	for rows.Next() {
+		var e EyeExamLite
+		var userID, apptID sql.NullInt64
+		if err := rows.Scan(&e.ID, &e.PatientName, &e.PatientPhone, &e.CreatedByName, &userID, &apptID, &e.CreatedAt); err != nil {
+			return nil, err
+		}
+		if userID.Valid {
+			e.UserID = userID.Int64
+		}
+		if apptID.Valid {
+			e.AppointmentID = apptID.Int64
+		}
+		list = append(list, e)
+	}
+	return list, rows.Err()
+}
+
+// GetEyeExamsByIDs trae varios exámenes completos (con data), más
+// reciente primero — para la ficha del paciente.
+func GetEyeExamsByIDs(ids []int64) ([]EyeExam, error) {
+	list := []EyeExam{}
+	if len(ids) == 0 {
+		return list, nil
+	}
+	ph := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		ph[i] = "?"
+		args[i] = id
+	}
+	rows, err := db.DB.Query(
+		`SELECT `+eyeExamCols+` FROM eye_exams WHERE id IN (`+strings.Join(ph, ",")+`) ORDER BY created_at DESC, id DESC`,
+		args...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var e EyeExam
+		if err := scanEyeExamRow(rows, &e); err != nil {
+			return nil, err
+		}
+		list = append(list, e)
+	}
+	return list, rows.Err()
 }

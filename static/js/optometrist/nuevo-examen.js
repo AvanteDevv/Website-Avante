@@ -47,6 +47,7 @@
   var steps = [];
   var currentIndex = 0;
   var selectedPatientId = 0; // 0 = sin cuenta encontrada/seleccionada
+  var appointmentId = 0;     // la cita de la que viene ("Realizar examen"), 0 = sin cita
   var values = { fields: {}, tables: {} };
 
   function showStatus(text, kind){
@@ -134,6 +135,7 @@
     var apellido = params.get('apellido');
     var telefono = params.get('telefono');
     var userId = params.get('userId');
+    appointmentId = parseInt(params.get('citaId'), 10) || 0;
     if (!nombre) return;
 
     values.fields.nombre = apellido ? (nombre + ' ' + apellido) : nombre;
@@ -549,7 +551,8 @@
       patientName: name,
       patientPhone: (values.fields.telefono || '').trim(),
       data: values,
-      userId: selectedPatientId
+      userId: selectedPatientId,
+      appointmentId: appointmentId
     };
 
     nextBtn.disabled = true;

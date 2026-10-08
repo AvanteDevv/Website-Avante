@@ -127,17 +127,19 @@
       parts.push('Examen de ' + clean(named.dataset.name, 80));
     }
 
-    // Próxima cita (Examen de la vista).
-    if (el.closest('#nextApptPanel')) {
-      var nn = document.getElementById('nextApptName');
-      var nd = document.getElementById('nextApptDate');
-      parts.push('Próxima cita: ' + clean(nn ? nn.textContent : '', 80) + (nd ? ' · ' + clean(nd.textContent, 60) : ''));
+    // Citas de hoy (Examen de la vista).
+    var todayRow = el.closest('.today-appt');
+    if (todayRow) {
+      var tt = todayRow.querySelector('.today-appt-time');
+      var tc = todayRow.querySelector('.appt-chip');
+      parts.push('Cita de hoy: ' + clean(todayRow.dataset.name || '', 80) +
+        (tt ? ' · ' + clean(tt.textContent, 20) : '') + (tc ? ' · ' + clean(tc.textContent, 20) : ''));
     }
 
-    // Historial clínico: paciente abierto.
-    if (el.closest('#patientPanel')) {
-      var pn = document.getElementById('patientName');
-      if (pn && pn.textContent) parts.push('Paciente: ' + clean(pn.textContent, 80));
+    // Historial clínico: ficha abierta.
+    if (el.closest('#patientModal')) {
+      var pn = document.getElementById('pfName');
+      if (pn && pn.textContent) parts.push('Ficha de ' + clean(pn.textContent, 80));
     }
 
     // Nuevo examen: en qué paso va (solo la pregunta, no la respuesta).
@@ -191,7 +193,7 @@
   /* ---------- descripción de cada clic ---------- */
   var CLICKABLE = [
     'button', 'a[href]', '[role="button"]', '[role="tab"]', 'summary',
-    '.chat-item', '.tpl-list-item'
+    '.chat-item', '.tpl-list-item', '.patient-row'
   ].join(',');
 
   function describe(el, target) {
@@ -207,11 +209,30 @@
       var td = el.querySelector('.timeline-item-date');
       return 'Abrió un examen del historial' + (td ? ' (' + clean(td.textContent, 40) + ')' : '');
     }
-    if (el.matches('#patientNewExamBtn')) return 'Empezó un examen nuevo para este paciente';
+    if (el.matches('#patientNewExamBtn, #pfNewExamBtn')) return 'Empezó un examen nuevo para este paciente';
+    if (el.matches('.patient-row, .patient-open-btn')) {
+      var row = el.closest('.patient-row');
+      var nm = row && row.querySelector('.patient-row-name');
+      return 'Abrió la ficha de ' + quote(clean(nm ? nm.firstChild.textContent : '', 80));
+    }
+    if (el.matches('.hc-chip, .hc-stat')) {
+      var lbl = el.querySelector('.hc-stat-label');
+      return 'Filtró pacientes: ' + quote(clean(lbl ? lbl.textContent : el.textContent, 40));
+    }
+    if (el.matches('.pf-tab')) return 'Vio la pestaña ' + quote(clean(el.textContent, 30)) + ' de la ficha';
+    if (el.matches('#anteSaveBtn')) return 'Guardó los antecedentes del paciente';
+    if (el.matches('#pfRemindBtn, .wa-btn')) return 'Le mandó por WhatsApp el recordatorio de su revisión';
+    if (el.matches('#pfWaBtn')) return 'Abrió WhatsApp con el paciente';
+    if (el.matches('#pfAgendarBtn')) return 'Abrió “Agendar cita” para el paciente';
+    if (el.matches('.pf-compare-btn')) return 'Comparó ese examen con el anterior';
+    if (el.matches('#pfClose')) return 'Cerró la ficha del paciente';
 
     // Examen de la vista (lista)
     if (el.matches('#newExamBtn')) return 'Empezó un examen nuevo';
     if (el.matches('#nextApptBtn')) return 'Dio clic en “Realizar examen” de su próxima cita';
+    if (el.matches('.today-appt-btn')) {
+      return /ver/i.test(el.textContent) ? 'Abrió el examen de una cita de hoy' : 'Dio clic en “Realizar examen” de una cita de hoy';
+    }
     if (el.matches('.exam-table-link') || el.closest('.exam-card') && el.matches('a[href]') && !el.closest('.row-menu')) {
       return 'Abrió el examen';
     }

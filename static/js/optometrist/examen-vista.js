@@ -1,13 +1,16 @@
 /* =========================================================
-   EXAMEN DE LA VISTA
-     - Arriba: la próxima cita (de /api/citas), con botón
-       "Realizar examen" que manda a Nuevo examen con el
-       nombre/apellido/teléfono (y userId si tiene cuenta) ya
-       precargados.
-     - Abajo: tabla de exámenes ya hechos, con menú de tres
-       puntos por fila: Ver / Exportar PDF /
-       Imprimir / Enviar por WhatsApp / Enviar por correo
-       (todavía sin conectar — no hay SMTP configurado).
+   EXAMEN DE LA VISTA — el trabajo del día (la unidad es el
+   EXAMEN; lo de cada paciente a lo largo del tiempo vive en
+   Historial clínico).
+     - Contadores: exámenes de hoy / semana / mes, con cita contra
+       sin cita y por optometrista (de la lista de exámenes).
+     - Citas de hoy (de /api/citas): cada una con su estado —
+       Pendiente, En consulta, Terminado (ya tiene examen), Sin
+       examen o No asistió — y "Realizar examen" (manda a Nuevo
+       examen con los datos y el id de la cita) o "Ver examen".
+     - Lista de exámenes filtrable por periodo y optometrista, con
+       menú de tres puntos por fila: Ver / Exportar PDF / Imprimir /
+       Enviar por WhatsApp / Enviar por correo (todavía sin conectar).
    ========================================================= */
 (function(){
   function escapeHTML(str){
@@ -29,55 +32,162 @@
     return { nombre: words.slice(0, -1).join(' '), apellido: words[words.length - 1] };
   }
 
-  /* ---------- Próxima cita ----------
-     Solo la de HOY más cercana que todavía no pasó — no las de mañana
-     ni las citas de hoy que ya pasaron de hora. Se refresca sola cada
-     minuto para que, apenas pase la hora de una cita, ya se muestre la
-     siguiente sin tener que recargar la página. ---------- */
-  (function(){
-    var panel = document.getElementById('nextApptPanel');
-    var nameEl = document.getElementById('nextApptName');
-    var dateEl = document.getElementById('nextApptDate');
-    var btnEl = document.getElementById('nextApptBtn');
-    if (!panel) return;
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function normalize(str){
+    return (str || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+  }
+  function dayKey(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function startOfWeek(d){ // semana de lunes a domingo
+    var s0 = startOfDay(d);
+    var dow = (s0.getDay() + 6) % 7;
+    s0.setDate(s0.getDate() - dow);
+    return s0;
+  }
+  function startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+  function plural(n, one, many){ return n + ' ' + (n === 1 ? one : many); }
+  var MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
-    function pad(n){ return String(n).padStart(2, '0'); }
+  var allExams = [];   // ligeros (sin resultados): id, patientName, createdAt, createdByName, appointmentId…
+  var todayCitas = [];
 
-    function loadNextAppt(){
-      fetch('/api/citas')
-        .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
-        .then(function(data){
-          var citas = data.citas || [];
-          var now = new Date();
-          var todayISO = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
-          var nowHHMM = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  /* ---------- Contadores ---------- */
+  function renderStats(){
+    var now = new Date();
+    var t0 = startOfDay(now), w0 = startOfWeek(now), m0 = startOfMonth(now);
+    var today = 0, week = 0, month = 0, conCita = 0, staff = {};
+    allExams.forEach(function(e){
+      var d = new Date(e.createdAt);
+      if (d >= t0) today++;
+      if (d >= w0) week++;
+      if (d >= m0){
+        month++;
+        if (e.appointmentId) conCita++;
+        var who = (e.createdByName || '').trim() || 'Sin nombre';
+        staff[who] = (staff[who] || 0) + 1;
+      }
+    });
+    var citasHoy = todayCitas.length;
+    document.getElementById('statToday').textContent = today;
+    document.getElementById('statTodaySub').textContent = (today === 1 ? 'examen' : 'exámenes') +
+      (citasHoy ? ' · ' + plural(citasHoy, 'cita', 'citas') + ' hoy' : '');
+    document.getElementById('statWeek').textContent = week;
+    document.getElementById('statWeekSub').textContent = week === 1 ? 'examen' : 'exámenes';
+    document.getElementById('statMonth').textContent = month;
+    document.getElementById('statMonthSub').textContent = (month === 1 ? 'examen' : 'exámenes') + ' en ' + MONTHS[now.getMonth()];
 
-          var proximas = citas.filter(function(c){
-            return c.status !== 'cancelada' && (c.date || '').slice(0, 10) === todayISO && c.time >= nowHHMM;
-          }).sort(function(a, b){ return a.time.localeCompare(b.time); });
+    var sinCita = month - conCita;
+    document.getElementById('statConCita').textContent = conCita;
+    document.getElementById('statSinCita').textContent = sinCita;
+    document.getElementById('statSplitBar').style.width = (month ? Math.round(conCita / month * 100) : 0) + '%';
 
-          if (!proximas.length){ panel.style.display = 'none'; return; }
+    var names = Object.keys(staff).sort(function(a, b){ return staff[b] - staff[a] || a.localeCompare(b); });
+    var max = names.length ? staff[names[0]] : 0;
+    document.getElementById('statStaff').innerHTML = names.length ? names.map(function(n){
+      return '<li><span class="ev-staff-name">' + escapeHTML(n) + '</span>' +
+        '<span class="ev-staff-bar"><span style="width:' + Math.round(staff[n] / max * 100) + '%"></span></span>' +
+        '<strong>' + staff[n] + '</strong></li>';
+    }).join('') : '<li class="ev-staff-empty">Todavía no hay exámenes este mes.</li>';
+  }
 
-          var next = proximas[0];
-          nameEl.textContent = next.nombre + ' ' + next.apellido;
-          dateEl.textContent = fecha(next.date) + ' · ' + next.time;
+  /* ---------- Citas de hoy ----------
+     Se refresca sola cada minuto. El estado sale de:
+       - Terminado: ya hay un examen de esa cita (appointmentId), o de
+         hoy con el mismo nombre (exámenes de antes de ligar citas).
+       - No asistió: recepción la marcó así.
+       - En consulta: es la cita de este momento (desde su hora hasta
+         la hora de la siguiente, máximo 1 hora).
+       - Pendiente: todavía no llega su hora.
+       - Sin examen: ya pasó su hora y no se hizo examen. ---------- */
+  var todayList = document.getElementById('todayList');
+  var todayCount = document.getElementById('todayCount');
 
-          var params = new URLSearchParams({
-            nombre: next.nombre || '',
-            apellido: next.apellido || '',
-            telefono: next.celular || ''
-          });
-          if (next.userId) params.set('userId', next.userId);
-          btnEl.href = '/optometrist/examen-vista/nuevo?' + params.toString();
+  function toMinutes(hhmm){
+    var p = (hhmm || '').split(':');
+    return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0);
+  }
+  function hora12(hhmm){
+    var m = toMinutes(hhmm), h = Math.floor(m / 60), mm = m % 60;
+    return ((h % 12) || 12) + ':' + pad(mm) + ' ' + (h < 12 ? 'a. m.' : 'p. m.');
+  }
 
-          panel.style.display = 'block';
-        })
-        .catch(function(){ /* si falla, simplemente no se muestra la tarjeta */ });
+  function examForCita(c){
+    var linked = allExams.filter(function(e){ return e.appointmentId && String(e.appointmentId) === String(c.id); })[0];
+    if (linked) return linked;
+    var name = normalize((c.nombre || '') + ' ' + (c.apellido || ''));
+    var todayStr = dayKey(new Date());
+    return allExams.filter(function(e){
+      return !e.appointmentId && dayKey(new Date(e.createdAt)) === todayStr && normalize(e.patientName) === name;
+    })[0] || null;
+  }
+
+  function citaState(c, idx, list){
+    var exam = examForCita(c);
+    if (exam) return { key: 'done', label: 'Terminado', exam: exam };
+    if (c.status === 'no_asistio') return { key: 'noshow', label: 'No asistió' };
+    var now = new Date();
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    var start = toMinutes(c.time);
+    var next = list[idx + 1] ? toMinutes(list[idx + 1].time) : start + 60;
+    var end = Math.min(Math.max(next, start + 15), start + 60);
+    if (nowMin < start) return { key: 'pending', label: 'Pendiente' };
+    if (nowMin < end) return { key: 'now', label: 'En consulta' };
+    return { key: 'missed', label: 'Sin examen' };
+  }
+
+  function newExamURL(c){
+    var params = new URLSearchParams({
+      nombre: c.nombre || '',
+      apellido: c.apellido || '',
+      telefono: c.celular || '',
+      citaId: c.id
+    });
+    if (c.userId) params.set('userId', c.userId);
+    return '/optometrist/examen-vista/nuevo?' + params.toString();
+  }
+
+  function renderToday(){
+    if (!todayList) return;
+    if (!todayCitas.length){
+      todayCount.textContent = 'No hay citas para hoy.';
+      todayList.innerHTML = '<p class="ev-today-empty">Sin citas agendadas para hoy. Si llega alguien sin cita, usa “Nuevo examen”.</p>';
+      return;
     }
+    var states = todayCitas.map(function(c, i){ return citaState(c, i, todayCitas); });
+    var done = states.filter(function(s){ return s.key === 'done'; }).length;
+    todayCount.textContent = plural(todayCitas.length, 'cita', 'citas') + ' · ' + done + ' ' + (done === 1 ? 'terminada' : 'terminadas');
 
-    loadNextAppt();
-    setInterval(loadNextAppt, 60000);
-  })();
+    todayList.innerHTML = todayCitas.map(function(c, i){
+      var st = states[i];
+      var name = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
+      var action = st.key === 'done'
+        ? '<a class="btn thin today-appt-btn" href="/optometrist/examen-vista/' + st.exam.id + '">Ver examen</a>'
+        : '<a class="btn thin today-appt-btn' + (st.key === 'now' ? ' solid' : '') + '" href="' + newExamURL(c) + '">Realizar examen</a>';
+      return (
+        '<div class="today-appt is-' + st.key + '" data-name="' + escapeHTML(name) + '">' +
+          '<div class="today-appt-time">' + hora12(c.time) + '</div>' +
+          '<div class="today-appt-body">' +
+            '<div class="today-appt-name">' + escapeHTML(name) + '</div>' +
+            '<div class="today-appt-meta">' + escapeHTML(c.celular || 'Sin teléfono') + (c.userId ? ' · Con cuenta' : '') + '</div>' +
+          '</div>' +
+          '<span class="appt-chip is-' + st.key + '">' + st.label + '</span>' +
+          action +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function loadToday(){
+    return fetch('/api/citas')
+      .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
+      .then(function(data){
+        var todayStr = dayKey(new Date());
+        todayCitas = (data.citas || []).filter(function(c){
+          return c.status !== 'cancelada' && (c.date || '').slice(0, 10) === todayStr;
+        }).sort(function(a, b){ return (a.time || '').localeCompare(b.time || ''); });
+      })
+      .catch(function(){ todayCitas = []; if (todayCount) todayCount.textContent = 'No se pudieron cargar las citas.'; });
+  }
 
   /* ---------- Tabla / Grid de exámenes ---------- */
   var listEl = document.getElementById('examList');
@@ -117,16 +227,64 @@
     );
   }
 
-  var allExams = [];
   var searchInput = document.getElementById('examSearch');
+  var periodSel = document.getElementById('examPeriod');
+  var staffSel = document.getElementById('examStaff');
 
-  function normalize(str){
-    return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // Llena los selects con lo que hay: meses con exámenes (además de
+  // Hoy / Semana / Mes) y los optometristas que han hecho exámenes.
+  function fillFilters(){
+    var now = new Date();
+    var curMonth = now.getFullYear() * 12 + now.getMonth();
+    var months = {};
+    var staff = {};
+    allExams.forEach(function(e){
+      var d = new Date(e.createdAt);
+      var m = d.getFullYear() * 12 + d.getMonth();
+      if (m !== curMonth) months[m] = true;
+      var who = (e.createdByName || '').trim();
+      if (who) staff[who] = true;
+    });
+    var keepP = periodSel.value, keepS = staffSel.value;
+    periodSel.querySelectorAll('option[data-month]').forEach(function(o){ o.remove(); });
+    Object.keys(months).map(Number).sort(function(a, b){ return b - a; }).forEach(function(m){
+      var o = document.createElement('option');
+      o.value = 'm' + m;
+      o.dataset.month = '1';
+      var label = MONTHS[m % 12] + ' ' + Math.floor(m / 12);
+      o.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+      periodSel.appendChild(o);
+    });
+    staffSel.innerHTML = '<option value="">Todos</option>' + Object.keys(staff).sort().map(function(n){
+      return '<option value="' + escapeHTML(n) + '">' + escapeHTML(n) + '</option>';
+    }).join('');
+    if (periodSel.querySelector('option[value="' + keepP + '"]')) periodSel.value = keepP;
+    if (keepS && staff[keepS]) staffSel.value = keepS;
+  }
+
+  function inPeriod(e, period){
+    if (!period || period === 'all') return true;
+    var d = new Date(e.createdAt), now = new Date();
+    if (period === 'today') return d >= startOfDay(now);
+    if (period === 'week') return d >= startOfWeek(now);
+    if (period === 'month') return d >= startOfMonth(now);
+    if (period.charAt(0) === 'm'){
+      var m = parseInt(period.slice(1), 10);
+      return d.getFullYear() * 12 + d.getMonth() === m;
+    }
+    return true;
   }
 
   function renderExams(){
     var term = normalize(searchInput ? searchInput.value.trim() : '');
-    var exams = term ? allExams.filter(function(e){ return normalize(e.patientName).indexOf(term) !== -1; }) : allExams;
+    var period = periodSel ? periodSel.value : 'all';
+    var who = staffSel ? staffSel.value : '';
+    var filtered = !!(term || period !== 'all' || who);
+    var exams = allExams.filter(function(e){
+      if (term && normalize(e.patientName).indexOf(term) === -1) return false;
+      if (who && (e.createdByName || '').trim() !== who) return false;
+      return inPeriod(e, period);
+    });
 
     if (!allExams.length){
       countEl.textContent = '0 exámenes registrados';
@@ -136,7 +294,7 @@
       return;
     }
     emptyEl.style.display = 'none';
-    countEl.textContent = term
+    countEl.textContent = filtered
       ? (exams.length + ' de ' + allExams.length + (allExams.length === 1 ? ' examen' : ' exámenes'))
       : (allExams.length + (allExams.length === 1 ? ' examen registrado' : ' exámenes registrados'));
 
@@ -148,6 +306,8 @@
           '<td><a class="exam-table-link" href="' + base + '">' + escapeHTML(n.nombre) + '</a></td>' +
           '<td>' + escapeHTML(n.apellido) + '</td>' +
           '<td class="exam-table-date">' + fecha(e.createdAt) + '</td>' +
+          '<td class="exam-table-by">' + escapeHTML(e.createdByName || '—') + '</td>' +
+          '<td>' + (e.appointmentId ? '<span class="origin-tag is-cita">Cita</span>' : '<span class="origin-tag">Sin cita</span>') + '</td>' +
           '<td class="exam-table-actions">' + rowMenuHTML(e, base) + '</td>' +
         '</tr>'
       );
@@ -165,26 +325,43 @@
             '<div class="exam-card-preview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>' +
             '<div class="exam-card-name">' + escapeHTML(e.patientName) + '</div>' +
           '</a>' +
-          '<div class="exam-card-date">' + fecha(e.createdAt) + '</div>' +
+          '<div class="exam-card-date">' + fecha(e.createdAt) + (e.createdByName ? ' · ' + escapeHTML(e.createdByName) : '') + '</div>' +
         '</div>'
       );
     }).join('');
+
+    if (!exams.length){
+      listEl.innerHTML = '<tr><td colspan="6" class="exam-table-none">Ningún examen coincide con los filtros.</td></tr>';
+      gridEl.innerHTML = '<p class="exam-table-none">Ningún examen coincide con los filtros.</p>';
+    }
 
     wireRowMenus();
     if (window.feather) feather.replace();
   }
 
   if (searchInput) searchInput.addEventListener('input', renderExams);
+  if (periodSel) periodSel.addEventListener('change', renderExams);
+  if (staffSel) staffSel.addEventListener('change', renderExams);
 
-  fetch('/api/optometrist/examenes')
-    .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
-    .then(function(exams){
-      allExams = exams || [];
-      renderExams();
-    })
-    .catch(function(){
-      countEl.textContent = 'No se pudieron cargar los exámenes.';
+  function loadExams(){
+    return fetch('/api/optometrist/examenes?lite=1')
+      .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
+      .then(function(exams){ allExams = exams || []; })
+      .catch(function(){ countEl.textContent = 'No se pudieron cargar los exámenes.'; });
+  }
+
+  function refreshAll(first){
+    Promise.all([loadExams(), loadToday()]).then(function(){
+      renderStats();
+      renderToday();
+      if (first){ fillFilters(); renderExams(); }
     });
+  }
+  refreshAll(true);
+  // Cada minuto: el estado de las citas cambia con la hora, y si otro
+  // optometrista guardó un examen se ve reflejado (sin tocar la tabla
+  // para no cerrar menús abiertos).
+  setInterval(function(){ refreshAll(false); }, 60000);
 
   function wireRowMenus(){
     var menus = Array.prototype.slice.call(listEl.querySelectorAll('.row-menu')).concat(
@@ -211,8 +388,10 @@
         btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
       });
     });
-    document.addEventListener('click', function(){ closeAll(); });
+    closeAllMenus = closeAll;
   }
+  var closeAllMenus = function(){};
+  document.addEventListener('click', function(){ closeAllMenus(); });
 
   if (viewSwitch){
     viewSwitch.querySelectorAll('.view-switch-btn').forEach(function(btn){
@@ -269,6 +448,8 @@
           allExams = allExams.filter(function(e){ return String(e.id) !== String(pendingId); });
           closeModal();
           renderExams();
+          renderStats();
+          renderToday();
         })
         .catch(function(){
           alert('No se pudo eliminar el examen. Intenta de nuevo.');
