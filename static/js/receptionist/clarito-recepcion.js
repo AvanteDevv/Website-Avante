@@ -163,6 +163,8 @@
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
     rename: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/></svg>',
     move: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M10 13h6M13 10l3 3-3 3"/></svg>',
+    image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L6 21"/></svg>',
+    phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
     open: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg>'
   };
 
@@ -244,12 +246,19 @@
   /* =======================================================
      PLANTILLAS
      ======================================================= */
-  var templates = [];           // [{key, name, size, modified, def, fields, error}]
+  var templates = [];           // [{key, name, size, modified, def, layout, pages, error}]
   var tplBytes = {};            // key|modified → ArrayBuffer
-  var thumbs = {};              // key|modified → dataURL
+  var thumbs = {};              // key|modified → URL de la imagen de la hoja 1
+  var pageImgs = {};            // key|modified → Promise<[Image]>
 
   function tplId(t) { return t.key + '|' + t.modified; }
   function tplByKey(k) { return templates.filter(function (t) { return t.key === k; })[0]; }
+  // La URL lleva la fecha de la plantilla: el navegador la guarda en caché
+  // y solo la vuelve a bajar si la reemplazan.
+  function tplURL(t) { return fileURL(t.key) + '&v=' + encodeURIComponent(t.modified); }
+  function previewURL(t, page) {
+    return '/api/clarito/templates/preview?key=' + encodeURIComponent(t.key) + '&v=' + encodeURIComponent(t.modified) + '&page=' + page;
+  }
 
   function loadTemplates() {
     if (status.ready === false) { renderTemplates(); return Promise.resolve(); }
@@ -259,7 +268,7 @@
       templates.forEach(function (t) { prev[tplId(t)] = t; });
       templates = (d.items || []).map(function (it) {
         var old = prev[it.key + '|' + it.modified];
-        return old || { key: it.key, name: it.name, size: it.size, modified: it.modified, def: null, fields: null };
+        return old || { key: it.key, name: it.name, size: it.size, modified: it.modified, def: null };
       });
       renderTemplates();
       return analyzeAll();
@@ -279,17 +288,19 @@
     var html = templates.map(function (t, i) {
       var title = t.def ? t.def.name : stripPdf(t.name);
       var canFill = t.def && t.def.fields.length > 0;
-      var th = thumbs[tplId(t)];
+      // Si ya existe la vista rápida sale al instante; si no, se muestra un ícono.
+      var th = thumbs[tplId(t)] || previewURL(t, 1);
       return '<article class="clr-form" style="--i:' + i + '" data-key="' + esc(t.key) + '">' +
-        '<button type="button" class="clr-form-thumb' + (th ? '' : ' is-loading') + '" data-act="' + (canFill ? 'fill' : 'preview') + '" aria-label="' + (canFill ? 'Llenar ' : 'Ver ') + esc(title) + '">' +
-          (th ? '<img src="' + th + '" alt="">' : '<span class="clr-thumb-ph">' + ICON.pdf + '</span>') +
+        '<button type="button" class="clr-form-thumb' + (thumbs[tplId(t)] ? '' : ' is-loading') + '" data-act="' + (canFill ? 'fill' : 'preview') + '" aria-label="' + (canFill ? 'Llenar ' : 'Ver ') + esc(title) + '">' +
+          '<img src="' + esc(th) + '" alt="" onload="this.parentNode.classList.remove(\'is-loading\')" onerror="this.hidden=true">' +
+          '<span class="clr-thumb-ph">' + ICON.pdf + '</span>' +
           '<span class="clr-chip">Plantilla</span>' +
         '</button>' +
         '<div class="clr-form-body">' +
           '<h3>' + esc(title) + '</h3>' +
           (t.def && t.def.desc ? '<p>' + esc(t.def.desc) + '</p>' : '') +
           '<p class="clr-form-file" title="Nombre en el bucket">' + esc(t.name) + '</p>' +
-          '<span class="clr-form-meta">' + esc(tplMeta(t)) + '</span>' +
+          '<span class="clr-form-meta">' + esc(t.preparing ? 'Preparando vista rápida (solo la primera vez)…' : tplMeta(t)) + '</span>' +
         '</div>' +
         '<div class="clr-form-actions">' +
           '<button type="button" class="clr-icon-btn" data-act="menu" title="Más opciones" aria-label="Más opciones">' + ICON.dots + '</button>' +
@@ -308,8 +319,7 @@
     $('clrForms').innerHTML = html;
   }
 
-  // Lee cada plantilla: cuenta sus campos y dibuja la miniatura.
-  var analyzing = null;
+  // Lee cada plantilla (campos y posiciones) y prepara la imagen de sus hojas.
   function analyzeAll() {
     var todo = templates.filter(function (t) { return !t.def && !t.error; });
     if (!todo.length) { renderTemplates(); return Promise.resolve(); }
@@ -319,13 +329,12 @@
         return analyzeTemplate(t).then(function () { renderTemplates(); });
       });
     });
-    analyzing = chain;
     return chain;
   }
   function getTplBytes(t) {
     var id = tplId(t);
     if (tplBytes[id]) return Promise.resolve(tplBytes[id]);
-    return fetch(fileURL(t.key), { credentials: 'same-origin' }).then(function (r) {
+    return fetch(tplURL(t), { credentials: 'same-origin' }).then(function (r) {
       if (!r.ok) throw new Error('No se pudo descargar la plantilla.');
       return r.arrayBuffer();
     }).then(function (b) { tplBytes[id] = b; return b; });
@@ -333,29 +342,107 @@
   function analyzeTemplate(t) {
     if (!window.PDFLib) { t.def = { key: 'tpl', name: stripPdf(t.name), fields: [] }; return Promise.resolve(); }
     return getTplBytes(t).then(function (bytes) {
-      return PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true }).then(function (doc) {
+      return PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false }).then(function (doc) {
         t.def = buildDef(t, doc);
-        return makeThumb(t, bytes);
+        t.layout = tplLayout(doc);
+        t.pages = t.layout.geo.length;
+        return tplPageImages(t).then(function (imgs) {
+          if (imgs[0]) thumbs[tplId(t)] = imgs[0].src;
+        });
       });
     }).catch(function (err) {
       console.error('Clarito: plantilla', t.name, err);
       t.error = true;
     });
   }
-  function makeThumb(t, bytes) {
-    if (!window.pdfjsLib) return Promise.resolve();
-    return pdfjsLib.getDocument({ data: bytes.slice(0) }).promise.then(function (pdf) {
-      return pdf.getPage(1).then(function (pg) {
-        var base = pg.getViewport({ scale: 1 });
-        var vp = pg.getViewport({ scale: 460 / base.width });
-        var c = document.createElement('canvas');
-        c.width = vp.width; c.height = vp.height;
-        return pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise.then(function () {
-          thumbs[tplId(t)] = c.toDataURL('image/jpeg', 0.82);
-          pdf.destroy();
+
+  /* ---------- hojas de la plantilla como imagen (vista rápida) ----------
+     Dibujar un PDF pesado (p. ej. uno exportado de Canva con muchas capas)
+     tarda varios segundos. Se dibuja UNA vez, se guarda la imagen en el
+     bucket y de ahí en adelante sale al instante en cualquier compu. El
+     PDF original no se toca: el formato final se arma sobre él. */
+  function loadImg(src) {
+    return new Promise(function (res, rej) {
+      var img = new Image();
+      img.decoding = 'async';
+      img.onload = function () { res(img); };
+      img.onerror = function () { rej(new Error('img')); };
+      img.src = src;
+    });
+  }
+  function tplPageImages(t) {
+    var id = tplId(t);
+    if (pageImgs[id]) return pageImgs[id];
+    var n = t.pages || 1, list = [];
+    for (var i = 1; i <= n; i++) list.push(i);
+    pageImgs[id] = Promise.all(list.map(function (p) { return loadImg(previewURL(t, p)).catch(function () { return null; }); }))
+      .then(function (imgs) {
+        var missing = list.filter(function (p) { return !imgs[p - 1]; });
+        if (!missing.length) return imgs;
+        t.preparing = true; renderTemplates();
+        return drawPages(t, missing).then(function (drawn) {
+          missing.forEach(function (p, k) { imgs[p - 1] = drawn[k]; });
+          return imgs;
+        }).finally(function () { t.preparing = false; });
+      });
+    pageImgs[id].catch(function () { delete pageImgs[id]; });
+    return pageImgs[id];
+  }
+  // Dibuja las hojas con pdf.js y sube la imagen al bucket (para la próxima vez).
+  function drawPages(t, pages) {
+    if (!window.pdfjsLib) return Promise.resolve(pages.map(function () { return null; }));
+    return getTplBytes(t).then(function (bytes) {
+      return pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+    }).then(function (pdf) {
+      var out = [], chain = Promise.resolve();
+      pages.forEach(function (p) {
+        chain = chain.then(function () {
+          return pdf.getPage(p).then(function (pg) {
+            var base = pg.getViewport({ scale: 1 });
+            var vp = pg.getViewport({ scale: Math.min(1700 / base.width, 3) });
+            var c = document.createElement('canvas');
+            c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+            var cx = c.getContext('2d');
+            cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
+            return pg.render({ canvasContext: cx, viewport: vp }).promise.then(function () {
+              return new Promise(function (res) { c.toBlob(res, 'image/jpeg', 0.84); });
+            }).then(function (blob) {
+              if (!blob) { out.push(null); return; }
+              fetch(previewURL(t, p), { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'image/jpeg' }, body: blob })
+                .catch(function () { /* la próxima vez se vuelve a intentar */ });
+              return loadImg(URL.createObjectURL(blob)).then(function (img) { out.push(img); });
+            });
+          });
         });
       });
-    }).catch(function () { /* sin miniatura */ });
+      return chain.then(function () { pdf.destroy(); return out; });
+    });
+  }
+
+  /* ---------- posición de cada recuadro en la hoja ---------- */
+  // Igual que pdf.js: origen arriba a la izquierda, respeta la rotación.
+  function tplLayout(doc) {
+    var geo = doc.getPages().map(function (p) {
+      var b;
+      try { b = p.getCropBox(); } catch (e) { b = p.getMediaBox(); }
+      var rot = ((p.getRotation().angle % 360) + 360) % 360;
+      var swap = rot === 90 || rot === 270;
+      return { x0: b.x, y0: b.y, w: b.width, h: b.height, rot: rot, W: swap ? b.height : b.width, H: swap ? b.width : b.height };
+    });
+    return { geo: geo, widgets: sheetWidgets(doc) };
+  }
+  function mapPt(g, x, y) {
+    switch (g.rot) {
+      case 90: return [y - g.y0, x - g.x0];
+      case 180: return [g.x0 + g.w - x, y - g.y0];
+      case 270: return [g.y0 + g.h - y, g.x0 + g.w - x];
+      default: return [x - g.x0, g.y0 + g.h - y];
+    }
+  }
+  // Rectángulo del PDF (puntos) → posición en pantalla (px) a cierta escala.
+  function mapRect(g, s, x, y, w, h) {
+    var a = mapPt(g, x, y), b = mapPt(g, x + w, y + h);
+    return { left: Math.min(a[0], b[0]) * s, top: Math.min(a[1], b[1]) * s, width: Math.abs(b[0] - a[0]) * s, height: Math.abs(b[1] - a[1]) * s };
   }
 
   /* ---------- de PDF a formulario ---------- */
@@ -458,11 +545,11 @@
     if (!t) return;
     var act = b.getAttribute('data-act');
     if (act === 'fill') openFill(t);
-    else if (act === 'preview') openViewer((t.def ? t.def.name : stripPdf(t.name)) + ' (en blanco)', t.key);
+    else if (act === 'preview') openTplViewer(t);
     else if (act === 'download') downloadKey(t.key);
     else if (act === 'menu') {
       openMenu(b, [
-        { icon: ICON.eye, label: 'Ver en blanco', run: function () { openViewer(stripPdf(t.name) + ' (en blanco)', t.key); } },
+        { icon: ICON.eye, label: 'Ver en blanco', run: function () { openTplViewer(t); } },
         { icon: ICON.down, label: 'Descargar', run: function () { downloadKey(t.key); } },
         { icon: ICON.up, label: 'Reemplazar con otro PDF', run: function () { replaceTarget = t.name; $('clrTplInput').multiple = false; $('clrTplInput').click(); } },
         { icon: ICON.trash, label: 'Eliminar plantilla', danger: true, run: function () { deleteTemplate(t); } }
@@ -601,16 +688,42 @@
 
   /* =======================================================
      LLENAR UN FORMATO
+     Dos formas (botón arriba a la derecha):
+     · "Campos": formulario a la izquierda + vista previa.
+     · "Sobre la hoja": se escribe directo encima del PDF.
+     Las firmas se guardan por nombre del campo del PDF, así sirven
+     igual en las dos formas.
      ======================================================= */
-  var fill = null;          // { tpl, def, values, sigs, follow, bytes, chosenFolder, nameTouched }
+  var fill = null;          // { tpl, def, mode, values, follow, sheet, sheetFollow, sigs, remote, chosenFolder, nameTouched }
   var previewTimer, previewSeq = 0;
 
   function defaultValue(f) {
     if (f.def === 'today') return isoToday();
     if (f.def === 'plus1y') return addYearISO(isoToday());
     if (f.def === 'staff') return staff;
-    if (f.type === 'check') return '';
     return '';
+  }
+  function fieldById(id) { return fill.def.fields.filter(function (x) { return x.id === id; })[0]; }
+  function firmaField(key) { return fill.def.fields.filter(function (x) { return x.type === 'firma' && x.pdf === key; })[0]; }
+  function firmaKeys() { return fill.def.fields.filter(function (x) { return x.type === 'firma' && typeof x.pdf === 'string'; }).map(function (x) { return x.pdf; }); }
+  function firmaLabel(key) { var f = firmaField(key); return f ? f.label : 'Firma'; }
+  function cssq(s) { return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'); }
+
+  /* ---------- formulario (modo "Campos") ---------- */
+  function sigRowHTML(key) {
+    var sig = fill.sigs[key], rem = fill.remote[key];
+    var waiting = rem && rem.status === 'pendiente';
+    return '<div class="clr-sig-row" data-sig-key="' + esc(key) + '">' +
+      (sig ? '<img class="clr-sig-img" src="' + sig + '" alt="Firma">'
+        : waiting ? '<span class="clr-sig-wait"><i></i>Esperando la firma desde su celular…</span>'
+        : '<span class="clr-sig-none">Sin firma (también se puede firmar en papel)</span>') +
+      '<div class="clr-sig-btns">' +
+        '<button type="button" class="clr-sig-btn" data-sign="' + esc(key) + '">' + ICON.pen + (sig ? 'Volver a firmar' : 'Dibujar') + '</button>' +
+        '<button type="button" class="clr-sig-btn" data-sig-upload="' + esc(key) + '">' + ICON.image + 'Subir imagen</button>' +
+        '<button type="button" class="clr-sig-btn' + (waiting ? ' is-waiting' : '') + '" data-sig-remote="' + esc(key) + '">' + ICON.phone + (waiting ? 'Ver link' : 'Con su celular') + '</button>' +
+        (sig ? '<button type="button" class="clr-sig-btn is-danger" data-unsign="' + esc(key) + '">Quitar</button>' : '') +
+      '</div>' +
+    '</div>';
   }
 
   function fieldHTML(f) {
@@ -636,14 +749,7 @@
       input = '<input type="' + (f.type === 'email' ? 'email' : 'text') + '" maxlength="' + (f.max || 160) + '" data-field="' + f.id + '" value="' + esc(v) + '">';
     }
     var extra = '';
-    if (f.type === 'firma') {
-      var sig = fill.sigs[f.id];
-      extra = '<div class="clr-sig-row">' +
-        (sig ? '<img class="clr-sig-img" src="' + sig + '" alt="Firma">' : '<span class="clr-sig-none">Sin firma dibujada (se puede firmar en papel)</span>') +
-        '<button type="button" class="clr-link" data-sign="' + f.id + '">' + (sig ? 'Volver a firmar' : 'Firmar aquí') + '</button>' +
-        (sig ? '<button type="button" class="clr-link is-danger" data-unsign="' + f.id + '">Quitar</button>' : '') +
-      '</div>';
-    }
+    if (f.type === 'firma') extra = sigRowHTML(f.pdf);
     if (f.hint) extra += '<small class="clr-hint">' + esc(f.hint) + '</small>';
     return '<label class="' + cls + '">' + label + input + '</label>' + (extra ? '<div class="clr-field-extra' + (f.half ? ' is-half' : '') + '">' + extra + '</div>' : '');
   }
@@ -651,13 +757,17 @@
   function renderFillForm() {
     var fields = fill.def.fields;
     $('clrFillForm').innerHTML = '<div class="clr-fields">' + fields.map(fieldHTML).join('') + '</div>' +
-      (fill.def.preset ? '' : '<p class="clr-auto-note">Los campos salen del PDF «' + esc(fill.tpl.name) + '». Si un nombre no se entiende, revisa la vista previa para ver dónde cae.</p>');
+      (fill.def.preset ? '' : '<p class="clr-auto-note">Los campos salen del PDF «' + esc(fill.tpl.name) + '». Si un nombre no se entiende, cambia a <b>Sobre la hoja</b> para ver dónde cae cada uno.</p>');
+  }
+  function renderSigRow(key) {
+    var row = $('clrFillForm').querySelector('.clr-sig-row[data-sig-key="' + cssq(key) + '"]');
+    if (row) row.outerHTML = sigRowHTML(key);
   }
 
   function openFill(t) {
     var def = t.def;
     if (!def || !def.fields.length) return;
-    fill = { tpl: t, def: def, values: {}, sigs: {}, follow: {}, chosenFolder: null, nameTouched: false };
+    fill = { tpl: t, def: def, mode: 'form', values: {}, follow: {}, sheet: {}, sheetFollow: {}, sigs: {}, remote: {}, chosenFolder: null, nameTouched: false };
     def.fields.forEach(function (f) {
       fill.values[f.id] = defaultValue(f);
       if (f.follow) fill.follow[f.id] = true;
@@ -669,18 +779,25 @@
     renderFillForm();
     syncFileName();
     syncDest();
-    $('clrPreviewLoading').hidden = false;
-    $('clrPreviewLoading').textContent = 'Cargando vista previa…';
+    syncModeUI();
+    $('clrPreviewPages').innerHTML = '';
+    $('clrSheetPages').innerHTML = '';
     openModal('clrFillModal');
-    getTplBytes(t).then(schedulePreview).catch(function (err) { $('clrPreviewLoading').textContent = err.message; });
-    setTimeout(function () { var first = $('clrFillForm').querySelector('[data-field]'); if (first && window.innerWidth > 720) first.focus(); }, 120);
+    var wantSheet = store('clrFillMode') === 'sheet';
+    // Espera a que el modal tenga su tamaño para medir el ancho de la hoja.
+    requestAnimationFrame(function () {
+      if (!fill) return;
+      if (wantSheet) setMode('sheet'); else buildPreview();
+    });
+    getTplBytes(t).catch(function () { /* se vuelve a intentar al guardar */ });
+    if (!wantSheet) setTimeout(function () { var first = $('clrFillForm').querySelector('[data-field]'); if (first && window.innerWidth > 720) first.focus(); }, 120);
   }
 
   function onFieldChange(e) {
     var inp = e.target.closest('[data-field]');
     if (!inp || !fill) return;
     var id = inp.getAttribute('data-field');
-    var f = fill.def.fields.filter(function (x) { return x.id === id; })[0];
+    var f = fieldById(id);
     if (!f) return;
     var v = f.type === 'check' ? (inp.checked ? '1' : '') : inp.value;
     if (f.type === 'tel') { v = v.replace(/[^\d+ ]/g, ''); inp.value = v; }
@@ -715,75 +832,130 @@
   $('clrFillForm').addEventListener('input', onFieldChange);
   $('clrFillForm').addEventListener('change', function (e) { if (e.target.matches('select, input[type="checkbox"]')) onFieldChange(e); });
   $('clrFillForm').addEventListener('submit', function (e) { e.preventDefault(); });
+  // Enter → siguiente campo
+  $('clrFillForm').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+    var t = e.target;
+    if (!t.matches('input[data-field], select[data-field]')) return;
+    e.preventDefault();
+    var list = Array.prototype.slice.call($('clrFillForm').querySelectorAll('[data-field]'));
+    var next = list[list.indexOf(t) + 1];
+    if (next) { next.focus(); if (next.select && next.type !== 'date' && next.type !== 'checkbox') try { next.select(); } catch (err) { /* */ } }
+    else $('clrFileName').focus();
+  });
   $('clrFillForm').addEventListener('click', function (e) {
-    var s = e.target.closest('[data-sign]');
-    if (s) { e.preventDefault(); openSign(s.getAttribute('data-sign')); return; }
-    var u = e.target.closest('[data-unsign]');
-    if (u) { e.preventDefault(); delete fill.sigs[u.getAttribute('data-unsign')]; renderFillForm(); schedulePreview(); }
+    var b;
+    if ((b = e.target.closest('[data-sign]'))) { e.preventDefault(); openSign(b.getAttribute('data-sign')); return; }
+    if ((b = e.target.closest('[data-sig-upload]'))) { e.preventDefault(); pickSigImage(b.getAttribute('data-sig-upload')); return; }
+    if ((b = e.target.closest('[data-sig-remote]'))) { e.preventDefault(); startRemote(b.getAttribute('data-sig-remote')); return; }
+    if ((b = e.target.closest('[data-unsign]'))) { e.preventDefault(); setSig(b.getAttribute('data-unsign'), null); }
   });
 
-  function clientOf() {
-    var f = fill.def.fields.filter(function (x) { return x.client; })[0];
-    return f ? String(fill.values[f.id] || '').trim() : '';
+  /* ---------- valores para el PDF ---------- */
+  // Del formulario → { nombreDelCampoEnElPDF: valor }
+  function formToPdfValues() {
+    var out = {};
+    fill.def.fields.forEach(function (f) {
+      var v = fill.values[f.id] || '';
+      if (f.type === 'date') {
+        var p = String(v).split('-');
+        var ok = p.length === 3;
+        out[f.pdf.d] = ok ? p[2] : '';
+        out[f.pdf.m] = ok ? (f.monthName ? MESES[Number(p[1]) - 1] : p[1]) : '';
+        out[f.pdf.y] = ok ? (f.year2 ? p[0].slice(2) : p[0]) : '';
+      } else if (f.type === 'datetext') {
+        var q = String(v).split('-');
+        out[f.pdf] = q.length === 3 ? q[2] + '/' + q[1] + '/' + q[0] : '';
+      } else if (f.type === 'money') {
+        out[f.pdf] = v ? (f.noSign ? moneyText(v).replace(/^\$\s*/, '') : moneyText(v)) : '';
+      } else if (f.type === 'check') {
+        out[f.pdf] = !!v;
+      } else {
+        out[f.pdf] = v;
+      }
+    });
+    return out;
   }
-  function folioOf() {
-    var f = fill.def.fields.filter(function (x) { return x.folio; })[0];
-    return f ? String(fill.values[f.id] || '').trim() : '';
+  // De la hoja → formulario (al regresar a "Campos")
+  function sheetToForm() {
+    var S = fill.sheet;
+    fill.def.fields.forEach(function (f) {
+      if (f.type === 'date') {
+        var d = parseInt(S[f.pdf.d], 10), mRaw = String(S[f.pdf.m] || '').trim(), y = String(S[f.pdf.y] || '').replace(/\D/g, '');
+        var m = /^\d+$/.test(mRaw) ? parseInt(mRaw, 10) : MESES.indexOf(norm(mRaw)) + 1;
+        if (y.length === 2) y = '20' + y;
+        if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y.length === 4) fill.values[f.id] = y + '-' + pad(m) + '-' + pad(d);
+        return;
+      }
+      if (!(f.pdf in S)) return;
+      var v = S[f.pdf];
+      if (f.type === 'check') fill.values[f.id] = v ? '1' : '';
+      else if (f.type === 'money') fill.values[f.id] = String(v || '').replace(/[^\d.]/g, '');
+      else if (f.type === 'datetext') {
+        var mm = String(v || '').match(/(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2,4})/);
+        if (mm) fill.values[f.id] = (mm[3].length === 2 ? '20' + mm[3] : mm[3]) + '-' + pad(+mm[2]) + '-' + pad(+mm[1]);
+        else if (!v) fill.values[f.id] = '';
+      } else fill.values[f.id] = String(v == null ? '' : v);
+      if (f.follow && fill.sheetFollow[f.pdf] === false) fill.follow[f.id] = false;
+    });
+  }
+
+  function clientField() { return fill.def.fields.filter(function (x) { return x.client; })[0]; }
+  function valueOfField(f) {
+    if (!f) return '';
+    if (fill.mode === 'sheet' && typeof f.pdf === 'string') return String(fill.sheet[f.pdf] || '').trim();
+    return String(fill.values[f.id] || '').trim();
+  }
+  function clientOf() { return valueOfField(clientField()); }
+  function folioOf() { return valueOfField(fill.def.fields.filter(function (x) { return x.folio; })[0]); }
+  function phoneOf() {
+    var f = fill.def.fields.filter(function (x) { return x.type === 'tel'; })[0];
+    var d = valueOfField(f).replace(/\D/g, '');
+    if (d.length === 10) d = '52' + d;
+    return d.length >= 11 ? d : '';
   }
 
   /* ---------- llenar el PDF (pdf-lib) ---------- */
+  function applyValues(form, vals, sizes) {
+    var L = window.PDFLib;
+    Object.keys(vals).forEach(function (name) {
+      var v = vals[name];
+      try {
+        var fld = form.getFieldMaybe ? form.getFieldMaybe(name) : form.getField(name);
+        if (!fld) return;
+        if (fld instanceof L.PDFTextField) {
+          if (sizes[name]) fld.setFontSize(sizes[name]);
+          var txt = pdfSafe(v == null ? '' : v);
+          var max = fld.getMaxLength();
+          if (max && txt.length > max) txt = txt.slice(0, max);
+          if (!fld.isMultiline()) txt = txt.replace(/\n/g, ' ');
+          fld.setText(txt);
+        } else if (fld instanceof L.PDFCheckBox) {
+          if (v) fld.check(); else fld.uncheck();
+        } else if (fld instanceof L.PDFDropdown || fld instanceof L.PDFOptionList || fld instanceof L.PDFRadioGroup) {
+          if (v) fld.select(String(v)); else fld.clear();
+        }
+      } catch (e) { /* campo distinto en este PDF */ }
+    });
+  }
   function buildPdf() {
     var def = fill.def;
+    var vals = fill.mode === 'sheet' ? fill.sheet : formToPdfValues();
+    var sizes = {};
+    def.fields.forEach(function (f) { if (f.size && f.type === 'date') { sizes[f.pdf.d] = sizes[f.pdf.m] = sizes[f.pdf.y] = f.size; } });
+    var sigs = fill.sigs;
     return getTplBytes(fill.tpl).then(function (tpl) {
       return PDFLib.PDFDocument.load(tpl, { ignoreEncryption: true });
     }).then(function (doc) {
       var form = doc.getForm();
+      applyValues(form, vals, sizes);
       var sigBoxes = [];
-      function setTxt(name, val, size) {
+      Object.keys(sigs).forEach(function (key) {
+        if (!sigs[key]) return;
         try {
-          var tf = form.getTextField(name);
-          if (size) tf.setFontSize(size);
-          var txt = pdfSafe(val);
-          var max = tf.getMaxLength();
-          if (max && txt.length > max) txt = txt.slice(0, max);
-          tf.setText(txt);
-        } catch (e) { /* campo no existe */ }
-      }
-      def.fields.forEach(function (f) {
-        var v = fill.values[f.id] || '';
-        try {
-          if (f.type === 'date') {
-            var p = String(v).split('-');
-            if (p.length === 3) {
-              setTxt(f.pdf.d, p[2], f.size);
-              setTxt(f.pdf.m, f.monthName ? MESES[Number(p[1]) - 1] : p[1], f.size);
-              setTxt(f.pdf.y, f.year2 ? p[0].slice(2) : p[0], f.size);
-            } else { setTxt(f.pdf.d, ''); setTxt(f.pdf.m, ''); setTxt(f.pdf.y, ''); }
-          } else if (f.type === 'datetext') {
-            var q = String(v).split('-');
-            setTxt(f.pdf, q.length === 3 ? q[2] + '/' + q[1] + '/' + q[0] : '');
-          } else if (f.type === 'money') {
-            setTxt(f.pdf, v ? (f.noSign ? moneyText(v).replace(/^\$\s*/, '') : moneyText(v)) : '');
-          } else if (f.type === 'check') {
-            var cb = form.getCheckBox(f.pdf);
-            if (v) cb.check(); else cb.uncheck();
-          } else if (f.type === 'select') {
-            var dd;
-            try { dd = form.getDropdown(f.pdf); } catch (e1) { dd = form.getOptionList(f.pdf); }
-            if (v) dd.select(v); else dd.clear();
-          } else if (f.type === 'radio') {
-            var rg = form.getRadioGroup(f.pdf);
-            if (v) rg.select(v); else rg.clear();
-          } else {
-            setTxt(f.pdf, v);
-          }
-        } catch (e2) { /* campo distinto en este PDF */ }
-        if (f.type === 'firma' && fill.sigs[f.id]) {
-          try {
-            var w = form.getTextField(f.pdf).acroField.getWidgets()[0];
-            sigBoxes.push({ rect: w.getRectangle(), png: fill.sigs[f.id], pageRef: w.P() });
-          } catch (e3) { /* sin widget */ }
-        }
+          var w = form.getField(key).acroField.getWidgets()[0];
+          sigBoxes.push({ rect: w.getRectangle(), png: sigs[key], pageRef: w.P() });
+        } catch (e3) { /* sin widget */ }
       });
       return doc.embedFont(PDFLib.StandardFonts.Helvetica).then(function (helv) {
         try { form.updateFieldAppearances(helv); } catch (e4) { /* */ }
@@ -793,59 +965,449 @@
           return doc.embedPng(s.png).then(function (img) {
             var pg = pages[0];
             if (s.pageRef) pages.forEach(function (p) { if (p.ref === s.pageRef) pg = p; });
-            var r = s.rect;
-            var maxH = Math.max(34, r.height * 2.4);
-            var scale = Math.min(r.width / img.width, maxH / img.height);
-            var w = img.width * scale, h = img.height * scale;
-            pg.drawImage(img, { x: r.x + (r.width - w) / 2, y: r.y + r.height * 0.55, width: w, height: h });
+            var b = sigBox(s.rect, img.width, img.height);
+            pg.drawImage(img, { x: b.x, y: b.y, width: b.w, height: b.h });
           });
         }));
       }).then(function () { return doc.save(); });
     });
   }
+  // Dónde va la imagen de la firma: centrada, encima de la línea del campo.
+  function sigBox(r, iw, ih) {
+    var maxH = Math.max(34, r.height * 2.4);
+    var scale = Math.min(r.width / iw, maxH / ih);
+    var w = iw * scale, h = ih * scale;
+    return { x: r.x + (r.width - w) / 2, y: r.y + r.height * 0.55, w: w, h: h };
+  }
 
-  /* ---------- vista previa (pdf.js) ---------- */
+  /* ---------- vista previa ----------
+     Ya no se vuelve a dibujar el PDF en cada tecla: se usa la imagen de la
+     hoja (vista rápida) y el texto se pone encima. El PDF de verdad solo se
+     arma al Guardar, Descargar o Imprimir. */
   function schedulePreview() {
+    if (!fill || fill.mode === 'sheet') return;
     clearTimeout(previewTimer);
-    previewTimer = setTimeout(renderPreview, 380);
+    previewTimer = setTimeout(updatePreview, 40);
   }
-  function renderPreview() {
-    if (!fill || !window.PDFLib || !window.pdfjsLib) return;
-    var seq = ++previewSeq;
-    var wrap = $('clrPreview');
-    wrap.classList.add('is-busy');
-    buildPdf().then(function (bytes) {
-      if (seq !== previewSeq) return;
-      fill.bytes = bytes;
-      return pdfjsLib.getDocument({ data: bytes.slice(0) }).promise.then(function (pdf) {
-        return pdf.getPage(1).then(function (pg) {
-          if (seq !== previewSeq) return;
-          var canvas = document.createElement('canvas');
-          var avail = Math.max(240, wrap.clientWidth - 2);
-          var base = pg.getViewport({ scale: 1 });
-          var dpr = Math.min(2, window.devicePixelRatio || 1);
-          var scale = avail / base.width;
-          var vp = pg.getViewport({ scale: scale * dpr });
-          canvas.width = vp.width; canvas.height = vp.height;
-          canvas.style.width = (vp.width / dpr) + 'px';
-          canvas.style.height = (vp.height / dpr) + 'px';
-          return pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise.then(function () {
-            if (seq !== previewSeq) return;
-            var old = $('clrPreviewCanvas');
-            canvas.id = 'clrPreviewCanvas';
-            old.parentNode.replaceChild(canvas, old);
-          });
-        });
+  function buildPreview() {
+    if (!fill || fill.mode === 'sheet' || !fill.tpl.layout) return;
+    fill.previewPages = buildPages($('clrPreviewPages'), false);
+    updatePreview();
+  }
+  function updatePreview() {
+    if (!fill || fill.mode === 'sheet') return;
+    if (!fill.previewPages) { buildPreview(); return; }
+    var vals = formToPdfValues(), sizes = fieldSizes();
+    $('clrPreviewPages').querySelectorAll('[data-pdf-name]').forEach(function (el) {
+      var name = el.getAttribute('data-pdf-name'), kind = el.getAttribute('data-kind'), v = vals[name];
+      if (kind === 'check') el.textContent = v ? '✓' : '';
+      else if (kind === 'radio') el.textContent = v && v === el.getAttribute('data-opt') ? '●' : '';
+      else el.textContent = v == null ? '' : String(v);
+      if (kind === 'text' && el.getAttribute('data-auto') === '1') fitText(el, parseFloat(el.getAttribute('data-fs')));
+      if (sizes[name]) el.style.fontSize = (sizes[name] * parseFloat(el.getAttribute('data-scale'))) + 'px';
+    });
+    placeSigs($('clrPreviewPages'));
+  }
+  // Tamaño automático: si el texto no cabe, se achica (como en el PDF).
+  function fitText(el, base) {
+    var fs = base;
+    el.style.fontSize = fs + 'px';
+    for (var i = 0; i < 12 && fs > 5 && el.scrollWidth > el.clientWidth + 1; i++) { fs *= 0.9; el.style.fontSize = fs + 'px'; }
+  }
+  function fieldSizes() {
+    var sizes = {};
+    fill.def.fields.forEach(function (f) { if (f.size && f.type === 'date') { sizes[f.pdf.d] = sizes[f.pdf.m] = sizes[f.pdf.y] = f.size; } });
+    return sizes;
+  }
+  // Tamaño de letra de un recuadro (px en pantalla).
+  function fieldFont(w, hPx, s) {
+    if (w.fs > 0) return { px: w.fs * s, auto: false };
+    var px = Math.max(6, Math.min((w.r.height - 2) * 0.78, 14) * s);
+    return { px: px, auto: true };
+  }
+  var resizeT;
+  window.addEventListener('resize', function () {
+    if (!fill || !$('clrFillModal').classList.contains('open')) return;
+    clearTimeout(resizeT);
+    resizeT = setTimeout(function () {
+      if (!fill) return;
+      if (fill.mode === 'sheet') renderSheet(); else { fill.previewPages = null; buildPreview(); }
+    }, 250);
+  });
+
+  /* =======================================================
+     MODO "SOBRE LA HOJA"
+     ======================================================= */
+  function syncModeUI() {
+    var sheet = fill && fill.mode === 'sheet';
+    $('clrFillModal').querySelector('.clr-fill-card').classList.toggle('is-sheet', !!sheet);
+    $('clrMode').querySelectorAll('[data-mode]').forEach(function (b) {
+      var on = b.getAttribute('data-mode') === (sheet ? 'sheet' : 'form');
+      b.classList.toggle('active', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    $('clrSheet').hidden = !sheet;
+    $('clrPreview').hidden = !!sheet;
+  }
+  function setMode(m) {
+    if (!fill || m === fill.mode) return;
+    if (m === 'sheet') {
+      if (!fill.tpl.layout) { toast('No se pudo leer la plantilla.'); return; }
+      fill.sheet = formToPdfValues();
+      fill.sheetFollow = {};
+      fill.def.fields.forEach(function (f) {
+        if (f.type === 'firma' && f.follow && fill.follow[f.id]) fill.sheetFollow[f.pdf] = true;
       });
-    }).then(function () {
-      $('clrPreviewLoading').hidden = true;
-    }).catch(function (err) {
-      console.error(err);
-      $('clrPreviewLoading').hidden = false;
-      $('clrPreviewLoading').textContent = 'No se pudo generar la vista previa.';
-    }).finally(function () { if (seq === previewSeq) wrap.classList.remove('is-busy'); });
+      fill.mode = 'sheet';
+      syncModeUI();
+      renderSheet(true);
+    } else {
+      sheetToForm();
+      fill.mode = 'form';
+      syncModeUI();
+      renderFillForm();
+      fill.previewPages = null;
+      buildPreview();
+    }
+    store('clrFillMode', m);
+    syncFileName(); syncDest();
   }
-  window.addEventListener('resize', function () { if (fill && $('clrFillModal').classList.contains('open')) schedulePreview(); });
+  $('clrMode').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-mode]');
+    if (b) setMode(b.getAttribute('data-mode'));
+  });
+
+  // Los campos del PDF con su posición en la hoja.
+  function sheetWidgets(doc) {
+    var L = window.PDFLib, pages = doc.getPages(), out = [];
+    // En qué hoja está cada recuadro (por las anotaciones de cada página).
+    var annotPage = new Map();
+    pages.forEach(function (p, pi) {
+      try {
+        var an = p.node.Annots();
+        if (an) an.asArray().forEach(function (ref) { var d = doc.context.lookup(ref); if (d) annotPage.set(d, pi); });
+      } catch (e) { /* */ }
+    });
+    var fields = [];
+    try { fields = doc.getForm().getFields(); } catch (e) { fields = []; }
+    fields.forEach(function (fld) {
+      var name = fld.getName(), kind = null, opts = [];
+      if (fld instanceof L.PDFTextField) kind = 'text';
+      else if (fld instanceof L.PDFCheckBox) kind = 'check';
+      else if (fld instanceof L.PDFDropdown || fld instanceof L.PDFOptionList) { kind = 'select'; try { opts = fld.getOptions(); } catch (e1) { /* */ } }
+      else if (fld instanceof L.PDFRadioGroup) { kind = 'radio'; try { opts = fld.getOptions(); } catch (e2) { /* */ } }
+      if (!kind) return;
+      try { if (fld.isReadOnly()) return; } catch (e3) { /* */ }
+      var multi = false, max = 0, fs = 0, align = 0;
+      if (kind === 'text') {
+        try { multi = fld.isMultiline(); max = fld.getMaxLength() || 0; } catch (e4) { /* */ }
+        try { var da = fld.acroField.getDefaultAppearance() || ''; var m = da.match(/([\d.]+)\s+Tf/); if (m) fs = parseFloat(m[1]) || 0; } catch (e7) { /* */ }
+        try { align = fld.getAlignment() || 0; } catch (e8) { /* */ }
+      }
+      var widgets = [];
+      try { widgets = fld.acroField.getWidgets(); } catch (e5) { widgets = []; }
+      widgets.forEach(function (w, i) {
+        var r, pageIdx = 0;
+        try { r = w.getRectangle(); } catch (e6) { return; }
+        if (!r || r.width < 2 || r.height < 2) return;
+        if (annotPage.has(w.dict)) pageIdx = annotPage.get(w.dict);
+        else { var ref = w.P(); if (ref) pages.forEach(function (p, pi) { if (p.ref === ref) pageIdx = pi; }); }
+        out.push({ name: name, kind: kind, opts: opts, opt: kind === 'radio' ? opts[i] : null, multi: multi, max: max, fs: fs, align: align, page: pageIdx, r: r });
+      });
+    });
+    out.sort(function (a, b) {
+      if (a.page !== b.page) return a.page - b.page;
+      var ay = a.r.y + a.r.height, by = b.r.y + b.r.height;
+      if (Math.abs(ay - by) > 6) return by - ay;
+      return a.r.x - b.r.x;
+    });
+    return out;
+  }
+
+  /* ---------- hojas: imagen + recuadros encima ---------- */
+  // editable = true: recuadros para escribir ("Sobre la hoja").
+  // editable = false: solo el texto (vista previa del modo "Campos").
+  function buildPages(box, editable) {
+    var t = fill.tpl, myFill = fill, L = t.layout;
+    var avail = Math.min(editable ? 900 : 760, Math.max(260, (box.clientWidth || box.parentNode.clientWidth || 700) - (editable ? 0 : 4)));
+    var pagesEls = L.geo.map(function (g, i) {
+      var s = avail / g.W;
+      var el = document.createElement('div');
+      el.className = 'clr-sh-page is-loading';
+      el.style.width = avail + 'px'; el.style.height = Math.round(g.H * s) + 'px';
+      return { el: el, g: g, s: s, idx: i };
+    });
+    box.innerHTML = '';
+    pagesEls.forEach(function (P) { box.appendChild(P.el); });
+    var layoutList = [];
+    L.widgets.forEach(function (w) {
+      var P = pagesEls[w.page] || pagesEls[0];
+      if (editable) addSheetWidget(w, P, layoutList); else addPreviewWidget(w, P, layoutList);
+    });
+    if (editable) fill.sheetLayout = layoutList; else fill.previewLayout = layoutList;
+    tplPageImages(t).then(function (imgs) {
+      if (fill !== myFill) return;
+      imgs.forEach(function (img, i) {
+        var P = pagesEls[i];
+        if (!P || !img) return;
+        var bg = document.createElement('img');
+        bg.className = 'clr-sh-bg'; bg.alt = ''; bg.src = img.src;
+        P.el.insertBefore(bg, P.el.firstChild);
+        P.el.classList.remove('is-loading');
+      });
+    }).catch(function () { /* se queda sin fondo */ });
+    return pagesEls;
+  }
+  function widgetBox(w, P) {
+    return mapRect(P.g, P.s, w.r.x, w.r.y, w.r.width, w.r.height);
+  }
+  function addPreviewWidget(w, P, layoutList) {
+    var b = widgetBox(w, P), font = fieldFont(w, b.height, P.s);
+    var el = document.createElement('div');
+    el.className = 'clr-pv-f is-' + w.kind + (w.multi ? ' is-multi' : '');
+    el.setAttribute('data-pdf-name', w.name);
+    el.setAttribute('data-kind', w.kind);
+    el.setAttribute('data-scale', P.s);
+    el.setAttribute('data-fs', font.px);
+    if (font.auto) el.setAttribute('data-auto', '1');
+    if (w.opt != null) el.setAttribute('data-opt', w.opt);
+    el.style.cssText = 'left:' + b.left + 'px;top:' + b.top + 'px;width:' + b.width + 'px;height:' + b.height + 'px;font-size:' +
+      (w.kind === 'check' || w.kind === 'radio' ? Math.max(8, b.height * 0.8) : font.px) + 'px;text-align:' + (['left', 'center', 'right'][w.align] || 'left');
+    P.el.appendChild(el);
+    if (firmaKeys().indexOf(w.name) !== -1) layoutList.push({ name: w.name, page: P, r: w.r });
+  }
+  function addSheetWidget(w, P, layoutList) {
+    var b = widgetBox(w, P), font = fieldFont(w, b.height, P.s);
+    var el, val = fill.sheet[w.name];
+    var isFirma = firmaKeys().indexOf(w.name) !== -1;
+    if (w.kind === 'text') {
+      el = document.createElement(w.multi ? 'textarea' : 'input');
+      if (!w.multi) el.type = 'text';
+      el.value = val == null ? '' : String(val);
+      if (w.max) el.maxLength = w.max;
+      el.className = 'clr-sh-in' + (isFirma ? ' is-firma' : '');
+      el.style.fontSize = Math.max(9, w.multi ? Math.min(font.px, 15) : font.px) + 'px';
+      el.style.textAlign = ['left', 'center', 'right'][w.align] || 'left';
+    } else if (w.kind === 'check') {
+      el = document.createElement('input');
+      el.type = 'checkbox'; el.checked = !!val;
+      el.className = 'clr-sh-check';
+    } else if (w.kind === 'select') {
+      el = document.createElement('select');
+      el.className = 'clr-sh-in clr-sh-select';
+      el.innerHTML = '<option value=""></option>' + w.opts.map(function (o) { return '<option value="' + esc(o) + '"' + (o === val ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('');
+      el.style.fontSize = Math.max(9, Math.min(b.height * 0.6, 18)) + 'px';
+    } else {
+      el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'clr-sh-radio' + (val && val === w.opt ? ' is-on' : '');
+      el.setAttribute('data-opt', w.opt || '');
+      el.setAttribute('aria-label', w.name + ': ' + (w.opt || ''));
+    }
+    el.setAttribute('data-pdf-name', w.name);
+    el.title = prettyLabel(w.name);
+    el.style.left = b.left + 'px'; el.style.top = b.top + 'px';
+    el.style.width = b.width + 'px'; el.style.height = b.height + 'px';
+    P.el.appendChild(el);
+    if (isFirma) {
+      var sb = document.createElement('button');
+      sb.type = 'button';
+      sb.className = 'clr-sh-signbtn';
+      sb.setAttribute('data-sh-sign', w.name);
+      sb.innerHTML = ICON.pen + '<span>Firma</span>';
+      sb.style.left = (b.left + b.width) + 'px';
+      sb.style.top = b.top + 'px';
+      P.el.appendChild(sb);
+      layoutList.push({ name: w.name, page: P, r: w.r });
+    }
+  }
+
+  var sheetSeq = 0;
+  function renderSheet(focusFirst) {
+    if (!fill || fill.mode !== 'sheet') return;
+    var box = $('clrSheetPages');
+    if (!fill.tpl.layout) { box.innerHTML = '<p class="clr-empty">No se pudo leer la plantilla.</p>'; return; }
+    var scroller = box.parentNode.parentNode, keep = scroller.scrollTop;
+    sheetSeq++;
+    buildPages(box, true);
+    scroller.scrollTop = keep;
+    placeSigs(box);
+    updateSheetSignButtons();
+    if (focusFirst) {
+      var first = box.querySelector('[data-pdf-name]');
+      if (first && window.innerWidth > 720) first.focus({ preventScroll: true });
+    }
+  }
+
+  // Pone las imágenes de las firmas encima de su recuadro.
+  var sigGen = 0;
+  function placeSigs(box) {
+    if (!fill) return;
+    var list = box.id === 'clrSheetPages' ? fill.sheetLayout : fill.previewLayout;
+    var gen = ++sigGen;
+    box.querySelectorAll('.clr-sh-sig').forEach(function (n) { n.remove(); });
+    (list || []).forEach(function (L) {
+      var png = fill.sigs[L.name];
+      if (!png) return;
+      var img = new Image();
+      img.className = 'clr-sh-sig';
+      img.alt = '';
+      img.onload = function () {
+        if (gen !== sigGen) return; // ya se volvieron a acomodar
+        var b = sigBox(L.r, img.naturalWidth, img.naturalHeight);
+        var m = mapRect(L.page.g, L.page.s, b.x, b.y, b.w, b.h);
+        img.style.left = m.left + 'px'; img.style.top = m.top + 'px';
+        img.style.width = m.width + 'px'; img.style.height = m.height + 'px';
+        L.page.el.appendChild(img);
+      };
+      img.src = png;
+    });
+  }
+  function placeSheetSigs() { placeSigs($('clrSheetPages')); }
+
+  /* ---------- imagen ligera del formato (para el celular del cliente) ---------- */
+  function composeDraft() {
+    var t = fill.tpl, L = t.layout;
+    var vals = fill.mode === 'sheet' ? fill.sheet : formToPdfValues(), sizes = fieldSizes(), sigs = fill.sigs;
+    var keys = Object.keys(sigs).filter(function (k) { return sigs[k]; });
+    return Promise.all([tplPageImages(t).catch(function () { return []; }), Promise.all(keys.map(function (k) { return loadImg(sigs[k]).catch(function () { return null; }); }))]).then(function (res) {
+      var imgs = res[0], sigImgs = {};
+      keys.forEach(function (k, i) { sigImgs[k] = res[1][i]; });
+      var W = 1100, gap = 24, y = 0;
+      var dims = [];
+      L.geo.forEach(function (g) {
+        var h = Math.round(g.H * W / g.W);
+        if (y + h > 15000) return;
+        dims.push({ g: g, s: W / g.W, h: h, y: y });
+        y += h + gap;
+      });
+      var c = document.createElement('canvas');
+      c.width = W; c.height = Math.max(1, y - gap);
+      var cx = c.getContext('2d');
+      cx.fillStyle = '#e9ecf5'; cx.fillRect(0, 0, c.width, c.height);
+      dims.forEach(function (d, i) {
+        cx.fillStyle = '#fff'; cx.fillRect(0, d.y, W, d.h);
+        if (imgs[i]) cx.drawImage(imgs[i], 0, d.y, W, d.h);
+      });
+      cx.fillStyle = '#000'; cx.textBaseline = 'middle';
+      L.widgets.forEach(function (w) {
+        var d = dims[w.page];
+        if (!d) return;
+        var b = mapRect(d.g, d.s, w.r.x, w.r.y, w.r.width, w.r.height);
+        b.top += d.y;
+        var v = vals[w.name];
+        if (w.kind === 'check') { if (v) { cx.font = Math.round(b.height * 0.9) + 'px Arial'; cx.textAlign = 'center'; cx.fillText('✓', b.left + b.width / 2, b.top + b.height / 2); } return; }
+        if (w.kind === 'radio') { if (v && v === w.opt) { cx.beginPath(); cx.arc(b.left + b.width / 2, b.top + b.height / 2, Math.min(b.width, b.height) * 0.28, 0, Math.PI * 2); cx.fill(); } return; }
+        var txt = v == null ? '' : String(v);
+        if (!txt) return;
+        var px = sizes[w.name] ? sizes[w.name] * d.s : fieldFont(w, b.height, d.s).px;
+        cx.font = px + 'px Helvetica, Arial, sans-serif';
+        var align = ['left', 'center', 'right'][w.align] || 'left';
+        cx.textAlign = align;
+        var x = align === 'center' ? b.left + b.width / 2 : align === 'right' ? b.left + b.width - 2 * d.s : b.left + 2 * d.s;
+        if (w.multi) {
+          var lines = [], line = '';
+          txt.split(/\s+/).forEach(function (word) {
+            var test = line ? line + ' ' + word : word;
+            if (cx.measureText(test).width > b.width - 4 * d.s && line) { lines.push(line); line = word; } else line = test;
+          });
+          if (line) lines.push(line);
+          cx.textBaseline = 'top';
+          lines.forEach(function (ln, i) { cx.fillText(ln, x, b.top + 2 * d.s + i * px * 1.18); });
+          cx.textBaseline = 'middle';
+        } else {
+          while (cx.measureText(txt).width > b.width - 2 * d.s && px > 5 && !w.fs) { px *= 0.9; cx.font = px + 'px Helvetica, Arial, sans-serif'; }
+          cx.fillText(txt, x, b.top + b.height / 2);
+        }
+      });
+      L.widgets.forEach(function (w) {
+        var im = sigImgs[w.name], d = dims[w.page];
+        if (!im || !d || w.kind !== 'text') return;
+        var sb = sigBox(w.r, im.naturalWidth, im.naturalHeight);
+        var m = mapRect(d.g, d.s, sb.x, sb.y, sb.w, sb.h);
+        cx.drawImage(im, m.left, m.top + d.y, m.width, m.height);
+        delete sigImgs[w.name];
+      });
+      return new Promise(function (res) { c.toBlob(res, 'image/jpeg', 0.82); });
+    });
+  }
+  function updateSheetSignButtons() {
+    $('clrSheetPages').querySelectorAll('[data-sh-sign]').forEach(function (b) {
+      var key = b.getAttribute('data-sh-sign'), rem = fill.remote[key];
+      var waiting = rem && rem.status === 'pendiente';
+      b.classList.toggle('is-done', !!fill.sigs[key]);
+      b.classList.toggle('is-waiting', !!waiting);
+      b.querySelector('span').textContent = fill.sigs[key] ? 'Firmado' : waiting ? 'Esperando…' : 'Firma';
+    });
+  }
+
+  function sheetEls(name) { return $('clrSheetPages').querySelectorAll('[data-pdf-name="' + cssq(name) + '"]'); }
+  function onSheetInput(e) {
+    var el = e.target.closest('[data-pdf-name]');
+    if (!el || !fill || fill.mode !== 'sheet') return;
+    var name = el.getAttribute('data-pdf-name');
+    var v = el.type === 'checkbox' ? el.checked : el.value;
+    fill.sheet[name] = v;
+    sheetEls(name).forEach(function (o) {
+      if (o === el) return;
+      if (o.type === 'checkbox') o.checked = !!v; else if (o.tagName !== 'BUTTON') o.value = v;
+    });
+    if (fill.sheetFollow[name]) fill.sheetFollow[name] = false;
+    // La firma del cliente lleva su nombre: lo copia mientras no se cambie a mano.
+    var cf = clientField();
+    if (cf && cf.pdf === name) {
+      Object.keys(fill.sheetFollow).forEach(function (k) {
+        if (!fill.sheetFollow[k]) return;
+        fill.sheet[k] = v;
+        sheetEls(k).forEach(function (o) { o.value = v; });
+      });
+      syncDest();
+    }
+    var ff = fill.def.fields.filter(function (x) { return (x.client || x.folio) && x.pdf === name; })[0];
+    if (ff) syncFileName();
+  }
+  $('clrSheetPages').addEventListener('input', onSheetInput);
+  $('clrSheetPages').addEventListener('change', onSheetInput);
+  $('clrSheetPages').addEventListener('click', function (e) {
+    var sb = e.target.closest('[data-sh-sign]');
+    if (sb) { e.preventDefault(); sheetSignMenu(sb, sb.getAttribute('data-sh-sign')); return; }
+    var rb = e.target.closest('.clr-sh-radio');
+    if (rb) {
+      var name = rb.getAttribute('data-pdf-name'), opt = rb.getAttribute('data-opt');
+      fill.sheet[name] = fill.sheet[name] === opt ? '' : opt;
+      sheetEls(name).forEach(function (o) { o.classList.toggle('is-on', o.getAttribute('data-opt') === fill.sheet[name]); });
+    }
+  });
+  // Enter → siguiente recuadro. Al llegar a una firma se ofrecen las opciones.
+  $('clrSheetPages').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+    var t = e.target;
+    if (!t.matches('[data-pdf-name]') || t.tagName === 'TEXTAREA' || t.tagName === 'BUTTON') return;
+    e.preventDefault();
+    sheetNext(t);
+  });
+  function sheetNext(from) {
+    closeMenu();
+    var list = Array.prototype.slice.call($('clrSheetPages').querySelectorAll('[data-pdf-name]'));
+    var next = list[list.indexOf(from) + 1];
+    if (!next) { $('clrFileName').focus(); return; }
+    next.focus();
+    try { if (next.select && next.type === 'text') next.select(); } catch (err) { /* */ }
+    var name = next.getAttribute('data-pdf-name');
+    if (firmaKeys().indexOf(name) !== -1 && !fill.sigs[name]) {
+      var sb = $('clrSheetPages').querySelector('[data-sh-sign="' + cssq(name) + '"]');
+      if (sb) setTimeout(function () { sheetSignMenu(sb, name, true); }, 140);
+    }
+  }
+  function sheetSignMenu(anchor, key, keepFocus) {
+    var rem = fill.remote[key], waiting = rem && rem.status === 'pendiente';
+    var items = [
+      { icon: ICON.phone, label: waiting ? 'Ver link para su celular' : 'Que firme con su celular', run: function () { startRemote(key); } },
+      { icon: ICON.pen, label: fill.sigs[key] ? 'Volver a dibujar la firma' : 'Dibujar la firma aquí', run: function () { openSign(key); } },
+      { icon: ICON.image, label: 'Subir imagen de la firma', run: function () { pickSigImage(key); } }
+    ];
+    if (fill.sigs[key]) items.push({ icon: ICON.trash, label: 'Quitar firma', danger: true, run: function () { setSig(key, null); } });
+    openMenu(anchor, items, { title: firmaLabel(key), keepFocus: keepFocus });
+  }
 
   /* ---------- nombre de archivo y carpeta destino ---------- */
   function fileNameFor() {
@@ -890,12 +1452,22 @@
     return buildPdf().then(function (b) { fill.bytes = b; return b; });
   }
   function validate() {
-    var miss = fill.def.fields.filter(function (f) { return f.required && !String(fill.values[f.id] || '').trim(); })[0];
+    var miss = fill.def.fields.filter(function (f) { return f.required && !valueOfField(f); })[0];
     if (miss) {
       toast('Falta: ' + miss.label + '.');
-      var el = $('clrFillForm').querySelector('[data-field="' + miss.id + '"]');
+      var el = fill.mode === 'sheet' && typeof miss.pdf === 'string'
+        ? $('clrSheetPages').querySelector('[data-pdf-name="' + cssq(miss.pdf) + '"]')
+        : $('clrFillForm').querySelector('[data-field="' + miss.id + '"]');
       if (el) el.focus();
       return false;
+    }
+    var waiting = Object.keys(fill.remote).filter(function (k) { return fill.remote[k].status === 'pendiente' && !fill.sigs[k]; })[0];
+    if (waiting) {
+      return ask({
+        title: 'Falta la firma del celular',
+        text: 'Todavía no llega <b>' + esc(firmaLabel(waiting)) + '</b>. ¿Guardar así, sin esa firma?',
+        ok: 'Guardar sin firma', danger: false
+      });
     }
     return true;
   }
@@ -923,31 +1495,36 @@
     });
   });
   $('clrSave').addEventListener('click', function () {
-    if (!fill || !validate()) return;
+    if (!fill) return;
     var btn = this;
-    btn.disabled = true;
-    var prev = btn.textContent;
-    btn.textContent = 'Guardando…';
-    currentBytes().then(function (b) {
-      var fd = new FormData();
-      fd.append('file', new Blob([b], { type: 'application/pdf' }), 'formato.pdf');
-      fd.append('form_key', fill.def.key);
-      fd.append('form_name', fill.def.name);
-      fd.append('client', clientOf());
-      fd.append('file_name', cleanName($('clrFileName').value) || fileNameFor());
-      if (fill.chosenFolder) fd.append('folder', fill.chosenFolder.path);
-      return api('/api/clarito/documents', { method: 'POST', form: fd });
-    }).then(function (d) {
-      closeModal('clrFillModal');
-      fill = null;
-      var doc = d.document || {};
-      toast('Guardado: <b>' + esc(doc.file_name || '') + '</b> en ' + esc(d.folder_label || ROOT_NAME) +
-        ' · <a href="#" data-toast-folder="' + esc(d.folder || '') + '">Ver carpeta</a>', true, 6500);
-      loadRecent(); loadStatus();
-      if (currentView === 'drive') loadFolder(curFolder);
-    }).catch(function (err) {
-      toast(err.message);
-    }).finally(function () { btn.textContent = prev; btn.disabled = status.ready === false; });
+    Promise.resolve(validate()).then(function (ok) {
+      if (!ok || !fill) return;
+      btn.disabled = true;
+      var prev = btn.textContent;
+      btn.textContent = 'Guardando…';
+      var savedFill = fill;
+      Promise.all([currentBytes(), composeDraft().catch(function () { return null; })]).then(function (out) {
+        var b = out[0], prevImg = out[1];
+        var fd = new FormData();
+        fd.append('file', new Blob([b], { type: 'application/pdf' }), 'formato.pdf');
+        if (prevImg) fd.append('preview', prevImg, 'vista.jpg');
+        fd.append('form_key', fill.def.key);
+        fd.append('form_name', fill.def.name);
+        fd.append('client', clientOf());
+        fd.append('file_name', cleanName($('clrFileName').value) || fileNameFor());
+        if (fill.chosenFolder) fd.append('folder', fill.chosenFolder.path);
+        return api('/api/clarito/documents', { method: 'POST', form: fd });
+      }).then(function (d) {
+        if (fill === savedFill) closeFill();
+        var doc = d.document || {};
+        toast('Guardado: <b>' + esc(doc.file_name || '') + '</b> en ' + esc(d.folder_label || ROOT_NAME) +
+          ' · <a href="#" data-toast-folder="' + esc(d.folder || '') + '">Ver carpeta</a>', true, 6500);
+        loadRecent(); loadStatus();
+        if (currentView === 'drive') loadFolder(curFolder);
+      }).catch(function (err) {
+        toast(err.message);
+      }).finally(function () { btn.textContent = prev; btn.disabled = status.ready === false; });
+    });
   });
   document.addEventListener('click', function (e) {
     var a = e.target.closest('[data-toast-folder]');
@@ -956,7 +1533,24 @@
     if (toastEl) toastEl.classList.remove('is-on');
     showView('drive'); loadFolder(a.getAttribute('data-toast-folder'));
   });
-  $('clrFillClose').addEventListener('click', function () { closeModal('clrFillModal'); fill = null; });
+  function closeFill() {
+    if (fill) {
+      // Los links de firma que no se usaron se cancelan.
+      Object.keys(fill.remote).forEach(function (k) {
+        var r = fill.remote[k];
+        clearInterval(r.timer);
+        if (r.status === 'pendiente') api('/api/clarito/sign-requests/' + r.token, { method: 'DELETE' }).catch(function () { /* */ });
+      });
+    }
+    closeMenu();
+    closeModal('clrRemoteModal');
+    closeModal('clrFillModal');
+    fill = null;
+    sheetSeq++;
+    $('clrSheetPages').innerHTML = '';
+    $('clrPreviewPages').innerHTML = '';
+  }
+  $('clrFillClose').addEventListener('click', closeFill);
   $('clrDestChange').addEventListener('click', function () {
     var start = fill.chosenFolder ? fill.chosenFolder.path : '';
     openPicker({
@@ -967,8 +1561,20 @@
   });
 
   /* =======================================================
-     FIRMA
+     FIRMAS: dibujar, subir imagen o desde el celular
      ======================================================= */
+  function setSig(key, png) {
+    if (!fill) return;
+    if (png) fill.sigs[key] = png; else delete fill.sigs[key];
+    refreshSigUI(key);
+  }
+  function refreshSigUI(key) {
+    if (!fill) return;
+    if (fill.mode === 'sheet') { placeSheetSigs(); updateSheetSignButtons(); }
+    else { renderSigRow(key); schedulePreview(); }
+  }
+
+  // --- dibujar ---
   var pad2 = $('clrSignPad'), sctx = pad2.getContext('2d'), signFor = null, drawing = false, hasInk = false, last = null;
   function clearPad() {
     sctx.clearRect(0, 0, pad2.width, pad2.height);
@@ -991,34 +1597,182 @@
     last = p;
   });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { pad2.addEventListener(ev, function () { drawing = false; }); });
-  function openSign(fieldId) {
-    signFor = fieldId;
-    var f = fill.def.fields.filter(function (x) { return x.id === fieldId; })[0];
-    $('clrSignTitle').textContent = f ? f.label : 'Firma';
+  function openSign(key) {
+    signFor = key;
+    $('clrSignTitle').textContent = firmaLabel(key);
     clearPad();
     openModal('clrSignModal');
   }
-  function trimmedSignature() {
-    var w = pad2.width, h = pad2.height, data = sctx.getImageData(0, 0, w, h).data;
+  function trimCanvas(src, ctx2) {
+    var w = src.width, h = src.height, data = ctx2.getImageData(0, 0, w, h).data;
     var minX = w, minY = h, maxX = 0, maxY = 0;
     for (var y = 0; y < h; y += 2) for (var x = 0; x < w; x += 2) {
       if (data[(y * w + x) * 4 + 3] > 10) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
     }
-    if (maxX <= minX) return null;
+    if (maxX <= minX || maxY <= minY) return null;
     var m = 8; minX = Math.max(0, minX - m); minY = Math.max(0, minY - m); maxX = Math.min(w, maxX + m); maxY = Math.min(h, maxY + m);
     var c = document.createElement('canvas'); c.width = maxX - minX; c.height = maxY - minY;
-    c.getContext('2d').drawImage(pad2, minX, minY, c.width, c.height, 0, 0, c.width, c.height);
+    c.getContext('2d').drawImage(src, minX, minY, c.width, c.height, 0, 0, c.width, c.height);
     return c.toDataURL('image/png');
   }
   $('clrSignClear').addEventListener('click', clearPad);
   $('clrSignClose').addEventListener('click', function () { closeModal('clrSignModal'); });
   $('clrSignOk').addEventListener('click', function () {
-    var png = hasInk ? trimmedSignature() : null;
+    var png = hasInk ? trimCanvas(pad2, sctx) : null;
     if (!png) { toast('Dibuja la firma primero.'); return; }
-    fill.sigs[signFor] = png;
     closeModal('clrSignModal');
-    renderFillForm();
-    schedulePreview();
+    setSig(signFor, png);
+  });
+  $('clrSignUpload').addEventListener('click', function () { closeModal('clrSignModal'); pickSigImage(signFor); });
+  $('clrSignRemote').addEventListener('click', function () { closeModal('clrSignModal'); startRemote(signFor); });
+
+  // --- subir imagen (foto o escaneo de la firma) ---
+  var sigFileFor = null;
+  function pickSigImage(key) { sigFileFor = key; $('clrSigFile').value = ''; $('clrSigFile').click(); }
+  $('clrSigFile').addEventListener('change', function () {
+    var file = this.files && this.files[0], key = sigFileFor;
+    this.value = '';
+    if (!file || !key || !fill) return;
+    if (!/^image\//.test(file.type)) { toast('Elige una imagen (PNG o JPG).'); return; }
+    sigFromImage(file).then(function (png) {
+      setSig(key, png);
+      toast('Firma agregada.');
+    }).catch(function (err) { toast(err.message); });
+  });
+  // Quita el fondo blanco (para que se vea como firma, no como foto) y recorta.
+  function sigFromImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var scale = Math.min(1, 1600 / img.naturalWidth, 900 / img.naturalHeight);
+        var c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * scale)); c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        var cx = c.getContext('2d');
+        cx.drawImage(img, 0, 0, c.width, c.height);
+        var id = cx.getImageData(0, 0, c.width, c.height), d = id.data, inkPx = 0;
+        for (var i = 0; i < d.length; i += 4) {
+          var lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          var a = d[i + 3];
+          if (lum >= 215) a = 0;
+          else if (lum > 150) a = Math.round(a * (215 - lum) / 65);
+          d[i + 3] = a;
+          if (a > 60) inkPx++;
+        }
+        cx.putImageData(id, 0, 0);
+        var png = inkPx > 30 ? trimCanvas(c, cx) : null;
+        if (!png) { reject(new Error('No se encontró la firma en la imagen. Usa una foto con fondo claro.')); return; }
+        resolve(png);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); };
+      img.src = url;
+    });
+  }
+
+  // --- desde el celular del cliente ---
+  var remoteKey = null;
+  function startRemote(key) {
+    if (!fill) return;
+    var r = fill.remote[key];
+    if (r && r.status === 'pendiente') { showRemote(key); return; }
+    var myFill = fill;
+    toast('Creando el link para firmar…', false, 20000);
+    composeDraft().then(function (blob) {
+      var fd = new FormData();
+      if (blob) fd.append('file', blob, 'formato.jpg');
+      fd.append('form_name', fill.def.name);
+      fd.append('client', clientOf());
+      fd.append('field_label', firmaLabel(key));
+      return api('/api/clarito/sign-requests', { method: 'POST', form: fd });
+    }).then(function (d) {
+      if (fill !== myFill) { api('/api/clarito/sign-requests/' + d.token, { method: 'DELETE' }).catch(function () {}); return; }
+      if (toastEl) toastEl.classList.remove('is-on');
+      fill.remote[key] = { token: d.token, url: d.url, status: 'pendiente', timer: null };
+      showRemote(key);
+      pollRemote(key, myFill);
+      refreshSigUI(key);
+    }).catch(function (err) { toast(err.message); });
+  }
+  function showRemote(key) {
+    var r = fill.remote[key];
+    if (!r) return;
+    remoteKey = key;
+    var client = clientOf();
+    $('clrRemoteSub').textContent = firmaLabel(key) + (client ? ' · ' + client : '');
+    $('clrRemoteUrl').value = r.url;
+    var qrBox = $('clrRemoteQr');
+    if (window.qrcode) {
+      try {
+        var q = qrcode(0, 'M'); q.addData(r.url); q.make();
+        qrBox.innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true, alt: 'Código QR para firmar' });
+      } catch (e) { qrBox.innerHTML = ''; }
+    } else qrBox.innerHTML = '<p class="clr-empty">Usa el link →</p>';
+    var first = (client || '').split(' ')[0];
+    var msg = 'Hola' + (first ? ' ' + first : '') + ', te comparto el link para firmar tu formato de Avante Optics: ' + r.url;
+    $('clrRemoteWa').href = 'https://wa.me/' + phoneOf() + '?text=' + encodeURIComponent(msg);
+    $('clrRemoteNative').hidden = !navigator.share;
+    $('clrRemoteNative').onclick = function () { navigator.share({ title: 'Firma tu formato', text: msg, url: r.url }).catch(function () {}); };
+    remoteUI(r);
+    openModal('clrRemoteModal');
+  }
+  function remoteUI(r) {
+    var done = r.status === 'firmada';
+    $('clrRemoteBody').hidden = done;
+    $('clrRemoteDone').hidden = !done;
+    $('clrRemoteCancel').hidden = done;
+    $('clrRemoteHide').textContent = done ? 'Listo' : 'Seguir llenando';
+    if (done) $('clrRemoteSig').src = fill.sigs[remoteKey] || '';
+    var st = $('clrRemoteStatus');
+    st.classList.toggle('is-off', r.status !== 'pendiente' && !done);
+    $('clrRemoteStatusText').textContent = r.status === 'pendiente' ? 'Esperando la firma…' : r.status === 'vencida' ? 'El link venció.' : r.status === 'cancelada' ? 'El link se canceló.' : '';
+  }
+  function pollRemote(key, myFill) {
+    var r = fill.remote[key];
+    clearInterval(r.timer);
+    var busy = false;
+    r.timer = setInterval(function () {
+      if (fill !== myFill || r.status !== 'pendiente') { clearInterval(r.timer); return; }
+      if (busy) return; busy = true;
+      api('/api/clarito/sign-requests/' + r.token).then(function (d) {
+        if (fill !== myFill) return;
+        if (d.status === 'firmada' && d.signature) {
+          r.status = 'firmada'; clearInterval(r.timer);
+          setSig(key, d.signature);
+          var client = clientOf();
+          if ($('clrRemoteModal').classList.contains('open') && remoteKey === key) {
+            remoteUI(r);
+            setTimeout(function () { if (remoteKey === key) closeModal('clrRemoteModal'); }, 2200);
+          }
+          toast('¡' + (client ? client.split(' ')[0] + ' ya firmó' : 'Ya firmaron') + '! La firma quedó en el formato.', false, 5000);
+        } else if (d.status === 'vencida' || d.status === 'cancelada') {
+          r.status = d.status; clearInterval(r.timer);
+          if (remoteKey === key) remoteUI(r);
+          delete fill.remote[key];
+          refreshSigUI(key);
+        }
+      }).catch(function () { /* se reintenta */ }).finally(function () { busy = false; });
+    }, 2500);
+  }
+  $('clrRemoteCopy').addEventListener('click', function () {
+    var inp = $('clrRemoteUrl'), btn = this;
+    function ok() { btn.textContent = '¡Copiado!'; setTimeout(function () { btn.textContent = 'Copiar'; }, 1600); }
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(inp.value).then(ok, function () { inp.select(); document.execCommand('copy'); ok(); });
+    else { inp.select(); document.execCommand('copy'); ok(); }
+  });
+  $('clrRemoteUrl').addEventListener('focus', function () { this.select(); });
+  function hideRemote() { closeModal('clrRemoteModal'); }
+  $('clrRemoteHide').addEventListener('click', hideRemote);
+  $('clrRemoteClose').addEventListener('click', hideRemote);
+  $('clrRemoteCancel').addEventListener('click', function () {
+    if (!fill || !remoteKey) return;
+    var key = remoteKey, r = fill.remote[key];
+    if (!r) { hideRemote(); return; }
+    clearInterval(r.timer);
+    api('/api/clarito/sign-requests/' + r.token, { method: 'DELETE' }).catch(function () { /* */ });
+    delete fill.remote[key];
+    hideRemote();
+    refreshSigUI(key);
+    toast('Link cancelado.');
   });
 
   /* =======================================================
@@ -1215,10 +1969,11 @@
      MENÚ FLOTANTE (⋯)
      ======================================================= */
   var menu = $('clrMenu'), menuItems = [], menuFor = null;
-  function openMenu(btn, items) {
+  function openMenu(btn, items, opts) {
+    opts = opts || {};
     if (menuFor === btn && !menu.hidden) { closeMenu(); return; }
     menuItems = items; menuFor = btn;
-    menu.innerHTML = items.map(function (it, i) {
+    menu.innerHTML = (opts.title ? '<div class="clr-menu-title">' + esc(opts.title) + '</div>' : '') + items.map(function (it, i) {
       return '<button type="button" role="menuitem" class="clr-menu-item' + (it.danger ? ' is-danger' : '') + '" data-i="' + i + '">' + it.icon + '<span>' + esc(it.label) + '</span></button>';
     }).join('');
     menu.hidden = false;
@@ -1229,7 +1984,7 @@
     if (top + mh > window.innerHeight - 10) top = Math.max(10, r.top - mh - 6);
     menu.style.left = left + 'px'; menu.style.top = top + 'px';
     menu.classList.remove('is-on'); void menu.offsetWidth; menu.classList.add('is-on');
-    var first = menu.querySelector('button'); if (first) first.focus({ preventScroll: true });
+    var first = menu.querySelector('button'); if (first && !opts.keepFocus) first.focus({ preventScroll: true });
   }
   function closeMenu() { menu.hidden = true; menu.classList.remove('is-on'); menuFor = null; }
   menu.addEventListener('click', function (e) {
@@ -1251,16 +2006,46 @@
      VISOR DE PDF
      ======================================================= */
   var viewerSeq = 0;
+  function viewerHead(name, key) {
+    $('clrViewTitle').textContent = name || 'Archivo';
+    $('clrViewOpen').href = fileURL(key);
+    $('clrViewDownload').href = fileURL(key, true);
+    $('clrViewDownload').setAttribute('download', /\.pdf$/i.test(name || '') ? name : (name || 'archivo') + '.pdf');
+    $('clrViewBody').innerHTML = '<p class="clr-empty">Cargando…</p>';
+    openModal('clrViewModal');
+  }
+  function showImages(body, srcs, note) {
+    body.innerHTML = (note ? '<p class="clr-view-note">' + note + '</p>' : '') + srcs.map(function (u) {
+      return '<img class="clr-view-page" src="' + esc(u) + '" alt="">';
+    }).join('');
+  }
+  // Plantilla en blanco: con la vista rápida sale al instante.
+  function openTplViewer(t) {
+    var my = ++viewerSeq;
+    viewerHead((t.def ? t.def.name : stripPdf(t.name)) + ' (en blanco)', t.key);
+    if (!t.pages) { viewerSeq--; openViewer((t.def ? t.def.name : stripPdf(t.name)) + ' (en blanco)', t.key); return; }
+    tplPageImages(t).then(function (imgs) {
+      if (my !== viewerSeq) return;
+      if (imgs.some(function (i) { return !i; })) throw new Error('falta');
+      showImages($('clrViewBody'), imgs.map(function (i) { return i.src; }));
+    }).catch(function () { if (my === viewerSeq) { viewerSeq--; openViewer(t.name, t.key); } });
+  }
   function openViewer(name, key) {
     var my = ++viewerSeq;
     var src = fileURL(key);
-    $('clrViewTitle').textContent = name || 'Archivo';
-    $('clrViewOpen').href = src;
-    $('clrViewDownload').href = fileURL(key, true);
-    $('clrViewDownload').setAttribute('download', /\.pdf$/i.test(name || '') ? name : (name || 'archivo') + '.pdf');
+    viewerHead(name, key);
     var body = $('clrViewBody');
-    body.innerHTML = '<p class="clr-empty">Cargando…</p>';
-    openModal('clrViewModal');
+    // Formato lleno: primero la imagen ligera (si se guardó desde aquí).
+    if (key.indexOf('clarito/guardados/') === 0) {
+      loadImg('/api/clarito/file/preview?key=' + encodeURIComponent(key) + '&t=' + Date.now()).then(function (img) {
+        if (my !== viewerSeq) return;
+        showImages(body, [img.src], 'Vista rápida · Para el PDF original usa <b>Descargar</b>.');
+      }).catch(function () { if (my === viewerSeq) renderPdfInto(body, src, my); });
+      return;
+    }
+    renderPdfInto(body, src, my);
+  }
+  function renderPdfInto(body, src, my) {
     if (!window.pdfjsLib) { body.innerHTML = '<iframe class="clr-view-frame" src="' + esc(src) + '"></iframe>'; return; }
     pdfjsLib.getDocument({ url: src, withCredentials: true }).promise.then(function (pdf) {
       if (my !== viewerSeq) return;
@@ -1465,7 +2250,7 @@
     if (!menu.hidden) { closeMenu(); return; }
     if ($('clrAskModal').classList.contains('open')) { askDone(false); return; }
     if ($('clrNameModal').classList.contains('open')) { nameDone(null); return; }
-    ['clrSignModal', 'clrPickModal', 'clrViewModal', 'clrSetModal'].some(function (id) {
+    ['clrSignModal', 'clrRemoteModal', 'clrPickModal', 'clrViewModal', 'clrSetModal'].some(function (id) {
       if ($(id).classList.contains('open')) { closeModal(id); return true; }
       return false;
     });

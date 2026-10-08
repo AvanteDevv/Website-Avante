@@ -90,7 +90,7 @@ func claritoSignCleanup() {
 
 // ClaritoCreateSignRequest — POST /api/clarito/sign-requests (multipart)
 //
-//	file         PDF como va hasta ahorita (opcional, para que el cliente lo vea)
+//	file         cómo va el formato (JPEG ligero, o PDF) para que el cliente lo vea
 //	form_name    "Garantía Clarito+"
 //	client       nombre del cliente
 //	field_label  "Nombre y firma del cliente"
@@ -118,10 +118,17 @@ func ClaritoCreateSignRequest(c *gin.Context) {
 		if f, err := fh.Open(); err == nil {
 			content, err := io.ReadAll(f)
 			f.Close()
-			if err == nil && bytes.HasPrefix(content, []byte("%PDF")) {
+			ext, ctype := "", ""
+			switch {
+			case bytes.HasPrefix(content, []byte("%PDF")):
+				ext, ctype = ".pdf", "application/pdf"
+			case bytes.HasPrefix(content, []byte{0xFF, 0xD8, 0xFF}):
+				ext, ctype = ".jpg", "image/jpeg"
+			}
+			if err == nil && ext != "" {
 				ctx, cancel := claritoCtx(c)
-				key := claritoSignPrefix + token + ".pdf"
-				if err := storage.UploadObject(ctx, key, bytes.NewReader(content), int64(len(content)), "application/pdf"); err == nil {
+				key := claritoSignPrefix + token + ext
+				if err := storage.UploadObject(ctx, key, bytes.NewReader(content), int64(len(content)), ctype); err == nil {
 					req.DraftKey = key
 				} else {
 					log.Printf("clarito.SignRequest: vista previa: %v", err)
@@ -221,6 +228,7 @@ func ClaritoSignPage(c *gin.Context) {
 		data["ClientName"] = r.ClientName
 		data["FieldLabel"] = r.FieldLabel
 		data["HasDoc"] = r.DraftKey != "" && state == "pendiente"
+		data["DocIsImage"] = strings.HasSuffix(r.DraftKey, ".jpg")
 	}
 	c.HTML(http.StatusOK, "firmar-clarito.html", data)
 }
@@ -246,7 +254,11 @@ func ClaritoSignDocument(c *gin.Context) {
 		return
 	}
 	defer body.Close()
-	c.Header("Content-Type", "application/pdf")
+	if strings.HasSuffix(r.DraftKey, ".jpg") {
+		c.Header("Content-Type", "image/jpeg")
+	} else {
+		c.Header("Content-Type", "application/pdf")
+	}
 	c.Header("Content-Disposition", "inline")
 	c.Status(http.StatusOK)
 	_, _ = io.Copy(c.Writer, io.LimitReader(body, 60<<20))

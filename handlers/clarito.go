@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,10 +51,16 @@ const (
 	claritoTplPrefix   = "clarito/plantillas/"
 	claritoSavedPrefix = "clarito/guardados/"
 	claritoSeedMarker  = "clarito/.plantillas-iniciales"
-	claritoFolderMark  = ".carpeta"
-	claritoRootName    = "Formatos llenos"
-	claritoMaxUpload   = 25 << 20
-	claritoMaxRename   = 2000
+	// Imagen de cada hoja de la plantilla, ya dibujada. Se hace una sola
+	// vez (en el navegador de quien la abre primero) y se reutiliza: así
+	// la plantilla se ve al instante aunque el PDF sea pesado.
+	claritoPreviewPrefix = "clarito/.vistas/"
+	// Imagen ligera de cada formato lleno (para verlo rápido sin dibujar el PDF).
+	claritoSavedPreviewPrefix = "clarito/.vistas-guardados/"
+	claritoFolderMark         = ".carpeta"
+	claritoRootName           = "Formatos llenos"
+	claritoMaxUpload          = 25 << 20
+	claritoMaxRename          = 2000
 )
 
 var (
@@ -511,6 +518,9 @@ func ClaritoUploadTemplate(c *gin.Context) {
 		claritoBucketErr(c, "UploadTemplate", err)
 		return
 	}
+	if prev != nil {
+		claritoDropPreviews(ctx, key)
+	}
 	c.Set("clarito_replaced", prev != nil)
 	c.JSON(http.StatusOK, gin.H{"ok": true, "replaced": prev != nil,
 		"item": claritoFileJSON{Key: key, Name: name, Size: int64(len(content)), Modified: time.Now().UTC()}})
@@ -531,6 +541,149 @@ func ClaritoDeleteTemplate(c *gin.Context) {
 	defer cancel()
 	if err := storage.DeleteObject(ctx, key); err != nil && !storage.IsNotFound(err) {
 		claritoBucketErr(c, "DeleteTemplate", err)
+		return
+	}
+	claritoDropPreviews(ctx, key)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+/* ---------- Vista rápida de los formatos llenos ---------- */
+
+func claritoSavedPreviewKey(key string) string {
+	h := sha1.Sum([]byte(key))
+	return fmt.Sprintf("%s%x.jpg", claritoSavedPreviewPrefix, h[:12])
+}
+
+// claritoMoveSavedPreview mueve la imagen ligera junto con su PDF.
+func claritoMoveSavedPreview(ctx context.Context, oldKey, newKey string) {
+	from, to := claritoSavedPreviewKey(oldKey), claritoSavedPreviewKey(newKey)
+	if info, err := storage.StatObject(ctx, from); err != nil || info == nil {
+		return
+	}
+	if err := storage.CopyKey(ctx, from, to); err == nil {
+		_ = storage.DeleteObject(ctx, from)
+	}
+}
+
+// ClaritoFilePreview — GET /api/clarito/file/preview?key=  (JPEG o 404)
+func ClaritoFilePreview(c *gin.Context) {
+	if claritoNotReady(c) {
+		return
+	}
+	key := c.Query("key")
+	if !claritoValidKey(key, claritoSavedPrefix) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Archivo inválido."})
+		return
+	}
+	ctx, cancel := claritoCtx(c)
+	defer cancel()
+	body, _, err := storage.GetObject(ctx, claritoSavedPreviewKey(key))
+	if err != nil {
+		c.Header("Cache-Control", "no-store")
+		if storage.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Sin vista rápida.", "code": "no_preview"})
+			return
+		}
+		claritoBucketErr(c, "FilePreview", err)
+		return
+	}
+	defer body.Close()
+	c.Header("Content-Type", "image/jpeg")
+	c.Header("Cache-Control", "private, max-age=60")
+	c.Status(http.StatusOK)
+	_, _ = io.Copy(c.Writer, io.LimitReader(body, 12<<20))
+}
+
+/* ---------- Vista rápida de las plantillas ---------- */
+
+func claritoPreviewDir(key string) string {
+	h := sha1.Sum([]byte(key))
+	return fmt.Sprintf("%s%x/", claritoPreviewPrefix, h[:10])
+}
+
+func claritoPreviewKey(key, v string, page int) string {
+	h := sha1.Sum([]byte(v))
+	return fmt.Sprintf("%s%x-p%d.jpg", claritoPreviewDir(key), h[:8], page)
+}
+
+// claritoDropPreviews borra las imágenes viejas de una plantilla (al
+// reemplazarla o eliminarla).
+func claritoDropPreviews(ctx context.Context, key string) {
+	items, err := storage.ListPrefix(ctx, claritoPreviewDir(key), 500)
+	if err != nil {
+		return
+	}
+	for _, it := range items {
+		_ = storage.DeleteObject(ctx, it.Key)
+	}
+}
+
+func claritoPreviewParams(c *gin.Context) (key, v string, page int, ok bool) {
+	key, v = c.Query("key"), c.Query("v")
+	_, err := fmt.Sscanf(c.DefaultQuery("page", "1"), "%d", &page)
+	if !claritoValidKey(key, claritoTplPrefix) || strings.Contains(strings.TrimPrefix(key, claritoTplPrefix), "/") ||
+		v == "" || len(v) > 64 || err != nil || page < 1 || page > 60 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return "", "", 0, false
+	}
+	return key, v, page, true
+}
+
+// ClaritoTemplatePreview — GET /api/clarito/templates/preview?key=&v=&page=1
+// (v = fecha de la plantilla; si la reemplazan cambia y se vuelve a dibujar)
+func ClaritoTemplatePreview(c *gin.Context) {
+	if claritoNotReady(c) {
+		return
+	}
+	key, v, page, ok := claritoPreviewParams(c)
+	if !ok {
+		return
+	}
+	ctx, cancel := claritoCtx(c)
+	defer cancel()
+	body, _, err := storage.GetObject(ctx, claritoPreviewKey(key, v, page))
+	if err != nil {
+		if storage.IsNotFound(err) {
+			c.Header("Cache-Control", "no-store")
+			c.JSON(http.StatusNotFound, gin.H{"error": "Todavía no hay vista rápida.", "code": "no_preview"})
+			return
+		}
+		claritoBucketErr(c, "TemplatePreview", err)
+		return
+	}
+	defer body.Close()
+	c.Header("Content-Type", "image/jpeg")
+	c.Header("Cache-Control", "private, max-age=31536000, immutable")
+	c.Status(http.StatusOK)
+	_, _ = io.Copy(c.Writer, io.LimitReader(body, 12<<20))
+}
+
+// ClaritoSaveTemplatePreview — PUT /api/clarito/templates/preview?key=&v=&page=1
+// Cuerpo: la imagen JPEG de esa hoja.
+func ClaritoSaveTemplatePreview(c *gin.Context) {
+	if claritoNotReady(c) {
+		return
+	}
+	key, v, page, ok := claritoPreviewParams(c)
+	if !ok {
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(c.Request.Body, 8<<20+1))
+	if err != nil || len(data) < 100 || len(data) > 8<<20 || !bytes.HasPrefix(data, []byte{0xFF, 0xD8, 0xFF}) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "La imagen no es válida."})
+		return
+	}
+	ctx, cancel := claritoCtx(c)
+	defer cancel()
+	if info, err := storage.StatObject(ctx, key); err != nil {
+		claritoBucketErr(c, "SaveTemplatePreview", err)
+		return
+	} else if info == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Esa plantilla ya no existe."})
+		return
+	}
+	if err := storage.UploadObject(ctx, claritoPreviewKey(key, v, page), bytes.NewReader(data), int64(len(data)), "image/jpeg"); err != nil {
+		claritoBucketErr(c, "SaveTemplatePreview", err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -689,6 +842,9 @@ func ClaritoRenameFolder(c *gin.Context) {
 	}
 	for _, it := range items {
 		_ = storage.DeleteObject(ctx, it.Key)
+		if !strings.HasSuffix(it.Key, "/"+claritoFolderMark) {
+			claritoMoveSavedPreview(ctx, it.Key, newPrefix+strings.TrimPrefix(it.Key, oldPrefix))
+		}
 	}
 	if err := models.MoveClaritoDocumentsPrefix(oldPrefix, newPrefix, path, newPath); err != nil {
 		log.Printf("clarito.RenameFolder: registro: %v", err)
@@ -777,7 +933,13 @@ func ClaritoFile(c *gin.Context) {
 	}, name)
 	c.Header("Content-Type", ctype)
 	c.Header("Content-Disposition", disp+`; filename="`+ascii+`"; filename*=UTF-8''`+url.PathEscape(name))
-	c.Header("Cache-Control", "private, max-age=30")
+	if c.Query("v") != "" && strings.HasPrefix(key, claritoTplPrefix) {
+		// La URL cambia cuando reemplazan la plantilla: el navegador la
+		// puede guardar y no volver a descargarla.
+		c.Header("Cache-Control", "private, max-age=31536000, immutable")
+	} else {
+		c.Header("Cache-Control", "private, max-age=30")
+	}
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Status(http.StatusOK)
 	_, _ = io.Copy(c.Writer, io.LimitReader(body, 60<<20))
@@ -844,6 +1006,7 @@ func ClaritoUpdateFile(c *gin.Context) {
 		claritoBucketErr(c, "UpdateFile", err)
 		return
 	}
+	claritoMoveSavedPreview(ctx, body.Key, newKey)
 	if err := storage.DeleteObject(ctx, body.Key); err != nil {
 		log.Printf("clarito.UpdateFile: no se borró el original %s: %v", body.Key, err)
 	}
@@ -879,6 +1042,7 @@ func ClaritoDeleteFile(c *gin.Context) {
 		claritoBucketErr(c, "DeleteFile", err)
 		return
 	}
+	_ = storage.DeleteObject(ctx, claritoSavedPreviewKey(key))
 	if err := models.DeleteClaritoDocumentsByKey(key); err != nil {
 		log.Printf("clarito.DeleteFile: registro: %v", err)
 	}
@@ -951,6 +1115,18 @@ func ClaritoSaveDocument(c *gin.Context) {
 	if err := storage.UploadObject(ctx, key, bytes.NewReader(content), int64(len(content)), "application/pdf"); err != nil {
 		claritoBucketErr(c, "SaveDocument", err)
 		return
+	}
+	// Imagen ligera (opcional) para ver el formato rápido después.
+	if fh, err := c.FormFile("preview"); err == nil && fh.Size > 100 && fh.Size <= 8<<20 {
+		if f, err := fh.Open(); err == nil {
+			img, err := io.ReadAll(f)
+			f.Close()
+			if err == nil && bytes.HasPrefix(img, []byte{0xFF, 0xD8, 0xFF}) {
+				if err := storage.UploadObject(ctx, claritoSavedPreviewKey(key), bytes.NewReader(img), int64(len(img)), "image/jpeg"); err != nil {
+					log.Printf("clarito.SaveDocument: vista rápida: %v", err)
+				}
+			}
+		}
 	}
 	doc := models.ClaritoDocument{
 		FormKey: formKey, FormName: formName, ClientName: client, FileName: finalName,

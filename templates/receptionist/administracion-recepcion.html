@@ -130,9 +130,19 @@
 <div class="admin-modal-overlay clr-fill-overlay" id="clrFillModal">
   <div class="admin-modal-card clr-fill-card" role="dialog" aria-modal="true" aria-labelledby="clrFillTitle">
     <div class="admin-modal-head">
-      <div>
+      <div class="clr-fill-titles">
         <h3 id="clrFillTitle">Formato</h3>
         <small class="clr-fill-sub" id="clrFillSub"></small>
+      </div>
+      <div class="clr-mode" id="clrMode" role="radiogroup" aria-label="Cómo llenar">
+        <button type="button" data-mode="form" role="radio" aria-checked="true" title="Llenar con los campos de la izquierda">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+          Campos
+        </button>
+        <button type="button" data-mode="sheet" role="radio" aria-checked="false" title="Escribir directo sobre la hoja">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 15.5 13.5 10l1.5 1.5L9.5 17H8z"/></svg>
+          Sobre la hoja
+        </button>
       </div>
       <button type="button" class="admin-modal-close" id="clrFillClose" aria-label="Cerrar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -141,7 +151,11 @@
     <div class="clr-fill-body">
       <form class="clr-fill-form staff-form" id="clrFillForm" autocomplete="off" novalidate></form>
       <div class="clr-fill-preview">
-        <div class="clr-preview-paper" id="clrPreview"><canvas id="clrPreviewCanvas"></canvas><span class="clr-preview-loading" id="clrPreviewLoading">Cargando vista previa…</span></div>
+        <div class="clr-preview" id="clrPreview"><div class="clr-sheet-pages" id="clrPreviewPages"></div></div>
+        <div class="clr-sheet" id="clrSheet" hidden>
+          <p class="clr-sheet-tip">Escribe directo en los recuadros. <b>Enter</b> pasa al siguiente.</p>
+          <div class="clr-sheet-pages" id="clrSheetPages"></div>
+        </div>
       </div>
     </div>
     <div class="clr-fill-foot">
@@ -175,9 +189,53 @@
     <div class="admin-modal-body">
       <p class="clr-sign-hint">Firma con el dedo, el lápiz o el mouse.</p>
       <canvas class="clr-sign-pad" id="clrSignPad" width="900" height="300"></canvas>
-      <div class="admin-confirm-actions">
+      <div class="admin-confirm-actions clr-sign-actions">
+        <button type="button" class="clr-link" id="clrSignUpload">Subir imagen de la firma</button>
+        <button type="button" class="clr-link" id="clrSignRemote">Que firme con su celular</button>
         <button type="button" class="btn small" id="clrSignClear">Borrar</button>
         <button type="button" class="btn solid small" id="clrSignOk">Usar firma</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="clrSigFile" accept="image/png,image/jpeg,image/webp,image/*" hidden>
+
+<!-- ================= Clarito: firma desde el celular del cliente ================= -->
+<div class="admin-modal-overlay" id="clrRemoteModal">
+  <div class="admin-modal-card clr-remote-card" role="dialog" aria-modal="true" aria-labelledby="clrRemoteTitle">
+    <div class="admin-modal-head">
+      <div>
+        <h3 id="clrRemoteTitle">Firma con su celular</h3>
+        <small class="clr-fill-sub" id="clrRemoteSub"></small>
+      </div>
+      <button type="button" class="admin-modal-close" id="clrRemoteClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="clr-remote" id="clrRemoteBody">
+        <div class="clr-remote-qr" id="clrRemoteQr"></div>
+        <div class="clr-remote-side">
+          <p class="clr-remote-step"><b>1.</b> Que el cliente escanee el código con la cámara de su celular, o mándale el link.</p>
+          <div class="clr-remote-link"><input type="text" id="clrRemoteUrl" readonly><button type="button" class="btn small" id="clrRemoteCopy">Copiar</button></div>
+          <div class="clr-remote-share">
+            <a class="btn small clr-wa" id="clrRemoteWa" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.4-.2Z"/></svg> WhatsApp</a>
+            <button type="button" class="btn small" id="clrRemoteNative" hidden>Compartir…</button>
+          </div>
+          <p class="clr-remote-step"><b>2.</b> Cuando firme, la firma aparece sola en el formato.</p>
+          <div class="clr-remote-status" id="clrRemoteStatus"><span class="clr-remote-dot"></span><span id="clrRemoteStatusText">Esperando la firma…</span></div>
+          <small class="clr-remote-exp">El link vence en 24 horas y solo sirve una vez.</small>
+        </div>
+      </div>
+      <div class="clr-remote-done" id="clrRemoteDone" hidden>
+        <span class="clr-remote-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <strong>¡El cliente ya firmó!</strong>
+        <img id="clrRemoteSig" alt="Firma del cliente">
+      </div>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small danger" id="clrRemoteCancel">Cancelar link</button>
+        <button type="button" class="btn solid small" id="clrRemoteHide">Seguir llenando</button>
       </div>
     </div>
   </div>
@@ -316,6 +374,7 @@
 <!-- Clarito: pdf-lib llena el PDF, pdf.js lo dibuja para la vista previa -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="/static/js/receptionist/clarito-recepcion.js"></script>
 </body>
 </html>

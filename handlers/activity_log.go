@@ -543,6 +543,8 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		e.Action = "clarito.archivo_eliminar"
 		n := actOrDash(actCtxStr(c, "clarito_name"))
 		e.Description, intento = "Eliminó el formato “"+n+"” de Clarito", "eliminar el formato “"+n+"”"
+	case route == "/api/clarito/templates/preview":
+		return "", false // automático: la vista rápida de una plantilla
 	case method == http.MethodPost && route == "/api/clarito/sign-requests":
 		e.Action = "clarito.firma_link"
 		cliente := strings.TrimSpace(c.PostForm("client"))

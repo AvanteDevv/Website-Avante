@@ -45,6 +45,7 @@ body{
 .fc-chev{ transition:transform .2s var(--ease); color:var(--muted) !important; }
 .fc-doc-toggle[aria-expanded="true"] .fc-chev{ transform:rotate(180deg); }
 .fc-doc{ display:flex; flex-direction:column; gap:10px; max-height:70vh; overflow:auto; padding:10px; border-radius:14px; background:#eef1ff; -webkit-overflow-scrolling:touch; }
+.fc-doc-img{ display:block; width:100%; height:auto; border-radius:4px; box-shadow:0 6px 18px -8px rgba(10,10,40,.35); }
 .fc-doc canvas{ width:100%; height:auto; background:#fff; border-radius:4px; box-shadow:0 6px 18px -8px rgba(10,10,40,.35); }
 .fc-muted{ font-size:13px; color:var(--muted); text-align:center; padding:14px; }
 
