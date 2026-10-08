@@ -724,6 +724,8 @@ window.CitasFiltro = (function(){
     instagram: 'Instagram',
     television: 'Televisión',
     tiktok: 'TikTok',
+    sitio_web: 'Sitio web',
+    google_maps: 'Google Maps',
     familiares: 'Familiares',
     amigos: 'Amigos',
     recomendado: 'Me recomendaron',
