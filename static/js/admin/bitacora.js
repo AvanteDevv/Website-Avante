@@ -17,8 +17,8 @@
   var POLL_MS = 8000;
   var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-  var ROLE_LABELS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleado', inventario: 'Inventario', blogger: 'Blog' };
-  var ROLE_GROUPS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleados', inventario: 'Inventario', blogger: 'Blog' };
+  var ROLE_LABELS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleado', inventario: 'Inventario', blogger: 'Blog', laboratorio: 'Laboratorio' };
+  var ROLE_GROUPS = { receptionist: 'Recepción', optometrist: 'Optometría', employee: 'Empleados', inventario: 'Inventario', blogger: 'Blog', laboratorio: 'Laboratorio' };
   var KIND_LABELS = { accion: 'Acción', clic: 'Clic', vista: 'Página', busqueda: 'Búsqueda', sesion: 'Sesión' };
   var PAGE_NAMES = {
     '/receptionist/citas': 'Citas',
@@ -26,6 +26,8 @@
     '/receptionist/historial-clinico': 'Historial clínico',
     '/receptionist/administracion': 'Administración',
     '/admin/pedidos': 'Pedidos',
+    '/laboratorio/trabajos': 'Trabajos',
+    '/laboratorio/inventario': 'Inventario',
     '/optometrist/historial-clinico': 'Historial clínico',
     '/optometrist/examen-vista': 'Examen de la vista',
     '/optometrist/examen-vista/nuevo': 'Nuevo examen',

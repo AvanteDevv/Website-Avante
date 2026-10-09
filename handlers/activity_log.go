@@ -46,6 +46,7 @@ var TrackedActivityRoles = map[string]bool{
 	RoleEmployee:     true,
 	RoleInventario:   true,
 	RoleBlogger:      true,
+	RoleLaboratorio:  true,
 }
 
 // ActivityRetentionDays: lo más viejo que esto se borra solo (una vez al
@@ -450,6 +451,34 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 	case route == "/api/staff/avisos/leer-todos":
 		e.Action = "aviso.leer_todos"
 		e.Description, intento = "Marcó todos sus avisos como leídos", "marcar todos sus avisos como leídos"
+
+	/* ----- Laboratorio ----- */
+	case method == http.MethodPatch && route == "/api/laboratorio/pedidos/:id/estado":
+		e.Action = "laboratorio.estado"
+		st := actStr(p, "status")
+		label := st
+		if list, err := models.GetAllOrderStatuses(); err == nil {
+			for _, x := range list {
+				if x.Key == st {
+					label = x.Label
+				}
+			}
+		}
+		e.Description = "Cambió el pedido #" + c.Param("id") + " a “" + label + "”"
+		intento = "cambiar el pedido #" + c.Param("id") + " a “" + label + "”"
+		e.Context = "Se ve igual en Admin → Pedidos y en Rastreo"
+	case method == http.MethodPost && route == "/api/laboratorio/pedidos":
+		e.Action = "laboratorio.trabajo"
+		cliente := actOrDash(actStr(p, "customerName"))
+		code := actCtxStr(c, "lab_order")
+		e.Description = "Dio de alta un trabajo para " + cliente
+		if code != "" {
+			e.Description += " (" + code + ")"
+		}
+		intento = "dar de alta un trabajo para " + cliente
+	case method == http.MethodPut && route == "/api/laboratorio/pedidos/:id/notas":
+		e.Action = "laboratorio.notas"
+		e.Description, intento = "Actualizó las notas del pedido #"+c.Param("id"), "actualizar las notas del pedido #"+c.Param("id")
 
 	/* ----- Blog ----- */
 	case method == http.MethodPost && route == "/api/admin/blogs":

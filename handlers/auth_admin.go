@@ -40,6 +40,9 @@ const (
 	RoleInventario   = "inventario"
 	// RoleBlogger: cuenta que solo administra el Blog (blogger@avanteoptics.mx).
 	RoleBlogger = "blogger"
+	// RoleLaboratorio: el laboratorio (eleazar@avanteoptics.mx) — ve los
+	// trabajos (pedidos), les cambia el estado y ve el inventario.
+	RoleLaboratorio = "laboratorio"
 )
 
 type adminLoginInput struct {
@@ -49,7 +52,7 @@ type adminLoginInput struct {
 
 // AdminLogin valida credenciales contra las tablas de staff, en este
 // orden: admins -> receptionists -> optometrists -> employees ->
-// inventory_users -> blog_users. La
+// inventory_users -> blog_users -> lab_users. La
 // primera que tenga ese correo (y cuya contraseña haga match) es la que
 // arranca sesión. Un correo solo debería existir en una de las
 // tablas a la vez — tú controlas eso al crear las cuentas, aquí no se
@@ -150,7 +153,21 @@ func AdminLogin(c *gin.Context) {
 		return
 	}
 
-	// No apareció en ninguna de las seis tablas.
+	// 7) Laboratorio
+	if u, err := models.GetLabUserByEmail(input.Email); err == nil {
+		if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(input.Password)) == nil {
+			finishStaffLogin(c, RoleLaboratorio, u.ID, u.Name, u.Email, "/laboratorio/trabajos")
+			return
+		}
+		LogStaffLoginFailed(c, RoleLaboratorio, u.ID, u.Name)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
+		return
+	} else if !errors.Is(err, models.ErrLabUserNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error del servidor. Intenta de nuevo."})
+		return
+	}
+
+	// No apareció en ninguna de las siete tablas.
 	c.JSON(http.StatusUnauthorized, gin.H{"error": "Correo o contraseña incorrectos."})
 }
 
@@ -275,6 +292,8 @@ func roleLabel(role string) string {
 		return "Inventario"
 	case RoleBlogger:
 		return "Blog"
+	case RoleLaboratorio:
+		return "Laboratorio"
 	default:
 		return role
 	}

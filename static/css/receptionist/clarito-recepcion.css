@@ -518,3 +518,23 @@ textarea.clr-sh-in{ resize:none; padding:2px 3px; line-height:1.25; overflow:hid
   .clr-form, .clr-item, .clr-page{ animation:none; }
   .clr-form-thumb.is-loading .clr-thumb-ph{ animation:none; }
 }
+/* ---------- Arrastrar y soltar dentro de Carpetas ---------- */
+.clr-items .clr-item.is-file[draggable="true"]{ cursor:grab; }
+.clr-items .clr-item.is-file[draggable="true"]:active{ cursor:grabbing; }
+.clr-item.is-dragging{ opacity:.45; transform:scale(.97); }
+.clr-item.is-moving-out{ opacity:0; transform:scale(.9); transition:opacity .25s var(--ease), transform .25s var(--ease); }
+/* Mientras se arrastra un formato, las carpetas se marcan como destino */
+.clr-browser.is-moving .clr-item.is-folder:not(.clr-item-new){ border-style:dashed; border-color:var(--accent-border); }
+.clr-browser.is-moving .clr-crumb:not(.is-current){ outline:1.5px dashed var(--accent-border); outline-offset:-2px; }
+.clr-item.is-folder.clr-drop-target, .clr-crumb.clr-drop-target{
+  border-style:solid !important; border-color:var(--accent) !important; background:var(--accent-soft);
+  box-shadow:0 0 0 4px rgba(4,28,255,.12); transform:translateY(-2px) scale(1.03);
+  transition:transform .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease);
+}
+.clr-item.is-folder.clr-drop-target .clr-file-ico{ animation:clrFolderOpen .5s var(--ease) infinite alternate; }
+@keyframes clrFolderOpen{ from{ transform:none; } to{ transform:translateY(-3px) scale(1.08); } }
+.clr-crumb.clr-drop-target{ outline:none; }
+/* Al pasar un PDF de la computadora encima de una carpeta, se quita el
+   aviso de "esta carpeta" (se va a subir a la carpeta marcada) */
+.clr-drop.is-over-folder .clr-drop-hint{ opacity:0 !important; }
+@media (prefers-reduced-motion:reduce){ .clr-item.is-folder.clr-drop-target .clr-file-ico{ animation:none; } }

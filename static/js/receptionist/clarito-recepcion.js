@@ -638,6 +638,7 @@
     el.addEventListener('dragover', function (e) { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
     el.addEventListener('dragleave', function () { depth = Math.max(0, depth - 1); if (!depth) el.classList.remove('is-drag'); });
     el.addEventListener('drop', function (e) {
+      if (e.defaultPrevented) { depth = 0; el.classList.remove('is-drag'); return; } // ya lo atendió una carpeta
       if (!hasFiles(e)) return;
       e.preventDefault(); depth = 0; el.classList.remove('is-drag');
       if (status.ready === false) return;
@@ -1823,7 +1824,7 @@
         '<button type="button" class="clr-item-more" data-folder-menu="' + esc(f.path) + '" data-name="' + esc(f.name) + '" title="Opciones" aria-label="Opciones">' + ICON.dots + '</button>' +
       '</div>';
     }).join('') + (d.files || []).map(function (f) {
-      return '<div class="clr-item is-file" role="button" tabindex="0" style="--i:' + Math.min(i++, 14) + '" data-file="' + esc(f.key) + '" data-name="' + esc(f.name) + '">' +
+      return '<div class="clr-item is-file" role="button" tabindex="0" draggable="true" title="Arrástralo a una carpeta para moverlo" style="--i:' + Math.min(i++, 14) + '" data-file="' + esc(f.key) + '" data-name="' + esc(f.name) + '">' +
         '<span class="clr-file-ico is-pdf">' + ICON.pdf + '</span>' +
         '<span class="clr-item-text"><strong>' + esc(f.name) + '</strong><small>' + esc([whenText(f.modified), sizeText(f.size)].filter(Boolean).join(' · ')) + '</small></span>' +
         '<span class="clr-chip is-filled">Lleno</span>' +
@@ -1852,6 +1853,84 @@
   $('clrItems').addEventListener('click', itemActivate);
   $('clrItems').addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.clr-item')) { e.preventDefault(); itemActivate(e); } });
   $('clrRefresh').addEventListener('click', function () { loadFolder(curFolder); });
+
+  /* ---------- Arrastrar y soltar dentro de Carpetas ----------
+     - Un formato lleno se arrastra a otra carpeta (tarjeta o ruta de
+       arriba) y se mueve ahí.
+     - Un PDF arrastrado desde la computadora encima de una carpeta se
+       sube directo a esa carpeta (si se suelta en el fondo, se sube a
+       la carpeta abierta, como antes). */
+  var DRAG_TYPE = 'application/x-clarito-key';
+  var dragKey = null;
+  function isInternalDrag(e) { return !!dragKey || (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], DRAG_TYPE) !== -1); }
+  function dropTarget(e) {
+    var t = e.target.closest('.clr-item.is-folder[data-go], .clr-crumb[data-go]');
+    if (!t || t.classList.contains('clr-item-new')) return null;
+    if (t.classList.contains('clr-crumb') && t.classList.contains('is-current')) return null;
+    return t;
+  }
+  function clearDropMarks() {
+    document.querySelectorAll('.clr-drop-target').forEach(function (el) { el.classList.remove('clr-drop-target'); });
+    $('clrViewDrive').classList.remove('is-over-folder');
+  }
+  $('clrItems').addEventListener('dragstart', function (e) {
+    var it = e.target.closest('.clr-item.is-file[data-file]');
+    if (!it) return;
+    dragKey = it.getAttribute('data-file');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData(DRAG_TYPE, dragKey); } catch (err) {}
+    e.dataTransfer.setData('text/plain', it.getAttribute('data-name') || '');
+    it.classList.add('is-dragging');
+    $('clrViewDrive').classList.add('is-moving');
+    closeMenu();
+  });
+  $('clrItems').addEventListener('dragend', function (e) {
+    var it = e.target.closest('.clr-item');
+    if (it) it.classList.remove('is-dragging');
+    dragKey = null;
+    $('clrViewDrive').classList.remove('is-moving');
+    clearDropMarks();
+  });
+  [$('clrItems'), $('clrCrumbs')].forEach(function (zone) {
+    zone.addEventListener('dragover', function (e) {
+      var t = dropTarget(e);
+      var internal = isInternalDrag(e);
+      if (!t || (!internal && !hasFiles(e))) { if (!t) clearDropMarks(); return; }
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = internal ? 'move' : 'copy';
+      if (!t.classList.contains('clr-drop-target')) { clearDropMarks(); t.classList.add('clr-drop-target'); }
+      if (!internal) $('clrViewDrive').classList.add('is-over-folder');
+    });
+    zone.addEventListener('dragleave', function (e) {
+      var t = dropTarget(e);
+      if (t && !t.contains(e.relatedTarget)) { t.classList.remove('clr-drop-target'); $('clrViewDrive').classList.remove('is-over-folder'); }
+    });
+    zone.addEventListener('drop', function (e) {
+      var t = dropTarget(e);
+      if (!t) return;
+      var internal = isInternalDrag(e);
+      if (!internal && !hasFiles(e)) return;
+      e.preventDefault(); // la vista (setupDrop) ve que ya se atendió y no sube a la carpeta abierta
+      var folder = t.getAttribute('data-go') || '';
+      clearDropMarks();
+      $('clrViewDrive').classList.remove('is-drag', 'is-moving');
+      if (internal) {
+        var key = dragKey || e.dataTransfer.getData(DRAG_TYPE);
+        dragKey = null;
+        if (!key || folder === curFolder) return;
+        var card = $('clrItems').querySelector('.clr-item[data-file="' + (window.CSS && CSS.escape ? CSS.escape(key) : key) + '"]');
+        if (card) card.classList.add('is-moving-out');
+        api('/api/clarito/file', { method: 'PUT', body: { key: key, folder: folder } }).then(function () {
+          toast('Movido a ' + pathLabel(folder) + '.');
+          loadFolder(curFolder); loadRecent();
+        }).catch(function (err) { if (card) card.classList.remove('is-moving-out'); toast(err.message); });
+      } else {
+        if (status.ready === false) return;
+        uploadToFolder(Array.prototype.slice.call(e.dataTransfer.files || []), folder);
+      }
+    });
+  });
 
   function folderMenu(btn, path, name) {
     openMenu(btn, [
@@ -1945,10 +2024,10 @@
     this.value = '';
     uploadToFolder(files);
   });
-  function uploadToFolder(files) {
+  function uploadToFolder(files, target) {
     files = files.filter(isPdfFile);
     if (!files.length) { toast('Solo se pueden subir archivos PDF.'); return; }
-    var folder = curFolder, done = 0, chain = Promise.resolve();
+    var folder = typeof target === 'string' ? target : curFolder, done = 0, chain = Promise.resolve();
     files.forEach(function (f) {
       chain = chain.then(function () {
         toast('Subiendo «' + f.name + '»…', false, 60000);

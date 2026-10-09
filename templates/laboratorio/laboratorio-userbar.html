@@ -1,0 +1,27 @@
+{{define "laboratorio-userbar"}}
+<script>(function(){try{if(localStorage.getItem('avanteTheme')==='dark')document.body.classList.add('dark');}catch(e){}})();</script>
+<div class="header-outer">
+<header class="userbar-row">
+  <div class="userbar" id="userbar">
+    <button type="button" class="userbar-trigger">
+      <span class="userbar-avatar">{{if .StaffInitials}}{{.StaffInitials}}{{else}}LB{{end}}</span>
+      <span class="userbar-name">{{if .StaffName}}{{.StaffName}}{{else}}Laboratorio{{end}}</span>
+      <svg class="userbar-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div class="userbar-menu">
+      <div class="userbar-menu-head">
+        <span class="userbar-avatar">{{if .StaffInitials}}{{.StaffInitials}}{{else}}LB{{end}}</span>
+        <div>
+          <div class="name">{{if .StaffName}}{{.StaffName}}{{else}}Laboratorio{{end}}</div>
+          <div class="email">{{if .StaffEmail}}{{.StaffEmail}}{{else}}Avante Optics{{end}}</div>
+        </div>
+      </div>
+        <a href="/laboratorio/trabajos" class="userbar-menu-link{{if eq .ActivePage "lab-trabajos"}} active{{end}}"><i data-feather="tool"></i>Trabajos</a>
+        <a href="/laboratorio/inventario" class="userbar-menu-link{{if eq .ActivePage "lab-inventario"}} active{{end}}"><i data-feather="package"></i>Inventario</a>
+      <div class="userbar-menu-divider"></div>
+      <a href="/admin/logout" class="userbar-menu-link logout"><i data-feather="log-out"></i>Cerrar sesión</a>
+    </div>
+  </div>
+</header>
+</div>
+{{end}}

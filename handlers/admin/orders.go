@@ -43,7 +43,12 @@ func UpdateOrderStatus(c *gin.Context) {
 		return
 	}
 
-	if err := models.UpdateOrderStatus(id, input.Status); err != nil {
+	// Queda en el historial quién lo cambió (lo ve el Laboratorio).
+	name, _ := c.Get("staff_name")
+	role, _ := c.Get("staff_role")
+	nameStr, _ := name.(string)
+	roleStr, _ := role.(string)
+	if err := models.SetOrderStatusBy(id, input.Status, nameStr, roleStr); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pedido no encontrado."})
 		return
 	}

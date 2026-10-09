@@ -173,6 +173,8 @@ func loadTemplates() *template.Template {
 	tmpl = template.Must(tmpl.ParseGlob("templates/optometrist/*.html"))
 	// Panel de Inventario (artículos, departamentos, ajustes, movimientos).
 	tmpl = template.Must(tmpl.ParseGlob("templates/inventario/*.html"))
+	// Panel de Laboratorio (trabajos por estado + inventario).
+	tmpl = template.Must(tmpl.ParseGlob("templates/laboratorio/*.html"))
 	// Panel del empleado (Comunicación: avisos + chats + grupos).
 	tmpl = template.Must(tmpl.ParseGlob("templates/employee/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("templates/ecommerce/*.html"))
@@ -210,6 +212,9 @@ func main() {
 	db.EnsureInventoryUsersTable()
 	// Cuenta del Blog (blogger@avanteoptics.mx): solo administra el Blog.
 	db.EnsureBlogUsersTable()
+	// Laboratorio: cuenta eleazar@avanteoptics.mx, artículo de inventario
+	// y notas en cada pedido, e historial de cambios de estado.
+	db.EnsureLaboratorioTables()
 	// Etiquetas de cita (cómo llegó: sin cita, chequeo, teléfono, WhatsApp).
 	db.EnsureAppointmentTagsTable()
 	// Seguimiento al asistir: si compró y cada cuánto le toca su revisión.
@@ -585,6 +590,25 @@ func main() {
 		inventarioGroup.GET("/ajustes", handlers.InventarioAjustesPage)
 		inventarioGroup.GET("/movimientos", handlers.InventarioMovimientosPage)
 	}
+	// Panel de Laboratorio: trabajos (los mismos pedidos de Admin →
+	// Pedidos y de Rastreo) e inventario sin costos. Laboratorio y admin.
+	laboratorioStaff := handlers.RequireRole(handlers.RoleAdmin, handlers.RoleLaboratorio)
+	laboratorioGroup := router.Group("/laboratorio", handlers.RequireAdminAuth(), laboratorioStaff)
+	{
+		laboratorioGroup.GET("", func(c *gin.Context) { c.Redirect(http.StatusFound, "/laboratorio/trabajos") })
+		laboratorioGroup.GET("/trabajos", handlers.LaboratorioPage("trabajos"))
+		laboratorioGroup.GET("/inventario", handlers.LaboratorioPage("inventario"))
+	}
+	apiLaboratorio := router.Group("/api/laboratorio", handlers.RequireAdminAuth(), laboratorioStaff)
+	{
+		apiLaboratorio.GET("/pedidos", handlers.LabListOrders)
+		apiLaboratorio.POST("/pedidos", handlers.LabCreateOrder)
+		apiLaboratorio.PATCH("/pedidos/:id/estado", handlers.LabSetStatus)
+		apiLaboratorio.PUT("/pedidos/:id/notas", handlers.LabSetNotes)
+		apiLaboratorio.GET("/pedidos/:id/historial", handlers.LabOrderHistory)
+		apiLaboratorio.GET("/inventario", handlers.LabInventario)
+	}
+
 	apiInventario := router.Group("/api/inventario", handlers.RequireAdminAuth(), inventarioStaff)
 	{
 		apiInventario.GET("/articulos", handlers.InvListArticulos)

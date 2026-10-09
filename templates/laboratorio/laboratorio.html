@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{if eq .Vista "inventario"}}Inventario{{else}}Trabajos{{end}} — Laboratorio · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/laboratorio/laboratorio.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "laboratorio-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "laboratorio-sidebar" .}}
+
+  <main class="cuenta-main admin-main lab-page" id="labPage" data-vista="{{.Vista}}" data-staff="{{.StaffName}}">
+
+    {{if eq .Vista "inventario"}}
+    <!-- ===================== INVENTARIO ===================== -->
+    <div class="admin-header">
+      <div>
+        <h1>Inventario</h1>
+        <p>Los productos de donde salen los trabajos. Desde aquí puedes dar de alta un trabajo con cualquiera de ellos.</p>
+      </div>
+      <button type="button" class="btn solid small lab-new-btn" data-new-job>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Nuevo trabajo
+      </button>
+    </div>
+
+    <div class="admin-panel">
+      <div class="admin-panel-head admin-panel-head--stacked">
+        <div class="admin-panel-head-row">
+          <h2>Productos</h2>
+          <span class="lab-count" id="invCount">Cargando…</span>
+        </div>
+        <div class="admin-panel-head-row lab-toolbar">
+          <div class="search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="invSearch" placeholder="Buscar por clave o descripción…" autocomplete="off">
+            </div>
+          </div>
+          <div class="cf-seg lab-deptos" id="invDeptos" role="tablist" aria-label="Departamento"></div>
+        </div>
+      </div>
+      <div class="lab-table-wrap">
+        <table class="lab-table" id="invTable">
+          <thead>
+            <tr>
+              <th>Clave</th>
+              <th>Descripción</th>
+              <th>Departamento</th>
+              <th class="num">Existencia</th>
+              <th class="num">Precio</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="invRows"></tbody>
+        </table>
+      </div>
+      <p class="lab-empty" id="invEmpty" hidden></p>
+    </div>
+
+    {{else}}
+    <!-- ===================== TRABAJOS ===================== -->
+    <div class="admin-header">
+      <div>
+        <h1>Trabajos</h1>
+        <p>El estado de cada pedido. Lo que cambies aquí se ve al momento en Admin → Pedidos y en la página de Rastreo del cliente.</p>
+      </div>
+      <button type="button" class="btn solid small lab-new-btn" data-new-job>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Nuevo trabajo
+      </button>
+    </div>
+
+    <div class="admin-stats" id="labStats"></div>
+
+    <div class="admin-panel">
+      <div class="admin-panel-head admin-panel-head--stacked">
+        <div class="admin-panel-head-row">
+          <h2>Trabajos por estado</h2>
+          <div class="admin-panel-head-actions">
+            <label class="lab-toggle" title="Ocultar los que ya se entregaron">
+              <input type="checkbox" id="labHideDone">
+              <span class="lab-toggle-track"><span class="lab-toggle-thumb"></span></span>
+              <span>Ocultar entregados</span>
+            </label>
+            <button type="button" class="admin-icon-btn" id="labRefresh" aria-label="Actualizar" title="Actualizar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="admin-panel-head-row lab-toolbar">
+          <div class="view-switch" id="labViewSwitch">
+            <span class="view-switch-glow"></span>
+            <button type="button" class="view-switch-btn active" data-view="tablero">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1.5"/><rect x="10" y="3" width="5" height="12" rx="1.5"/><rect x="17" y="3" width="4" height="8" rx="1.5"/></svg>
+              Tablero
+            </button>
+            <button type="button" class="view-switch-btn" data-view="lista">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+              Lista
+            </button>
+          </div>
+          <div class="search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="labSearch" placeholder="Buscar por pedido, cliente o producto…" autocomplete="off">
+            </div>
+          </div>
+          <div class="cf-seg" id="labOrigen" role="tablist" aria-label="Origen">
+            <button type="button" data-origen="" class="is-on">Todos</button>
+            <button type="button" data-origen="laboratorio">Del laboratorio</button>
+            <button type="button" data-origen="tienda">De la tienda</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lab-board" id="labBoard"></div>
+
+      <div class="lab-table-wrap" id="labList" hidden>
+        <table class="lab-table">
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Cliente</th>
+              <th>Producto</th>
+              <th>Estado</th>
+              <th>Último cambio</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="labRows"></tbody>
+        </table>
+      </div>
+      <p class="lab-empty" id="labEmpty" hidden></p>
+    </div>
+    {{end}}
+  </main>
+</div>
+
+<!-- ===================== Detalle del trabajo ===================== -->
+<div class="admin-modal-overlay" id="labDetailModal">
+  <div class="admin-modal-card lab-detail-card" role="dialog" aria-modal="true" aria-labelledby="labDetailTitle">
+    <div class="admin-modal-head">
+      <div>
+        <h3 id="labDetailTitle">Pedido</h3>
+        <small class="lab-sub" id="labDetailSub"></small>
+      </div>
+      <button type="button" class="admin-modal-close" id="labDetailClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body" id="labDetailBody"></div>
+  </div>
+</div>
+
+<!-- ===================== Nuevo trabajo ===================== -->
+<div class="admin-modal-overlay" id="labNewModal">
+  <div class="admin-modal-card lab-new-card" role="dialog" aria-modal="true" aria-labelledby="labNewTitle">
+    <div class="admin-modal-head">
+      <div>
+        <h3 id="labNewTitle">Nuevo trabajo</h3>
+        <small class="lab-sub">El producto se toma del inventario. El cliente lo puede rastrear con su número de pedido.</small>
+      </div>
+      <button type="button" class="admin-modal-close" id="labNewClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="lab-form" id="labNewForm" autocomplete="off">
+        <div class="lab-field">
+          <span>Producto del inventario</span>
+          <div class="lab-picked" id="labPicked" hidden></div>
+          <div class="lab-picker" id="labPicker">
+            <div class="lab-picker-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="labPickerSearch" placeholder="Buscar por clave o descripción…">
+            </div>
+            <div class="lab-picker-list" id="labPickerList"></div>
+          </div>
+        </div>
+        <div class="lab-form-grid">
+          <label class="lab-field lab-field--wide"><span>Cliente</span><input type="text" id="labNewCliente" maxlength="120" placeholder="Nombre del cliente" required></label>
+          <label class="lab-field"><span>Cantidad</span><input type="number" id="labNewCant" min="1" max="999" value="1"></label>
+          <label class="lab-field"><span>Graduación OD</span><input type="text" id="labNewOD" maxlength="120" placeholder="Ej. -1.25 -0.50 x180"></label>
+          <label class="lab-field"><span>Graduación OI</span><input type="text" id="labNewOI" maxlength="120" placeholder="Ej. -1.00 -0.25 x170"></label>
+          <label class="lab-field lab-field--wide"><span>Notas</span><textarea id="labNewNotas" rows="2" maxlength="500" placeholder="Altura, tratamiento, armazón…"></textarea></label>
+        </div>
+        <p class="lab-form-err" id="labNewErr" hidden></p>
+        <div class="admin-confirm-actions">
+          <button type="button" class="btn small" id="labNewCancel">Cancelar</button>
+          <button type="submit" class="btn solid small" id="labNewSave">Dar de alta</button>
+        </div>
+      </form>
+      <div class="lab-created" id="labCreated" hidden>
+        <span class="lab-created-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <strong>Trabajo dado de alta</strong>
+        <p>Número de pedido para rastrearlo:</p>
+        <div class="lab-created-code" id="labCreatedCode"></div>
+        <div class="lab-created-actions">
+          <button type="button" class="btn small" id="labCreatedCopy">Copiar link de rastreo</button>
+          <button type="button" class="btn solid small" id="labCreatedDone">Listo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/laboratorio/laboratorio.js"></script>
+</body>
+</html>
