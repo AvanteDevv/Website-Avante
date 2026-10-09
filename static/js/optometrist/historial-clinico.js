@@ -23,6 +23,9 @@
   var hintEl = document.getElementById('historialHint');
   var chipsEl = document.getElementById('hcChips');
   if (!rowsEl) return;
+  // Recepción también ve el historial (solo consulta: no hace exámenes
+  // ni abre la página completa del examen, que es de optometría).
+  var IS_RECEPTION = document.body.dataset.role === 'receptionist';
 
   /* ---------- utilidades ---------- */
   function escapeHTML(str){
@@ -401,9 +404,33 @@
   modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
 
+  // Pestañas con la píldora que se desliza (como Día / Calendario / Tabla).
+  var tabsEl = modal.querySelector('.pf-tabs');
+  var inkEl = modal.querySelector('.pf-tabs-ink');
+  function moveInk(){
+    var act = tabsEl.querySelector('.pf-tab.active');
+    if (!act || !inkEl || !act.offsetWidth) return;
+    inkEl.style.width = act.offsetWidth + 'px';
+    inkEl.style.transform = 'translateX(' + act.offsetLeft + 'px)';
+  }
+  window.addEventListener('resize', function(){ if (modal.classList.contains('open')) moveInk(); });
+
   function setTab(tab){
-    modal.querySelectorAll('.pf-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.tab === tab); });
-    modal.querySelectorAll('.pf-pane').forEach(function(p){ p.hidden = p.dataset.pane !== tab; });
+    var prev = tabsEl.querySelector('.pf-tab.active');
+    modal.querySelectorAll('.pf-tab').forEach(function(b){
+      var on = b.dataset.tab === tab;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    modal.querySelectorAll('.pf-pane').forEach(function(p){
+      var on = p.dataset.pane === tab;
+      if (on && p.hidden){ p.hidden = false; p.classList.remove('is-entering'); void p.offsetWidth; p.classList.add('is-entering'); }
+      else if (!on) p.hidden = true;
+    });
+    if (!prev) tabsEl.classList.remove('is-ready');
+    moveInk();
+    requestAnimationFrame(function(){ tabsEl.classList.add('is-ready'); });
+    if (window.AvSelect) AvSelect.closeAll();
     hideTip();
   }
   modal.querySelector('.pf-tabs').addEventListener('click', function(e){
@@ -420,6 +447,7 @@
     pfWa.hidden = !digits;
     pfWa.href = digits ? 'https://wa.me/' + digits : '#';
     pfNew.href = newExamURL(p);
+    pfNew.hidden = IS_RECEPTION;
   }
 
   function openPatient(key, basic){
@@ -431,8 +459,8 @@
     paneGrad.innerHTML = paneExams.innerHTML = paneCompare.innerHTML = '';
     anteForm.reset();
     anteMeta.textContent = '';
-    setTab('grad');
     openModal();
+    setTab('grad');
 
     fetch('/api/optometrist/pacientes/ficha?key=' + encodeURIComponent(key))
       .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -527,7 +555,7 @@
     });
 
     var selector = rxGroups.length > 1
-      ? '<label class="pf-rx-select"><span>Tabla</span><select id="pfRxSelect">' + rxGroups.map(function(g){
+      ? '<label class="pf-rx-select"><span>Tabla</span><select id="pfRxSelect" data-av-select>' + rxGroups.map(function(g){
           return '<option value="' + escapeHTML(g.key) + '"' + (g.key === rxKey ? ' selected' : '') + '>' + escapeHTML(g.label) + ' (' + g.count + ')</option>';
         }).join('') + '</select></label>'
       : '<span class="pf-rx-name">' + escapeHTML(group.label) + '</span>';
@@ -547,6 +575,7 @@
 
     var sel = document.getElementById('pfRxSelect');
     if (sel) sel.addEventListener('change', function(){ rxKey = sel.value; drawGrad(); });
+    if (window.AvSelect) AvSelect.enhanceAll(paneGrad);
     wireCharts(pts);
   }
 
@@ -703,7 +732,7 @@
         return '<tr><td class="pf-rx-date">' + fechaCorta(p.exam.createdAt) + '</td>' +
           cols.map(function(c){ return cellRaw(p.rx, 'od', c); }).join('') +
           cols.map(function(c){ return cellRaw(p.rx, 'oi', c); }).join('') +
-          '<td><a class="pf-link" href="/optometrist/examen-vista/' + p.exam.id + '" target="_blank" rel="noopener">Ver hoja</a></td></tr>';
+          '<td><button type="button" class="pf-link" data-view-exam="' + p.exam.id + '">Ver hoja</button></td></tr>';
       }).join('') + '</tbody></table></div>';
   }
 
@@ -734,7 +763,7 @@
         '</div>' +
         '<div class="timeline-item-actions">' +
           (file.exams.length > 1 ? '<button type="button" class="btn thin pf-compare-btn" data-id="' + e.id + '">Comparar</button>' : '') +
-          '<a class="btn thin" href="/optometrist/examen-vista/' + e.id + '" target="_blank" rel="noopener">Ver hoja</a>' +
+          '<button type="button" class="btn thin" data-view-exam="' + e.id + '">Ver hoja</button>' +
         '</div>' +
       '</div>';
     }).join('') + '</div>';
@@ -750,6 +779,16 @@
       });
     });
   }
+
+  // "Ver hoja": el examen en un modal encima de la ficha (con imprimir y
+  // exportar PDF), sin abrir otra página.
+  modal.addEventListener('click', function(e){
+    var b = e.target.closest('[data-view-exam]');
+    if (!b || !file || !window.AvanteExamModal) return;
+    var ex = file.exams.filter(function(x){ return String(x.id) === b.dataset.viewExam; })[0];
+    if (!ex) return;
+    AvanteExamModal.open({ exam: ex, template: ex._tpl }, { fullPage: !IS_RECEPTION });
+  });
 
   /* ---------- Comparar dos exámenes ---------- */
   var cmpA = null, cmpB = null, onlyDiff = false;
@@ -827,15 +866,16 @@
     }
     paneCompare.innerHTML =
       '<div class="cmp-head">' +
-        '<label class="pf-rx-select"><span>Antes</span><select id="cmpSelA">' + opts(cmpA) + '</select></label>' +
+        '<label class="pf-rx-select"><span>Antes</span><select id="cmpSelA" data-av-select>' + opts(cmpA) + '</select></label>' +
         '<svg class="cmp-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
-        '<label class="pf-rx-select"><span>Después</span><select id="cmpSelB">' + opts(cmpB) + '</select></label>' +
-        '<label class="cmp-only"><input type="checkbox" id="cmpOnlyDiff"' + (onlyDiff ? ' checked' : '') + '> Solo lo que cambió</label>' +
+        '<label class="pf-rx-select"><span>Después</span><select id="cmpSelB" data-av-select>' + opts(cmpB) + '</select></label>' +
+        '<label class="cmp-only"><input type="checkbox" class="av-check" id="cmpOnlyDiff"' + (onlyDiff ? ' checked' : '') + '> Solo lo que cambió</label>' +
       '</div>' +
       '<p class="pf-trend">' + (diffs ? plural(diffs, 'dato cambió', 'datos cambiaron') + ' entre los dos exámenes.' : 'Los dos exámenes tienen los mismos datos.') + '</p>' +
       '<div class="pf-rx-wrap"><table class="cmp-table"><thead><tr><th>Dato</th><th>' + fechaCorta(A.createdAt) + '</th><th>' + fechaCorta(B.createdAt) + '</th></tr></thead>' +
       '<tbody>' + (rows || '<tr><td colspan="3" class="pf-empty">Nada que mostrar.</td></tr>') + '</tbody></table></div>';
 
+    if (window.AvSelect) AvSelect.enhanceAll(paneCompare);
     document.getElementById('cmpSelA').addEventListener('change', function(e){ cmpA = +e.target.value; renderCompare(); });
     document.getElementById('cmpSelB').addEventListener('change', function(e){ cmpB = +e.target.value; renderCompare(); });
     document.getElementById('cmpOnlyDiff').addEventListener('change', function(e){ onlyDiff = e.target.checked; renderCompare(); });

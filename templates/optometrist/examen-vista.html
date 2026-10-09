@@ -10,6 +10,9 @@
 <link rel="stylesheet" href="/static/css/optometrist/userbar-optometrist.css">
 <link rel="stylesheet" href="/static/css/admin/sidebar.css">
 <link rel="stylesheet" href="/static/css/optometrist/examen-vista.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-render.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-modal.css">
+<link rel="stylesheet" href="/static/css/optometrist/av-select.css">
 </head>
 <body class="cuenta-body">
 
@@ -92,7 +95,7 @@
         <div class="ev-filters">
           <label class="ev-select">
             <span>Periodo</span>
-            <select id="examPeriod">
+            <select id="examPeriod" data-av-select>
               <option value="all">Todo</option>
               <option value="today">Hoy</option>
               <option value="week">Esta semana</option>
@@ -101,7 +104,7 @@
           </label>
           <label class="ev-select">
             <span>Optometrista</span>
-            <select id="examStaff"><option value="">Todos</option></select>
+            <select id="examStaff" data-av-select><option value="">Todos</option></select>
           </label>
         </div>
       </div>
@@ -154,6 +157,9 @@
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/optometrist/userbar-optometrist.js"></script>
+<script src="/static/js/optometrist/av-select.js"></script>
+<script src="/static/js/optometrist/examen-render.js"></script>
+<script src="/static/js/optometrist/examen-modal.js"></script>
 <script src="/static/js/optometrist/examen-vista.js"></script>
 </body>
 </html>

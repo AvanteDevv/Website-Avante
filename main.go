@@ -549,6 +549,13 @@ func main() {
 		receptionistGroup.GET("/ventas", handlers.ReceptionistVentasPage)
 		receptionistGroup.GET("/plantillas", handlers.ReceptionistPlantillasPage)
 		receptionistGroup.GET("/administracion", handlers.ReceptionistAdministracionPage)
+		// Historial clínico (el mismo de optometría, solo consulta: sin
+		// hacer exámenes). Usa la API de /api/optometrist/pacientes.
+		receptionistGroup.GET("/historial-clinico", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "historial-clinico-recepcion.html", handlers.WithStaff(c, gin.H{
+				"ActivePage": "receptionist-historial",
+			}))
+		})
 		receptionistGroup.GET("/citas", func(c *gin.Context) {
 			appointments, err := models.GetAllAppointments()
 			if err != nil {
@@ -722,12 +729,17 @@ func main() {
 		apiOptometrist.POST("/examenes", handlers.CreateEyeExam)
 		apiOptometrist.DELETE("/examenes/:id", handlers.DeleteEyeExam)
 
-		// Pacientes: autocompletado de Nuevo examen + Historial clínico
-		// (directorio, ficha y antecedentes).
-		apiOptometrist.GET("/pacientes", handlers.SearchPatients)
-		apiOptometrist.GET("/pacientes/directorio", handlers.ListPatientDirectory)
-		apiOptometrist.GET("/pacientes/ficha", handlers.GetPatientFile)
-		apiOptometrist.PUT("/pacientes/antecedentes", handlers.SavePatientAntecedentes)
+	}
+
+	// Pacientes: autocompletado de Nuevo examen + Historial clínico
+	// (directorio, ficha y antecedentes). Aparte del grupo de arriba
+	// porque recepción también consulta el Historial clínico.
+	apiPacientes := router.Group("/api/optometrist/pacientes", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleOptometrist, handlers.RoleReceptionist))
+	{
+		apiPacientes.GET("", handlers.SearchPatients)
+		apiPacientes.GET("/directorio", handlers.ListPatientDirectory)
+		apiPacientes.GET("/ficha", handlers.GetPatientFile)
+		apiPacientes.PUT("/antecedentes", handlers.SavePatientAntecedentes)
 	}
 
 	// Citas en JSON — "Citas de hoy" en Examen de la vista.

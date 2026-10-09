@@ -1,0 +1,50 @@
+/* ===========================================================
+   AV-SELECT — dropdown animado (av-select.js). Mismo look que
+   el selector de rol de Base de datos.
+   =========================================================== */
+.av-select{ position:relative; min-width:150px; }
+.av-native{ position:absolute !important; opacity:0 !important; pointer-events:none !important; width:1px !important; height:1px !important; min-width:0 !important; padding:0 !important; border:0 !important; left:0; bottom:0; }
+.av-select-btn{
+  width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:1.5px solid var(--line, #DDE3FA); border-radius:12px; padding:9px 12px 9px 13px;
+  font-family:inherit; font-size:13px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--ink, #0A0E38);
+  background:var(--white, #fff); text-align:left; cursor:pointer;
+  transition:border-color .2s var(--ease, ease), box-shadow .2s var(--ease, ease), transform .15s var(--ease, ease);
+}
+.av-select-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.av-select-btn > svg{ width:14px; height:14px; color:var(--grey, #6670A6); flex-shrink:0; transition:transform .3s var(--ease, ease), color .2s var(--ease, ease); }
+.av-select-btn:hover{ border-color:var(--blue-300, #8992FF); }
+.av-select-btn:active{ transform:scale(.98); }
+.av-select-btn:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--blue-100, #EAEFFF); border-color:var(--blue-300, #8992FF); }
+.av-select.is-open .av-select-btn{ border-color:var(--blue-300, #8992FF); box-shadow:0 0 0 3px var(--blue-100, #EAEFFF); }
+.av-select.is-open .av-select-btn > svg{ transform:rotate(180deg); color:var(--blue-600, #041cff); }
+.av-select-btn.is-picked .av-select-label{ animation:avPicked .35s var(--ease, ease); }
+@keyframes avPicked{ 0%{ opacity:0; transform:translateY(5px); } 100%{ opacity:1; transform:none; } }
+
+.av-select-menu{
+  position:absolute; top:calc(100% + 8px); left:0; min-width:100%; z-index:60;
+  max-height:280px; overflow-y:auto; scrollbar-width:thin;
+  background:var(--white, #fff); border:1px solid var(--line, #DDE3FA); border-radius:14px; padding:6px;
+  box-shadow:0 20px 40px -18px rgba(20,40,120,.32);
+  opacity:0; transform:translateY(-8px) scale(.98); transform-origin:top center; pointer-events:none;
+  transition:opacity .22s var(--ease, ease), transform .22s var(--ease, ease);
+}
+.av-select.is-open .av-select-menu{ opacity:1; transform:none; pointer-events:auto; }
+.av-select-option{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  width:100%; text-align:left; padding:9px 11px; border-radius:9px; border:none; background:none;
+  font-family:inherit; font-size:13px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--ink, #0A0E38); white-space:nowrap; cursor:pointer;
+  transition:background .18s var(--ease, ease), color .18s var(--ease, ease), padding .18s var(--ease, ease);
+}
+.av-select.is-open .av-select-option{ animation:avOptIn .26s var(--ease, ease) both; animation-delay:calc(var(--i, 0) * 22ms); }
+@keyframes avOptIn{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
+.av-select-option:hover, .av-select-option.is-hover{ background:var(--blue-50, #F5F7FF); padding-left:14px; }
+.av-select-option.active{ color:var(--blue-600, #041cff); font-weight:700; }
+.av-select-option:disabled{ color:var(--grey, #6670A6); cursor:default; }
+.av-select-check{ width:14px; height:14px; opacity:0; transform:scale(.4); transition:opacity .2s var(--ease, ease), transform .25s cubic-bezier(.22,1.4,.36,1); }
+.av-select-option.active .av-select-check{ opacity:1; transform:none; }
+body.dark .av-select-option.active{ color:#aab2ff; }
+body.dark .av-select.is-open .av-select-btn > svg{ color:#aab2ff; }
+@media (prefers-reduced-motion:reduce){
+  .av-select.is-open .av-select-option, .av-select-btn.is-picked .av-select-label{ animation:none; }
+}

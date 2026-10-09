@@ -172,11 +172,30 @@
   /* ---------- descripción de cada clic ---------- */
   var CLICKABLE = [
     'button', 'a[href]', '[role="button"]', '[role="tab"]', 'summary',
-    '.cal-day[data-date]', '.cal-event-chip', '.day-item', '.chat-item'
+    '.cal-day[data-date]', '.cal-event-chip', '.day-item', '.chat-item', '.patient-row'
   ].join(',');
 
   function describe(el, target) {
     var t = textOf(el);
+
+    // Historial clínico
+    if (el.matches('.patient-row, .patient-open-btn')) {
+      var hrow = el.closest('.patient-row');
+      var hn = hrow && hrow.querySelector('.patient-row-name');
+      return 'Abrió la ficha de ' + quote(clean(hn ? hn.firstChild.textContent : '', 80));
+    }
+    if (el.matches('.hc-chip, .hc-stat')) {
+      var hl = el.querySelector('.hc-stat-label');
+      return 'Filtró pacientes: ' + quote(clean(hl ? hl.textContent : el.textContent, 40));
+    }
+    if (el.matches('.pf-tab')) return 'Vio la pestaña ' + quote(clean(el.textContent, 30)) + ' de la ficha';
+    if (el.matches('[data-view-exam]')) return 'Abrió un examen desde la ficha del paciente';
+    if (el.matches('#anteSaveBtn')) return 'Guardó los antecedentes del paciente';
+    if (el.matches('[data-view-exam]')) return 'Abrió un examen desde la ficha del paciente';
+    if (el.matches('#exmPdf')) return 'Exportó a PDF el examen de ' + quote(clean((document.getElementById('exmTitle') || {}).textContent || '', 80));
+    if (el.matches('#exmPrint')) return 'Imprimió el examen de ' + quote(clean((document.getElementById('exmTitle') || {}).textContent || '', 80));
+    if (el.matches('#exmClose')) return 'Cerró el examen';
+    if (el.matches('#pfRemindBtn, .wa-btn')) return 'Le mandó por WhatsApp el recordatorio de su revisión';
 
     // Citas
     if (el.matches('[data-event-id]')) {

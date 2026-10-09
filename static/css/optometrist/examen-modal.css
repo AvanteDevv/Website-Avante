@@ -1,0 +1,93 @@
+/* ===========================================================
+   EXAMEN-MODAL — ver un examen en un modal, imprimir y exportar
+   sin salir de la página (examen-modal.js). Usa los tokens de la
+   página que lo carga, con valores de respaldo.
+   =========================================================== */
+.exm-overlay{
+  position:fixed; inset:0; z-index:300; background:rgba(10,14,56,.5);
+  display:flex; align-items:flex-start; justify-content:center; padding:28px 18px; overflow-y:auto;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .3s var(--ease, ease), visibility 0s linear .3s;
+}
+.exm-overlay.open{ opacity:1; visibility:visible; pointer-events:auto; transition:opacity .3s var(--ease, ease), visibility 0s linear; }
+body.dark .exm-overlay{ background:rgba(0,0,0,.65); }
+.exm-card{
+  width:100%; max-width:900px; margin:auto; background:var(--white, #fff);
+  border:1px solid var(--line, #DDE3FA); border-radius:var(--radius-lg, 26px); box-shadow:var(--shadow-lg, 0 26px 48px -18px rgba(4,28,255,.28));
+  transform:translateY(18px) scale(.97); transition:transform .35s var(--ease, ease);
+  overflow:hidden;
+}
+.exm-overlay.open .exm-card{ transform:none; }
+.exm-head{
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  padding:18px 22px; border-bottom:1px solid var(--line, #DDE3FA);
+}
+.exm-head-text{ min-width:0; }
+.exm-head h3{ font-family:var(--serif, serif); font-weight:600; font-size:20px; color:var(--ink, #0A0E38); line-height:1.2; }
+.exm-head p{ font-size:12.5px; color:var(--grey, #6670A6); margin-top:3px; }
+.exm-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.exm-btn{
+  display:inline-flex; align-items:center; gap:7px; padding:9px 15px; border-radius:100px;
+  border:1.5px solid var(--line, #DDE3FA); background:var(--white, #fff); color:var(--ink, #0A0E38);
+  font-family:inherit; font-size:12px; font-weight:700; letter-spacing:.02em; text-decoration:none; cursor:pointer; white-space:nowrap;
+  transition:transform .2s var(--ease, ease), background .2s var(--ease, ease), border-color .2s var(--ease, ease), box-shadow .2s var(--ease, ease), color .2s var(--ease, ease);
+}
+.exm-btn svg{ width:15px; height:15px; flex-shrink:0; transition:transform .25s var(--ease, ease); }
+.exm-btn:hover{ transform:translateY(-2px); border-color:var(--blue-300, #8992FF); box-shadow:0 10px 20px -12px rgba(4,28,255,.45); }
+.exm-btn:hover svg{ transform:translateY(-1px) scale(1.08); }
+.exm-btn:active{ transform:translateY(0) scale(.95); }
+.exm-btn:disabled{ opacity:.5; pointer-events:none; }
+.exm-btn--solid{ background:var(--blue-600, #041cff); border-color:var(--blue-600, #041cff); color:#fff; }
+.exm-btn--solid:hover{ background:var(--blue-700, #0015E0); border-color:var(--blue-700, #0015E0); }
+.exm-btn[hidden]{ display:none; }
+.exm-close{
+  width:34px; height:34px; border-radius:50%; border:1px solid var(--line, #DDE3FA); background:var(--white, #fff); color:var(--grey, #6670A6);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:background .2s var(--ease, ease), color .2s var(--ease, ease), transform .25s var(--ease, ease);
+}
+.exm-close svg{ width:15px; height:15px; }
+.exm-close:hover{ background:var(--blue-50, #F5F7FF); color:var(--blue-600, #041cff); transform:rotate(90deg); }
+
+.exm-body{ padding:20px; background:var(--blue-50, #F5F7FF); }
+.exm-scale{ margin:0 auto; min-height:120px; }
+.exm-scale.is-loading{
+  width:100%; height:420px; border-radius:12px;
+  background:linear-gradient(90deg, var(--white, #fff) 25%, rgba(137,146,255,.18) 50%, var(--white, #fff) 75%);
+  background-size:200% 100%; animation:exmShimmer 1.2s linear infinite;
+}
+@keyframes exmShimmer{ to{ background-position:-200% 0; } }
+.exm-scale .exf-canvas{ transform-origin:top left; margin:0; box-shadow:0 18px 40px -22px rgba(10,14,56,.45); }
+#exmSheet.exm-in{ animation:exmIn .4s var(--ease, ease); }
+@keyframes exmIn{ from{ opacity:0; } to{ opacity:1; } }
+.exm-missing{ padding:40px 20px; text-align:center; color:var(--grey, #6670A6); font-size:13.5px; line-height:1.6; }
+
+.exm-offscreen{ position:fixed !important; left:-12000px !important; top:0 !important; box-shadow:none !important; }
+
+.exm-toast{
+  position:fixed; left:50%; bottom:28px; z-index:400; transform:translate(-50%, 20px);
+  background:#0A0E38; color:#fff; padding:12px 18px; border-radius:14px; font-size:13px; font-weight:600;
+  box-shadow:0 18px 40px -16px rgba(0,0,0,.45); opacity:0; pointer-events:none;
+  transition:opacity .25s var(--ease, ease), transform .25s var(--ease, ease);
+}
+.exm-toast.is-on{ opacity:1; transform:translate(-50%, 0); }
+
+#exmPrintRoot{ display:none; }
+@media print{
+  body.exm-printing > *:not(#exmPrintRoot){ display:none !important; }
+  body.exm-printing #exmPrintRoot{ display:block !important; }
+  body.exm-printing{ background:#fff !important; }
+  body.exm-printing #exmPrintRoot .exf-canvas{ box-shadow:none !important; border:none !important; margin:0 !important; }
+  body.exm-printing #exmPrintRoot .exf-canvas, body.exm-printing #exmPrintRoot .exf-canvas *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+
+@media (max-width:640px){
+  .exm-overlay{ padding:0; }
+  .exm-card{ border-radius:0; min-height:100%; }
+  .exm-head{ padding:14px 16px; }
+  .exm-btn span{ display:none; }
+  .exm-btn{ padding:9px 11px; }
+  .exm-body{ padding:12px; }
+}
+
+/* Tamaño de hoja al imprimir (igual que examen-render.css) */
+@page{ size:816px 1056px; margin:0; }

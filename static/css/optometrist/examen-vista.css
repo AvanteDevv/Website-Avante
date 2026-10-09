@@ -434,3 +434,37 @@ body.dark .origin-tag.is-cita{ color:#aab2ff; }
 }
 .ev-stat:hover{ box-shadow:var(--shadow-md); transform:translateY(-2px); }
 @media (prefers-reduced-motion:reduce){ .ev-stat{ animation:none; } }
+/* ===========================================================
+   Animaciones de botones (Nuevo examen, Realizar examen, Ver
+   examen…): se levantan, se hunden al dar clic y los azules
+   llevan un brillo que cruza.
+   =========================================================== */
+.btn{ position:relative; overflow:hidden; isolation:isolate; }
+.btn svg{ transition:transform .25s var(--ease); }
+.btn:hover{ box-shadow:0 12px 24px -14px rgba(4,28,255,.55); }
+.btn:hover svg{ transform:scale(1.15) rotate(90deg); }
+.btn:active{ transform:translateY(0) scale(.95); transition-duration:.08s; }
+.btn.solid::after{
+  content:''; position:absolute; top:0; bottom:0; left:-60%; width:45%; z-index:-1; pointer-events:none;
+  background:linear-gradient(105deg, transparent, rgba(255,255,255,.38), transparent);
+  transform:skewX(-18deg); transition:left .6s var(--ease);
+}
+.btn.solid:hover::after{ left:120%; }
+/* "Realizar examen" de la cita que toca ahorita: late suave para llamar la atención */
+.today-appt.is-now .today-appt-btn{ animation:apptPulse 2.2s var(--ease) infinite; }
+@keyframes apptPulse{
+  0%, 100%{ box-shadow:0 0 0 0 rgba(4,28,255,.35); }
+  50%{ box-shadow:0 0 0 7px rgba(4,28,255,0); }
+}
+.today-appt{ transition:background .2s var(--ease), transform .2s var(--ease); }
+.today-appt:hover{ transform:translateX(3px); }
+.today-appt-btn{ transition:transform .2s var(--ease), background .25s var(--ease), color .25s var(--ease), box-shadow .25s var(--ease); }
+.today-appt:hover .today-appt-btn:not(.solid){ background:var(--ink); color:var(--white); }
+
+/* Periodo / Optometrista con el dropdown animado */
+.ev-select .av-select{ min-width:160px; }
+@media (max-width:620px){ .ev-select .av-select{ min-width:0; } }
+@media (prefers-reduced-motion:reduce){
+  .today-appt.is-now .today-appt-btn{ animation:none; }
+  .btn.solid::after{ transition:none; }
+}

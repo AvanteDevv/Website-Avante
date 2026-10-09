@@ -226,6 +226,10 @@
     if (el.matches('#pfAgendarBtn')) return 'Abrió “Agendar cita” para el paciente';
     if (el.matches('.pf-compare-btn')) return 'Comparó ese examen con el anterior';
     if (el.matches('#pfClose')) return 'Cerró la ficha del paciente';
+    if (el.matches('[data-view-exam]')) return 'Abrió un examen desde la ficha del paciente';
+    if (el.matches('#exmPdf')) return 'Exportó a PDF el examen de ' + quote(clean((document.getElementById('exmTitle') || {}).textContent || '', 80));
+    if (el.matches('#exmPrint')) return 'Imprimió el examen de ' + quote(clean((document.getElementById('exmTitle') || {}).textContent || '', 80));
+    if (el.matches('#exmClose')) return 'Cerró el examen';
 
     // Examen de la vista (lista)
     if (el.matches('#newExamBtn')) return 'Empezó un examen nuevo';

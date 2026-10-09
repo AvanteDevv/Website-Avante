@@ -357,6 +357,9 @@
       if (first){ fillFilters(); renderExams(); }
     });
   }
+  // Periodo / Optometrista: el dropdown animado del panel.
+  if (window.AvSelect) AvSelect.enhanceAll(document);
+
   refreshAll(true);
   // Cada minuto: el estado de las citas cambia con la hora, y si otro
   // optometrista guardó un examen se ve reflejado (sin tocar la tabla
@@ -459,6 +462,24 @@
         });
     });
   })();
+
+  /* ---------- Ver / Exportar PDF / Imprimir sin salir de aquí ----------
+     Los links siguen apuntando a /optometrist/examen-vista/<id> (así
+     Ctrl+clic o "abrir en otra pestaña" funcionan igual), pero un
+     clic normal abre el examen en un modal, y "Exportar PDF" /
+     "Imprimir" lo hacen aquí mismo en lugar de mandar a otra página. */
+  document.addEventListener('click', function(e){
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest('a[href^="/optometrist/examen-vista/"]');
+    if (!a || !window.AvanteExamModal) return;
+    var m = a.getAttribute('href').match(/^\/optometrist\/examen-vista\/(\d+)(?:\?action=(pdf|print))?$/);
+    if (!m) return;
+    e.preventDefault();
+    document.querySelectorAll('.row-menu.is-open').forEach(function(x){ x.classList.remove('is-open'); });
+    if (m[2] === 'pdf') AvanteExamModal.exportPdf(m[1]);
+    else if (m[2] === 'print') AvanteExamModal.print(m[1]);
+    else AvanteExamModal.open(m[1], { fullPage: true });
+  });
 
   if (window.feather) feather.replace();
 })();

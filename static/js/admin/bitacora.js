@@ -23,6 +23,8 @@
   var PAGE_NAMES = {
     '/receptionist/citas': 'Citas',
     '/receptionist/comunicacion': 'Comunicación',
+    '/receptionist/historial-clinico': 'Historial clínico',
+    '/receptionist/administracion': 'Administración',
     '/admin/pedidos': 'Pedidos',
     '/optometrist/historial-clinico': 'Historial clínico',
     '/optometrist/examen-vista': 'Examen de la vista',

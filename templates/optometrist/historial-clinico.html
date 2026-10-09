@@ -10,142 +10,25 @@
 <link rel="stylesheet" href="/static/css/optometrist/userbar-optometrist.css">
 <link rel="stylesheet" href="/static/css/admin/sidebar.css">
 <link rel="stylesheet" href="/static/css/optometrist/historial-clinico.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-render.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-modal.css">
+<link rel="stylesheet" href="/static/css/optometrist/av-select.css">
 </head>
-<body class="cuenta-body">
+<body class="cuenta-body" data-role="{{.StaffRoleKey}}">
 
 {{template "optometrist-userbar" .}}
 
 <div class="cuenta-shell">
   {{template "optometrist-sidebar" .}}
 
-  <main class="cuenta-main">
-    <div class="cuenta-header admin-header-row">
-      <div>
-        <h1>Historial clínico</h1>
-        <p>La ficha de cada paciente: cómo ha cambiado su graduación, sus antecedentes y cuándo le toca su revisión.</p>
-      </div>
-    </div>
-
-    <!-- Contadores: aquí se cuentan PACIENTES (en Examen de la vista, exámenes) -->
-    <div class="hc-stats" id="hcStats">
-      <button type="button" class="hc-stat" data-filter="all"><span class="hc-stat-label">Pacientes</span><strong class="hc-stat-value" id="statPatients">—</strong><span class="hc-stat-sub">con al menos un examen</span></button>
-      <button type="button" class="hc-stat" data-filter="new"><span class="hc-stat-label">Nuevos este mes</span><strong class="hc-stat-value" id="statNew">—</strong><span class="hc-stat-sub">primer examen este mes</span></button>
-      <button type="button" class="hc-stat" data-filter="recurrent"><span class="hc-stat-label">Recurrentes</span><strong class="hc-stat-value" id="statRecurrent">—</strong><span class="hc-stat-sub">2 exámenes o más</span></button>
-      <button type="button" class="hc-stat hc-stat--due" data-filter="due"><span class="hc-stat-label">Revisión vencida</span><strong class="hc-stat-value" id="statDue">—</strong><span class="hc-stat-sub">ya les tocaba volver</span></button>
-      <button type="button" class="hc-stat hc-stat--soon" data-filter="soon"><span class="hc-stat-label">Por vencer</span><strong class="hc-stat-value" id="statSoon">—</strong><span class="hc-stat-sub">en los próximos 30 días</span></button>
-    </div>
-
-    <section class="panel">
-      <div class="panel-head">
-        <div>
-          <h2>Pacientes</h2>
-          <p id="historialHint">Cargando…</p>
-        </div>
-      </div>
-
-      <div class="panel-toolbar">
-        <div class="search-box">
-          <div class="search-box-glow"></div>
-          <div class="search-box-inner">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" id="historialSearch" placeholder="Buscar paciente por nombre o teléfono…" autocomplete="off">
-          </div>
-        </div>
-        <div class="hc-chips" id="hcChips" role="tablist" aria-label="Filtrar pacientes">
-          <button type="button" class="hc-chip active" data-filter="all">Todos</button>
-          <button type="button" class="hc-chip" data-filter="due">Revisión vencida</button>
-          <button type="button" class="hc-chip" data-filter="soon">Por vencer</button>
-          <button type="button" class="hc-chip" data-filter="new">Nuevos este mes</button>
-          <button type="button" class="hc-chip" data-filter="recurrent">Recurrentes</button>
-        </div>
-      </div>
-
-      <div class="table-wrap">
-        <table class="hc-table">
-          <thead>
-            <tr>
-              <th>Paciente</th>
-              <th class="num">Exámenes</th>
-              <th>Última visita</th>
-              <th>Revisión</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="patientRows"></tbody>
-        </table>
-      </div>
-
-      <div class="empty-state" id="historialEmpty" style="display:none;"></div>
-    </section>
-  </main>
-</div>
-
-<!-- ===================== Ficha del paciente ===================== -->
-<div class="admin-modal-overlay" id="patientModal" aria-hidden="true">
-  <div class="admin-modal-card pf-card" role="dialog" aria-modal="true" aria-labelledby="pfName">
-    <div class="pf-head">
-      <div class="pf-head-main">
-        <h3 id="pfName"></h3>
-        <p id="pfPhone"></p>
-        <span class="patient-account-badge" id="pfBadge"></span>
-      </div>
-      <div class="pf-head-actions">
-        <a href="#" class="btn thin" id="pfWaBtn" target="_blank" rel="noopener">WhatsApp</a>
-        <a href="#" class="btn solid thin" id="pfNewExamBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-          Nuevo examen
-        </a>
-        <button type="button" class="admin-modal-close" id="pfClose" aria-label="Cerrar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-    </div>
-
-    <div class="pf-body" id="pfBody">
-      <div class="pf-summary" id="pfSummary"></div>
-      <div class="pf-revision" id="pfRevision" hidden></div>
-
-      <div class="pf-tabs" role="tablist">
-        <button type="button" class="pf-tab active" data-tab="grad" role="tab">Graduación</button>
-        <button type="button" class="pf-tab" data-tab="exams" role="tab">Exámenes</button>
-        <button type="button" class="pf-tab" data-tab="compare" role="tab">Comparar</button>
-        <button type="button" class="pf-tab" data-tab="ante" role="tab">Antecedentes</button>
-      </div>
-
-      <section class="pf-pane" data-pane="grad" id="pfGrad"></section>
-      <section class="pf-pane" data-pane="exams" id="pfExams" hidden></section>
-      <section class="pf-pane" data-pane="compare" id="pfCompare" hidden></section>
-      <section class="pf-pane" data-pane="ante" id="pfAnte" hidden>
-        <form class="ante-form" id="anteForm" autocomplete="off">
-          <p class="ante-intro">Lo que no cambia en cada examen. Se guarda una vez y aparece siempre en su ficha.</p>
-          <div class="ante-checks">
-            <label class="ante-check"><input type="checkbox" name="diabetes"><span>Diabetes</span></label>
-            <label class="ante-check"><input type="checkbox" name="hipertension"><span>Hipertensión</span></label>
-            <label class="ante-check"><input type="checkbox" name="glaucoma_familiar"><span>Glaucoma en la familia</span></label>
-            <label class="ante-check"><input type="checkbox" name="lentes_contacto"><span>Usa lentes de contacto</span></label>
-            <label class="ante-check"><input type="checkbox" name="usa_lentes"><span>Usa lentes actualmente</span></label>
-            <label class="ante-check"><input type="checkbox" name="pantallas"><span>Muchas horas de pantalla</span></label>
-          </div>
-          <div class="ante-grid">
-            <label class="ante-field"><span>Cirugías oculares</span><input type="text" name="cirugias" placeholder="Ej. LASIK 2019, catarata OD…"></label>
-            <label class="ante-field"><span>Alergias</span><input type="text" name="alergias" placeholder="Ej. penicilina, polvo…"></label>
-            <label class="ante-field"><span>Medicamentos</span><input type="text" name="medicamentos" placeholder="Lo que toma actualmente"></label>
-            <label class="ante-field"><span>Otras enfermedades</span><input type="text" name="otras" placeholder="Ej. tiroides, migraña…"></label>
-          </div>
-          <label class="ante-field ante-field--full"><span>Notas</span><textarea name="notas" rows="3" placeholder="Cualquier cosa que convenga tener a la mano en su siguiente examen"></textarea></label>
-          <div class="ante-actions">
-            <span class="ante-meta" id="anteMeta"></span>
-            <button type="submit" class="btn solid thin" id="anteSaveBtn">Guardar antecedentes</button>
-          </div>
-        </form>
-      </section>
-    </div>
-  </div>
-</div>
+{{template "historial-clinico-contenido" .}}
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/optometrist/userbar-optometrist.js"></script>
+<script src="/static/js/optometrist/av-select.js"></script>
+<script src="/static/js/optometrist/examen-render.js"></script>
+<script src="/static/js/optometrist/examen-modal.js"></script>
 <script src="/static/js/optometrist/historial-clinico.js"></script>
 </body>
 </html>

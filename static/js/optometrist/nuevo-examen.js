@@ -129,6 +129,29 @@
   // Si llegó desde "Realizar examen" en la tarjeta de próxima cita, ya
   // sabemos nombre/apellido/teléfono (y userId si esa cita estaba
   // ligada a una cuenta) — se precargan para no volver a preguntarlos.
+  // La fecha del examen es la de hoy: se llena sola (venga o no de una
+  // cita) en el campo "fecha" de la plantilla — o en el campo cuya
+  // etiqueta sea FECHA, sin tocar "fecha de nacimiento". Si ya traía
+  // algo, no se cambia.
+  function todayLabel(){
+    var d = new Date();
+    return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  }
+  function prefillToday(){
+    var today = todayLabel();
+    (template.elements || []).forEach(function(el){
+      if (el.type !== 'text' || !el.fieldKey) return;
+      var key = el.fieldKey.toLowerCase();
+      if (/nac|cumple|ultimo|último|anterior|proxim|próxim/.test(key)) return;
+      var isFecha = /^fecha(_?(examen|hoy|consulta))?$/.test(key);
+      if (!isFecha){
+        var label = (findLabelFor(el) || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        isFecha = /^fecha(\s+(del?\s+)?(examen|hoy|consulta))?:?$/.test(label);
+      }
+      if (isFecha && !(values.fields[el.fieldKey] || '').trim()) values.fields[el.fieldKey] = today;
+    });
+  }
+
   function prefillFromQueryParams(){
     var params = new URLSearchParams(window.location.search);
     var nombre = params.get('nombre');
@@ -590,6 +613,7 @@
       template = t;
       formWrap.style.display = 'block';
       prefillFromQueryParams();
+      prefillToday();
       initWizard();
     })
     .catch(function(err){
