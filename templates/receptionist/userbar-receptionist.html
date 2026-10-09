@@ -45,6 +45,7 @@
       </div>
         <a href="/receptionist/citas" class="userbar-menu-link{{if eq .ActivePage "receptionist-citas"}} active{{end}}"><i data-feather="calendar"></i>Citas</a>
         {{if and .StaffRoleKey (eq .StaffRoleKey "receptionist")}}
+        <a href="/receptionist/historial-clinico" class="userbar-menu-link{{if eq .ActivePage "receptionist-historial"}} active{{end}}"><i data-feather="book-open"></i>Historial clínico</a>
         <a href="/receptionist/comunicacion" class="userbar-menu-link{{if eq .ActivePage "receptionist-comunicacion"}} active{{end}}"><i data-feather="message-circle"></i>Comunicación</a>
         {{end}}
       <div class="userbar-menu-divider"></div>
