@@ -27,11 +27,32 @@
 .cuenta-sidebar.shrink a.cuenta-brand{ gap:0; padding-left:0; padding-right:0; justify-content:center; }
 .cuenta-sidebar.shrink .cuenta-brand-text{ max-width:0; opacity:0; }
 @media (max-width:900px){
-  /* En el celular el sidebar es la barra horizontal: sin marca */
-  .cuenta-sidebar a.cuenta-brand{ display:none !important; }
+  /* Menú del celular: marca completa aunque en compu esté retraído */
+  .cuenta-sidebar.shrink a.cuenta-brand{ gap:12px; padding:4px 2px 16px; justify-content:flex-start; }
+  .cuenta-sidebar.shrink .cuenta-brand-text{ max-width:170px; opacity:1; }
 }
 </style>
+{{/* Celular (≤900px): botón de menú arriba a la izquierda + el mismo
+     sidebar como panel que se desliza desde la izquierda. En
+     computadora estos dos elementos no se ven. */}}
+<button type="button" class="mnav-toggle" id="mnavToggle" aria-label="Abrir menú" aria-controls="cuentaSidebar" aria-expanded="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/></svg>
+  {{if and .StaffRoleKey (eq .StaffRoleKey "optometrist")}}<span class="cuenta-nav-badge mnav-badge" data-chat-unread hidden></span>{{end}}
+</button>
+<div class="mnav-backdrop" id="mnavBackdrop"></div>
 <aside class="cuenta-sidebar" id="cuentaSidebar">
+  <div class="mnav-head">
+    <div class="mnav-who">
+      <span class="userbar-avatar">{{if .StaffInitials}}{{.StaffInitials}}{{else}}OP{{end}}</span>
+      <div>
+        <div class="mnav-name">{{if .StaffName}}{{.StaffName}}{{else}}Optometría{{end}}</div>
+        <div class="mnav-role">{{if .StaffRole}}{{.StaffRole}}{{else}}Optometría{{end}}</div>
+      </div>
+    </div>
+    <button type="button" class="mnav-close" id="mnavClose" aria-label="Cerrar menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
   <button type="button" class="cuenta-sidebar-toggle" id="sidebarToggle" aria-label="Colapsar menú" title="Colapsar">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
   </button>
