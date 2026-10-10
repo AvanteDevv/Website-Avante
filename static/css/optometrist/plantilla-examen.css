@@ -270,3 +270,36 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 }
 .tpl-align-btn:hover{ border-color:var(--blue-300); }
 .tpl-align-btn.active{ background:var(--blue-600); border-color:var(--blue-600); color:var(--on-accent); }
+/* =========================================================
+   CELULAR / TABLETA
+   - Herramientas y propiedades a todo lo ancho (no fijas).
+   - La hoja se escala para caber (ver fitCanvas en el JS).
+   - Arrastrar con el dedo mueve el elemento, no la página.
+   ========================================================= */
+@media (max-width:1200px){
+  .tpl-editor{ align-items:stretch; }
+  .tpl-toolbar, .tpl-props{ width:auto; position:static; }
+  .tpl-canvas-wrap{ width:100%; }
+}
+@media (max-width:900px){
+  .cuenta-header h1{ font-size:26px; }
+  .admin-header-actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; }
+  .admin-header-actions .btn{ padding:11px 10px; font-size:10.5px; letter-spacing:.5px; text-align:center; justify-content:center; }
+  .admin-header-actions #saveBtn{ grid-column:1 / -1; padding:13px; }
+  .tpl-editor{ gap:14px; }
+  .tpl-toolbar{ display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:14px; }
+  .tpl-toolbar h3, .tpl-toolbar-sep, .tpl-guides-toggle, .tpl-list, .tpl-tool-btn--new{ grid-column:1 / -1; }
+  .tpl-tool-btn{ padding:12px; }
+  .tpl-canvas-wrap{ padding:12px; direction:ltr; border-radius:18px; }
+  .tpl-canvas-wrap.is-fit{ overflow:hidden; }
+  .tpl-el{ touch-action:none; }
+  /* El lienzo está escalado: --tpl-inv (=1/escala) mantiene el punto
+     de redimensionar del tamaño de un dedo. */
+  .tpl-el .tpl-resize-handle{
+    width:calc(24px * var(--tpl-inv, 1)); height:calc(24px * var(--tpl-inv, 1));
+    right:calc(-12px * var(--tpl-inv, 1)); bottom:calc(-12px * var(--tpl-inv, 1));
+    border-width:calc(2px * var(--tpl-inv, 1)); touch-action:none;
+  }
+  .tpl-el.selected{ box-shadow:0 0 0 calc(3px * var(--tpl-inv, 1)) var(--blue-100); border-width:calc(1.5px * var(--tpl-inv, 1)); }
+  .tpl-props{ padding:14px; }
+}

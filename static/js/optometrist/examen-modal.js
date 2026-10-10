@@ -132,7 +132,10 @@ window.AvanteExamModal = (function(){
   function fit(){
     if (!current || !current.template) return;
     var w = current.template.canvasW || 816, h = current.template.canvasH || 1056;
-    var avail = scaleEl.parentNode.clientWidth - 2;
+    // clientWidth incluye el padding del cuerpo del modal: se descuenta
+    // para que en el celular la hoja no se corte a la derecha.
+    var body = scaleEl.parentNode, cs = getComputedStyle(body);
+    var avail = body.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0) - 2;
     var s = Math.min(1, avail / w);
     sheetEl.style.transform = s < 1 ? 'scale(' + s + ')' : '';
     scaleEl.style.width = Math.floor(w * s) + 'px';

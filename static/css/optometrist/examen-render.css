@@ -165,6 +165,8 @@
 @media print{
   .header-outer, .cuenta-sidebar, .cuenta-header, .tpl-status, .admin-header-actions{ display:none !important; }
   .exf-canvas-wrap{ padding:0 !important; overflow:visible !important; }
+  .mnav-toggle, .mnav-backdrop{ display:none !important; }
+  #examCanvas{ transform:none !important; margin:0 !important; }
   .exf-canvas, .exf-canvas *{
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }

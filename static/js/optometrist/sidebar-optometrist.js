@@ -1,7 +1,7 @@
 /* =========================================================
    OPTOMETRÍA SIDEBAR — colapsar/expandir, burbuja gooey al
-   hacer hover, y el toggle de tema claro/oscuro.
-   Copia exacta de sidebar-receptionist.js — no requiere cambios.
+   hacer hover, toggle de tema y el menú lateral del celular.
+   Copia exacta de sidebar-receptionist.js.
    ========================================================= */
 
 /* ---------- Colapsar/expandir + burbuja gooey ---------- */
@@ -94,5 +94,58 @@
     document.body.classList.toggle('dark', input.checked);
     label.classList.toggle('switched', input.checked);
     try { localStorage.setItem(KEY, input.checked ? 'dark' : 'light'); } catch (e) { /* se ignora */ }
+  });
+})();
+
+/* ---------- Celular: abrir / cerrar el menú lateral ---------- */
+(function () {
+  var toggle = document.getElementById('mnavToggle');
+  var sidebar = document.getElementById('cuentaSidebar');
+  var backdrop = document.getElementById('mnavBackdrop');
+  var closeBtn = document.getElementById('mnavClose');
+  if (!toggle || !sidebar) return;
+
+  var mq = window.matchMedia('(max-width: 900px)');
+
+  function open() {
+    document.body.classList.add('mnav-open');
+    toggle.setAttribute('aria-expanded', 'true');
+    // Cierra el menú de usuario / campanita si estaban abiertos.
+    var ub = document.getElementById('userbar');
+    if (ub) ub.classList.remove('is-open');
+    var bell = document.getElementById('staffBell');
+    if (bell) bell.classList.remove('is-open');
+    setTimeout(function () { if (closeBtn) closeBtn.focus(); }, 60);
+  }
+  function close() {
+    if (!document.body.classList.contains('mnav-open')) return;
+    document.body.classList.remove('mnav-open');
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+
+  toggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    document.body.classList.contains('mnav-open') ? close() : open();
+  });
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  if (backdrop) backdrop.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  // Al elegir una página se cierra (la navegación sigue normal).
+  sidebar.querySelectorAll('a.cuenta-nav-link').forEach(function (a) {
+    a.addEventListener('click', function () { if (mq.matches) close(); });
+  });
+  // Si se agranda la pantalla con el menú abierto, se limpia el estado.
+  (mq.addEventListener ? mq.addEventListener.bind(mq, 'change') : mq.addListener.bind(mq))(function () {
+    if (!mq.matches) close();
+  });
+
+  // Deslizar hacia la izquierda sobre el menú lo cierra.
+  var startX = null;
+  sidebar.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+  sidebar.addEventListener('touchend', function (e) {
+    if (startX === null) return;
+    var dx = e.changedTouches[0].clientX - startX;
+    startX = null;
+    if (dx < -60) close();
   });
 })();

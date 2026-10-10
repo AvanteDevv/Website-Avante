@@ -95,10 +95,46 @@
     renderTplList();
   }
 
+  /* ---------- celular: la hoja se encoge para caber a lo ancho ----------
+     En pantallas ≤900px el lienzo se escala (transform) para que se vea
+     la hoja completa sin arrastrar de lado. Las coordenadas guardadas no
+     cambian: al arrastrar se divide entre la escala. "Ver tamaño
+     completo" la regresa a 100% (con scroll). */
+  var canvasScale = 1;
+  var mqMobile = window.matchMedia('(max-width: 900px)');
+  function fitCanvas(){
+    var wrap = canvas.parentElement;
+    if (!wrap) return;
+    var k = 1;
+    var full = document.querySelector('.tpl-editor.is-fullview');
+    if (mqMobile.matches && !full){
+      var cs = getComputedStyle(wrap);
+      var avail = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      if (avail > 0 && state.canvasW > avail) k = avail / state.canvasW;
+    }
+    canvasScale = k;
+    if (k === 1){
+      canvas.style.transform = '';
+      canvas.style.marginRight = '';
+      canvas.style.marginBottom = '';
+      canvas.style.removeProperty('--tpl-inv');
+    } else {
+      canvas.style.setProperty('--tpl-inv', (1 / k).toFixed(3));
+      canvas.style.transformOrigin = '0 0';
+      canvas.style.transform = 'scale(' + k + ')';
+      canvas.style.marginRight = (state.canvasW * (k - 1)) + 'px';
+      canvas.style.marginBottom = (state.canvasH * (k - 1)) + 'px';
+    }
+    wrap.classList.toggle('is-fit', k !== 1);
+  }
+  window.addEventListener('resize', function(){ fitCanvas(); });
+
   function resetCanvasScroll(){
     var wrap = canvas.parentElement;
     if (!wrap) return;
+    fitCanvas();
     wrap.scrollTop = 0;
+    if (canvasScale !== 1){ wrap.scrollLeft = 0; return; }
     // El wrap está en direction:rtl (truco para que el borde izquierdo del
     // lienzo sea alcanzable por scroll). Eso invierte a qué extremo
     // apunta scrollLeft=0 según el navegador — probamos con un valor
@@ -196,7 +232,7 @@
         rmCol.className = 'tpl-table-rm tpl-table-rm-col';
         rmCol.textContent = '×';
         rmCol.title = 'Eliminar columna';
-        rmCol.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+        rmCol.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
         rmCol.addEventListener('click', function(e){
           e.stopPropagation();
           el.headers.splice(colIndex, 1);
@@ -232,7 +268,7 @@
           rmRow.className = 'tpl-table-rm tpl-table-rm-row';
           rmRow.textContent = '×';
           rmRow.title = 'Eliminar fila';
-          rmRow.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+          rmRow.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
           rmRow.addEventListener('click', function(e){
             e.stopPropagation();
             el.rowLabels.splice(rowIndex, 1);
@@ -265,7 +301,7 @@
       addCol.type = 'button';
       addCol.className = 'tpl-table-add tpl-table-add-col';
       addCol.textContent = '+ columna';
-      addCol.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+      addCol.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
       addCol.addEventListener('click', function(e){
         e.stopPropagation();
         el.headers = el.headers || [];
@@ -279,7 +315,7 @@
       addRow.type = 'button';
       addRow.className = 'tpl-table-add tpl-table-add-row';
       addRow.textContent = '+ fila';
-      addRow.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+      addRow.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
       addRow.addEventListener('click', function(e){
         e.stopPropagation();
         el.rowLabels = el.rowLabels || [];
@@ -326,51 +362,59 @@
 
   /* ---------- arrastrar ---------- */
   function bindDrag(node, el){
-    node.addEventListener('mousedown', function(e){
+    node.addEventListener('pointerdown', function(e){
+      if (e.button) return;
       if (e.target.classList.contains('tpl-resize-handle')) return;
       if (e.target.closest && e.target.closest('[contenteditable="true"]')) return;
       e.preventDefault();
       state.selectedId = el.id;
       var startX = e.clientX, startY = e.clientY;
       var origX = el.x, origY = el.y;
+      var k = canvasScale;
 
       function onMove(ev){
-        var dx = ev.clientX - startX, dy = ev.clientY - startY;
+        var dx = (ev.clientX - startX) / k, dy = (ev.clientY - startY) / k;
         el.x = Math.max(0, Math.min(state.canvasW - el.w, origX + dx));
         el.y = Math.max(0, Math.min(state.canvasH - el.h, origY + dy));
         node.style.left = el.x + 'px';
         node.style.top = el.y + 'px';
       }
       function onUp(){
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
         render();
       }
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
     });
   }
 
   /* ---------- redimensionar ---------- */
   function bindResize(handle, el){
-    handle.addEventListener('mousedown', function(e){
+    handle.addEventListener('pointerdown', function(e){
+      if (e.button) return;
       e.preventDefault();
       e.stopPropagation();
       var startX = e.clientX, startY = e.clientY;
       var origW = el.w, origH = el.h;
+      var k = canvasScale;
 
       function onMove(ev){
-        var dx = ev.clientX - startX, dy = ev.clientY - startY;
+        var dx = (ev.clientX - startX) / k, dy = (ev.clientY - startY) / k;
         el.w = Math.max(20, Math.min(state.canvasW - el.x, origW + dx));
         el.h = Math.max(10, Math.min(state.canvasH - el.y, origH + dy));
         render();
       }
       function onUp(){
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
       }
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
     });
   }
 
@@ -672,7 +716,7 @@
       resetCanvasScroll();
       refreshTplList();
     })
-    .catch(function(){ render(); refreshTplList(); });
+    .catch(function(){ render(); resetCanvasScroll(); refreshTplList(); });
 
   if (window.feather) feather.replace();
 
@@ -736,6 +780,7 @@
     isFullView = !isFullView;
     tplEditorEl.classList.toggle('is-fullview', isFullView);
     fullViewBtn.textContent = isFullView ? 'Salir de tamaño completo' : 'Ver tamaño completo';
+    resetCanvasScroll();
   });
 
   document.getElementById('printBtn').addEventListener('click', function(){

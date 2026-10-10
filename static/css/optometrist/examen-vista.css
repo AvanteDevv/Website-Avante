@@ -468,3 +468,12 @@ body.dark .origin-tag.is-cita{ color:#aab2ff; }
   .today-appt.is-now .today-appt-btn{ animation:none; }
   .btn.solid::after{ transition:none; }
 }
+/* =========================================================
+   CELULAR: botones del encabezado a todo lo ancho (Nuevo examen,
+   Cancelar / Atrás / Siguiente, Volver / Imprimir / PDF…)
+   ========================================================= */
+@media (max-width:620px){
+  .admin-header-row{ align-items:stretch; }
+  .admin-header-actions{ display:flex; flex-wrap:wrap; width:100%; gap:8px; }
+  .admin-header-actions .btn{ flex:1 1 auto; justify-content:center; text-align:center; padding-left:14px; padding-right:14px; }
+}
