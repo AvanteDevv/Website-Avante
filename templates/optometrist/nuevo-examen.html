@@ -60,11 +60,15 @@
 
     <div id="examFormWrap" style="display:none;">
       <div class="exam-wizard-card" id="examWizardStep"></div>
+      <p class="exam-keys-hint exam-keys-hint--pasos"><kbd>Enter</kbd> siguiente · <kbd>Shift</kbd> <kbd>Shift</kbd> terminar examen</p>
 
       <!-- Modo "Sobre la hoja": el mismo formato de la plantilla con
            los campos editables; Enter salta al siguiente campo. -->
       <div class="exam-sheet" id="examSheetWrap" hidden>
-        <p class="exam-sheet-hint">Escribe directo en la hoja. <kbd>Enter</kbd> pasa al siguiente campo.</p>
+        <div class="exam-sheet-hint">
+          <p class="exam-keys-hint"><kbd>Enter</kbd> siguiente campo · <kbd>Shift</kbd>+<kbd>Enter</kbd> anterior · <kbd>Shift</kbd> <kbd>Shift</kbd> terminar examen</p>
+          <button type="button" class="exam-sheet-zoombtn" id="examSheetZoomBtn"></button>
+        </div>
         <div class="exf-canvas-wrap exam-sheet-scroll">
           <div class="exam-sheet-scale" id="examSheetScale"><div id="examSheetCanvas"></div></div>
         </div>

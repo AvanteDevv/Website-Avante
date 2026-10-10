@@ -87,7 +87,8 @@
           .then(function(res){ if (!res.ok) throw new Error(); return res.json(); })
           .then(function(matches){
             closePatientDropdown();
-            if (!matches.length) return;
+            // Si ya se pasó a otro campo (Enter rápido), no abre la lista.
+            if (!matches.length || document.activeElement !== input) return;
 
             patientDropdown = document.createElement('div');
             patientDropdown.className = 'patient-search-dropdown';
@@ -415,7 +416,9 @@
       updateNavButtons();
       updateSheetBar();
       var first = firstEmptySheetInput();
-      if (first && !isSheetMobile()) first.focus({ preventScroll: true });
+      // Zoom directo al primer campo vacío (p. ej. la fecha ya viene
+      // puesta, así que arranca en el siguiente).
+      if (first) first.focus({ preventScroll: true });
     } else {
       sheetWrap.hidden = true;
       sheetCanvas.innerHTML = '';
@@ -496,39 +499,196 @@
     fitSheet();
   }
 
-  // La hoja mide 816px; en pantallas más angostas se escala para que
-  // quepa completa sin scroll de lado. En el celular, con la "lupa"
-  // puesta, va a tamaño real (se lee sin hacer zoom) y la vista sigue
-  // al campo que se está llenando.
-  function fitSheet(){
-    if (!template || sheetWrap.hidden) return;
-    var w = template.canvasW || 816, h = template.canvasH || 1056;
-    var avail = sheetScale.parentNode.clientWidth;
-    var s = avail && avail < w ? avail / w : 1;
-    var lupa = isSheetMobile() && sheetZoom === 'lupa';
-    if (lupa) s = 1;
-    sheetWrap.classList.toggle('is-lupa', lupa && avail < w);
-    sheetCanvas.style.transform = s < 1 ? 'scale(' + s + ')' : '';
-    sheetScale.style.width = Math.floor(w * s) + 'px';
-    sheetScale.style.height = Math.ceil(h * s) + 'px';
-  }
-
-  /* ---------- Celular: lupa + barra de campos ----------
-     - "Lupa" (por defecto): la hoja a tamaño real; al tocar o pasar a
-       un campo, la vista se centra en él (de lado y de arriba a abajo).
-     - "Hoja completa": la hoja encogida para verla toda; tocar un campo
-       regresa a la lupa en ese campo.
-     - Barra fija abajo (arriba del teclado): qué campo es, ‹ › para
-       moverse sin cerrar el teclado, y el botón para alternar la vista. */
+  /* =========================================================
+     Zoom automático sobre la hoja ("lupa")
+     La hoja se ve dentro de un recuadro y se acerca al campo que se
+     está llenando; con Enter (o ‹ › en el celular) la vista se va
+     deslizando al siguiente. Es una "cámara": la hoja se mueve con
+     transform (translate + scale) — las coordenadas guardadas no
+     cambian. "Hoja completa" la muestra toda; tocar o hacer clic en
+     un campo regresa al zoom en ese campo.
+     ========================================================= */
   var mqSheetMobile = window.matchMedia('(max-width: 900px)');
   function isSheetMobile(){ return mqSheetMobile.matches; }
-  var sheetZoom = 'lupa'; // 'lupa' | 'hoja'
+  var LUPA_DESKTOP = 1.7;   // ~22px la letra de la hoja en compu
+  var LUPA_MOBILE = 1.05;   // tamaño real en el celular
+  var sheetZoom = 'lupa';   // 'lupa' | 'hoja'
   var sheetCurrent = null;
+  var cam = { k: 1, x: 0, y: 0 };
   var sheetLabels = typeof WeakMap === 'function' ? new WeakMap() : null;
-  var sheetBar = null, sheetBarLabel = null, sheetBarCount = null, sheetBarZoom = null;
+  var sheetBar = null, sheetBarLabel = null, sheetBarCount = null, sheetBarZoom = null, sheetBarNext = null;
+  var zoomToggleBtn = document.getElementById('examSheetZoomBtn');
 
+  function sheetW(){ return (template && template.canvasW) || 816; }
+  function sheetH(){ return (template && template.canvasH) || 1056; }
+  function lupaScale(){ return isSheetMobile() ? LUPA_MOBILE : LUPA_DESKTOP; }
+  function camMargin(){ return isSheetMobile() ? 12 : 24; }
+
+  function applyCam(){
+    sheetCanvas.style.transform = 'translate(' + Math.round(cam.x) + 'px,' + Math.round(cam.y) + 'px) scale(' + cam.k + ')';
+    // El navegador "desplaza" el recuadro al enfocar un campo aunque
+    // tenga overflow:hidden; aquí manda la cámara.
+    sheetScale.scrollLeft = 0; sheetScale.scrollTop = 0;
+  }
+  sheetScale.addEventListener('scroll', function(){
+    if (sheetScale.scrollLeft || sheetScale.scrollTop){ sheetScale.scrollLeft = 0; sheetScale.scrollTop = 0; }
+  });
+  sheetCanvas.addEventListener('transitionend', function(e){
+    if (e.target === sheetCanvas) positionPatientDropdown();
+  });
+
+  function clampAxis(v, view, size){
+    var m = camMargin();
+    if (size + 2 * m <= view) return (view - size) / 2;
+    return Math.min(m, Math.max(view - size - m, v));
+  }
+  function clampCam(){
+    cam.x = clampAxis(cam.x, sheetScale.clientWidth, sheetW() * cam.k);
+    cam.y = clampAxis(cam.y, sheetScale.clientHeight, sheetH() * cam.k);
+  }
+
+  // Posición del campo dentro de la hoja (sin escala).
+  function posInSheet(el){
+    var x = 0, y = 0, n = el;
+    while (n && n !== sheetCanvas){ x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    return { x: x, y: y, w: el.offsetWidth, h: el.offsetHeight };
+  }
+
+  // Franja del recuadro que de verdad se ve (en el celular el teclado y
+  // la barra de abajo tapan parte).
+  function visibleBand(){
+    var vpH = sheetScale.clientHeight;
+    if (!isSheetMobile()) return { top: 0, bottom: vpH };
+    var br = sheetScale.getBoundingClientRect();
+    var vvH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    var barH = sheetBar && !sheetBar.hidden ? sheetBar.offsetHeight + 18 : 0;
+    var top = Math.max(0, 62 - br.top);
+    var bottom = Math.min(vpH, vvH - barH - br.top);
+    if (bottom - top < 80){ top = 0; bottom = vpH; }
+    return { top: top, bottom: bottom };
+  }
+
+  function aimAt(input){
+    if (sheetZoom !== 'lupa') return;
+    cam.k = lupaScale();
+    var vpW = sheetScale.clientWidth;
+    if (input && sheetCanvas.contains(input)){
+      var f = posInSheet(input);
+      var m = camMargin();
+      var tableEl = input.classList.contains('exf-cell-input') ? input.closest('.exf-el') : null;
+      var t = tableEl ? posInSheet(tableEl) : null;
+      if (t && t.w * cam.k + 2 * m <= vpW){
+        // Celda de tabla: si la tabla cabe completa, se ve toda (con
+        // OD/OI y los encabezados) y no solo la celda.
+        cam.x = Math.max(m, (vpW - t.w * cam.k) / 2) - t.x * cam.k;
+      } else {
+        // De lado: el campo arranca un poco a la derecha para que se vea
+        // su etiqueta (NOMBRE, TEL, OD…), que en la hoja va a la izquierda.
+        var pad = Math.min(isSheetMobile() ? 125 : 220, vpW * 0.32);
+        if (t) pad = Math.min(pad, 90);
+        cam.x = pad - f.x * cam.k;
+        // Que el campo no quede cortado a la derecha si cabe.
+        var right = cam.x + (f.x + f.w) * cam.k;
+        if (right > vpW - m && f.w * cam.k + 2 * m <= vpW) cam.x -= right - (vpW - m);
+      }
+      var band = visibleBand();
+      cam.y = (band.top + band.bottom) / 2 - (f.y + f.h / 2) * cam.k;
+    } else {
+      cam.x = camMargin(); cam.y = camMargin();
+    }
+    clampCam();
+    applyCam();
+  }
+
+  function fitSheet(){
+    if (!template || sheetWrap.hidden) return;
+    var w = sheetW(), h = sheetH();
+    var lupa = sheetZoom === 'lupa';
+    sheetWrap.classList.toggle('is-lupa', lupa);
+    if (zoomToggleBtn){
+      zoomToggleBtn.innerHTML = lupa ? ICON_ZOOM_OUT + '<span>Ver hoja completa</span>' : ICON_ZOOM_IN + '<span>Acercar al campo</span>';
+    }
+    if (lupa){
+      sheetScale.style.width = '';
+      sheetScale.style.height = '';
+      aimAt(sheetCurrent);
+    } else {
+      var avail = sheetScale.parentNode.clientWidth;
+      var k = avail && avail < w ? avail / w : 1;
+      cam = { k: k, x: 0, y: 0 };
+      sheetScale.style.width = Math.floor(w * k) + 'px';
+      sheetScale.style.height = Math.ceil(h * k) + 'px';
+      applyCam();
+    }
+  }
+
+  function setSheetZoom(z){
+    sheetZoom = z;
+    fitSheet();
+    updateSheetBar();
+  }
+
+  if (zoomToggleBtn){
+    zoomToggleBtn.addEventListener('click', function(){
+      if (sheetZoom === 'lupa'){
+        setSheetZoom('hoja');
+      } else {
+        setSheetZoom('lupa');
+        var target = sheetCurrent || firstEmptySheetInput() || sheetInputs[0];
+        if (target){ target.focus({ preventScroll: true }); target.select(); }
+      }
+    });
+  }
+
+  // Que el recuadro quede a la vista antes de acercar.
+  function revealSheetBox(){
+    var br = sheetScale.getBoundingClientRect();
+    var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    var topGap = isSheetMobile() ? 64 : 90;
+    if (br.top < topGap - 4 || br.bottom > vh + 4){
+      var target = window.scrollY + br.top - topGap;
+      window.scrollTo({ top: Math.max(0, target), behavior: isSheetMobile() ? 'auto' : 'smooth' });
+    }
+  }
+
+  // Arrastrar (dedo o mouse) mueve la hoja; la rueda también.
+  var pan = null;
+  sheetScale.addEventListener('pointerdown', function(e){
+    if (sheetZoom !== 'lupa' || e.button || (e.target.closest && e.target.closest('input'))) return;
+    pan = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: false };
+  });
+  window.addEventListener('pointermove', function(e){
+    if (!pan) return;
+    var dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+    if (!pan.moved && Math.abs(dx) + Math.abs(dy) < 6) return;
+    pan.moved = true;
+    sheetWrap.classList.add('is-panning');
+    cam.x = pan.cx + dx; cam.y = pan.cy + dy;
+    clampCam(); applyCam(); positionPatientDropdown();
+  });
+  function endPan(){ if (pan){ pan = null; sheetWrap.classList.remove('is-panning'); } }
+  window.addEventListener('pointerup', endPan);
+  window.addEventListener('pointercancel', endPan);
+  var wheelT = null;
+  sheetScale.addEventListener('wheel', function(e){
+    if (sheetZoom !== 'lupa') return;
+    var ox = cam.x, oy = cam.y;
+    cam.x -= e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;
+    cam.y -= e.shiftKey && !e.deltaX ? 0 : e.deltaY;
+    clampCam();
+    if (cam.x === ox && cam.y === oy) return; // en la orilla: deja bajar la página
+    e.preventDefault();
+    sheetWrap.classList.add('is-panning');
+    applyCam(); positionPatientDropdown();
+    clearTimeout(wheelT);
+    wheelT = setTimeout(function(){ sheetWrap.classList.remove('is-panning'); }, 120);
+  }, { passive: false });
+
+  /* ---------- Barra del celular (arriba del teclado) ---------- */
   var ICON_ZOOM_OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
   var ICON_ZOOM_IN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg>';
+  var ICON_NEXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  var ICON_DONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 
   function buildSheetBar(){
     if (sheetBar) return;
@@ -539,11 +699,12 @@
       '<button type="button" class="sheet-bar-btn sheet-bar-zoom" aria-label="Ver hoja completa"></button>' +
       '<div class="sheet-bar-info"><small class="sheet-bar-count"></small><strong class="sheet-bar-label"></strong></div>' +
       '<button type="button" class="sheet-bar-btn" data-dir="-1" aria-label="Campo anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>' +
-      '<button type="button" class="sheet-bar-btn sheet-bar-next" data-dir="1" aria-label="Campo siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
+      '<button type="button" class="sheet-bar-btn sheet-bar-next" data-dir="1" aria-label="Campo siguiente"></button>';
     document.body.appendChild(sheetBar);
     sheetBarLabel = sheetBar.querySelector('.sheet-bar-label');
     sheetBarCount = sheetBar.querySelector('.sheet-bar-count');
     sheetBarZoom = sheetBar.querySelector('.sheet-bar-zoom');
+    sheetBarNext = sheetBar.querySelector('.sheet-bar-next');
 
     // pointerdown + preventDefault: el campo no pierde el foco, así el
     // teclado no se cierra al tocar ‹ ›.
@@ -554,25 +715,26 @@
       var nav = e.target.closest('[data-dir]');
       if (nav){
         var dir = +nav.dataset.dir;
-        var from = sheetCurrent && sheetInputs.indexOf(sheetCurrent) >= 0 ? sheetCurrent : null;
-        if (!from){
+        var idx = sheetCurrent ? sheetInputs.indexOf(sheetCurrent) : -1;
+        if (idx < 0){
           var first = firstEmptySheetInput() || sheetInputs[0];
-          if (first){ first.focus(); first.select(); }
+          if (first){ first.focus({ preventScroll: true }); first.select(); }
           return;
         }
         closePatientDropdown();
-        focusNextSheetInput(from, dir);
+        if (dir > 0 && idx === sheetInputs.length - 1){ finishExam(); return; } // ✓ en el último
+        focusNextSheetInput(sheetCurrent, dir);
         return;
       }
       if (e.target.closest('.sheet-bar-zoom')){
         if (sheetZoom === 'lupa'){
-          setSheetZoom('hoja');
           if (document.activeElement && sheetCanvas.contains(document.activeElement)) document.activeElement.blur();
+          setSheetZoom('hoja');
           sheetWrap.scrollIntoView({ block: 'start', behavior: 'smooth' });
         } else {
           setSheetZoom('lupa');
           var target = sheetCurrent || firstEmptySheetInput() || sheetInputs[0];
-          if (target){ target.focus(); target.select(); }
+          if (target){ target.focus({ preventScroll: true }); target.select(); }
         }
       }
     });
@@ -584,15 +746,13 @@
         var off = window.innerHeight - vv.height - vv.offsetTop;
         sheetBar.style.transform = off > 1 ? 'translateY(' + (-off) + 'px)' : '';
       };
-      window.visualViewport.addEventListener('resize', place);
+      window.visualViewport.addEventListener('resize', function(){
+        place();
+        // El teclado abrió/cerró: re-centra el campo en lo que se ve.
+        if (sheetZoom === 'lupa' && sheetCurrent && document.activeElement === sheetCurrent) aimAt(sheetCurrent);
+      });
       window.visualViewport.addEventListener('scroll', place);
     }
-  }
-
-  function setSheetZoom(z){
-    sheetZoom = z;
-    fitSheet();
-    updateSheetBar();
   }
 
   // iPhone hace zoom solo al enfocar un campo con letra chica; con la
@@ -614,48 +774,61 @@
     sheetBar.hidden = false;
     var lupa = sheetZoom === 'lupa';
     sheetBarZoom.innerHTML = lupa ? ICON_ZOOM_OUT : ICON_ZOOM_IN;
-    sheetBarZoom.setAttribute('aria-label', lupa ? 'Ver hoja completa' : 'Ampliar');
+    sheetBarZoom.setAttribute('aria-label', lupa ? 'Ver hoja completa' : 'Acercar');
     sheetBarZoom.classList.toggle('is-on', !lupa);
     var i = sheetCurrent ? sheetInputs.indexOf(sheetCurrent) : -1;
+    var last = i >= 0 && i === sheetInputs.length - 1;
+    sheetBarNext.innerHTML = last ? ICON_DONE : ICON_NEXT;
+    sheetBarNext.setAttribute('aria-label', last ? 'Terminar examen' : 'Campo siguiente');
+    sheetBarNext.classList.toggle('is-done', last);
     if (i >= 0){
       sheetBarCount.textContent = 'Campo ' + (i + 1) + ' de ' + sheetInputs.length;
       sheetBarLabel.textContent = (sheetLabels && sheetLabels.get(sheetCurrent)) || 'Campo';
     } else {
       sheetBarCount.textContent = sheetInputs.length + ' campos';
-      sheetBarLabel.textContent = lupa ? 'Toca un campo para llenarlo' : 'Toca un campo para ampliarlo';
+      sheetBarLabel.textContent = lupa ? 'Toca un campo para llenarlo' : 'Toca un campo para acercarte';
     }
   }
 
-  function centerOnInput(input){
-    // Lleva la vista al campo: de lado dentro de la hoja y de arriba a
-    // abajo en la página, dejando lugar para la barra de abajo.
-    var scroller = sheetScale.parentNode;
-    var ir = input.getBoundingClientRect(), sr = scroller.getBoundingClientRect();
-    // De lado: el campo arranca un poco a la derecha para que se vea su
-    // etiqueta (NOMBRE, OD, ESF…), que en la hoja va a la izquierda.
-    var pad = Math.min(130, scroller.clientWidth * 0.32);
-    var left = scroller.scrollLeft + (ir.left - sr.left) - pad;
-    scroller.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
-    var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    var barH = sheetBar && !sheetBar.hidden ? sheetBar.offsetHeight : 0;
-    var top = window.scrollY + ir.top - (vh - barH) / 2 + ir.height / 2;
-    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-  }
-
+  // Al llegar a un campo (Enter, clic, toque o ‹ ›): zoom ahí.
   sheetCanvas.addEventListener('focusin', function(e){
     var t = e.target;
     if (!t.matches || !t.matches('input')) return;
     sheetCurrent = t;
-    if (!isSheetMobile()) return;
     if (sheetZoom !== 'lupa'){ sheetZoom = 'lupa'; fitSheet(); }
+    revealSheetBox();
+    aimAt(t);
     updateSheetBar();
-    // Espera a que el teclado termine de abrir para centrar.
-    setTimeout(function(){ if (document.activeElement === t) centerOnInput(t); }, 60);
-    setTimeout(function(){ if (document.activeElement === t) centerOnInput(t); }, 380);
+    if (isSheetMobile()){
+      // Re-centra cuando el teclado termina de abrir.
+      setTimeout(function(){ if (document.activeElement === t) aimAt(t); }, 350);
+    }
   });
 
   mqSheetMobile.addEventListener ? mqSheetMobile.addEventListener('change', function(){ fitSheet(); updateSheetBar(); })
                                  : mqSheetMobile.addListener(function(){ fitSheet(); updateSheetBar(); });
+
+  /* ---------- Terminar el examen: Shift dos veces ----------
+     Dos Shift seguidos (sin otra tecla en medio, en menos de medio
+     segundo) guardan el examen, en cualquiera de los dos modos. */
+  function finishExam(){
+    if (!template) return;
+    closePatientDropdown();
+    saveExam();
+  }
+  var lastShiftAt = 0;
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Shift'){ lastShiftAt = 0; return; }
+    if (e.repeat) return;
+    var now = Date.now();
+    if (lastShiftAt && now - lastShiftAt < 450){
+      lastShiftAt = 0;
+      if (formWrap.style.display !== 'none' && template) finishExam();
+      return;
+    }
+    lastShiftAt = now;
+  });
+  document.addEventListener('mousedown', function(){ lastShiftAt = 0; });
 
   function firstEmptySheetInput(){
     for (var i = 0; i < sheetInputs.length; i++){
@@ -668,13 +841,8 @@
     var i = sheetInputs.indexOf(from);
     var next = sheetInputs[i + dir];
     if (next){
-      next.focus();
+      next.focus({ preventScroll: true }); // el zoom lo hace el focusin
       next.select();
-      if (isSheetMobile()) return; // en el celular lo centra el focusin (lupa)
-      var r = next.getBoundingClientRect();
-      if (r.top < 70 || r.bottom > window.innerHeight - 20){
-        next.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }
     } else if (dir > 0){
       nextBtn.focus(); // ya era el último: el siguiente Enter guarda
     }
@@ -728,8 +896,7 @@
       if (mode === 'hoja'){
         var ni = sheetCanvas.querySelector('.exf-input[data-field-key="nombre"]');
         if (ni){
-          ni.scrollIntoView({ block: 'center', behavior: 'smooth' });
-          ni.focus();
+          ni.focus({ preventScroll: true }); // el focusin hace zoom al nombre
           var holder = ni.closest('.exf-el');
           holder.classList.add('exam-step-shake', 'exam-sheet-missing');
           setTimeout(function(){ holder.classList.remove('exam-step-shake'); }, 400);
