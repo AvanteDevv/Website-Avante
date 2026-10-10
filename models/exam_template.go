@@ -42,6 +42,7 @@ type ExamTemplate struct {
 	CanvasH   int             `json:"canvasH"`
 	Elements  json.RawMessage `json:"elements"`
 	IsActive  bool            `json:"isActive"`
+	Kind      string          `json:"kind"` // "" = examen / historia clínica, "laboratorio" = orden de laboratorio
 	CreatedAt time.Time       `json:"createdAt"`
 	UpdatedAt time.Time       `json:"updatedAt"`
 }
@@ -121,9 +122,9 @@ func GetExamTemplateByID(id int64) (*ExamTemplate, error) {
 	var t ExamTemplate
 	var raw []byte
 	err := db.DB.QueryRow(
-		"SELECT id, name, canvas_w, canvas_h, elements, is_active, created_at, updated_at FROM exam_templates WHERE id = ?",
+		"SELECT id, name, canvas_w, canvas_h, elements, is_active, kind, created_at, updated_at FROM exam_templates WHERE id = ?",
 		id,
-	).Scan(&t.ID, &t.Name, &t.CanvasW, &t.CanvasH, &raw, &t.IsActive, &t.CreatedAt, &t.UpdatedAt)
+	).Scan(&t.ID, &t.Name, &t.CanvasW, &t.CanvasH, &raw, &t.IsActive, &t.Kind, &t.CreatedAt, &t.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, ErrExamTemplateNotFound
 	}
@@ -140,8 +141,8 @@ func GetActiveExamTemplate() (*ExamTemplate, error) {
 	var t ExamTemplate
 	var raw []byte
 	err := db.DB.QueryRow(
-		"SELECT id, name, canvas_w, canvas_h, elements, is_active, created_at, updated_at FROM exam_templates WHERE is_active = TRUE LIMIT 1",
-	).Scan(&t.ID, &t.Name, &t.CanvasW, &t.CanvasH, &raw, &t.IsActive, &t.CreatedAt, &t.UpdatedAt)
+		"SELECT id, name, canvas_w, canvas_h, elements, is_active, kind, created_at, updated_at FROM exam_templates WHERE is_active = TRUE AND kind <> 'laboratorio' LIMIT 1",
+	).Scan(&t.ID, &t.Name, &t.CanvasW, &t.CanvasH, &raw, &t.IsActive, &t.Kind, &t.CreatedAt, &t.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, ErrExamTemplateNotFound
 	}
@@ -157,7 +158,7 @@ func GetActiveExamTemplate() (*ExamTemplate, error) {
 // más de una guardada.
 func ListExamTemplates() ([]ExamTemplate, error) {
 	rows, err := db.DB.Query(
-		"SELECT id, name, canvas_w, canvas_h, elements, is_active, created_at, updated_at FROM exam_templates ORDER BY updated_at DESC",
+		"SELECT id, name, canvas_w, canvas_h, elements, is_active, kind, created_at, updated_at FROM exam_templates ORDER BY updated_at DESC",
 	)
 	if err != nil {
 		return nil, err
@@ -168,7 +169,7 @@ func ListExamTemplates() ([]ExamTemplate, error) {
 	for rows.Next() {
 		var t ExamTemplate
 		var raw []byte
-		if err := rows.Scan(&t.ID, &t.Name, &t.CanvasW, &t.CanvasH, &raw, &t.IsActive, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.CanvasW, &t.CanvasH, &raw, &t.IsActive, &t.Kind, &t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, err
 		}
 		t.Elements = json.RawMessage(raw)

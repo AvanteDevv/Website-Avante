@@ -91,6 +91,7 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 }
 .tpl-list-item:hover{ background:var(--blue-50); }
 .tpl-list-item.active{ border-color:var(--blue-300); background:var(--blue-50); color:var(--blue-700); }
+.tpl-kind-tag{ font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#9a5b00; background:#fff3dc; border-radius:100px; padding:2px 7px; }
 .tpl-list-item .active-dot{ width:7px; height:7px; border-radius:50%; background:#1f9d55; flex-shrink:0; }
 .tpl-list-item-right{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
 .tpl-list-item-delete{
@@ -152,6 +153,11 @@ body.cuenta-body{ background:#ffffff; background-image:radial-gradient(circle at
 .tpl-el-line{ background:var(--ink); }
 .tpl-el-image{ background:var(--blue-50); display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .tpl-el-image img{ width:100%; height:100%; object-fit:contain; }
+/* Opciones para encerrar (en el editor solo se ven las opciones) */
+.tpl-choice{ display:flex; flex-wrap:wrap; align-content:flex-start; align-items:center; gap:2px 6px; width:100%; height:100%; overflow:hidden; pointer-events:none; }
+.tpl-choice--col{ flex-direction:column; flex-wrap:nowrap; align-items:flex-start; gap:2px; }
+.tpl-choice-opt{ font-family:var(--sans); font-weight:600; color:var(--ink); line-height:1.25; padding:1px .5em; border:1.5px dashed var(--blue-300); border-radius:100px; white-space:nowrap; }
+
 .tpl-el-image .tpl-el-image-placeholder{ font-size:10px; color:var(--grey); text-align:center; padding:6px; }
 
 .tpl-el-table{ overflow:visible; }

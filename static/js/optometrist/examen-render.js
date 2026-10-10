@@ -82,9 +82,96 @@ window.AvanteExamRender = (function(){
       }
     } else if (el.type === 'table'){
       node.appendChild(buildTable(el, data, readonly));
+    } else if (el.type === 'choice'){
+      buildChoice(node, el, data, readonly);
     }
 
     return node;
+  }
+
+  /* ---------- Opciones para encerrar (FRAME: ZYL / METAL / RIMLESS…) ----------
+     Como en el papel: se marca (encierra) una opción, o varias si
+     el.multi. El valor se guarda en data.fields[fieldKey] como texto
+     ("METAL" o "POLYCARB, TRANSITIONS"). Lleva un <input> oculto con la
+     misma clase que los campos de texto (.exf-input) para que el
+     teclado (Enter, foco, zoom) funcione igual que en los demás. */
+  function choiceSelected(value){
+    return String(value || '').split(',').map(function(v){ return v.trim(); }).filter(Boolean);
+  }
+  function buildChoice(node, el, data, readonly){
+    node.style.fontSize = (el.fontSize || 13) + 'px';
+    var wrap = document.createElement('div');
+    wrap.className = 'exf-choice' + (el.direction === 'column' ? ' exf-choice--col' : '');
+    var selected = choiceSelected(data.fields[el.fieldKey]);
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'exf-input exf-choice-input';
+    input.readOnly = true;
+    input.setAttribute('inputmode', 'none');
+    input.setAttribute('aria-label', el.label || el.fieldKey || 'Opciones');
+    input.value = selected.join(', ');
+    input.disabled = readonly;
+    if (el.fieldKey) input.dataset.fieldKey = el.fieldKey;
+    input.dataset.choiceMulti = el.multi ? '1' : '';
+    wrap.appendChild(input);
+
+    (el.options || []).forEach(function(opt, i){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'exf-choice-opt' + (selected.indexOf(opt) >= 0 ? ' is-on' : '');
+      b.textContent = opt;
+      b.dataset.value = opt;
+      b.dataset.index = i;
+      b.tabIndex = -1;
+      b.disabled = readonly;
+      wrap.appendChild(b);
+    });
+
+    if (!readonly){
+      // Tocar/clic: marca la opción y deja el foco en el campo (así
+      // Enter sigue al siguiente y en el celular no sale el teclado).
+      wrap.addEventListener('pointerdown', function(e){
+        if (e.target.closest('.exf-choice-opt')) e.preventDefault();
+      });
+      wrap.addEventListener('click', function(e){
+        var b = e.target.closest('.exf-choice-opt');
+        if (!b) return;
+        toggleChoice(input, b.dataset.value);
+        input.focus({ preventScroll: true });
+      });
+    }
+    node.appendChild(wrap);
+  }
+
+  // Marca/desmarca una opción y avisa con un evento "input" (el
+  // formulario lo escucha igual que a los campos de texto).
+  function toggleChoice(input, value){
+    var wrap = input.parentNode;
+    var multi = input.dataset.choiceMulti === '1';
+    var cur = choiceSelected(input.value);
+    var has = cur.indexOf(value) >= 0;
+    if (multi){
+      cur = has ? cur.filter(function(v){ return v !== value; }) : cur.concat([value]);
+      // en el orden de las opciones
+      var order = Array.prototype.map.call(wrap.querySelectorAll('.exf-choice-opt'), function(b){ return b.dataset.value; });
+      cur.sort(function(a, b){ return order.indexOf(a) - order.indexOf(b); });
+    } else {
+      cur = has ? [] : [value];
+    }
+    input.value = cur.join(', ');
+    wrap.querySelectorAll('.exf-choice-opt').forEach(function(b){
+      b.classList.toggle('is-on', cur.indexOf(b.dataset.value) >= 0);
+    });
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  // Refleja un valor puesto por fuera (precarga) en los botones.
+  function syncChoice(input){
+    var cur = choiceSelected(input.value);
+    input.parentNode.querySelectorAll('.exf-choice-opt').forEach(function(b){
+      b.classList.toggle('is-on', cur.indexOf(b.dataset.value) >= 0);
+    });
   }
 
   function buildTable(el, data, readonly){
@@ -106,8 +193,12 @@ window.AvanteExamRender = (function(){
     table.appendChild(thead);
 
     var tbody = document.createElement('tbody');
+    // Filas del mismo alto (antes la primera se quedaba con todo el
+    // espacio sobrante y las demás quedaban aplastadas).
+    var rowH = (el.rows > 0 && el.h) ? Math.max(14, (el.h - 18) / el.rows) : 0;
     for (var r = 0; r < (el.rows || 0); r++){
       var tr = document.createElement('tr');
+      if (rowH) tr.style.height = rowH + 'px';
       var rowTh = document.createElement('th');
       rowTh.className = 'exf-table-rowlabel';
       rowTh.textContent = rowLabels[r] || '';
@@ -143,7 +234,7 @@ window.AvanteExamRender = (function(){
     var tables = existing.tables || {};
 
     elements.forEach(function(el){
-      if (el.type === 'text' && el.fieldKey){
+      if ((el.type === 'text' || el.type === 'choice') && el.fieldKey){
         var input = container.querySelector('.exf-el[data-id="' + el.id + '"] .exf-input');
         if (input) fields[el.fieldKey] = input.value;
       }
@@ -163,5 +254,5 @@ window.AvanteExamRender = (function(){
     return { fields: fields, tables: tables };
   }
 
-  return { mount: mount };
+  return { mount: mount, toggleChoice: toggleChoice, syncChoice: syncChoice, choiceSelected: choiceSelected };
 })();

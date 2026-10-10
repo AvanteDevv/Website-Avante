@@ -13,6 +13,22 @@
   display:flex; align-items:flex-end;
 }
 .exf-el-line{ background:var(--ink); }
+/* Opciones para encerrar (como en el papel) */
+.exf-choice{ position:relative; display:flex; flex-wrap:wrap; align-content:flex-start; align-items:center; gap:2px 6px; width:100%; height:100%; }
+.exf-choice--col{ flex-direction:column; flex-wrap:nowrap; align-items:flex-start; gap:2px; }
+.exf-choice-input{ position:absolute; inset:0; width:100%; height:100%; opacity:0; pointer-events:none; border:none; padding:0; caret-color:transparent; }
+.exf-choice-opt{
+  font:inherit; font-family:var(--sans); font-weight:600; color:var(--ink); line-height:1.25;
+  padding:1px .5em; border:1.5px solid transparent; border-radius:100px; background:transparent;
+  cursor:pointer; transition:border-color .15s var(--ease), background .15s var(--ease), transform .12s var(--ease);
+}
+.exf-choice-opt:hover:not(:disabled){ background:var(--blue-50); }
+.exf-choice-opt:active:not(:disabled){ transform:scale(.94); }
+.exf-choice-opt.is-on{ border-color:var(--ink); }
+.exf-choice-opt:disabled{ cursor:default; }
+.exam-sheet .exf-choice-opt.is-on{ border-color:var(--blue-600); background:var(--blue-50); color:var(--blue-700, #0a1fcc); }
+.exam-sheet .exf-el-choice:focus-within{ outline:2px solid var(--blue-600); outline-offset:3px; border-radius:8px; background:rgba(4,28,255,.04); }
+
 .exf-el-image{ overflow:hidden; }
 .exf-el-image img{ width:100%; height:100%; object-fit:contain; }
 
@@ -108,6 +124,30 @@
   20%, 60%{ transform:translateX(-6px); }
   40%, 80%{ transform:translateX(6px); }
 }
+
+/* ---------- Paso a paso: opciones (FRAME, material, tipo de lente…) ---------- */
+.exam-wizard-choices{ display:flex; flex-wrap:wrap; gap:10px; outline:none; }
+.exam-wizard-choice{
+  display:inline-flex; align-items:center; gap:9px;
+  padding:12px 18px; border-radius:14px; border:1.5px solid var(--line); background:var(--white);
+  font-size:14px; font-weight:700; color:var(--ink);
+  transition:border-color .18s var(--ease), background .18s var(--ease), transform .12s var(--ease), box-shadow .18s var(--ease);
+}
+.exam-wizard-choice:hover{ border-color:var(--blue-300); background:var(--blue-50); }
+.exam-wizard-choice:active{ transform:scale(.95); }
+.exam-wizard-choice.is-on{ border-color:var(--blue-600); background:var(--blue-600); color:var(--on-accent, #fff); box-shadow:0 8px 18px -8px rgba(4,28,255,.55); }
+.exam-wizard-choice-n{
+  display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; border-radius:6px;
+  font-size:11px; font-weight:700; color:var(--grey); background:var(--blue-50); border:1px solid var(--line);
+}
+.exam-wizard-choice-n:empty{ display:none; }
+.exam-wizard-choice.is-on .exam-wizard-choice-n{ color:var(--blue-600); background:#fff; border-color:#fff; }
+.exam-wizard-choices:focus-visible{ outline:2px solid var(--blue-300); outline-offset:6px; border-radius:16px; }
+.exam-wizard-choice-hint{ font-size:12px; color:var(--grey); margin-top:12px; }
+@media (hover:none){ .exam-wizard-choice-n{ display:none; } }
+.exf-choice-opt.is-cursor{ box-shadow:0 0 0 2px var(--blue-300); }
+body.dark .exam-wizard-choice{ background:transparent; border-color:rgba(255,255,255,.14); color:#e9ebf5; }
+body.dark .exam-wizard-choice.is-on{ background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
 
 /* ---------- Nuevo examen: toggle "Paso a paso | Sobre la hoja" ----------
    Reusa el .view-switch de examen-vista.css; aquí solo se igualan las

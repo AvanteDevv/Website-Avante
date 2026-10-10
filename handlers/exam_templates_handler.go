@@ -125,6 +125,12 @@ func ActivateExamTemplate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID de plantilla inválido."})
 		return
 	}
+	// La orden de laboratorio no se puede activar como examen: se usa
+	// sola después de guardar la historia clínica.
+	if models.IsLabExamTemplate(id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Esta es la orden de laboratorio: se llena sola después de la historia clínica, no se activa como examen."})
+		return
+	}
 	if err := models.SetActiveExamTemplate(id); err != nil {
 		if errors.Is(err, models.ErrExamTemplateNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Plantilla no encontrada."})

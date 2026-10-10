@@ -48,6 +48,10 @@
         return { w: 220, h: 2 };
       case 'image':
         return { w: 90, h: 90, src: '' };
+      case 'choice':
+        // Opciones para encerrar (como en el papel): se marca una (o
+        // varias si "multi").
+        return { w: 300, h: 26, fieldKey: '', label: 'Opciones', options: ['OPCIÓN 1', 'OPCIÓN 2', 'OPCIÓN 3'], fontSize: 12 };
       case 'table':
         return {
           w: 340, h: 100,
@@ -179,6 +183,17 @@
       }
     } else if (el.type === 'table'){
       node.appendChild(buildTableNode(el));
+    } else if (el.type === 'choice'){
+      node.style.fontSize = (el.fontSize || 12) + 'px';
+      var cw = document.createElement('div');
+      cw.className = 'tpl-choice' + (el.direction === 'column' ? ' tpl-choice--col' : '');
+      (el.options || []).forEach(function(opt){
+        var chip = document.createElement('span');
+        chip.className = 'tpl-choice-opt';
+        chip.textContent = opt;
+        cw.appendChild(chip);
+      });
+      node.appendChild(cw);
     }
 
     var handle = document.createElement('div');
@@ -464,6 +479,15 @@
       html += '<label>Imagen<input type="file" id="propImageFile" accept="image/*"></label>';
     }
 
+    if (el.type === 'choice'){
+      html += fieldText('choiceLabel', 'Nombre (se ve al llenar, ej. "Armazón")', el.label || '');
+      html += fieldText('fieldKey', 'Clave del campo (ej. armazon)', el.fieldKey || '');
+      html += fieldText('optionsCsv', 'Opciones (separadas por coma)', (el.options || []).join(', '));
+      html += fieldNumber('fontSize', 'Tamaño de letra', el.fontSize || 12);
+      html += '<label class="tpl-props-checkbox"><input type="checkbox" id="prop_multi"' + (el.multi ? ' checked' : '') + '>Se pueden marcar varias</label>';
+      html += '<label class="tpl-props-checkbox"><input type="checkbox" id="prop_column"' + (el.direction === 'column' ? ' checked' : '') + '>Una debajo de otra</label>';
+    }
+
     html += '<div class="tpl-props-row"><label>X<input type="number" id="propX" value="' + el.x + '"></label><label>Y<input type="number" id="propY" value="' + el.y + '"></label></div>';
     var heightLabel = (el.type === 'line') ? 'Grosor (px)' : 'Alto';
     var widthLabel = (el.type === 'line') ? 'Largo' : 'Ancho';
@@ -475,7 +499,7 @@
   }
 
   function labelForType(type){
-    return { title: 'Título', text: 'Texto / campo', line: 'Línea', image: 'Logo / imagen', table: 'Tabla' }[type] || type;
+    return { title: 'Título', text: 'Texto / campo', line: 'Línea', image: 'Logo / imagen', table: 'Tabla', choice: 'Opciones' }[type] || type;
   }
   function fieldText(id, label, value){
     return '<label>' + label + '<input type="text" id="prop_' + id + '" value="' + escapeAttr(value) + '"></label>';
@@ -517,6 +541,16 @@
     on('prop_text', function(e){ el.text = e.target.value; updateTextNode(el); });
     on('prop_fontSize', function(e){ el.fontSize = Number(e.target.value) || el.fontSize; updateTextNode(el); });
     on('prop_fieldKey', function(e){ el.fieldKey = e.target.value; });
+    if (el.type === 'choice'){
+      // Las opciones cambian la estructura: se redibuja al salir del campo.
+      on('prop_choiceLabel', function(e){ el.label = e.target.value; });
+      onChangeOnly('prop_optionsCsv', function(e){
+        el.options = e.target.value.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+        render();
+      });
+      onChangeOnly('prop_multi', function(e){ el.multi = e.target.checked; });
+      onChangeOnly('prop_column', function(e){ el.direction = e.target.checked ? 'column' : ''; render(); });
+    }
 
     var alignBtns = propsPanel.querySelectorAll('.tpl-align-btn');
     alignBtns.forEach(function(btn){
@@ -576,6 +610,7 @@
   function updateTextNode(el){
     var node = canvas.querySelector('[data-id="' + el.id + '"]');
     if (!node) return;
+    if (el.type === 'choice'){ node.style.fontSize = el.fontSize + 'px'; return; }
     node.textContent = el.text;
     node.style.fontSize = el.fontSize + 'px';
   }
@@ -616,6 +651,7 @@
       return '<div class="tpl-list-item' + active + '" data-tpl-id="' + t.id + '">' +
         '<span>' + escapeHtml(t.name) + '</span>' +
         '<span class="tpl-list-item-right">' +
+        (t.kind === 'laboratorio' ? '<span class="tpl-kind-tag" title="Se llena después de la historia clínica">Laboratorio</span>' : '') +
         (t.isActive ? '<span class="active-dot" title="Plantilla activa"></span>' : '') +
         '<button type="button" class="tpl-list-item-delete" data-del-tpl-id="' + t.id + '" title="Eliminar plantilla">×</button>' +
         '</span>' +
@@ -694,9 +730,12 @@
       return;
     }
     fetch('/api/optometrist/plantillas/' + state.templateId + '/activar', { method: 'POST' })
-      .then(function(res){ if (!res.ok) throw new Error(); })
+      .then(function(res){
+        if (res.ok) return;
+        return res.json().catch(function(){ return {}; }).then(function(b){ throw new Error(b.error || ''); });
+      })
       .then(function(){ showStatus('Esta es ahora la plantilla activa.', 'ok'); refreshTplList(); })
-      .catch(function(){ showStatus('No se pudo activar.', 'error'); });
+      .catch(function(err){ showStatus((err && err.message) || 'No se pudo activar.', 'error'); });
   });
 
   /* ---------- carga inicial: la plantilla activa, si existe ---------- */

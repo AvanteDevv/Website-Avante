@@ -50,6 +50,14 @@
   var appointmentId = 0;     // la cita de la que viene ("Realizar examen"), 0 = sin cita
   var values = { fields: {}, tables: {} };
 
+  // Etapas: primero la historia clínica (plantilla activa) y, al
+  // guardarla, la orden de laboratorio (plantilla kind="laboratorio")
+  // ya precargada con el nombre, la fecha y la graduación.
+  var stage = 'historia';     // 'historia' | 'lab'
+  var labTemplate = null;     // se carga de una vez al abrir
+  var savedExam = null;       // la historia clínica ya guardada
+  function saveLabel(){ return stage === 'lab' ? 'Guardar orden' : 'Guardar examen'; }
+
   function showStatus(text, kind){
     statusEl.textContent = text;
     statusEl.className = 'tpl-status' + (kind ? ' ' + kind : '');
@@ -192,6 +200,7 @@
   // busca por posición: el texto fijo más cercano, a la izquierda y
   // en la misma fila (más o menos la misma "y") que el campo.
   function findLabelFor(step){
+    if (step.type === 'choice' && step.label && step.label.trim()) return step.label.trim();
     if (step.text && step.text.trim()) return step.text.trim();
 
     var candidates = (template.elements || []).filter(function(el){
@@ -233,10 +242,66 @@
     wrap.appendChild(input);
     stepContainer.appendChild(wrap);
 
-    if (step.fieldKey === 'nombre') attachPatientSearch(input, findTelefonoStep());
+    if (step.fieldKey === 'nombre' && stage === 'historia') attachPatientSearch(input, findTelefonoStep());
 
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
+  }
+
+  // Paso de opciones: botones grandes; un toque marca/desmarca. Teclas:
+  // 1-9 marcan la opción de ese número, Enter sigue.
+  function renderChoiceStep(step){
+    var wrap = document.createElement('div');
+    wrap.className = 'exam-wizard-question';
+    var label = document.createElement('label');
+    label.className = 'exam-wizard-label';
+    label.textContent = findLabelFor(step);
+    var list = document.createElement('div');
+    list.className = 'exam-wizard-choices';
+    list.tabIndex = 0;
+    var opts = step.options || [];
+    function paint(){
+      var cur = AvanteExamRender.choiceSelected(values.fields[step.fieldKey]);
+      list.querySelectorAll('.exam-wizard-choice').forEach(function(b){
+        b.classList.toggle('is-on', cur.indexOf(b.dataset.value) >= 0);
+      });
+    }
+    function toggle(v){
+      var cur = AvanteExamRender.choiceSelected(values.fields[step.fieldKey]);
+      var has = cur.indexOf(v) >= 0;
+      if (step.multi){
+        cur = has ? cur.filter(function(x){ return x !== v; }) : cur.concat([v]);
+        cur.sort(function(a, b){ return opts.indexOf(a) - opts.indexOf(b); });
+      } else {
+        cur = has ? [] : [v];
+      }
+      values.fields[step.fieldKey] = cur.join(', ');
+      paint();
+    }
+    opts.forEach(function(opt, i){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'exam-wizard-choice';
+      b.dataset.value = opt;
+      b.innerHTML = '<span class="exam-wizard-choice-n">' + (i < 9 ? (i + 1) : '') + '</span>';
+      b.appendChild(document.createTextNode(opt));
+      b.addEventListener('click', function(){ toggle(opt); list.focus(); });
+      list.appendChild(b);
+    });
+    list.addEventListener('keydown', function(e){
+      if (e.key === 'Enter'){ e.preventDefault(); nextBtn.click(); return; }
+      var n = parseInt(e.key, 10);
+      if (n >= 1 && n <= opts.length){ e.preventDefault(); toggle(opts[n - 1]); }
+    });
+    var hint = document.createElement('p');
+    hint.className = 'exam-wizard-choice-hint';
+    hint.textContent = step.multi ? 'Puedes marcar varias. Si no aplica, déjalo vacío.' : 'Marca una. Si no aplica, déjalo vacío.';
+    wrap.appendChild(label);
+    wrap.appendChild(list);
+    wrap.appendChild(hint);
+    stepContainer.appendChild(wrap);
+    paint();
+    list.focus();
   }
 
   function findTableLabelFor(step){
@@ -317,6 +382,7 @@
 
     var step = steps[currentIndex];
     if (step.type === 'table') renderTableStep(step);
+    else if (step.type === 'choice') renderChoiceStep(step);
     else renderTextStep(step);
 
     updateProgress();
@@ -333,17 +399,17 @@
   function updateNavButtons(){
     if (mode === 'hoja'){
       backBtn.style.display = 'none';
-      nextBtn.textContent = 'Guardar examen';
+      nextBtn.textContent = saveLabel();
       return;
     }
     if (!steps.length){
       backBtn.style.display = 'none';
-      nextBtn.textContent = 'Guardar examen';
+      nextBtn.textContent = saveLabel();
       return;
     }
     backBtn.style.display = '';
     backBtn.disabled = currentIndex === 0;
-    nextBtn.textContent = (currentIndex === steps.length - 1) ? 'Guardar examen' : 'Siguiente';
+    nextBtn.textContent = (currentIndex === steps.length - 1) ? saveLabel() : 'Siguiente';
   }
 
   function shakeCurrentStep(){
@@ -365,7 +431,7 @@
     if (mode === 'hoja' || !steps.length){ saveExam(); return; }
 
     var step = steps[currentIndex];
-    if (!isStepFilled(step)){
+    if (stage !== 'lab' && !isStepFilled(step)){
       showStatus('Completa este campo antes de continuar.', 'error');
       shakeCurrentStep();
       return;
@@ -379,7 +445,7 @@
 
   function initWizard(){
     steps = (template.elements || []).filter(function(el){
-      return (el.type === 'text' && el.fieldKey) || el.type === 'table';
+      return ((el.type === 'text' || el.type === 'choice') && el.fieldKey) || el.type === 'table';
     });
     applyMode();
   }
@@ -440,9 +506,13 @@
   // Elementos editables en orden de lectura (arriba→abajo, izq→der);
   // es el orden que sigue Enter.
   function sheetOrder(){
-    return (template.elements || []).filter(function(el){
-      return (el.type === 'text' && el.fieldKey) || el.type === 'table';
-    }).slice().sort(function(a, b){
+    var list = (template.elements || []).filter(function(el){
+      return ((el.type === 'text' || el.type === 'choice') && el.fieldKey) || el.type === 'table';
+    });
+    // La orden de laboratorio sigue el orden del papel (columna izquierda
+    // y al final los precios), no renglón por renglón.
+    if (template.kind === 'laboratorio') return list;
+    return list.slice().sort(function(a, b){
       var dy = (a.y || 0) - (b.y || 0);
       if (Math.abs(dy) > 10) return dy;
       return (a.x || 0) - (b.x || 0);
@@ -496,7 +566,7 @@
     sheetCurrent = null;
 
     var nombreInput = sheetCanvas.querySelector('.exf-input[data-field-key="nombre"]');
-    if (nombreInput) attachPatientSearch(nombreInput, findTelefonoStep());
+    if (nombreInput && stage === 'historia') attachPatientSearch(nombreInput, findTelefonoStep());
 
     fitSheet();
   }
@@ -956,6 +1026,44 @@
     }
   });
 
+  // Opciones dentro de la hoja: ← → mueven y marcan (o solo mueven si se
+  // pueden varias; Espacio marca), 1-9 marca esa opción, Retroceso borra.
+  sheetCanvas.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (!t.classList || !t.classList.contains('exf-choice-input')) return;
+    var btns = Array.prototype.slice.call(t.parentNode.querySelectorAll('.exf-choice-opt'));
+    if (!btns.length) return;
+    var multi = t.dataset.choiceMulti === '1';
+    var cur = btns.findIndex(function(b){ return b.classList.contains('is-cursor'); });
+    if (cur < 0) cur = btns.findIndex(function(b){ return b.classList.contains('is-on'); });
+    function cursorTo(i){
+      btns.forEach(function(b, j){ b.classList.toggle('is-cursor', j === i); });
+    }
+    var n = parseInt(e.key, 10);
+    if (n >= 1 && n <= btns.length){
+      e.preventDefault();
+      cursorTo(n - 1);
+      AvanteExamRender.toggleChoice(t, btns[n - 1].dataset.value);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp'){
+      e.preventDefault();
+      var dir = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1;
+      var next = cur < 0 ? (dir > 0 ? 0 : btns.length - 1) : (cur + dir + btns.length) % btns.length;
+      cursorTo(next);
+      if (!multi && !btns[next].classList.contains('is-on')) AvanteExamRender.toggleChoice(t, btns[next].dataset.value);
+    } else if (e.key === ' '){
+      e.preventDefault();
+      if (cur >= 0) AvanteExamRender.toggleChoice(t, btns[cur].dataset.value);
+    } else if (e.key === 'Backspace' || e.key === 'Delete'){
+      e.preventDefault();
+      AvanteExamRender.choiceSelected(t.value).forEach(function(v){ AvanteExamRender.toggleChoice(t, v); });
+    }
+  });
+  sheetCanvas.addEventListener('focusout', function(e){
+    if (e.target.classList && e.target.classList.contains('exf-choice-input')){
+      e.target.parentNode.querySelectorAll('.is-cursor').forEach(function(b){ b.classList.remove('is-cursor'); });
+    }
+  });
+
   sheetCanvas.addEventListener('keydown', function(e){
     if (e.key !== 'Enter' || !e.target.matches('input')) return;
     e.preventDefault();
@@ -974,11 +1082,15 @@
     if (sheetWrap.hidden) return;
     sheetCanvas.querySelectorAll('.exf-input[data-field-key]').forEach(function(input){
       var v = values.fields[input.dataset.fieldKey] || '';
-      if (input.value !== v && document.activeElement !== input) input.value = v;
+      if (input.value !== v && document.activeElement !== input){
+        input.value = v;
+        if (input.classList.contains('exf-choice-input')) AvanteExamRender.syncChoice(input);
+      }
     });
   }
 
   function saveExam(){
+    if (stage === 'lab'){ saveLabOrder(); return; }
     var name = (values.fields.nombre || '').trim();
     if (!name){
       showStatus('Escribe el nombre del paciente.', 'error');
@@ -1015,7 +1127,9 @@
     })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
       .then(function(exam){
-        window.location.href = '/optometrist/examen-vista/' + exam.id;
+        // Sigue la orden de laboratorio (si hay plantilla); si no, al examen.
+        if (labTemplate) startLabStage(exam);
+        else window.location.href = '/optometrist/examen-vista/' + exam.id;
       })
       .catch(function(){
         showStatus('No se pudo guardar el examen. Intenta de nuevo.', 'error');
@@ -1023,6 +1137,166 @@
         nextBtn.textContent = originalText;
       });
   }
+
+  /* =========================================================
+     Orden de laboratorio (después de la historia clínica)
+     ========================================================= */
+  var headTitle = document.querySelector('.cuenta-header h1');
+  var headSub = document.querySelector('.cuenta-header p');
+  var cancelLink = document.querySelector('.admin-header-actions a.btn');
+
+  function normTxt(s){
+    return String(s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  }
+  // Qué dato es cada columna, por su encabezado (ESF/SPH, CIL/CYL…).
+  function rxKey(header){
+    var h = normTxt(header);
+    if (/NEAR|CERCA/.test(h)) return '';
+    if (/^(ESF|SPH|ESFERA)/.test(h)) return 'sph';
+    if (/^(CIL|CYL)/.test(h)) return 'cyl';
+    if (/^(EJE|AXIS)/.test(h)) return 'axis';
+    if (/^(ADD|ADIC)/.test(h)) return 'add';
+    if (/^PRISM/.test(h)) return 'prism';
+    if (/^(ALT|SEG)/.test(h)) return 'seg';
+    if (/^(DIP|DNP|D\.?I\.?$|DI\b|PD|DIST)/.test(h)) return 'pd';
+    return '';
+  }
+  function rxRow(label){
+    var l = normTxt(label);
+    if (/^(OD|R|DER|D)\b/.test(l)) return 0;
+    if (/^(OI|L|IZQ|I)\b/.test(l)) return 1;
+    return -1;
+  }
+  function textAbove(tpl, el){
+    var best = null, bestDist = Infinity;
+    (tpl.elements || []).forEach(function(o){
+      if (!((o.type === 'title' || (o.type === 'text' && !o.fieldKey)) && o.text)) return;
+      var above = (el.y || 0) - (o.y || 0);
+      if (above < 0 || above > 60) return;
+      if (above < bestDist){ bestDist = above; best = o; }
+    });
+    return best ? best.text : '';
+  }
+
+  // La graduación que va al laboratorio: la tabla "RX ACTUAL" /
+  // "GRADUACIÓN FINAL" de la historia (o, si no, la última tabla con
+  // esfera y cilindro).
+  function findFinalRxTable(tpl){
+    var tables = (tpl.elements || []).filter(function(el){
+      if (el.type !== 'table') return false;
+      var keys = (el.headers || []).map(rxKey);
+      return keys.indexOf('sph') >= 0 && keys.indexOf('cyl') >= 0;
+    });
+    var named = tables.filter(function(el){
+      return /RX\s*ACTUAL|GRADUACION\s*FINAL|RX\s*FINAL|FINAL/.test(normTxt(textAbove(tpl, el)));
+    });
+    return named.length ? named[named.length - 1] : (tables.length ? tables[tables.length - 1] : null);
+  }
+
+  function buildLabValues(histTpl, histValues){
+    var v = { fields: {}, tables: {} };
+    var hf = histValues.fields || {};
+    if (hf.nombre) v.fields.nombre = hf.nombre;
+    if (hf.telefono) v.fields.telefono = hf.telefono;
+
+    // graduación: lo de la historia → columnas con el mismo dato
+    var src = findFinalRxTable(histTpl);
+    var rows = src ? ((histValues.tables || {})[src.id] || []) : [];
+    if (src){
+      var got = {}; // got[row][key] = valor
+      (src.headers || []).forEach(function(h, c){
+        var key = rxKey(h);
+        if (!key) return;
+        rows.forEach(function(r, ri){
+          var rr = rxRow((src.rowLabels || [])[ri]);
+          if (rr < 0 || !r || !(r[c] || '').trim()) return;
+          got[rr] = got[rr] || {};
+          if (!got[rr][key]) got[rr][key] = r[c].trim();
+        });
+      });
+      var used = {};
+      (labTemplate.elements || []).forEach(function(el){
+        if (el.type !== 'table') return;
+        (el.headers || []).forEach(function(h, c){
+          var key = rxKey(h);
+          if (!key || used[key]) return;
+          var any = false;
+          (el.rowLabels || []).forEach(function(lbl, ri){
+            var rr = rxRow(lbl);
+            if (rr < 0 || !got[rr] || !got[rr][key]) return;
+            v.tables[el.id] = v.tables[el.id] || [];
+            v.tables[el.id][ri] = v.tables[el.id][ri] || [];
+            v.tables[el.id][ri][c] = got[rr][key];
+            any = true;
+          });
+          if (any) used[key] = true;
+        });
+      });
+    }
+    return v;
+  }
+
+  function startLabStage(exam){
+    savedExam = exam;
+    var histTpl = template, histValues = values;
+    stage = 'lab';
+    template = labTemplate;
+    values = buildLabValues(histTpl, histValues);
+    prefillToday();
+    closePatientDropdown();
+    sheetCurrent = null;
+    sheetZoom = 'lupa';
+    currentIndex = 0;
+
+    if (headTitle) headTitle.textContent = 'Orden de laboratorio';
+    if (headSub) headSub.textContent = 'Historia clínica de ' + (exam.patientName || 'el paciente') + ' guardada. Ahora la hoja para el laboratorio — ya trae el nombre, la fecha y la graduación.';
+    if (cancelLink){
+      cancelLink.textContent = 'Omitir';
+      cancelLink.href = '/optometrist/examen-vista/' + exam.id;
+      cancelLink.title = 'Terminar sin orden de laboratorio';
+    }
+    document.title = 'Orden de laboratorio — Optometría · Avante Optics';
+    document.body.classList.add('exam-stage-lab');
+    nextBtn.disabled = false;
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    initWizard();
+    showStatus('Historia clínica guardada ✓ — falta la orden de laboratorio.', 'ok');
+  }
+
+  function saveLabOrder(){
+    var payload = {
+      examId: savedExam ? savedExam.id : 0,
+      templateId: template.id,
+      patientName: (values.fields.nombre || (savedExam && savedExam.patientName) || '').trim(),
+      patientPhone: (values.fields.telefono || (savedExam && savedExam.patientPhone) || '').trim(),
+      userId: selectedPatientId,
+      data: values
+    };
+    nextBtn.disabled = true;
+    var originalText = nextBtn.textContent;
+    nextBtn.textContent = 'Guardando...';
+    fetch('/api/optometrist/ordenes-lab', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
+      .then(function(){
+        window.location.href = '/optometrist/examen-vista/' + (savedExam ? savedExam.id : '');
+      })
+      .catch(function(){
+        showStatus('No se pudo guardar la orden de laboratorio. Intenta de nuevo.', 'error');
+        nextBtn.disabled = false;
+        nextBtn.textContent = originalText;
+      });
+  }
+
+  // La plantilla de la orden se carga desde el inicio (así al guardar la
+  // historia aparece al instante).
+  fetch('/api/optometrist/plantillas/laboratorio')
+    .then(function(res){ return res.ok ? res.json() : null; })
+    .then(function(t){ if (t && t.id) labTemplate = t; })
+    .catch(function(){});
 
   fetch('/api/optometrist/plantillas/activa')
     .then(function(res){
