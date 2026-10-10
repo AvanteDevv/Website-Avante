@@ -230,6 +230,8 @@ func main() {
 	// Optometría: cita de la que salió cada examen (eye_exams.appointment_id)
 	// y antecedentes del paciente (Historial clínico).
 	db.EnsureOptometristTables()
+	// Orden de laboratorio (hoja que se llena después de la historia clínica)
+	db.EnsureOrdenLabTables()
 
 	storage.Connect()
 	// Clarito: sube una sola vez los 3 formatos de static/pdf/clarito al
@@ -742,6 +744,7 @@ func main() {
 	{
 		apiOptometrist.GET("/plantillas", handlers.ListExamTemplates)
 		apiOptometrist.GET("/plantillas/activa", handlers.GetActiveExamTemplate)
+		apiOptometrist.GET("/plantillas/laboratorio", handlers.GetLabExamTemplateHandler)
 		apiOptometrist.GET("/plantillas/:id", handlers.GetExamTemplate)
 		apiOptometrist.POST("/plantillas", handlers.CreateExamTemplate)
 		apiOptometrist.PUT("/plantillas/:id", handlers.UpdateExamTemplate)
@@ -752,6 +755,11 @@ func main() {
 		apiOptometrist.GET("/examenes/:id", handlers.GetEyeExam)
 		apiOptometrist.POST("/examenes", handlers.CreateEyeExam)
 		apiOptometrist.DELETE("/examenes/:id", handlers.DeleteEyeExam)
+
+		// Orden de laboratorio (después de la historia clínica)
+		apiOptometrist.GET("/ordenes-lab", handlers.ListLabOrderSheetsHandler)
+		apiOptometrist.GET("/ordenes-lab/:id", handlers.GetLabOrderSheetHandler)
+		apiOptometrist.POST("/ordenes-lab", handlers.CreateLabOrderSheetHandler)
 
 	}
 
