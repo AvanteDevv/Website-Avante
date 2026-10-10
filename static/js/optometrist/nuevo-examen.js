@@ -552,6 +552,11 @@
   function lupaScale(){
     if (!isSheetMobile()) return LUPA_DESKTOP;
     var k = LUPA_TARGET_PX / sheetBaseFont();
+    // Pantalla muy angosta (p. ej. el teléfono con zoom/letra aumentados):
+    // que quepan unos 260px de hoja a lo ancho; ahí la letra ya se ve
+    // grande por el propio zoom del teléfono.
+    var vpW = sheetScale.clientWidth || window.innerWidth;
+    k = Math.min(k, vpW / 260);
     return Math.max(1.1, Math.min(2.6, k));
   }
   function camMargin(){ return isSheetMobile() ? 12 : 24; }
@@ -589,16 +594,41 @@
   // Franja del recuadro que de verdad se ve (en el celular el teclado y
   // la barra de abajo tapan parte).
   // (También en tablets: su teclado en pantalla tapa la mitad de abajo.)
+  // En iPhone, con el teclado abierto la parte visible puede estar
+  // desplazada (visualViewport.offsetTop); se toma en cuenta.
   function visibleBand(){
     var vpH = sheetScale.clientHeight;
     var br = sheetScale.getBoundingClientRect();
-    var vvH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    var barH = sheetBar && !sheetBar.hidden ? sheetBar.offsetHeight + 18 : 0;
-    var top = Math.max(0, (isSheetMobile() ? 62 : 8) - br.top);
-    var bottom = Math.min(vpH, vvH - barH - br.top);
-    if (bottom - top < 80){ top = 0; bottom = vpH; }
+    var vv = window.visualViewport;
+    var vvTop = vv ? vv.offsetTop : 0;
+    var vvH = vv ? vv.height : window.innerHeight;
+    var barH = sheetBar && !sheetBar.hidden ? sheetBar.offsetHeight + 12 : 0;
+    var headerH = !isSheetMobile() ? 8 : (document.body.classList.contains('sheet-typing') ? 4 : 62);
+    var top = Math.max(0, vvTop + headerH - br.top);
+    var bottom = Math.min(vpH, vvTop + vvH - barH - br.top);
+    if (bottom - top < 40){ top = 0; bottom = vpH; }
     return { top: top, bottom: bottom };
   }
+
+  /* ---------- Escribiendo en el celular (teclado abierto) ----------
+     Con el teclado abierto queda poca pantalla (y menos si el teléfono
+     tiene la letra o el zoom aumentados): se esconden el menú ☰, la
+     campanita y el usuario de arriba, y la barra de abajo se hace más
+     delgada, para dejarle el espacio a la hoja. */
+  function updateTypingState(){
+    var vv = window.visualViewport;
+    var focusedInSheet = document.activeElement && sheetCanvas.contains(document.activeElement);
+    var keyboard = vv ? (vv.height < window.innerHeight * 0.8 || vv.height < 520) : false;
+    var typing = isSheetMobile() && mode === 'hoja' && !!focusedInSheet && keyboard;
+    if (typing !== document.body.classList.contains('sheet-typing')){
+      document.body.classList.toggle('sheet-typing', typing);
+      if (sheetCurrent && document.activeElement === sheetCurrent){
+        setTimeout(function(){ revealSheetBox(); aimAt(sheetCurrent); }, 30);
+      }
+    }
+  }
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', updateTypingState);
+  sheetCanvas.addEventListener('focusout', function(){ setTimeout(updateTypingState, 120); });
 
   function aimAt(input){
     if (sheetZoom !== 'lupa') return;
@@ -690,8 +720,10 @@
   function revealSheetBox(){
     var br = sheetScale.getBoundingClientRect();
     var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    var topGap = isSheetMobile() ? 64 : 90;
-    if (br.top < topGap - 4 || br.bottom > vh + 4){
+    var typing = document.body.classList.contains('sheet-typing');
+    var topGap = !isSheetMobile() ? 90 : (typing ? 0 : 64);
+    // Escribiendo en el celular: la hoja siempre pegada arriba.
+    if ((typing && Math.abs(br.top - topGap) > 4) || br.top < topGap - 4 || br.bottom > vh + 4){
       var target = window.scrollY + br.top - topGap;
       window.scrollTo({ top: Math.max(0, target), behavior: isSheetMobile() ? 'auto' : 'smooth' });
     }
@@ -786,11 +818,13 @@
     });
 
     if (window.visualViewport){
+      // La barra se pega a la orilla de abajo de lo que se ve (arriba
+      // del teclado), aunque el iPhone haya desplazado la vista.
       var place = function(){
         if (!sheetBar || sheetBar.hidden) return;
         var vv = window.visualViewport;
-        var off = window.innerHeight - vv.height - vv.offsetTop;
-        sheetBar.style.transform = off > 1 ? 'translateY(' + (-off) + 'px)' : '';
+        var off = window.innerHeight - (vv.height + vv.offsetTop);
+        sheetBar.style.transform = Math.abs(off) > 1 ? 'translateY(' + (-off) + 'px)' : '';
       };
       window.visualViewport.addEventListener('resize', function(){
         place();
@@ -821,6 +855,7 @@
   function updateSheetBar(){
     var show = mode === 'hoja' && !sheetWrap.hidden && isSheetMobile() && !!template;
     document.body.classList.toggle('has-sheet-bar', show);
+    if (!show) document.body.classList.remove('sheet-typing');
     setNoAutoZoom(show);
     if (!show){ if (sheetBar) sheetBar.hidden = true; return; }
     buildSheetBar();
@@ -854,7 +889,8 @@
     updateSheetBar();
     if (isSheetMobile()){
       // Re-centra cuando el teclado termina de abrir.
-      setTimeout(function(){ if (document.activeElement === t) aimAt(t); }, 350);
+      setTimeout(function(){ updateTypingState(); if (document.activeElement === t) aimAt(t); }, 350);
+      setTimeout(function(){ updateTypingState(); if (document.activeElement === t) aimAt(t); }, 800);
     }
   });
 

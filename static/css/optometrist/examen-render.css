@@ -230,6 +230,22 @@ body.dark .exam-sheet.is-lupa .exam-sheet-scale{ background:rgba(255,255,255,.04
   body.dark .sheet-bar-next.is-done{ background:#1f9d55; border-color:#1f9d55; }
   body.dark .sheet-bar-label{ color:#fff; }
 }
+/* Escribiendo con el teclado abierto (celular): fuera lo de arriba y
+   barra delgada, para que quepa la hoja (sobre todo con la letra o el
+   zoom del teléfono aumentados). */
+@media (max-width:900px), (pointer:coarse) and (max-height:520px){
+  .header-outer, .mnav-toggle{ transition:opacity .2s var(--ease), transform .25s var(--ease); }
+  body.sheet-typing .header-outer,
+  body.sheet-typing .mnav-toggle{ opacity:0; transform:translateY(-110%); pointer-events:none; }
+  body.sheet-typing .sheet-bar:not([hidden]){ padding:4px 5px; gap:5px; border-radius:14px; bottom:4px; left:6px; right:6px; }
+  body.sheet-typing .sheet-bar-btn{ width:34px; height:34px; border-radius:10px; }
+  body.sheet-typing .sheet-bar-btn svg{ width:17px; height:17px; }
+  body.sheet-typing .sheet-bar-count{ display:none; }
+  body.sheet-typing .sheet-bar-label{ font-size:12.5px; }
+  /* espacio abajo para poder subir la hoja hasta arriba de la pantalla */
+  body.has-sheet-bar.sheet-typing .cuenta-shell{ padding-bottom:70vh; }
+}
+
 /* Celular acostado: poca altura — recuadro a casi toda la pantalla y
    barra más delgada. */
 @media (pointer:coarse) and (max-height:520px), (max-width:900px) and (max-height:520px){
