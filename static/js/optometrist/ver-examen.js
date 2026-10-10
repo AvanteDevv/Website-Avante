@@ -68,6 +68,8 @@
           readonly: true,
           data: (exam.data || {})
         });
+        sheetW = t.canvasW || 816; sheetH = t.canvasH || 1056;
+        fitSheet();
         // Vino del menú de tres puntos de la lista con ?action=pdf o
         // ?action=print — se dispara solo, sin que la persona tenga
         // que volver a darle clic al botón correspondiente.
@@ -76,6 +78,29 @@
       });
     })
     .catch(function(){ showStatus('No se pudo cargar este examen.', 'error'); });
+
+  /* ---------- Celular: la hoja se encoge para caber a lo ancho ----------
+     Mide 816px; en pantallas más angostas se escala (igual que en
+     Nuevo examen). Para exportar/imprimir se quita la escala. */
+  var sheetW = 816, sheetH = 1056, sheetK = 1;
+  function setSheetScale(k){
+    if (k < 1){
+      canvasEl.style.transformOrigin = '0 0';
+      canvasEl.style.transform = 'scale(' + k + ')';
+      canvasEl.style.marginRight = (sheetW * (k - 1)) + 'px';
+      canvasEl.style.marginBottom = (sheetH * (k - 1)) + 'px';
+    } else {
+      canvasEl.style.transform = canvasEl.style.marginRight = canvasEl.style.marginBottom = '';
+    }
+  }
+  function fitSheet(){
+    var wrap = canvasEl.parentNode;
+    if (!wrap || !canvasEl.firstChild) return;
+    var avail = wrap.clientWidth;
+    sheetK = avail && avail < sheetW ? avail / sheetW : 1;
+    setSheetScale(sheetK);
+  }
+  window.addEventListener('resize', fitSheet);
 
   /* ---------- Imprimir / Exportar PDF ----------
      El lienzo (#examCanvas) ya está montado de solo lectura con los
@@ -91,6 +116,7 @@
     var originalText = exportBtn ? exportBtn.textContent : '';
     if (exportBtn) exportBtn.textContent = 'Generando...';
 
+    setSheetScale(1);
     return html2canvas(canvasEl, { scale: 2 }).then(function(canvasImg){
       var imgData = canvasImg.toDataURL('image/png');
       var w = canvasEl.offsetWidth, h = canvasEl.offsetHeight;
@@ -102,6 +128,7 @@
       showStatus('No se pudo generar el PDF.', 'error');
     }).finally(function(){
       if (exportBtn){ exportBtn.disabled = false; exportBtn.textContent = originalText; }
+      setSheetScale(sheetK);
     });
   }
 

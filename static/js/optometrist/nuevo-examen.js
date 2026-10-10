@@ -64,9 +64,14 @@
   function positionPatientDropdown(){
     if (!patientDropdown || !patientDropdownInput) return;
     var rect = patientDropdownInput.getBoundingClientRect();
-    patientDropdown.style.left = (rect.left + window.scrollX) + 'px';
+    // Que nunca se salga de la pantalla (en el celular el campo puede
+    // ser más ancho que la vista).
+    var vw = document.documentElement.clientWidth;
+    var w = Math.min(Math.max(rect.width, 220), vw - 24);
+    var left = Math.min(Math.max(rect.left, 12), vw - w - 12);
+    patientDropdown.style.left = (left + window.scrollX) + 'px';
     patientDropdown.style.top = (rect.bottom + window.scrollY + 4) + 'px';
-    patientDropdown.style.width = Math.max(rect.width, 220) + 'px';
+    patientDropdown.style.width = w + 'px';
   }
   function attachPatientSearch(input, telefonoStep){
     var debounceTimer;
@@ -408,11 +413,14 @@
       mountSheet();
       updateProgress();
       updateNavButtons();
+      updateSheetBar();
       var first = firstEmptySheetInput();
-      if (first) first.focus({ preventScroll: true });
+      if (first && !isSheetMobile()) first.focus({ preventScroll: true });
     } else {
       sheetWrap.hidden = true;
       sheetCanvas.innerHTML = '';
+      sheetCurrent = null;
+      updateSheetBar();
       stepContainer.hidden = false;
       startWizardAtFirstEmpty();
     }
@@ -454,11 +462,18 @@
       var node = sheetCanvas.querySelector('.exf-el[data-id="' + el.id + '"]');
       if (!node) return;
       if (el.type === 'table'){
+        var tLabel = findTableLabelFor(el);
+        var heads = node.querySelectorAll('thead th');
         node.querySelectorAll('tbody tr').forEach(function(tr, r){
+          var rowTh = tr.querySelector('.exf-table-rowlabel');
+          var rLabel = rowTh ? rowTh.textContent.trim() : '';
           tr.querySelectorAll('.exf-cell-input').forEach(function(input, c){
             input.dataset.tableId = el.id;
             input.dataset.row = r;
             input.dataset.col = c;
+            input.autocomplete = 'off';
+            var hLabel = heads[c + 1] ? heads[c + 1].textContent.trim() : '';
+            if (sheetLabels) sheetLabels.set(input, [tLabel, rLabel, hLabel].filter(Boolean).join(' · '));
             sheetInputs.push(input);
           });
         });
@@ -466,9 +481,14 @@
         var input = node.querySelector('.exf-input');
         if (!input) return;
         input.autocomplete = 'off';
+        if (sheetLabels) sheetLabels.set(input, findLabelFor(el).replace(/:\s*$/, ''));
         sheetInputs.push(input);
       }
     });
+    sheetInputs.forEach(function(input, i){
+      input.enterKeyHint = i === sheetInputs.length - 1 ? 'done' : 'next';
+    });
+    sheetCurrent = null;
 
     var nombreInput = sheetCanvas.querySelector('.exf-input[data-field-key="nombre"]');
     if (nombreInput) attachPatientSearch(nombreInput, findTelefonoStep());
@@ -477,16 +497,165 @@
   }
 
   // La hoja mide 816px; en pantallas más angostas se escala para que
-  // quepa completa sin scroll de lado.
+  // quepa completa sin scroll de lado. En el celular, con la "lupa"
+  // puesta, va a tamaño real (se lee sin hacer zoom) y la vista sigue
+  // al campo que se está llenando.
   function fitSheet(){
     if (!template || sheetWrap.hidden) return;
     var w = template.canvasW || 816, h = template.canvasH || 1056;
     var avail = sheetScale.parentNode.clientWidth;
     var s = avail && avail < w ? avail / w : 1;
+    var lupa = isSheetMobile() && sheetZoom === 'lupa';
+    if (lupa) s = 1;
+    sheetWrap.classList.toggle('is-lupa', lupa && avail < w);
     sheetCanvas.style.transform = s < 1 ? 'scale(' + s + ')' : '';
     sheetScale.style.width = Math.floor(w * s) + 'px';
     sheetScale.style.height = Math.ceil(h * s) + 'px';
   }
+
+  /* ---------- Celular: lupa + barra de campos ----------
+     - "Lupa" (por defecto): la hoja a tamaño real; al tocar o pasar a
+       un campo, la vista se centra en él (de lado y de arriba a abajo).
+     - "Hoja completa": la hoja encogida para verla toda; tocar un campo
+       regresa a la lupa en ese campo.
+     - Barra fija abajo (arriba del teclado): qué campo es, ‹ › para
+       moverse sin cerrar el teclado, y el botón para alternar la vista. */
+  var mqSheetMobile = window.matchMedia('(max-width: 900px)');
+  function isSheetMobile(){ return mqSheetMobile.matches; }
+  var sheetZoom = 'lupa'; // 'lupa' | 'hoja'
+  var sheetCurrent = null;
+  var sheetLabels = typeof WeakMap === 'function' ? new WeakMap() : null;
+  var sheetBar = null, sheetBarLabel = null, sheetBarCount = null, sheetBarZoom = null;
+
+  var ICON_ZOOM_OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+  var ICON_ZOOM_IN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg>';
+
+  function buildSheetBar(){
+    if (sheetBar) return;
+    sheetBar = document.createElement('div');
+    sheetBar.className = 'sheet-bar';
+    sheetBar.hidden = true;
+    sheetBar.innerHTML =
+      '<button type="button" class="sheet-bar-btn sheet-bar-zoom" aria-label="Ver hoja completa"></button>' +
+      '<div class="sheet-bar-info"><small class="sheet-bar-count"></small><strong class="sheet-bar-label"></strong></div>' +
+      '<button type="button" class="sheet-bar-btn" data-dir="-1" aria-label="Campo anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>' +
+      '<button type="button" class="sheet-bar-btn sheet-bar-next" data-dir="1" aria-label="Campo siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
+    document.body.appendChild(sheetBar);
+    sheetBarLabel = sheetBar.querySelector('.sheet-bar-label');
+    sheetBarCount = sheetBar.querySelector('.sheet-bar-count');
+    sheetBarZoom = sheetBar.querySelector('.sheet-bar-zoom');
+
+    // pointerdown + preventDefault: el campo no pierde el foco, así el
+    // teclado no se cierra al tocar ‹ ›.
+    sheetBar.addEventListener('pointerdown', function(e){
+      if (e.target.closest('.sheet-bar-btn')) e.preventDefault();
+    });
+    sheetBar.addEventListener('click', function(e){
+      var nav = e.target.closest('[data-dir]');
+      if (nav){
+        var dir = +nav.dataset.dir;
+        var from = sheetCurrent && sheetInputs.indexOf(sheetCurrent) >= 0 ? sheetCurrent : null;
+        if (!from){
+          var first = firstEmptySheetInput() || sheetInputs[0];
+          if (first){ first.focus(); first.select(); }
+          return;
+        }
+        closePatientDropdown();
+        focusNextSheetInput(from, dir);
+        return;
+      }
+      if (e.target.closest('.sheet-bar-zoom')){
+        if (sheetZoom === 'lupa'){
+          setSheetZoom('hoja');
+          if (document.activeElement && sheetCanvas.contains(document.activeElement)) document.activeElement.blur();
+          sheetWrap.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        } else {
+          setSheetZoom('lupa');
+          var target = sheetCurrent || firstEmptySheetInput() || sheetInputs[0];
+          if (target){ target.focus(); target.select(); }
+        }
+      }
+    });
+
+    if (window.visualViewport){
+      var place = function(){
+        if (!sheetBar || sheetBar.hidden) return;
+        var vv = window.visualViewport;
+        var off = window.innerHeight - vv.height - vv.offsetTop;
+        sheetBar.style.transform = off > 1 ? 'translateY(' + (-off) + 'px)' : '';
+      };
+      window.visualViewport.addEventListener('resize', place);
+      window.visualViewport.addEventListener('scroll', place);
+    }
+  }
+
+  function setSheetZoom(z){
+    sheetZoom = z;
+    fitSheet();
+    updateSheetBar();
+  }
+
+  // iPhone hace zoom solo al enfocar un campo con letra chica; con la
+  // lupa ya no hace falta, así que mientras se llena sobre la hoja en el
+  // celular se desactiva ese zoom automático.
+  var viewportMeta = document.querySelector('meta[name="viewport"]');
+  var viewportOriginal = viewportMeta ? viewportMeta.getAttribute('content') : '';
+  function setNoAutoZoom(on){
+    if (!viewportMeta) return;
+    viewportMeta.setAttribute('content', on ? 'width=device-width, initial-scale=1.0, maximum-scale=1.0' : viewportOriginal);
+  }
+
+  function updateSheetBar(){
+    var show = mode === 'hoja' && !sheetWrap.hidden && isSheetMobile() && !!template;
+    document.body.classList.toggle('has-sheet-bar', show);
+    setNoAutoZoom(show);
+    if (!show){ if (sheetBar) sheetBar.hidden = true; return; }
+    buildSheetBar();
+    sheetBar.hidden = false;
+    var lupa = sheetZoom === 'lupa';
+    sheetBarZoom.innerHTML = lupa ? ICON_ZOOM_OUT : ICON_ZOOM_IN;
+    sheetBarZoom.setAttribute('aria-label', lupa ? 'Ver hoja completa' : 'Ampliar');
+    sheetBarZoom.classList.toggle('is-on', !lupa);
+    var i = sheetCurrent ? sheetInputs.indexOf(sheetCurrent) : -1;
+    if (i >= 0){
+      sheetBarCount.textContent = 'Campo ' + (i + 1) + ' de ' + sheetInputs.length;
+      sheetBarLabel.textContent = (sheetLabels && sheetLabels.get(sheetCurrent)) || 'Campo';
+    } else {
+      sheetBarCount.textContent = sheetInputs.length + ' campos';
+      sheetBarLabel.textContent = lupa ? 'Toca un campo para llenarlo' : 'Toca un campo para ampliarlo';
+    }
+  }
+
+  function centerOnInput(input){
+    // Lleva la vista al campo: de lado dentro de la hoja y de arriba a
+    // abajo en la página, dejando lugar para la barra de abajo.
+    var scroller = sheetScale.parentNode;
+    var ir = input.getBoundingClientRect(), sr = scroller.getBoundingClientRect();
+    // De lado: el campo arranca un poco a la derecha para que se vea su
+    // etiqueta (NOMBRE, OD, ESF…), que en la hoja va a la izquierda.
+    var pad = Math.min(130, scroller.clientWidth * 0.32);
+    var left = scroller.scrollLeft + (ir.left - sr.left) - pad;
+    scroller.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+    var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    var barH = sheetBar && !sheetBar.hidden ? sheetBar.offsetHeight : 0;
+    var top = window.scrollY + ir.top - (vh - barH) / 2 + ir.height / 2;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  }
+
+  sheetCanvas.addEventListener('focusin', function(e){
+    var t = e.target;
+    if (!t.matches || !t.matches('input')) return;
+    sheetCurrent = t;
+    if (!isSheetMobile()) return;
+    if (sheetZoom !== 'lupa'){ sheetZoom = 'lupa'; fitSheet(); }
+    updateSheetBar();
+    // Espera a que el teclado termine de abrir para centrar.
+    setTimeout(function(){ if (document.activeElement === t) centerOnInput(t); }, 60);
+    setTimeout(function(){ if (document.activeElement === t) centerOnInput(t); }, 380);
+  });
+
+  mqSheetMobile.addEventListener ? mqSheetMobile.addEventListener('change', function(){ fitSheet(); updateSheetBar(); })
+                                 : mqSheetMobile.addListener(function(){ fitSheet(); updateSheetBar(); });
 
   function firstEmptySheetInput(){
     for (var i = 0; i < sheetInputs.length; i++){
@@ -501,6 +670,7 @@
     if (next){
       next.focus();
       next.select();
+      if (isSheetMobile()) return; // en el celular lo centra el focusin (lupa)
       var r = next.getBoundingClientRect();
       if (r.top < 70 || r.bottom > window.innerHeight - 20){
         next.scrollIntoView({ block: 'center', behavior: 'smooth' });
