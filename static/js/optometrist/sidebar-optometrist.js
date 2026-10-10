@@ -15,7 +15,7 @@
   var links = navGroup ? Array.prototype.slice.call(navGroup.querySelectorAll('.cuenta-nav-link')) : [];
 
   function isDesktop() {
-    return window.matchMedia('(min-width: 901px)').matches;
+    return !window.matchMedia('(max-width: 900px), (pointer: coarse) and (max-height: 520px)').matches;
   }
 
   function activeLink() {
@@ -105,7 +105,7 @@
   var closeBtn = document.getElementById('mnavClose');
   if (!toggle || !sidebar) return;
 
-  var mq = window.matchMedia('(max-width: 900px)');
+  var mq = window.matchMedia('(max-width: 900px), (pointer: coarse) and (max-height: 520px)');
 
   function open() {
     document.body.classList.add('mnav-open');

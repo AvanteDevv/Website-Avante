@@ -26,7 +26,7 @@
 .cuenta-sidebar a.cuenta-brand:hover .cuenta-brand-text{ color:var(--blue-600); }
 .cuenta-sidebar.shrink a.cuenta-brand{ gap:0; padding-left:0; padding-right:0; justify-content:center; }
 .cuenta-sidebar.shrink .cuenta-brand-text{ max-width:0; opacity:0; }
-@media (max-width:900px){
+@media (max-width:900px), (pointer:coarse) and (max-height:520px){
   /* Menú del celular: marca completa aunque en compu esté retraído */
   .cuenta-sidebar.shrink a.cuenta-brand{ gap:12px; padding:4px 2px 16px; justify-content:flex-start; }
   .cuenta-sidebar.shrink .cuenta-brand-text{ max-width:170px; opacity:1; }

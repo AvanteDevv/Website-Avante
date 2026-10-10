@@ -15,7 +15,7 @@ body.dark .cuenta-sidebar{ transition:width .3s var(--ease), background-color .3
   padding:36px 24px 90px;
   display:flex; align-items:flex-start; gap:32px;
 }
-@media (max-width:900px){ .cuenta-shell{ flex-direction:column; padding:28px 18px 70px; gap:22px; } }
+@media (max-width:900px), (pointer:coarse) and (max-height:520px){ .cuenta-shell{ flex-direction:column; padding:28px 18px 70px; gap:22px; } }
 .cuenta-main{ flex:1; min-width:0; }
 
 .cuenta-sidebar{
@@ -42,7 +42,7 @@ body.dark .cuenta-sidebar{ transition:width .3s var(--ease), background-color .3
 .cuenta-sidebar-toggle:hover{ background:var(--blue-700); }
 .cuenta-sidebar-toggle svg{ width:13px; height:13px; }
 .cuenta-sidebar.shrink .cuenta-sidebar-toggle{ transform:rotate(180deg); }
-@media (max-width:900px){ .cuenta-sidebar-toggle{ display:none; } }
+@media (max-width:900px), (pointer:coarse) and (max-height:520px){ .cuenta-sidebar-toggle{ display:none; } }
 
 .cuenta-themeContainer{
   padding:4px; margin-bottom:14px;
@@ -139,7 +139,7 @@ body .cuenta-shell{
   margin:0;
   padding:36px 32px 90px 24px;
 }
-@media (max-width:900px){
+@media (max-width:900px), (pointer:coarse) and (max-height:520px){
   body .cuenta-shell{ padding:28px 18px 70px; }
 }
 
@@ -154,7 +154,7 @@ body .cuenta-shell{
    ========================================================= */
 .mnav-toggle, .mnav-backdrop, .mnav-head{ display:none; }
 
-@media (max-width:900px){
+@media (max-width:900px), (pointer:coarse) and (max-height:520px){
   .mnav-toggle{
     display:flex; align-items:center; justify-content:center;
     position:fixed; top:16px; left:14px; z-index:95;
@@ -244,7 +244,7 @@ body .cuenta-shell{
   body .cuenta-shell{ padding:18px 16px 70px; gap:0; align-items:stretch; }
   .cuenta-main{ width:100%; }
 }
-@media (max-width:900px) and (prefers-reduced-motion:reduce){
+@media (max-width:900px) and (prefers-reduced-motion:reduce), (pointer:coarse) and (max-height:520px) and (prefers-reduced-motion:reduce){
   body .cuenta-sidebar, body.dark .cuenta-sidebar{ transition:none; }
   body.mnav-open .cuenta-nav-link{ animation:none; }
 }
@@ -276,7 +276,7 @@ body .cuenta-shell{
 .cuenta-brand:hover .cuenta-brand-text{ color:var(--blue-600); }
 .cuenta-sidebar.shrink .cuenta-brand{ gap:0; padding-left:0; padding-right:0; justify-content:center; }
 .cuenta-sidebar.shrink .cuenta-brand-text{ max-width:0; opacity:0; }
-@media (max-width:900px){
+@media (max-width:900px), (pointer:coarse) and (max-height:520px){
   /* En el menú del celular la marca va completa, aunque en compu esté retraído */
   .cuenta-sidebar.shrink .cuenta-brand{ gap:11px; padding:4px 2px 16px; justify-content:flex-start; }
   .cuenta-sidebar.shrink .cuenta-brand-text{ max-width:170px; opacity:1; }

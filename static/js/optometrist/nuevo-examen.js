@@ -485,6 +485,8 @@
         if (!input) return;
         input.autocomplete = 'off';
         if (sheetLabels) sheetLabels.set(input, findLabelFor(el).replace(/:\s*$/, ''));
+        var lx = labelXFor(el);
+        if (sheetLabelX && lx !== null) sheetLabelX.set(input, lx);
         sheetInputs.push(input);
       }
     });
@@ -508,20 +510,50 @@
      cambian. "Hoja completa" la muestra toda; tocar o hacer clic en
      un campo regresa al zoom en ese campo.
      ========================================================= */
-  var mqSheetMobile = window.matchMedia('(max-width: 900px)');
+  // "Celular" = pantalla angosta (celular vertical, tablet vertical) o
+  // celular acostado (táctil y poca altura).
+  var mqSheetMobile = window.matchMedia('(max-width: 900px), (pointer: coarse) and (max-height: 520px)');
   function isSheetMobile(){ return mqSheetMobile.matches; }
-  var LUPA_DESKTOP = 1.7;   // ~22px la letra de la hoja en compu
-  var LUPA_MOBILE = 1.05;   // tamaño real en el celular
+  var LUPA_DESKTOP = 1.7;   // en compu (así se ve bien)
+  var LUPA_TARGET_PX = 16;  // en celular/tablet: la letra de la hoja se ve a ~16px
   var sheetZoom = 'lupa';   // 'lupa' | 'hoja'
   var sheetCurrent = null;
   var cam = { k: 1, x: 0, y: 0 };
   var sheetLabels = typeof WeakMap === 'function' ? new WeakMap() : null;
+  var sheetLabelX = typeof WeakMap === 'function' ? new WeakMap() : null; // x de la etiqueta de cada campo
+
+  // La etiqueta impresa a la izquierda del campo (mismo renglón), si hay.
+  function labelXFor(step){
+    var best = null, bestDist = Infinity;
+    (template.elements || []).forEach(function(el){
+      if (!((el.type === 'title' || (el.type === 'text' && !el.fieldKey)) && el.text && el.text.trim())) return;
+      if (Math.abs((el.y || 0) - (step.y || 0)) >= 18) return;
+      var dx = (step.x || 0) - (el.x || 0);
+      if (dx < 0) return;
+      if (dx < bestDist){ bestDist = dx; best = el; }
+    });
+    return best ? (best.x || 0) : null;
+  }
   var sheetBar = null, sheetBarLabel = null, sheetBarCount = null, sheetBarZoom = null, sheetBarNext = null;
   var zoomToggleBtn = document.getElementById('examSheetZoomBtn');
 
   function sheetW(){ return (template && template.canvasW) || 816; }
   function sheetH(){ return (template && template.canvasH) || 1056; }
-  function lupaScale(){ return isSheetMobile() ? LUPA_MOBILE : LUPA_DESKTOP; }
+  // Tamaño de letra típico de la plantilla (la mediana de sus textos).
+  function sheetBaseFont(){
+    var sizes = ((template && template.elements) || []).filter(function(el){
+      return (el.type === 'text') && +el.fontSize > 0;
+    }).map(function(el){ return +el.fontSize; }).sort(function(a, b){ return a - b; });
+    return sizes.length ? sizes[Math.floor(sizes.length / 2)] : 13;
+  }
+  // En compu, 1.7×. En celular/tablet el zoom depende de la plantilla:
+  // si su letra es chica, se acerca más, para que siempre se lea a ~16px
+  // (así tampoco el iPhone hace su zoom al enfocar).
+  function lupaScale(){
+    if (!isSheetMobile()) return LUPA_DESKTOP;
+    var k = LUPA_TARGET_PX / sheetBaseFont();
+    return Math.max(1.1, Math.min(2.6, k));
+  }
   function camMargin(){ return isSheetMobile() ? 12 : 24; }
 
   function applyCam(){
@@ -556,13 +588,13 @@
 
   // Franja del recuadro que de verdad se ve (en el celular el teclado y
   // la barra de abajo tapan parte).
+  // (También en tablets: su teclado en pantalla tapa la mitad de abajo.)
   function visibleBand(){
     var vpH = sheetScale.clientHeight;
-    if (!isSheetMobile()) return { top: 0, bottom: vpH };
     var br = sheetScale.getBoundingClientRect();
     var vvH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     var barH = sheetBar && !sheetBar.hidden ? sheetBar.offsetHeight + 18 : 0;
-    var top = Math.max(0, 62 - br.top);
+    var top = Math.max(0, (isSheetMobile() ? 62 : 8) - br.top);
     var bottom = Math.min(vpH, vvH - barH - br.top);
     if (bottom - top < 80){ top = 0; bottom = vpH; }
     return { top: top, bottom: bottom };
@@ -581,15 +613,29 @@
         // Celda de tabla: si la tabla cabe completa, se ve toda (con
         // OD/OI y los encabezados) y no solo la celda.
         cam.x = Math.max(m, (vpW - t.w * cam.k) / 2) - t.x * cam.k;
+      } else if (t && (f.x - t.x + f.w) * cam.k + 2 * m <= vpW){
+        // La tabla no cabe, pero la celda sí junto con la columna OD/OI:
+        // se pega la tabla a la izquierda.
+        cam.x = m - t.x * cam.k;
       } else {
         // De lado: el campo arranca un poco a la derecha para que se vea
         // su etiqueta (NOMBRE, TEL, OD…), que en la hoja va a la izquierda.
-        var pad = Math.min(isSheetMobile() ? 125 : 220, vpW * 0.32);
-        if (t) pad = Math.min(pad, 90);
+        // En celular la etiqueta crece con el zoom, así que el margen también.
+        var pad = isSheetMobile() ? Math.min(85 * cam.k, vpW * 0.42) : Math.min(220, vpW * 0.32);
+        if (t) pad = Math.min(pad, isSheetMobile() ? 40 * cam.k : 90);
         cam.x = pad - f.x * cam.k;
-        // Que el campo no quede cortado a la derecha si cabe.
+        // Celular: si se puede, la etiqueta completa pegada a la orilla
+        // izquierda y el campo enseguida (que se vea al menos un pedazo).
+        var lx = sheetLabelX ? sheetLabelX.get(input) : undefined;
+        var pinned = false;
+        if (isSheetMobile() && lx !== undefined){
+          var need = (f.x - lx) * cam.k + Math.min(f.w * cam.k, 110);
+          if (need <= vpW - 2 * m){ cam.x = m - lx * cam.k; pinned = true; }
+        }
+        // Que el campo no quede cortado a la derecha si cabe (sin
+        // sacrificar la etiqueta).
         var right = cam.x + (f.x + f.w) * cam.k;
-        if (right > vpW - m && f.w * cam.k + 2 * m <= vpW) cam.x -= right - (vpW - m);
+        if (!pinned && right > vpW - m && f.w * cam.k + 2 * m <= vpW) cam.x -= right - (vpW - m);
       }
       var band = visibleBand();
       cam.y = (band.top + band.bottom) / 2 - (f.y + f.h / 2) * cam.k;
@@ -753,6 +799,13 @@
       });
       window.visualViewport.addEventListener('scroll', place);
     }
+  }
+  // Tablet en modo compu: al abrir/cerrar su teclado, re-centra el campo.
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', function(){
+      if (isSheetMobile() || mode !== 'hoja' || sheetZoom !== 'lupa') return;
+      if (sheetCurrent && document.activeElement === sheetCurrent) aimAt(sheetCurrent);
+    });
   }
 
   // iPhone hace zoom solo al enfocar un campo con letra chica; con la
