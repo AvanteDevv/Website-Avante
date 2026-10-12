@@ -1440,7 +1440,21 @@ window.CitasFiltro = (function(){
     var dvCount = document.getElementById('dayViewCount');
     var dvSummary = document.getElementById('dayViewSummary');
     var dvList = document.getElementById('dayViewList');
-    var dvDate = todayISO();
+    // Al guardar/editar/cambiar estado la página se recarga; sin esto la vista
+    // de Día siempre volvía a "hoy". Se recuerda el día que se estaba viendo
+    // (solo en esta pestaña y por 30 min, para que al otro día abra en hoy).
+    var DV_KEY = 'avanteDayViewDate';
+    function loadDvDate(){
+      try {
+        var s = JSON.parse(sessionStorage.getItem(DV_KEY) || 'null');
+        if (s && /^\d{4}-\d{2}-\d{2}$/.test(s.d) && Date.now() - s.at < 30 * 60 * 1000) return s.d;
+      } catch (e) {}
+      return todayISO();
+    }
+    function saveDvDate(){
+      try { sessionStorage.setItem(DV_KEY, JSON.stringify({ d: dvDate, at: Date.now() })); } catch (e) {}
+    }
+    var dvDate = loadDvDate();
 
     function shiftISO(iso, delta){
       var p = iso.split('-').map(Number);
@@ -1465,6 +1479,7 @@ window.CitasFiltro = (function(){
     // dir: 1 = día siguiente, -1 = día anterior (para la animación).
     function renderDay(dir){
       if (!dvView) return;
+      saveDvDate();
       animateDaySwap(dir);
       var term = searchTerm.toLowerCase().trim();
       var rows = allRows.filter(function(r){ return r.dataset.date === dvDate; })
