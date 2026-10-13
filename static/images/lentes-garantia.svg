@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 112" fill="none" stroke="#111" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Armazón de referencia para señalar rayaduras o desperfectos -->
+  <path d="M14 30 L18 26 L134 22 Q144 22 146 32 L146 72 Q146 92 128 94 L46 96 Q26 96 22 78 Z" stroke-width="7"/>
+  <path d="M146 40 Q160 30 174 40" stroke-width="6"/>
+  <path d="M174 32 Q176 22 186 22 L298 26 L302 30 L294 78 Q290 96 270 96 L188 94 Q172 92 174 72 Z" stroke-width="7"/>
+  <path d="M302 30 Q312 34 316 52 L318 70" stroke-width="5"/>
+  <path d="M14 30 Q6 36 4 52" stroke-width="5"/>
+</svg>

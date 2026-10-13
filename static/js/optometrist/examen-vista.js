@@ -49,6 +49,20 @@
   var MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
   var allExams = [];   // ligeros (sin resultados): id, patientName, createdAt, createdByName, appointmentId…
+  // Garantías del mes (de /api/optometrist/garantias/resumen): total y por optometrista
+  var garantias = { total: 0, reparaciones: 0, porOptometrista: {} };
+  function loadGarantias(){
+    fetch('/api/optometrist/garantias/resumen')
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if (!d) return;
+        garantias = { total: d.total || 0, reparaciones: d.reparaciones || 0, porOptometrista: d.porOptometrista || {} };
+        renderStats();
+      })
+      .catch(function(){});
+  }
+  loadGarantias();
+  setInterval(loadGarantias, 60000);
   var todayCitas = [];
 
   /* ---------- Contadores ---------- */
@@ -81,12 +95,26 @@
     document.getElementById('statSinCita').textContent = sinCita;
     document.getElementById('statSplitBar').style.width = (month ? Math.round(conCita / month * 100) : 0) + '%';
 
-    var names = Object.keys(staff).sort(function(a, b){ return staff[b] - staff[a] || a.localeCompare(b); });
-    var max = names.length ? staff[names[0]] : 0;
+    // Garantías del mes
+    var gar = garantias.porOptometrista || {};
+    var garEl = document.getElementById('statGar');
+    if (garEl){
+      garEl.textContent = garantias.total;
+      document.getElementById('statGarSub').textContent = (garantias.total === 1 ? 'garantía' : 'garantías') + ' en ' + MONTHS[now.getMonth()] +
+        (garantias.reparaciones ? ' · ' + plural(garantias.reparaciones, 'reparación', 'reparaciones') : '');
+    }
+
+    // Por optometrista: exámenes (barra) y garantías del mes
+    Object.keys(gar).forEach(function(n){ if (!(n in staff)) staff[n] = 0; });
+    var names = Object.keys(staff).sort(function(a, b){ return staff[b] - staff[a] || (gar[b] || 0) - (gar[a] || 0) || a.localeCompare(b); });
+    var max = 0;
+    names.forEach(function(n){ if (staff[n] > max) max = staff[n]; });
     document.getElementById('statStaff').innerHTML = names.length ? names.map(function(n){
+      var g = gar[n] || 0;
       return '<li><span class="ev-staff-name">' + escapeHTML(n) + '</span>' +
-        '<span class="ev-staff-bar"><span style="width:' + Math.round(staff[n] / max * 100) + '%"></span></span>' +
-        '<strong>' + staff[n] + '</strong></li>';
+        '<span class="ev-staff-bar"><span style="width:' + (max ? Math.round(staff[n] / max * 100) : 0) + '%"></span></span>' +
+        '<strong title="Exámenes este mes">' + staff[n] + '</strong>' +
+        '<em class="ev-staff-gar' + (g ? '' : ' is-zero') + '" title="Garantías este mes">' + g + '</em></li>';
     }).join('') : '<li class="ev-staff-empty">Todavía no hay exámenes este mes.</li>';
   }
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -21,21 +22,27 @@ import (
 // kind = 'laboratorio'). Se guarda aparte (lab_order_sheets).
 
 // GetLabExamTemplateHandler — GET /api/optometrist/plantillas/laboratorio
-func GetLabExamTemplateHandler(c *gin.Context) {
-	t, err := models.GetLabExamTemplate()
+func GetLabExamTemplateHandler(c *gin.Context) { kindTemplate(c, models.ExamTemplateKindLab) }
+
+// GetGarantiaTemplateHandler — GET /api/optometrist/plantillas/garantia
+func GetGarantiaTemplateHandler(c *gin.Context) { kindTemplate(c, models.ExamTemplateKindGarantia) }
+
+func kindTemplate(c *gin.Context, kind string) {
+	t, err := models.GetExamTemplateByKind(kind)
 	if err != nil {
 		if errors.Is(err, models.ErrExamTemplateNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "No hay plantilla de orden de laboratorio."})
+			c.JSON(http.StatusNotFound, gin.H{"error": "No hay plantilla de ese tipo."})
 			return
 		}
-		log.Println("orden-lab: plantilla:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cargar la orden de laboratorio."})
+		log.Println("orden-lab: plantilla", kind, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cargar la plantilla."})
 		return
 	}
 	c.JSON(http.StatusOK, t)
 }
 
 type createLabOrderSheetInput struct {
+	Kind         string          `json:"kind"` // "laboratorio" (default) | "garantia"
 	ExamID       int64           `json:"examId"`
 	TemplateID   int64           `json:"templateId"`
 	PatientName  string          `json:"patientName"`
@@ -49,6 +56,13 @@ func CreateLabOrderSheetHandler(c *gin.Context) {
 	var in createLabOrderSheetInput
 	if err := c.ShouldBindJSON(&in); err != nil || in.TemplateID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos de la orden inválidos."})
+		return
+	}
+	if in.Kind == "" {
+		in.Kind = models.ExamTemplateKindLab
+	}
+	if !models.IsDocKind(in.Kind) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tipo de hoja inválido."})
 		return
 	}
 	in.PatientName = strings.TrimSpace(in.PatientName)
@@ -69,20 +83,24 @@ func CreateLabOrderSheetHandler(c *gin.Context) {
 	idVal, _ := c.Get("staff_id")
 	byID, _ := idVal.(int64)
 
-	o, err := models.CreateLabOrderSheet(in.ExamID, in.TemplateID, in.PatientName, in.PatientPhone, in.UserID, in.Data, role, byID, staffName(c))
+	o, err := models.CreateLabOrderSheet(in.Kind, in.ExamID, in.TemplateID, in.PatientName, in.PatientPhone, in.UserID, in.Data, role, byID, staffName(c))
 	if err != nil {
 		log.Println("orden-lab: guardar:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar la orden de laboratorio."})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar la hoja."})
 		return
 	}
 	c.Set("lab_order_sheet", o.PatientName)
 	c.JSON(http.StatusCreated, o)
 }
 
-// ListLabOrderSheetsHandler — GET /api/optometrist/ordenes-lab[?examId=]
+// ListLabOrderSheetsHandler — GET /api/optometrist/ordenes-lab[?examId=&kind=]
 func ListLabOrderSheetsHandler(c *gin.Context) {
 	examID, _ := strconv.ParseInt(c.Query("examId"), 10, 64)
-	list, err := models.ListLabOrderSheets(examID)
+	kind := c.Query("kind")
+	if kind != "" && !models.IsDocKind(kind) {
+		kind = ""
+	}
+	list, err := models.ListLabOrderSheets(examID, kind)
 	if err != nil {
 		log.Println("orden-lab: listar:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar las órdenes."})
@@ -108,4 +126,29 @@ func GetLabOrderSheetHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, o)
+}
+
+// GarantiasResumenHandler — GET /api/optometrist/garantias/resumen
+// Las garantías del mes en curso (hora de Hermosillo), total y por
+// optometrista. Para el indicador de "Examen de la vista".
+func GarantiasResumenHandler(c *gin.Context) {
+	loc, err := time.LoadLocation("America/Hermosillo")
+	if err != nil {
+		loc = time.FixedZone("MST", -7*3600)
+	}
+	now := time.Now().In(loc)
+	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, loc)
+	to := from.AddDate(0, 1, 0)
+	r, err := models.GetGarantiasResumen(from, to)
+	if err != nil {
+		log.Println("garantías: resumen:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo calcular las garantías."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"mes":             from.Format("2006-01"),
+		"total":           r.Total,
+		"reparaciones":    r.Reparaciones,
+		"porOptometrista": r.PorOptometrista,
+	})
 }

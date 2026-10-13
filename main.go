@@ -745,6 +745,7 @@ func main() {
 		apiOptometrist.GET("/plantillas", handlers.ListExamTemplates)
 		apiOptometrist.GET("/plantillas/activa", handlers.GetActiveExamTemplate)
 		apiOptometrist.GET("/plantillas/laboratorio", handlers.GetLabExamTemplateHandler)
+		apiOptometrist.GET("/plantillas/garantia", handlers.GetGarantiaTemplateHandler)
 		apiOptometrist.GET("/plantillas/:id", handlers.GetExamTemplate)
 		apiOptometrist.POST("/plantillas", handlers.CreateExamTemplate)
 		apiOptometrist.PUT("/plantillas/:id", handlers.UpdateExamTemplate)
@@ -760,6 +761,8 @@ func main() {
 		apiOptometrist.GET("/ordenes-lab", handlers.ListLabOrderSheetsHandler)
 		apiOptometrist.GET("/ordenes-lab/:id", handlers.GetLabOrderSheetHandler)
 		apiOptometrist.POST("/ordenes-lab", handlers.CreateLabOrderSheetHandler)
+		// Garantías del mes por optometrista (indicador de Examen de la vista)
+		apiOptometrist.GET("/garantias/resumen", handlers.GarantiasResumenHandler)
 
 	}
 

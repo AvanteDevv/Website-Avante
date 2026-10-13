@@ -141,7 +141,7 @@ func GetActiveExamTemplate() (*ExamTemplate, error) {
 	var t ExamTemplate
 	var raw []byte
 	err := db.DB.QueryRow(
-		"SELECT id, name, canvas_w, canvas_h, elements, is_active, kind, created_at, updated_at FROM exam_templates WHERE is_active = TRUE AND kind <> 'laboratorio' LIMIT 1",
+		"SELECT id, name, canvas_w, canvas_h, elements, is_active, kind, created_at, updated_at FROM exam_templates WHERE is_active = TRUE AND kind = '' LIMIT 1",
 	).Scan(&t.ID, &t.Name, &t.CanvasW, &t.CanvasH, &raw, &t.IsActive, &t.Kind, &t.CreatedAt, &t.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, ErrExamTemplateNotFound

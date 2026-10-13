@@ -318,9 +318,12 @@ body.cuenta-body{
 
 /* ---------- Contadores ---------- */
 .ev-stats{
-  display:grid; grid-template-columns:repeat(3, minmax(0,1fr)) minmax(0,1.3fr) minmax(0,1.6fr);
+  display:grid; grid-template-columns:repeat(4, minmax(0,1fr));
   gap:14px; margin-bottom:22px;
 }
+/* 2ª fila: origen + por optometrista (con garantías) */
+.ev-stat--split{ grid-column:span 1; }
+.ev-stat--staff{ grid-column:span 3; }
 .ev-stat{
   background:var(--white); border:1.5px solid var(--line); border-radius:var(--radius-md);
   box-shadow:var(--shadow-sm); padding:16px 18px; display:flex; flex-direction:column; gap:4px; min-width:0;
@@ -335,19 +338,36 @@ body.cuenta-body{
 .ev-split-bar{ height:6px; border-radius:100px; background:var(--line); overflow:hidden; margin-top:8px; }
 .ev-split-bar span{ display:block; height:100%; width:0; background:var(--blue-600); border-radius:100px; transition:width .4s var(--ease); }
 .ev-staff-list{ display:flex; flex-direction:column; gap:7px; margin-top:6px; }
-.ev-staff-list li{ display:grid; grid-template-columns:minmax(0,1fr) 70px 22px; align-items:center; gap:8px; font-size:12px; color:var(--ink); }
+.ev-staff-list li{ display:grid; grid-template-columns:minmax(0,1fr) minmax(70px,1.2fr) 26px 30px; align-items:center; gap:8px; font-size:12px; color:var(--ink); }
+/* Garantías: en ámbar para distinguirlas de los exámenes */
+.ev-stat--gar .ev-stat-value{ color:#b46a00; }
+.ev-staff-gar{
+  font-style:normal; font-weight:700; font-size:11px; text-align:center; font-variant-numeric:tabular-nums;
+  color:#9a5b00; background:#fff3dc; border-radius:100px; padding:1px 0;
+}
+.ev-staff-gar.is-zero{ color:var(--grey); background:var(--blue-50); font-weight:600; }
+.ev-staff-legend{ display:inline-flex; align-items:center; gap:5px; margin-left:8px; font-weight:600; text-transform:none; letter-spacing:0; color:var(--grey); }
+.ev-staff-legend i{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-left:4px; }
+.ev-dot-exam{ background:var(--blue-600); }
+.ev-dot-gar{ background:#f0a020; }
+body.dark .ev-stat--gar .ev-stat-value{ color:#f2c26b; }
+body.dark .ev-staff-gar{ color:#f2c26b; background:rgba(154,91,0,.25); }
 .ev-staff-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
 .ev-staff-bar{ height:6px; border-radius:100px; background:var(--line); overflow:hidden; }
 .ev-staff-bar span{ display:block; height:100%; background:var(--blue-600); border-radius:100px; }
 .ev-staff-list strong{ text-align:right; font-variant-numeric:tabular-nums; }
 .ev-staff-list .ev-staff-empty{ display:block; color:var(--grey); font-size:12px; }
 @media (max-width:1180px){
-  .ev-stats{ grid-template-columns:repeat(3, minmax(0,1fr)); }
-  .ev-stat--split{ grid-column:span 1; }
+  .ev-stats{ grid-template-columns:repeat(4, minmax(0,1fr)); }
+  .ev-stat--split{ grid-column:span 2; }
   .ev-stat--staff{ grid-column:span 2; }
 }
+@media (max-width:900px){
+  .ev-stats{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .ev-stat--split, .ev-stat--staff{ grid-column:1 / -1; }
+}
 @media (max-width:620px){
-  .ev-stats{ grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+  .ev-stats{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
   .ev-stat{ padding:13px 12px; }
   .ev-stat--split, .ev-stat--staff{ grid-column:1 / -1; }
   .ev-stat-value{ font-size:26px; }
