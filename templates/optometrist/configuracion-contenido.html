@@ -1,0 +1,84 @@
+{{define "staff-configuracion-contenido"}}
+{{/* Contenido de Configuración — el mismo para optometría y recepción
+     (cada página pone su userbar, sidebar y estilos). */}}
+<div class="cuenta-header admin-header-row">
+  <div>
+    <h1>Configuración</h1>
+    <p>Cómo y cuándo te avisa el panel de las citas de los pacientes. Se guarda en tu cuenta, así que aplica en cualquier computadora donde entres.</p>
+  </div>
+</div>
+
+<div class="cfg-page" id="cfgPage">
+  <section class="panel cfg-card">
+    <div class="cfg-row cfg-row--head">
+      <div>
+        <h2>Avisos de citas</h2>
+        <p>Suena y aparece un aviso antes de que llegue cada paciente.</p>
+      </div>
+      <label class="cfg-switch" title="Activar o desactivar los avisos">
+        <input type="checkbox" id="cfgEnabled">
+        <span class="cfg-switch-track"><span class="cfg-switch-thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="cfg-body" id="cfgBody">
+      <div class="cfg-block">
+        <h3>¿Con cuánto tiempo antes?</h3>
+        <p class="cfg-hint">Puedes elegir varios, por ejemplo 30 y 10 minutos antes.</p>
+        <div class="cfg-chips" id="cfgLeads" role="group" aria-label="Minutos antes"></div>
+      </div>
+
+      <div class="cfg-block">
+        <h3>Sonido</h3>
+        <p class="cfg-hint">Toca uno para escucharlo y elegirlo.</p>
+        <div class="cfg-sounds" id="cfgSounds" role="radiogroup" aria-label="Sonido"></div>
+      </div>
+
+      <div class="cfg-grid">
+        <div class="cfg-block">
+          <h3>Volumen <span class="cfg-val" id="cfgVolVal"></span></h3>
+          <input type="range" min="0" max="100" step="5" id="cfgVolume" class="cfg-range">
+        </div>
+        <div class="cfg-block">
+          <h3>Repetir el sonido</h3>
+          <div class="cfg-chips cfg-chips--seg" id="cfgRepeat" role="radiogroup" aria-label="Repetir">
+            <button type="button" data-repeat="1">1 vez</button>
+            <button type="button" data-repeat="2">2 veces</button>
+            <button type="button" data-repeat="3">3 veces</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cfg-row cfg-row--opt">
+        <div>
+          <h3>Notificación de la computadora</h3>
+          <p class="cfg-hint" id="cfgNotifyHint">También avisa aunque estés en otra pestaña o programa.</p>
+        </div>
+        <label class="cfg-switch">
+          <input type="checkbox" id="cfgNotify">
+          <span class="cfg-switch-track"><span class="cfg-switch-thumb"></span></span>
+        </label>
+      </div>
+
+      <div class="cfg-actions">
+        <button type="button" class="btn thin" id="cfgTest">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+          Probar aviso
+        </button>
+        <span class="cfg-status" id="cfgStatus" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel cfg-card">
+    <div class="cfg-row cfg-row--head">
+      <div>
+        <h2>Próximos avisos de hoy</h2>
+        <p id="cfgNextSub">Con tu configuración actual.</p>
+      </div>
+    </div>
+    <ul class="cfg-next" id="cfgNext"><li class="cfg-next-empty">Cargando…</li></ul>
+    <p class="cfg-note">El navegador solo deja sonar después de que tocas la página una vez. Si dejas el panel abierto, da un clic en cualquier parte al empezar el día.</p>
+  </section>
+</div>
+{{end}}

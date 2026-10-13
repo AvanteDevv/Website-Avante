@@ -232,6 +232,8 @@ func main() {
 	db.EnsureOptometristTables()
 	// Orden de laboratorio (hoja que se llena después de la historia clínica)
 	db.EnsureOrdenLabTables()
+	// Configuración de cada quien (avisos de cita: sonido, minutos antes)
+	db.EnsureStaffPreferencesTable()
 
 	storage.Connect()
 	// Clarito: sube una sola vez los 3 formatos de static/pdf/clarito al
@@ -525,6 +527,8 @@ func main() {
 	apiStaff := router.Group("/api/staff", handlers.RequireAdminAuth(), commsStaff)
 	{
 		apiStaff.GET("/avisos", handlers.ListMyAnnouncements)
+		apiStaff.GET("/preferencias", handlers.GetMyPreferences)
+		apiStaff.PUT("/preferencias", handlers.SaveMyPreferences)
 		apiStaff.POST("/avisos/leer-todos", handlers.MarkAllMyAnnouncementsRead)
 		apiStaff.POST("/avisos/:id/leido", handlers.MarkMyAnnouncementRead)
 
@@ -552,6 +556,7 @@ func main() {
 		// Comunicación: solo recepción (el admin no chatea ni recibe avisos).
 		receptionistGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleReceptionist), handlers.ReceptionistCommunicationPage)
 		receptionistGroup.GET("/consultas", handlers.ReceptionistConsultasPage)
+		receptionistGroup.GET("/configuracion", handlers.RequireRole(handlers.RoleReceptionist), handlers.ConfigPage("configuracion-recepcion.html", "receptionist-configuracion"))
 		receptionistGroup.GET("/punto-de-venta", handlers.ReceptionistPuntoDeVentaPage)
 		receptionistGroup.GET("/ventas", handlers.ReceptionistVentasPage)
 		receptionistGroup.GET("/plantillas", handlers.ReceptionistPlantillasPage)
@@ -711,6 +716,7 @@ func main() {
 		// Comunicación: solo optometría (el admin no chatea ni recibe avisos).
 		optometristGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleOptometrist), handlers.OptometristCommunicationPage)
 		// Orden de laboratorio y Garantía / reparación: cada una en su sección
+		optometristGroup.GET("/configuracion", handlers.RequireRole(handlers.RoleOptometrist), handlers.ConfigPage("configuracion-optometrista.html", "optometrist-configuracion"))
 		optometristGroup.GET("/ordenes-lab", handlers.DocListPage("laboratorio"))
 		optometristGroup.GET("/ordenes-lab/nueva", handlers.DocNewPage("laboratorio"))
 		optometristGroup.GET("/garantias", handlers.DocListPage("garantia"))
@@ -764,6 +770,7 @@ func main() {
 
 		// Orden de laboratorio (después de la historia clínica)
 		apiOptometrist.GET("/ordenes-lab", handlers.ListLabOrderSheetsHandler)
+		apiOptometrist.GET("/ordenes-lab/siguiente-folio", handlers.NextLabFolioHandler)
 		apiOptometrist.GET("/ordenes-lab/:id", handlers.GetLabOrderSheetHandler)
 		apiOptometrist.POST("/ordenes-lab", handlers.CreateLabOrderSheetHandler)
 		apiOptometrist.DELETE("/ordenes-lab/:id", handlers.DeleteLabOrderSheetHandler)

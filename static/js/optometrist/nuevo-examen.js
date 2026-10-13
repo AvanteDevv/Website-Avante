@@ -454,9 +454,13 @@
     renderStep();
   });
 
+  // Campos que no se llenan a mano: el Nº de la orden de laboratorio se
+  // asigna solo (1, 2, 3…).
+  function isAutoField(el){ return DOC === 'laboratorio' && el.fieldKey === 'folio'; }
+
   function initWizard(){
     steps = (template.elements || []).filter(function(el){
-      return ((el.type === 'text' || el.type === 'choice') && el.fieldKey) || el.type === 'table';
+      return (((el.type === 'text' || el.type === 'choice') && el.fieldKey) || el.type === 'table') && !isAutoField(el);
     });
     applyMode();
   }
@@ -518,7 +522,7 @@
   // es el orden que sigue Enter.
   function sheetOrder(){
     var list = (template.elements || []).filter(function(el){
-      return ((el.type === 'text' || el.type === 'choice') && el.fieldKey) || el.type === 'table';
+      return (((el.type === 'text' || el.type === 'choice') && el.fieldKey) || el.type === 'table') && !isAutoField(el);
     });
     // La orden de laboratorio y la garantía siguen el orden del papel
     // (como se armó la plantilla), no renglón por renglón.
@@ -570,6 +574,14 @@
         if (sheetLabelX && lx !== null) sheetLabelX.set(input, lx);
         sheetInputs.push(input);
       }
+    });
+    // Nº automático: se ve en la hoja pero no se edita.
+    sheetCanvas.querySelectorAll('.exf-input[data-field-key="folio"]').forEach(function(inp){
+      if (DOC !== 'laboratorio') return;
+      inp.readOnly = true;
+      inp.tabIndex = -1;
+      inp.classList.add('exf-auto');
+      inp.title = 'Número automático (se confirma al guardar)';
     });
     sheetInputs.forEach(function(input, i){
       input.enterKeyHint = i === sheetInputs.length - 1 ? 'done' : 'next';
@@ -1378,7 +1390,13 @@
     var go = function(){
       if (DOC === 'garantia') garantiaDefaults(values, {});
       prefillToday();
-      initWizard();
+      if (DOC !== 'laboratorio'){ initWizard(); return; }
+      // El Nº que le va a tocar (el definitivo se asigna al guardar).
+      fetch('/api/optometrist/ordenes-lab/siguiente-folio', { headers: { Accept: 'application/json' } })
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(d){ if (d && d.folio) values.fields.folio = String(d.folio); })
+        .catch(function(){})
+        .then(function(){ initWizard(); });
     };
     if (!fromExamId){
       go();

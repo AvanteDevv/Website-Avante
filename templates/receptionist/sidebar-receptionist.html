@@ -92,6 +92,9 @@
     {{end}}
     <a href="/receptionist/plantillas" class="cuenta-nav-link{{if eq .ActivePage "receptionist-plantillas"}} active{{end}}"><i data-feather="file-text"></i><span>Plantillas</span><span class="cuenta-nav-tooltip">Plantillas</span></a>
     <a href="/receptionist/administracion" class="cuenta-nav-link{{if eq .ActivePage "receptionist-administracion"}} active{{end}}"><i data-feather="briefcase"></i><span>Administración</span><span class="cuenta-nav-tooltip">Administración</span></a>
+    {{if and .StaffRoleKey (eq .StaffRoleKey "receptionist")}}
+    <a href="/receptionist/configuracion" class="cuenta-nav-link{{if eq .ActivePage "receptionist-configuracion"}} active{{end}}"><i data-feather="settings"></i><span>Configuración</span><span class="cuenta-nav-tooltip">Configuración</span></a>
+    {{end}}
   </nav>
 
   <div class="cuenta-nav-divider"></div>

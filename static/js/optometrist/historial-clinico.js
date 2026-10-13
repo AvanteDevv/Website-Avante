@@ -842,7 +842,7 @@
       '<p class="pf-docs-count">' + [nLab ? nLab + (nLab === 1 ? ' orden de laboratorio' : ' órdenes de laboratorio') : '', nGar ? nGar + (nGar === 1 ? ' garantía' : ' garantías') : '', nRep ? nRep + (nRep === 1 ? ' reparación' : ' reparaciones') : ''].filter(Boolean).join(' · ') + '</p>' +
       '<div class="exam-timeline">' + sheets.map(function(s){
         var tipo = sheetTipo(s);
-        var tag = tipo === 'lab' ? '<span class="pf-doc-tag is-lab">Orden de laboratorio</span>'
+        var tag = tipo === 'lab' ? '<span class="pf-doc-tag is-lab">Orden de laboratorio' + (s.folio ? ' Nº ' + s.folio : '') + '</span>'
                 : tipo === 'gar' ? '<span class="pf-doc-tag is-gar">Garantía</span>'
                 : '<span class="pf-doc-tag">Reparación</span>';
         var f = (s.data.fields || {});
@@ -870,7 +870,7 @@
     var src = { exam: s, template: sheetTemplate(s) };
     if (b.dataset.pdfSheet){ AvanteExamModal.exportPdf(src); return; }
     var tipo = sheetTipo(s);
-    AvanteExamModal.open(src, { subtitle: [fecha(s.createdAt), s.createdByName ? 'Llenó ' + s.createdByName : '', tipo === 'lab' ? 'Orden de laboratorio' : tipo === 'gar' ? 'Garantía' : 'Reparación'].filter(Boolean).join(' · ') });
+    AvanteExamModal.open(src, { subtitle: [fecha(s.createdAt), s.createdByName ? 'Llenó ' + s.createdByName : '', tipo === 'lab' ? 'Orden de laboratorio' + (s.folio ? ' Nº ' + s.folio : '') : tipo === 'gar' ? 'Garantía' : 'Reparación'].filter(Boolean).join(' · ') });
   });
 
   // "Ver hoja": el examen en un modal encima de la ficha (con imprimir y

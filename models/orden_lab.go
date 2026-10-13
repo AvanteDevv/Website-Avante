@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -64,7 +65,8 @@ func IsLabExamTemplate(id int64) bool {
 // LabOrderSheet: una orden de laboratorio llenada.
 type LabOrderSheet struct {
 	ID            int64           `json:"id"`
-	Kind          string          `json:"kind"` // "laboratorio" | "garantia"
+	Kind          string          `json:"kind"`
+	Folio         *int            `json:"folio,omitempty"` // Nº automático (solo órdenes de laboratorio) // "laboratorio" | "garantia"
 	ExamID        *int64          `json:"examId,omitempty"`
 	TemplateID    int64           `json:"templateId"`
 	PatientName   string          `json:"patientName"`
@@ -76,17 +78,21 @@ type LabOrderSheet struct {
 	CreatedAt     time.Time       `json:"createdAt"`
 }
 
-const labOrderSheetCols = "id, kind, exam_id, template_id, patient_name, patient_phone, user_id, data, created_by_role, created_by_name, created_at"
+const labOrderSheetCols = "id, kind, folio, exam_id, template_id, patient_name, patient_phone, user_id, data, created_by_role, created_by_name, created_at"
 
 func scanLabOrderSheet(sc interface{ Scan(...any) error }) (*LabOrderSheet, error) {
 	var o LabOrderSheet
-	var examID, userID sql.NullInt64
+	var examID, userID, folio sql.NullInt64
 	var raw []byte
-	if err := sc.Scan(&o.ID, &o.Kind, &examID, &o.TemplateID, &o.PatientName, &o.PatientPhone, &userID, &raw, &o.CreatedByRole, &o.CreatedByName, &o.CreatedAt); err != nil {
+	if err := sc.Scan(&o.ID, &o.Kind, &folio, &examID, &o.TemplateID, &o.PatientName, &o.PatientPhone, &userID, &raw, &o.CreatedByRole, &o.CreatedByName, &o.CreatedAt); err != nil {
 		return nil, err
 	}
 	if examID.Valid {
 		o.ExamID = &examID.Int64
+	}
+	if folio.Valid {
+		f := int(folio.Int64)
+		o.Folio = &f
 	}
 	if userID.Valid {
 		o.UserID = &userID.Int64
@@ -107,18 +113,63 @@ func CreateLabOrderSheet(kind string, examID, templateID int64, patientName, pat
 	if len(data) == 0 {
 		data = json.RawMessage(`{}`)
 	}
-	res, err := db.DB.Exec(
-		"INSERT INTO lab_order_sheets (kind, exam_id, template_id, patient_name, patient_phone, user_id, data, created_by_role, created_by_id, created_by_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		kind, exam, templateID, patientName, patientPhone, user, []byte(data), role, byID, byName,
-	)
-	if err != nil {
-		return nil, err
+	// Orden de laboratorio: Nº automático (el siguiente). Si dos se guardan
+	// al mismo tiempo, el índice único hace que una reintente con el que sigue.
+	for attempt := 0; attempt < 6; attempt++ {
+		var folio any
+		payload := data
+		if kind == ExamTemplateKindLab {
+			n, err := NextLabFolio()
+			if err != nil {
+				return nil, err
+			}
+			folio = n
+			payload = withFolio(data, n)
+		}
+		res, err := db.DB.Exec(
+			"INSERT INTO lab_order_sheets (kind, folio, exam_id, template_id, patient_name, patient_phone, user_id, data, created_by_role, created_by_id, created_by_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			kind, folio, exam, templateID, patientName, patientPhone, user, []byte(payload), role, byID, byName,
+		)
+		if err != nil {
+			if folio != nil && strings.Contains(err.Error(), "Duplicate") {
+				continue
+			}
+			return nil, err
+		}
+		id, err := res.LastInsertId()
+		if err != nil {
+			return nil, err
+		}
+		return GetLabOrderSheet(id)
 	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return nil, err
+	return nil, errors.New("no se pudo asignar el número de la orden")
+}
+
+// NextLabFolio: el Nº que le toca a la siguiente orden de laboratorio.
+func NextLabFolio() (int, error) {
+	var n int
+	err := db.DB.QueryRow("SELECT COALESCE(MAX(folio), 0) + 1 FROM lab_order_sheets WHERE kind = ?", ExamTemplateKindLab).Scan(&n)
+	return n, err
+}
+
+// withFolio pone el Nº en la hoja (data.fields.folio), para que se vea
+// impreso donde va el "Nº" del papel.
+func withFolio(data json.RawMessage, n int) json.RawMessage {
+	var m map[string]any
+	if json.Unmarshal(data, &m) != nil || m == nil {
+		m = map[string]any{}
 	}
-	return GetLabOrderSheet(id)
+	fields, _ := m["fields"].(map[string]any)
+	if fields == nil {
+		fields = map[string]any{}
+	}
+	fields["folio"] = strconv.Itoa(n)
+	m["fields"] = fields
+	out, err := json.Marshal(m)
+	if err != nil {
+		return data
+	}
+	return out
 }
 
 var ErrLabOrderSheetNotFound = errors.New("orden de laboratorio no encontrada")

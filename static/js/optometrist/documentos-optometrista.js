@@ -130,7 +130,8 @@
     var now = new Date();
     var from = period === 'today' ? startOfDay(now) : period === 'week' ? startOfWeek(now) : period === 'month' ? startOfMonth(now) : null;
     return all.filter(function(s){
-      if (q && normalize(s.patientName).indexOf(q) < 0 && normalize(s.patientPhone).indexOf(q) < 0) return false;
+      if (q && normalize(s.patientName).indexOf(q) < 0 && normalize(s.patientPhone).indexOf(q) < 0 &&
+          !(s.folio && String(s.folio) === q.replace(/^n[ºo°]?\s*/, ''))) return false;
       if (from && new Date(s.createdAt) < from) return false;
       if (who && (s.createdByName || '') !== who) return false;
       if (tipo && tipoOf(s) !== tipo) return false;
@@ -153,7 +154,8 @@
         ? (tipoOf(s) === 'garantia' ? '<span class="doc-tag is-gar">Garantía</span>' : '<span class="doc-tag">Reparación</span>')
         : '<span class="doc-rx">' + (rxSummary(s) || '<span class="doc-muted">—</span>') + '</span>';
       return '<tr>' +
-        '<td><button type="button" class="exam-table-link doc-open" data-doc-act="ver" data-id="' + s.id + '">' + escapeHTML(s.patientName || 'Sin nombre') + '</button>' +
+        '<td>' + (s.folio ? '<span class="doc-folio">Nº ' + s.folio + '</span>' : '') +
+          '<button type="button" class="exam-table-link doc-open" data-doc-act="ver" data-id="' + s.id + '">' + escapeHTML(s.patientName || 'Sin nombre') + '</button>' +
           (s.patientPhone ? '<div class="doc-muted">' + escapeHTML(s.patientPhone) + '</div>' : '') + '</td>' +
         '<td class="exam-table-date">' + fecha(s.createdAt) + '<div class="doc-muted">' + hora(s.createdAt) + '</div></td>' +
         '<td>' + third + '</td>' +
@@ -244,7 +246,7 @@
     var parts = [fecha(s.createdAt) + ', ' + hora(s.createdAt)];
     if (s.createdByName) parts.push('Llenó ' + s.createdByName);
     if (IS_GAR) parts.push(tipoOf(s) === 'garantia' ? 'Garantía' : 'Reparación');
-    else parts.push('Orden de laboratorio');
+    else parts.push('Orden de laboratorio' + (s.folio ? ' Nº ' + s.folio : ''));
     return parts.join(' · ');
   }
   var pendingDelete = null;

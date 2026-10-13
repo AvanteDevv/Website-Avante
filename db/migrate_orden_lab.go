@@ -1,6 +1,9 @@
 package db
 
-import "log"
+import (
+	"log"
+	"strconv"
+)
 
 // Orden de laboratorio (la hoja que se manda al laboratorio):
 //   - exam_templates.kind: '' = historia clínica / examen normal,
@@ -41,6 +44,7 @@ func EnsureOrdenLabTables() {
 		log.Printf("garantías: columna lab_order_sheets.kind: %v", err)
 	}
 	seedKindTemplate("garantia", "Garantía / Solicitud de reparación", garantiaElements)
+	ensureLabFolio()
 
 	var n int
 	if err := DB.QueryRow("SELECT COUNT(*) FROM exam_templates WHERE kind = 'laboratorio'").Scan(&n); err != nil {
@@ -58,6 +62,49 @@ func EnsureOrdenLabTables() {
 		log.Println("orden de laboratorio: plantilla sembrada")
 	}
 	log.Println("orden de laboratorio: tablas listas")
+}
+
+// ensureLabFolio: el Nº de las órdenes de laboratorio es automático
+// (1, 2, 3…). Columna folio + índice único por tipo, y numera las órdenes
+// que ya existían (en el orden en que se hicieron).
+func ensureLabFolio() {
+	if err := addColumnIfMissing("lab_order_sheets", "folio", "INT NULL AFTER kind"); err != nil {
+		log.Printf("orden de laboratorio: columna folio: %v", err)
+		return
+	}
+	var n int
+	if err := DB.QueryRow(`SELECT COUNT(*) FROM information_schema.STATISTICS
+		WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lab_order_sheets' AND INDEX_NAME = 'uq_lab_order_sheets_folio'`).Scan(&n); err == nil && n == 0 {
+		if _, err := DB.Exec("ALTER TABLE lab_order_sheets ADD UNIQUE INDEX uq_lab_order_sheets_folio (kind, folio)"); err != nil {
+			log.Printf("orden de laboratorio: índice folio: %v", err)
+		}
+	}
+	var next int
+	if err := DB.QueryRow("SELECT COALESCE(MAX(folio), 0) FROM lab_order_sheets WHERE kind = 'laboratorio'").Scan(&next); err != nil {
+		return
+	}
+	rows, err := DB.Query("SELECT id FROM lab_order_sheets WHERE kind = 'laboratorio' AND folio IS NULL ORDER BY created_at, id")
+	if err != nil {
+		return
+	}
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if rows.Scan(&id) == nil {
+			ids = append(ids, id)
+		}
+	}
+	rows.Close()
+	for _, id := range ids {
+		next++
+		if _, err := DB.Exec("UPDATE lab_order_sheets SET folio = ?, data = JSON_SET(data, '$.fields.folio', ?) WHERE id = ?", next, strconv.Itoa(next), id); err != nil {
+			// Por si el JSON de alguna hoja viejita no se puede tocar: al menos el número.
+			DB.Exec("UPDATE lab_order_sheets SET folio = ? WHERE id = ?", next, id)
+		}
+	}
+	if len(ids) > 0 {
+		log.Printf("orden de laboratorio: %d órdenes numeradas", len(ids))
+	}
 }
 
 // seedKindTemplate crea la plantilla de ese tipo si todavía no hay ninguna.

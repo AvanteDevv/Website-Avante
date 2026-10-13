@@ -179,6 +179,7 @@ body.dark .exam-wizard-choice.is-on{ background:var(--blue-600); border-color:va
 .exam-sheet .exf-input:focus{ background:var(--blue-50); border-bottom-width:2px; }
 .exam-sheet .exf-cell-input:hover{ background:var(--blue-50); }
 .exam-sheet .exf-cell-input:focus{ box-shadow:inset 0 0 0 1.5px var(--blue-600); }
+.exam-sheet .exf-input.exf-auto{ background:transparent !important; cursor:default; font-weight:700; color:#c0392b; border-bottom-style:dashed; }
 .exam-sheet-missing .exf-input{ border-bottom-color:#c0392b; background:#fdecea; }
 
 .exam-mode-row{ display:flex; justify-content:center; margin:0 0 18px; }

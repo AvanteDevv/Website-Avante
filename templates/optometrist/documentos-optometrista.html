@@ -66,7 +66,7 @@
           <div class="search-box-glow"></div>
           <div class="search-box-inner">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="docSearch" placeholder="Buscar por paciente...">
+            <input type="text" id="docSearch" placeholder="{{if eq .Doc "garantia"}}Buscar por paciente...{{else}}Buscar por paciente o Nº...{{end}}">
           </div>
         </div>
         <div class="ev-filters">

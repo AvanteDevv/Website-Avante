@@ -85,6 +85,7 @@
     <a href="/optometrist/plantilla-examen" class="cuenta-nav-link{{if eq .ActivePage "optometrist-plantilla"}} active{{end}}"><i data-feather="layout"></i><span>Plantilla de examen</span><span class="cuenta-nav-tooltip">Plantilla de examen</span></a>
     {{if and .StaffRoleKey (eq .StaffRoleKey "optometrist")}}
     <a href="/optometrist/comunicacion" class="cuenta-nav-link{{if eq .ActivePage "optometrist-comunicacion"}} active{{end}}"><i data-feather="message-circle"></i><span>Comunicación</span><span class="cuenta-nav-badge" data-chat-unread hidden></span><span class="cuenta-nav-tooltip">Comunicación</span></a>
+    <a href="/optometrist/configuracion" class="cuenta-nav-link{{if eq .ActivePage "optometrist-configuracion"}} active{{end}}"><i data-feather="settings"></i><span>Configuración</span><span class="cuenta-nav-tooltip">Configuración</span></a>
     {{end}}
   </nav>
 

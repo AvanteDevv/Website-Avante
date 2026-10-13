@@ -153,6 +153,17 @@ func GarantiasResumenHandler(c *gin.Context) {
 	})
 }
 
+// NextLabFolioHandler — GET /api/optometrist/ordenes-lab/siguiente-folio
+// (para mostrar en la hoja nueva el Nº que le va a tocar).
+func NextLabFolioHandler(c *gin.Context) {
+	n, err := models.NextLabFolio()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo calcular el número."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"folio": n})
+}
+
 // DeleteLabOrderSheetHandler — DELETE /api/optometrist/ordenes-lab/:id
 func DeleteLabOrderSheetHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)

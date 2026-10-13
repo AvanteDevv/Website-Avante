@@ -28,6 +28,8 @@
   {{/* Bitácora: registra páginas, clics y búsquedas para el admin
        (/admin/bitacora). Aquí para que aplique a todas las páginas. */}}
   <script defer src="/static/js/receptionist/bitacora-receptionist.js"></script>
+  {{/* Avisos de cita (sonido + aviso) según su Configuración */}}
+  <script defer src="/static/js/staff/avisos-cita.js"></script>
   {{end}}
   <div class="userbar" id="userbar">
     <button type="button" class="userbar-trigger">
@@ -47,6 +49,7 @@
         {{if and .StaffRoleKey (eq .StaffRoleKey "receptionist")}}
         <a href="/receptionist/historial-clinico" class="userbar-menu-link{{if eq .ActivePage "receptionist-historial"}} active{{end}}"><i data-feather="book-open"></i>Historial clínico</a>
         <a href="/receptionist/comunicacion" class="userbar-menu-link{{if eq .ActivePage "receptionist-comunicacion"}} active{{end}}"><i data-feather="message-circle"></i>Comunicación</a>
+        <a href="/receptionist/configuracion" class="userbar-menu-link{{if eq .ActivePage "receptionist-configuracion"}} active{{end}}"><i data-feather="settings"></i>Configuración</a>
         {{end}}
       <div class="userbar-menu-divider"></div>
       <a href="/admin/logout" class="userbar-menu-link logout"><i data-feather="log-out"></i>Cerrar sesión</a>

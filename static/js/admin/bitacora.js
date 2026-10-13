@@ -33,6 +33,8 @@
     '/optometrist/ordenes-lab/nueva': 'Nueva orden de laboratorio',
     '/optometrist/garantias': 'Garantía / reparación',
     '/optometrist/garantias/nueva': 'Nueva garantía',
+    '/optometrist/configuracion': 'Configuración',
+    '/receptionist/configuracion': 'Configuración',
     '/optometrist/examen-vista': 'Examen de la vista',
     '/optometrist/examen-vista/nuevo': 'Nuevo examen',
     '/optometrist/plantilla-examen': 'Plantilla de examen',
