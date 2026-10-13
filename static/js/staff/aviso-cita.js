@@ -7,13 +7,16 @@
    Configuración (se guarda en /api/staff/preferencias → avisosCita):
      enabled  true/false
      sound    'campana' | 'dingdong' | 'marimba' | 'suave' | 'alerta' | 'cristal' | 'arpa' | 'pulso'
+              | 'custom' (su propio MP3: custom = {name, ext, v})
      volume   0 – 1
      leads    minutos antes, p. ej. [30, 10]  (0 = a la hora de la cita)
      repeat   repetir el sonido N veces (1 – 3)
      notify   también notificación del navegador
 
-   Los sonidos se generan aquí mismo (Web Audio), sin archivos.
-   AvanteCitaAvisos.play(id, vol) / .test() / .prefs() / .save(p)
+   Los sonidos se generan aquí mismo (Web Audio), sin archivos; el
+   propio se toca desde /api/staff/preferencias/sonido.
+   AvanteCitaAvisos.play(id, vol, rep, custom) / .test() / .prefs() / .save(p)
+   Archivo: static/js/staff/aviso-cita.js
    ========================================================= */
 (function () {
   if (window.AvanteCitaAvisos) return;
@@ -80,8 +83,36 @@
     } }
   };
 
+  // Su propio sonido (MP3…): máximo 12 s por vez, repeat veces seguidas.
+  var customAudio = null;
+  function customUrl(custom) { return '/api/staff/preferencias/sonido?v=' + encodeURIComponent((custom && custom.v) || ''); }
+  function playCustom(custom, volume, repeat) {
+    if (customAudio) { customAudio.pause(); customAudio = null; }
+    var a = new Audio(customUrl(custom));
+    customAudio = a;
+    a.volume = Math.max(0, Math.min(1, volume == null ? DEFAULTS.volume : volume));
+    var left = Math.max(1, Math.min(3, repeat || 1)), cut = null;
+    function once() {
+      left--;
+      a.currentTime = 0;
+      var pr = a.play();
+      if (pr && pr.catch) pr.catch(function () {});
+      clearTimeout(cut);
+      cut = setTimeout(function () { a.pause(); next(); }, 12000);
+    }
+    function next() { clearTimeout(cut); if (left > 0 && customAudio === a) setTimeout(once, 250); }
+    a.addEventListener('ended', next);
+    once();
+    return true;
+  }
+
   // Suena (repeat veces seguidas). Regresa false si el navegador no dejó.
-  function play(id, volume, repeat) {
+  function play(id, volume, repeat, custom) {
+    if (id === 'custom') {
+      custom = custom || (prefs && prefs.custom);
+      if (custom && custom.ext) return playCustom(custom, volume, repeat);
+      id = DEFAULTS.sound;
+    }
     var c = audio();
     if (!c) return false;
     var s = SOUNDS[id] || SOUNDS[DEFAULTS.sound];
@@ -103,7 +134,7 @@
     p.leads = (Array.isArray(p.leads) ? p.leads : [p.leads]).map(Number)
       .filter(function (n) { return LEAD_OPTIONS.indexOf(n) >= 0; });
     p.leads = p.leads.filter(function (n, i) { return p.leads.indexOf(n) === i; }).sort(function (a, b) { return b - a; });
-    if (!SOUNDS[p.sound]) p.sound = DEFAULTS.sound;
+    if (!SOUNDS[p.sound] && !(p.sound === 'custom' && p.custom && p.custom.ext)) p.sound = DEFAULTS.sound;
     return p;
   }
   function loadPrefs() {
@@ -202,7 +233,7 @@
     var st = startOf(c);
     var title = lead === 0 ? 'Es hora de la cita' : 'Cita en ' + lead + ' min';
     var body = citaName(c) + ' · ' + hora12(st) + (c.motivo ? ' · ' + c.motivo : '');
-    play(prefs.sound, prefs.volume, prefs.repeat);
+    play(prefs.sound, prefs.volume, prefs.repeat, prefs.custom);
     notify(title, body);
   }
 
@@ -233,13 +264,16 @@
     DEFAULTS: DEFAULTS,
     play: play,
     prefs: function () { return prefs ? Promise.resolve(prefs) : loadPrefs(); },
+    // después de subir/quitar el sonido propio (el servidor regresa todo)
+    setAll: function (all) { allPrefs = all || {}; prefs = normalize(allPrefs.avisosCita); return prefs; },
+    normalize: normalize,
     save: savePrefs,
     upcoming: function () { return upcoming(); },
     refresh: function () { return loadCitas(); },
     unlocked: function () { return !!ctx && ctx.state === 'running'; },
     test: function (p) {
       p = normalize(p || prefs);
-      var ok = play(p.sound, p.volume, p.repeat);
+      var ok = play(p.sound, p.volume, p.repeat, p.custom);
       notify('Así se verá el aviso', 'Paciente de ejemplo · ' + hora12(new Date(Date.now() + (p.leads[0] || 0) * 60000)));
       return ok;
     }

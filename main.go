@@ -529,6 +529,9 @@ func main() {
 		apiStaff.GET("/avisos", handlers.ListMyAnnouncements)
 		apiStaff.GET("/preferencias", handlers.GetMyPreferences)
 		apiStaff.PUT("/preferencias", handlers.SaveMyPreferences)
+		apiStaff.GET("/preferencias/sonido", handlers.GetMySound)
+		apiStaff.POST("/preferencias/sonido", handlers.UploadMySound)
+		apiStaff.DELETE("/preferencias/sonido", handlers.DeleteMySound)
 		apiStaff.POST("/avisos/leer-todos", handlers.MarkAllMyAnnouncementsRead)
 		apiStaff.POST("/avisos/:id/leido", handlers.MarkMyAnnouncementRead)
 

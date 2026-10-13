@@ -94,3 +94,18 @@ body.dark .cfg-card h2, body.dark .cfg-card h3, body.dark .cfg-next-who strong{ 
 /* Que el contenido no aplaste el menú lateral */
 .cuenta-shell > .cuenta-sidebar{ flex-shrink:0; }
 .cuenta-shell > .cuenta-main{ min-width:0; flex:1; }
+
+/* Su propio sonido */
+.cfg-sound-name small{ display:block; font-size:10.5px; font-weight:600; color:var(--grey); letter-spacing:.02em; }
+.cfg-sound--custom{ position:relative; padding-right:34px; }
+.cfg-sound--custom .cfg-sound-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cfg-sound-remove{
+  position:absolute; top:50%; right:8px; transform:translateY(-50%);
+  width:24px; height:24px; border-radius:50%; border:none; background:transparent; color:var(--grey);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.cfg-sound-remove:hover{ background:#fdecea; color:#c0392b; }
+.cfg-sound-remove svg{ width:13px; height:13px; }
+.cfg-sound--upload{ border-style:dashed; color:var(--blue-600); }
+.cfg-sound--upload .cfg-sound-icon{ background:transparent; border:1.5px dashed var(--blue-300); }
+.cfg-sound--upload .cfg-sound-icon svg{ margin-left:0; }

@@ -37,13 +37,34 @@
   leadsEl.innerHTML = A.LEAD_OPTIONS.map(function (n) {
     return '<button type="button" class="cfg-chip" data-lead="' + n + '">' + leadLabel(n) + '</button>';
   }).join('');
-  soundsEl.innerHTML = Object.keys(A.SOUNDS).map(function (id) {
-    return '<button type="button" class="cfg-sound" role="radio" data-sound="' + id + '">' +
-      '<span class="cfg-sound-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>' +
-      '<span class="cfg-sound-name">' + esc(A.SOUNDS[id].label) + '</span>' +
-      '<span class="cfg-sound-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' +
+  var PLAY_ICON = '<span class="cfg-sound-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>';
+  var WAVE = '<span class="cfg-sound-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
+
+  // Los sonidos de la lista + el suyo (si subió uno) + "Subir mi sonido".
+  function renderSounds() {
+    var html = Object.keys(A.SOUNDS).map(function (id) {
+      return '<button type="button" class="cfg-sound" role="radio" data-sound="' + id + '">' +
+        PLAY_ICON + '<span class="cfg-sound-name">' + esc(A.SOUNDS[id].label) + '</span>' + WAVE +
+      '</button>';
+    }).join('');
+    if (p && p.custom && p.custom.ext) {
+      html += '<div class="cfg-sound cfg-sound--custom" role="radio" tabindex="0" data-sound="custom" title="' + esc(p.custom.name) + '">' +
+        PLAY_ICON + '<span class="cfg-sound-name"><small>Tu sonido</small>' + esc(p.custom.name || 'Mi sonido') + '</span>' + WAVE +
+        '<button type="button" class="cfg-sound-remove" data-remove-custom aria-label="Quitar mi sonido" title="Quitar mi sonido">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+      '</div>';
+    }
+    html += '<button type="button" class="cfg-sound cfg-sound--upload" data-upload-custom>' +
+      '<span class="cfg-sound-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg></span>' +
+      '<span class="cfg-sound-name">' + (p && p.custom ? 'Cambiar mi sonido' : 'Subir mi sonido') + '<small>MP3 · máx. 5 MB</small></span>' +
     '</button>';
-  }).join('');
+    soundsEl.innerHTML = html;
+  }
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'audio/mpeg,audio/mp3,.mp3,.m4a,.wav,.ogg,audio/*';
+  fileInput.hidden = true;
+  document.body.appendChild(fileInput);
 
   function paint() {
     enabledEl.checked = !!p.enabled;
@@ -51,7 +72,8 @@
     leadsEl.querySelectorAll('.cfg-chip').forEach(function (b) {
       b.classList.toggle('is-on', p.leads.indexOf(+b.dataset.lead) >= 0);
     });
-    soundsEl.querySelectorAll('.cfg-sound').forEach(function (b) {
+    renderSounds();
+    soundsEl.querySelectorAll('.cfg-sound[data-sound]').forEach(function (b) {
       var on = b.dataset.sound === p.sound;
       b.classList.toggle('is-on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
@@ -100,19 +122,61 @@
     paint(); save();
   });
   soundsEl.addEventListener('click', function (e) {
-    var b = e.target.closest('.cfg-sound');
+    if (e.target.closest('[data-remove-custom]')) { removeCustom(); return; }
+    if (e.target.closest('[data-upload-custom]')) { fileInput.value = ''; fileInput.click(); return; }
+    var b = e.target.closest('.cfg-sound[data-sound]');
     if (!b) return;
     p.sound = b.dataset.sound;
-    A.play(p.sound, p.volume, 1);
-    ring(b);
+    A.play(p.sound, p.volume, 1, p.custom);
     paint(); save();
+    ring(soundsEl.querySelector('.cfg-sound[data-sound="' + p.sound + '"]'));
   });
+  soundsEl.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.cfg-sound--custom')) { e.preventDefault(); e.target.click(); }
+  });
+
+  // Subir su propio sonido
+  fileInput.addEventListener('change', function () {
+    var f = fileInput.files && fileInput.files[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { setStatus('El archivo pesa más de 5 MB. Usa un tono corto.', 'error'); return; }
+    var fd = new FormData();
+    fd.append('file', f);
+    setStatus('Subiendo tu sonido…', '');
+    fetch('/api/staff/preferencias/sonido', { method: 'POST', body: fd, credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || 'No se pudo subir.'); return d; }); })
+      .then(function (d) {
+        var all = d.data || {};
+        if (typeof all === 'string') { try { all = JSON.parse(all); } catch (err) { all = {}; } }
+        p = JSON.parse(JSON.stringify(A.setAll(all)));
+        paint();
+        setStatus('Listo ✓ — ahora suena tu sonido.', 'ok');
+        A.play('custom', p.volume, 1, p.custom);
+        ring(soundsEl.querySelector('.cfg-sound[data-sound="custom"]'));
+      })
+      .catch(function (err) { setStatus(err.message || 'No se pudo subir.', 'error'); });
+  });
+
+  function removeCustom() {
+    setStatus('Quitando…', '');
+    fetch('/api/staff/preferencias/sonido', { method: 'DELETE', credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || 'No se pudo quitar.'); return d; }); })
+      .then(function (d) {
+        var all = d.data || {};
+        if (typeof all === 'string') { try { all = JSON.parse(all); } catch (err) { all = {}; } }
+        p = JSON.parse(JSON.stringify(A.setAll(all)));
+        paint();
+        setStatus('Se quitó tu sonido.', 'ok');
+      })
+      .catch(function (err) { setStatus(err.message || 'No se pudo quitar.', 'error'); });
+  }
+  function setStatus(t, kind) { statusEl.className = 'cfg-status' + (kind ? ' ' + kind : ''); statusEl.textContent = t; }
   volEl.addEventListener('input', function () {
     p.volume = (+volEl.value) / 100;
     volVal.textContent = volEl.value + '%';
     volEl.style.setProperty('--fill', volEl.value + '%');
   });
-  volEl.addEventListener('change', function () { A.play(p.sound, p.volume, 1); save(); });
+  volEl.addEventListener('change', function () { A.play(p.sound, p.volume, 1, p.custom); save(); });
   repeatEl.addEventListener('click', function (e) {
     var b = e.target.closest('button');
     if (!b) return;
@@ -130,6 +194,7 @@
   document.getElementById('cfgTest').addEventListener('click', function () {
     A.test(p);
     ring(soundsEl.querySelector('.cfg-sound.is-on'));
+    if (!A.unlocked() && p.sound !== 'custom') setStatus('Si no se escuchó, revisa el volumen de la computadora.', '');
   });
 
   function renderNext() {
