@@ -497,3 +497,36 @@ body.dark .origin-tag.is-cita{ color:#aab2ff; }
   .admin-header-actions{ display:flex; flex-wrap:wrap; width:100%; gap:8px; }
   .admin-header-actions .btn{ flex:1 1 auto; justify-content:center; text-align:center; padding-left:14px; padding-right:14px; }
 }
+/* =========================================================
+   Orden de laboratorio / Garantía — lista de hojas
+   ========================================================= */
+.ev-stats--doc{ grid-template-columns:repeat(3, minmax(0,1fr)) minmax(0,2fr); }
+.ev-stats--doc .ev-stat--staff{ grid-column:auto; }
+@media (max-width:1180px){
+  .ev-stats--doc{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+  .ev-stats--doc .ev-stat--staff{ grid-column:1 / -1; }
+}
+@media (max-width:620px){
+  .ev-stats--doc{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .ev-stats--doc .ev-stat:nth-child(3){ grid-column:1 / -1; }
+}
+.doc-open{ background:none; border:none; padding:0; font:inherit; cursor:pointer; text-align:left; }
+.doc-muted{ font-size:11.5px; color:var(--grey); margin-top:2px; }
+.doc-rx{ font-size:12.5px; color:var(--ink); font-variant-numeric:tabular-nums; }
+.doc-rx b{ font-weight:700; color:var(--blue-600); margin-right:2px; }
+.doc-tag{
+  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  font-size:10.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  padding:4px 10px; border-radius:100px; color:var(--grey); background:var(--blue-50);
+}
+.doc-tag:before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+.doc-tag.is-gar{ color:#9a5b00; background:#fff3dc; }
+body.dark .doc-tag.is-gar{ color:#f2c26b; background:rgba(154,91,0,.25); }
+@media (max-width:760px){
+  .doc-table th:nth-child(4), .doc-table td:nth-child(4){ display:none; }
+  /* el menú (⋯) siempre visible en las hojas */
+  .doc-table th:nth-child(5), .doc-table td:nth-child(5){ display:table-cell; }
+}
+@media (max-width:520px){
+  .doc-table th:nth-child(3), .doc-table td:nth-child(3){ display:none; }
+}

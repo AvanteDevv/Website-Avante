@@ -47,7 +47,8 @@
     if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
     var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     try {
-      ws = new WebSocket(proto + '//' + location.host + '/ws/staff');
+      // ?ctx=: la página de esta pestaña, para usar la sesión de su rol
+      ws = new WebSocket(proto + '//' + location.host + '/ws/staff?ctx=' + encodeURIComponent(location.pathname));
     } catch (e) {
       scheduleReconnect();
       return;

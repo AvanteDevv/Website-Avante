@@ -164,7 +164,8 @@ window.AvanteExamModal = (function(){
       current = data;
       var e = data.exam;
       titleEl.textContent = e.patientName || 'Examen';
-      subEl.textContent = [fecha(e.createdAt), e.createdByName ? 'Realizado por ' + e.createdByName : '', e.appointmentId ? 'Con cita' : 'Sin cita']
+      // opts.subtitle: para otras hojas (orden de laboratorio, garantía)
+      subEl.textContent = opts.subtitle || [fecha(e.createdAt), e.createdByName ? 'Realizado por ' + e.createdByName : '', e.appointmentId ? 'Con cita' : 'Sin cita']
         .filter(Boolean).join(' · ');
       scaleEl.classList.remove('is-loading');
       var ok = mountSheet(sheetEl, data);

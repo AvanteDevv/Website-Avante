@@ -230,11 +230,35 @@ func GetPatientFile(c *gin.Context) {
 		ante = &models.PatientAntecedentes{Data: json.RawMessage(`{}`)}
 	}
 
+	// Sus órdenes de laboratorio y garantías (con sus plantillas, para
+	// poder ver la hoja).
+	examIDs := make([]int64, 0, len(exams))
+	for _, e := range exams {
+		examIDs = append(examIDs, e.ID)
+	}
+	sheets, err := models.ListSheetsForPatient(p.UserID, p.Name, examIDs)
+	if err != nil {
+		log.Println("GetPatientFile hojas:", err)
+		sheets = []models.LabOrderSheet{}
+	}
+	for _, sh := range sheets {
+		k := strconv.FormatInt(sh.TemplateID, 10)
+		if _, done := templates[k]; done {
+			continue
+		}
+		if t, err := models.GetExamTemplateByID(sh.TemplateID); err == nil {
+			templates[k] = t
+		} else {
+			templates[k] = nil
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"patient":      p,
 		"exams":        exams,
 		"templates":    templates,
 		"antecedentes": ante,
+		"sheets":       sheets,
 	})
 }
 

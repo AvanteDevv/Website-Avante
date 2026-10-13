@@ -380,6 +380,7 @@
   var paneGrad = document.getElementById('pfGrad');
   var paneExams = document.getElementById('pfExams');
   var paneCompare = document.getElementById('pfCompare');
+  var paneDocs = document.getElementById('pfDocs');
   var anteForm = document.getElementById('anteForm');
   var anteMeta = document.getElementById('anteMeta');
   var anteBtn = document.getElementById('anteSaveBtn');
@@ -457,6 +458,7 @@
     pfSummary.innerHTML = '<p class="pf-loading">Cargando ficha…</p>';
     pfRevision.hidden = true;
     paneGrad.innerHTML = paneExams.innerHTML = paneCompare.innerHTML = '';
+    if (paneDocs) paneDocs.innerHTML = '';
     anteForm.reset();
     anteMeta.textContent = '';
     openModal();
@@ -480,6 +482,7 @@
         renderSummary();
         renderGrad();
         renderExamList();
+        renderDocs();
         renderCompare();
         fillAnte();
       })
@@ -779,6 +782,96 @@
       });
     });
   }
+
+  /* ---------- Lab y garantías: sus órdenes de laboratorio y garantías ---------- */
+  function sheetTemplate(s){
+    var t = (file.templates || {})[String(s.templateId)] || null;
+    if (t && typeof t.elements === 'string'){ try { t.elements = JSON.parse(t.elements); } catch (err){ t.elements = []; } }
+    return t;
+  }
+  function sheetTipo(s){
+    if (s.kind !== 'garantia') return 'lab';
+    var t = String(((s.data || {}).fields || {}).tipo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return (/reparacion/.test(t) && !/garantia/.test(t)) ? 'rep' : 'gar';
+  }
+  // Graduación de la orden (SPH / CYL / AXIS de R y L), en una línea
+  function sheetRx(s){
+    var t = sheetTemplate(s);
+    if (!t) return '';
+    var out = [];
+    (t.elements || []).forEach(function(el){
+      if (out.length || el.type !== 'table') return;
+      var hs = (el.headers || []).map(function(h){ return String(h).toLowerCase(); });
+      var iS = hs.findIndex(function(h){ return /^(sph|esf)/.test(h); });
+      if (iS < 0) return;
+      var iC = hs.findIndex(function(h){ return /^(cyl|cil)/.test(h); });
+      var iA = hs.findIndex(function(h){ return /^(axis|eje)/.test(h); });
+      ((s.data.tables || {})[el.id] || []).forEach(function(r, ri){
+        if (!r) return;
+        var parts = [r[iS], iC >= 0 ? r[iC] : '', iA >= 0 && r[iA] ? 'x' + r[iA] : ''].filter(function(v){ return v && String(v).trim(); });
+        if (parts.length) out.push(((el.rowLabels || [])[ri] || '') + ' ' + parts.join(' '));
+      });
+    });
+    return out.join(' · ');
+  }
+  function renderDocs(){
+    if (!paneDocs) return;
+    var sheets = (file.sheets || []).map(function(s){
+      if (typeof s.data === 'string'){ try { s.data = JSON.parse(s.data); } catch (err){ s.data = {}; } }
+      s.data = s.data || {};
+      return s;
+    });
+    var p = file.patient;
+    var q = new URLSearchParams({ nombre: p.name, telefono: p.phone || '' });
+    if (p.userId) q.set('userId', p.userId);
+    var actions = IS_RECEPTION ? '' :
+      '<div class="pf-docs-actions">' +
+        '<a class="btn thin" href="/optometrist/ordenes-lab/nueva?' + q.toString() + '">Nueva orden de laboratorio</a>' +
+        '<a class="btn thin" href="/optometrist/garantias/nueva?' + q.toString() + '">Nueva garantía</a>' +
+      '</div>';
+    var nLab = sheets.filter(function(s){ return sheetTipo(s) === 'lab'; }).length;
+    var nGar = sheets.filter(function(s){ return sheetTipo(s) === 'gar'; }).length;
+    var nRep = sheets.filter(function(s){ return sheetTipo(s) === 'rep'; }).length;
+    var tab = modal.querySelector('.pf-tab[data-tab="docs"]');
+    if (tab) tab.classList.toggle('has-dot', sheets.length > 0);
+    if (!sheets.length){
+      paneDocs.innerHTML = actions + '<p class="pf-empty">Todavía no tiene órdenes de laboratorio ni garantías.</p>';
+      return;
+    }
+    paneDocs.innerHTML = actions +
+      '<p class="pf-docs-count">' + [nLab ? nLab + (nLab === 1 ? ' orden de laboratorio' : ' órdenes de laboratorio') : '', nGar ? nGar + (nGar === 1 ? ' garantía' : ' garantías') : '', nRep ? nRep + (nRep === 1 ? ' reparación' : ' reparaciones') : ''].filter(Boolean).join(' · ') + '</p>' +
+      '<div class="exam-timeline">' + sheets.map(function(s){
+        var tipo = sheetTipo(s);
+        var tag = tipo === 'lab' ? '<span class="pf-doc-tag is-lab">Orden de laboratorio</span>'
+                : tipo === 'gar' ? '<span class="pf-doc-tag is-gar">Garantía</span>'
+                : '<span class="pf-doc-tag">Reparación</span>';
+        var f = (s.data.fields || {});
+        var detail = tipo === 'lab' ? sheetRx(s) : [f.servicio, f.desperfectos].filter(function(v){ return v && String(v).trim(); }).join(' · ');
+        return '<div class="timeline-item">' +
+          '<div class="timeline-dot"></div>' +
+          '<div class="timeline-item-body">' +
+            '<div class="timeline-item-date">' + fecha(s.createdAt) + ' ' + tag + '</div>' +
+            '<div class="timeline-item-by">' + (s.createdByName ? 'Llenó ' + escapeHTML(s.createdByName) : '') + '</div>' +
+            (detail ? '<div class="timeline-item-rx">' + escapeHTML(detail) + '</div>' : '') +
+          '</div>' +
+          '<div class="timeline-item-actions">' +
+            '<button type="button" class="btn thin" data-pdf-sheet="' + s.id + '">PDF</button>' +
+            '<button type="button" class="btn thin" data-view-sheet="' + s.id + '">Ver hoja</button>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+  modal.addEventListener('click', function(e){
+    var b = e.target.closest('[data-view-sheet], [data-pdf-sheet]');
+    if (!b || !file || !window.AvanteExamModal) return;
+    var id = b.dataset.viewSheet || b.dataset.pdfSheet;
+    var s = (file.sheets || []).filter(function(x){ return String(x.id) === id; })[0];
+    if (!s) return;
+    var src = { exam: s, template: sheetTemplate(s) };
+    if (b.dataset.pdfSheet){ AvanteExamModal.exportPdf(src); return; }
+    var tipo = sheetTipo(s);
+    AvanteExamModal.open(src, { subtitle: [fecha(s.createdAt), s.createdByName ? 'Llenó ' + s.createdByName : '', tipo === 'lab' ? 'Orden de laboratorio' : tipo === 'gar' ? 'Garantía' : 'Reparación'].filter(Boolean).join(' · ') });
+  });
 
   // "Ver hoja": el examen en un modal encima de la ficha (con imprimir y
   // exportar PDF), sin abrir otra página.

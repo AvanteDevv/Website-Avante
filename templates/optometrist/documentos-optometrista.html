@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{if eq .Doc "garantia"}}Garantía / reparación{{else}}Orden de laboratorio{{end}} — Optometría · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/optometrist/userbar-optometrist.css">
+<link rel="stylesheet" href="/static/css/optometrist/sidebar-optometrist.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-vista.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-render.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-modal.css">
+<link rel="stylesheet" href="/static/css/optometrist/av-select.css">
+</head>
+<body class="cuenta-body" data-doc="{{.Doc}}">
+
+{{template "optometrist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "optometrist-sidebar" .}}
+
+  <main class="cuenta-main">
+    {{/* Orden de laboratorio o Garantía / reparación: la lista de las
+         hojas llenadas y el botón para llenar una nueva (solo esa hoja). */}}
+    <div class="cuenta-header admin-header-row">
+      <div>
+        {{if eq .Doc "garantia"}}
+        <h1>Garantía / reparación</h1>
+        <p>Las solicitudes de reparación y las garantías. Marca el tipo en cada hoja: las de GARANTÍA son las que se cuentan.</p>
+        {{else}}
+        <h1>Orden de laboratorio</h1>
+        <p>Las hojas que se mandan al laboratorio. Al elegir al paciente se trae la graduación de su último examen.</p>
+        {{end}}
+      </div>
+      <a href="/optometrist/{{if eq .Doc "garantia"}}garantias{{else}}ordenes-lab{{end}}/nueva" class="btn thin" id="newDocBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> {{if eq .Doc "garantia"}}Nueva garantía{{else}}Nueva orden{{end}}</a>
+    </div>
+
+    <p class="tpl-status" id="docStatus"></p>
+
+    <div class="ev-stats ev-stats--doc" id="docStats">
+      <div class="ev-stat"><span class="ev-stat-label">Hoy</span><strong class="ev-stat-value" id="dsToday">—</strong><span class="ev-stat-sub" id="dsTodaySub"></span></div>
+      <div class="ev-stat"><span class="ev-stat-label">Este mes</span><strong class="ev-stat-value" id="dsMonth">—</strong><span class="ev-stat-sub" id="dsMonthSub"></span></div>
+      {{if eq .Doc "garantia"}}
+      <div class="ev-stat ev-stat--gar"><span class="ev-stat-label">Garantías · este mes</span><strong class="ev-stat-value" id="dsGar">—</strong><span class="ev-stat-sub" id="dsGarSub"></span></div>
+      {{else}}
+      <div class="ev-stat"><span class="ev-stat-label">Total</span><strong class="ev-stat-value" id="dsTotal">—</strong><span class="ev-stat-sub">órdenes registradas</span></div>
+      {{end}}
+      <div class="ev-stat ev-stat--staff">
+        <span class="ev-stat-label">Este mes · por optometrista</span>
+        <ul class="ev-staff-list" id="dsStaff"><li class="ev-staff-empty">—</li></ul>
+      </div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>{{if eq .Doc "garantia"}}Garantías y reparaciones{{else}}Órdenes recientes{{end}}</h2>
+          <p id="docCount">Cargando…</p>
+        </div>
+      </div>
+
+      <div class="exam-search-row">
+        <div class="search-box">
+          <div class="search-box-glow"></div>
+          <div class="search-box-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="docSearch" placeholder="Buscar por paciente...">
+          </div>
+        </div>
+        <div class="ev-filters">
+          {{if eq .Doc "garantia"}}
+          <label class="ev-select">
+            <span>Tipo</span>
+            <select id="docType" data-av-select>
+              <option value="">Todas</option>
+              <option value="garantia">Garantía</option>
+              <option value="reparacion">Reparación</option>
+            </select>
+          </label>
+          {{end}}
+          <label class="ev-select">
+            <span>Periodo</span>
+            <select id="docPeriod" data-av-select>
+              <option value="all">Todo</option>
+              <option value="today">Hoy</option>
+              <option value="week">Esta semana</option>
+              <option value="month">Este mes</option>
+            </select>
+          </label>
+          <label class="ev-select">
+            <span>Optometrista</span>
+            <select id="docStaff" data-av-select><option value="">Todos</option></select>
+          </label>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="exam-table doc-table">
+          <thead>
+            <tr>
+              <th>Paciente</th>
+              <th>Fecha</th>
+              {{if eq .Doc "garantia"}}<th>Tipo</th>{{else}}<th>Graduación</th>{{end}}
+              <th>Realizó</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="docList"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="docEmpty" style="display:none;"></div>
+    </section>
+  </main>
+</div>
+
+<div class="admin-modal-overlay" id="deleteDocModal">
+  <div class="admin-modal-card admin-modal-card--sm">
+    <div class="admin-modal-head">
+      <h3>Eliminar hoja</h3>
+      <button type="button" class="admin-modal-close" id="deleteDocClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="admin-confirm-text">¿Eliminar la hoja de <strong id="deleteDocName"></strong>? Esta acción no se puede deshacer.</p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn thin" id="deleteDocCancel">Cancelar</button>
+        <button type="button" class="btn solid thin danger" id="deleteDocConfirm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/optometrist/sidebar-optometrist.js"></script>
+<script src="/static/js/optometrist/userbar-optometrist.js"></script>
+<script src="/static/js/optometrist/av-select.js"></script>
+<script src="/static/js/optometrist/examen-render.js"></script>
+<script src="/static/js/optometrist/examen-modal.js"></script>
+<script src="/static/js/optometrist/documentos-optometrista.js"></script>
+</body>
+</html>

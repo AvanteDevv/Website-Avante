@@ -44,8 +44,10 @@
           <div class="email">{{.StaffEmail}}</div>
         </div>
       </div>
-        <a href="/optometrist/historial-clinico" class="userbar-menu-link{{if eq .ActivePage "optometrist-historial"}} active{{end}}"><i data-feather="file-text"></i>Historial clínico</a>
         <a href="/optometrist/examen-vista" class="userbar-menu-link{{if eq .ActivePage "optometrist-examen"}} active{{end}}"><i data-feather="eye"></i>Examen de la vista</a>
+        <a href="/optometrist/historial-clinico" class="userbar-menu-link{{if eq .ActivePage "optometrist-historial"}} active{{end}}"><i data-feather="file-text"></i>Historial clínico</a>
+        <a href="/optometrist/ordenes-lab" class="userbar-menu-link{{if eq .ActivePage "optometrist-ordenes"}} active{{end}}"><i data-feather="clipboard"></i>Orden de laboratorio</a>
+        <a href="/optometrist/garantias" class="userbar-menu-link{{if eq .ActivePage "optometrist-garantias"}} active{{end}}"><i data-feather="shield"></i>Garantía / reparación</a>
         {{if and .StaffRoleKey (eq .StaffRoleKey "optometrist")}}
         <a href="/optometrist/comunicacion" class="userbar-menu-link{{if eq .ActivePage "optometrist-comunicacion"}} active{{end}}"><i data-feather="message-circle"></i>Comunicación</a>
         {{end}}

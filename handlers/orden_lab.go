@@ -152,3 +152,48 @@ func GarantiasResumenHandler(c *gin.Context) {
 		"porOptometrista": r.PorOptometrista,
 	})
 }
+
+// DeleteLabOrderSheetHandler — DELETE /api/optometrist/ordenes-lab/:id
+func DeleteLabOrderSheetHandler(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Hoja inválida."})
+		return
+	}
+	if err := models.DeleteLabOrderSheet(id); err != nil {
+		if errors.Is(err, models.ErrLabOrderSheetNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Esa hoja ya no existe."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// DocListPage — GET /optometrist/ordenes-lab y /optometrist/garantias
+// (la lista de esa hoja). DocNewPage — .../nueva (llenar solo esa hoja).
+func DocListPage(kind string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "documentos-optometrista.html", WithStaff(c, gin.H{
+			"ActivePage": docActivePage(kind),
+			"Doc":        kind,
+		}))
+	}
+}
+
+func DocNewPage(kind string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "nuevo-examen.html", WithStaff(c, gin.H{
+			"ActivePage": docActivePage(kind),
+			"Doc":        kind,
+		}))
+	}
+}
+
+func docActivePage(kind string) string {
+	if kind == models.ExamTemplateKindGarantia {
+		return "optometrist-garantias"
+	}
+	return "optometrist-ordenes"
+}

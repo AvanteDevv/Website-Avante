@@ -212,3 +212,63 @@ func isReparacion(raw []byte) bool {
 	t := strings.ToUpper(d.Fields["tipo"])
 	return strings.Contains(t, "REPARACI") && !strings.Contains(t, "GARANT")
 }
+
+// DeleteLabOrderSheet borra una hoja (orden o garantía).
+func DeleteLabOrderSheet(id int64) error {
+	res, err := db.DB.Exec("DELETE FROM lab_order_sheets WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrLabOrderSheetNotFound
+	}
+	return nil
+}
+
+// ListSheetsForPatient: las órdenes y garantías de un paciente — por su
+// cuenta (userID), por los exámenes suyos (examIDs) o por su nombre.
+func ListSheetsForPatient(userID int64, name string, examIDs []int64) ([]LabOrderSheet, error) {
+	norm := NormalizePatientName(name)
+	q := "SELECT " + labOrderSheetCols + " FROM lab_order_sheets WHERE 1=0"
+	args := []any{}
+	if userID > 0 {
+		q += " OR user_id = ?"
+		args = append(args, userID)
+	}
+	if len(examIDs) > 0 {
+		ph := make([]string, len(examIDs))
+		for i, id := range examIDs {
+			ph[i] = "?"
+			args = append(args, id)
+		}
+		q += " OR exam_id IN (" + strings.Join(ph, ",") + ")"
+	}
+	if first := strings.Fields(strings.TrimSpace(name)); len(first) > 0 {
+		q += " OR patient_name LIKE ?"
+		args = append(args, "%"+first[0]+"%")
+	}
+	q += " ORDER BY created_at DESC, id DESC LIMIT 300"
+	rows, err := db.DB.Query(q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	inExam := map[int64]bool{}
+	for _, id := range examIDs {
+		inExam[id] = true
+	}
+	out := []LabOrderSheet{}
+	for rows.Next() {
+		o, err := scanLabOrderSheet(rows)
+		if err != nil {
+			return nil, err
+		}
+		match := (userID > 0 && o.UserID != nil && *o.UserID == userID) ||
+			(o.ExamID != nil && inExam[*o.ExamID]) ||
+			(norm != "" && NormalizePatientName(o.PatientName) == norm)
+		if match {
+			out = append(out, *o)
+		}
+	}
+	return out, rows.Err()
+}

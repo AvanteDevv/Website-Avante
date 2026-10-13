@@ -710,6 +710,11 @@ func main() {
 	{
 		// Comunicación: solo optometría (el admin no chatea ni recibe avisos).
 		optometristGroup.GET("/comunicacion", handlers.RequireRole(handlers.RoleOptometrist), handlers.OptometristCommunicationPage)
+		// Orden de laboratorio y Garantía / reparación: cada una en su sección
+		optometristGroup.GET("/ordenes-lab", handlers.DocListPage("laboratorio"))
+		optometristGroup.GET("/ordenes-lab/nueva", handlers.DocNewPage("laboratorio"))
+		optometristGroup.GET("/garantias", handlers.DocListPage("garantia"))
+		optometristGroup.GET("/garantias/nueva", handlers.DocNewPage("garantia"))
 		optometristGroup.GET("/historial-clinico", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "historial-clinico.html", handlers.WithStaff(c, gin.H{
 				"ActivePage": "optometrist-historial",
@@ -761,6 +766,7 @@ func main() {
 		apiOptometrist.GET("/ordenes-lab", handlers.ListLabOrderSheetsHandler)
 		apiOptometrist.GET("/ordenes-lab/:id", handlers.GetLabOrderSheetHandler)
 		apiOptometrist.POST("/ordenes-lab", handlers.CreateLabOrderSheetHandler)
+		apiOptometrist.DELETE("/ordenes-lab/:id", handlers.DeleteLabOrderSheetHandler)
 		// Garantías del mes por optometrista (indicador de Examen de la vista)
 		apiOptometrist.GET("/garantias/resumen", handlers.GarantiasResumenHandler)
 

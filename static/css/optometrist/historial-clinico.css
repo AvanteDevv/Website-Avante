@@ -605,3 +605,23 @@ body.hc-recepcion .cuenta-header h1{ font-family:'Bricolage Grotesque', sans-ser
 @media (max-width:370px){
   .pf-tab{ padding:8px 6px; font-size:11.5px; }
 }
+
+/* =========================================================
+   Ficha → Lab y garantías
+   ========================================================= */
+.pf-docs-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.pf-docs-count{ font-size:12.5px; color:var(--grey); margin:0 0 10px; }
+.pf-doc-tag{
+  display:inline-flex; align-items:center; gap:5px; vertical-align:middle; margin-left:6px; white-space:nowrap;
+  font-size:10px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  padding:3px 9px; border-radius:100px; color:var(--grey); background:var(--blue-50);
+}
+.pf-doc-tag.is-lab{ color:var(--blue-600); }
+.pf-doc-tag.is-gar{ color:#9a5b00; background:#fff3dc; }
+body.dark .pf-doc-tag.is-gar{ color:#f2c26b; background:rgba(154,91,0,.25); }
+body.dark .pf-doc-tag.is-lab{ color:#aab2ff; }
+@media (max-width:600px){
+  .pf-tabs{ overflow-x:auto; }
+  .pf-tab{ flex:0 0 auto; }
+  .pf-docs-actions .btn{ flex:1 1 auto; justify-content:center; text-align:center; }
+}

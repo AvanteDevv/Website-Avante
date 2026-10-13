@@ -25,8 +25,7 @@ import (
 // lo tanto este toggle) se usa en TODAS las páginas públicas, no solo en
 // index.
 func PublicUserContext(c *gin.Context) gin.H {
-	adminSession, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
-	isAdmin := adminSession.Values["admin_id"] != nil
+	isAdmin := auth.StaffSession(c.Request).Values["admin_id"] != nil
 
 	ocultarNavTienda := false
 	if settings, err := models.GetElementorSettings(); err != nil {

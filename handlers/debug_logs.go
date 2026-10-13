@@ -76,7 +76,7 @@ func CaptureLogs() {
 }
 
 func isAdminSession(c *gin.Context) bool {
-	session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
+	session := auth.StaffSession(c.Request)
 	role, _ := session.Values["staff_role"].(string)
 	return role == RoleAdmin
 }

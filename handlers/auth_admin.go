@@ -100,7 +100,7 @@ func AdminLogin(c *gin.Context) {
 	// 3) Optometría
 	if o, err := models.GetOptometristByEmail(input.Email); err == nil {
 		if bcrypt.CompareHashAndPassword([]byte(o.PasswordHash), []byte(input.Password)) == nil {
-			finishStaffLogin(c, RoleOptometrist, o.ID, o.Name, o.Email, "/optometrist/historial-clinico")
+			finishStaffLogin(c, RoleOptometrist, o.ID, o.Name, o.Email, "/optometrist/examen-vista")
 			return
 		}
 		LogStaffLoginFailed(c, RoleOptometrist, o.ID, o.Name)
@@ -191,7 +191,9 @@ func finishStaffLogin(c *gin.Context, role string, id int64, name string, email 
 // Sirve para todas las cuentas de staff por igual — es la misma cookie.
 func AdminLogout(c *gin.Context) {
 	LogStaffLogout(c) // bitácora: antes de borrar la cookie
-	session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
+	// Cierra solo la sesión de esta pestaña (la de su rol); si en otra
+	// pestaña hay otra cuenta de otro rol, esa sigue abierta.
+	session := auth.StaffSession(c.Request)
 	session.Options.MaxAge = -1
 	session.Save(c.Request, c.Writer)
 	c.Redirect(http.StatusFound, "/admin/iniciar-sesion")
@@ -209,7 +211,7 @@ func AdminLogout(c *gin.Context) {
 // handlers puedan leerlo sin volver a tocar la cookie.
 func RequireAdminAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
+		session := auth.StaffSession(c.Request)
 		if session.Values["staff_id"] == nil {
 			c.Redirect(http.StatusFound, "/admin/iniciar-sesion")
 			c.Abort()
@@ -257,6 +259,11 @@ func RequireRole(allowed ...string) gin.HandlerFunc {
 
 		if c.GetHeader("Accept") == "application/json" || len(c.Request.Header.Get("X-Requested-With")) > 0 {
 			c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permiso para esto."})
+		} else if c.Request.Method == http.MethodGet && (c.GetHeader("Sec-Fetch-Mode") == "navigate" || strings.Contains(c.GetHeader("Accept"), "text/html")) {
+			// Abrió un panel de otro rol (p. ej. en esta pestaña cerró la
+			// sesión de recepción pero sigue abierta la de optometría):
+			// al inicio de sesión, para entrar con la cuenta de ese panel.
+			c.Redirect(http.StatusFound, "/admin/iniciar-sesion")
 		} else {
 			c.String(http.StatusForbidden, "No tienes permiso para acceder a esta sección.")
 		}
@@ -265,7 +272,9 @@ func RequireRole(allowed ...string) gin.HandlerFunc {
 }
 
 func startStaffSession(c *gin.Context, role string, id int64, name string, email string) error {
-	session, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
+	// Una cookie por rol (ver auth/staff_session.go): así otra pestaña
+	// con otro rol no se cierra al iniciar esta.
+	session, _ := auth.Store.Get(c.Request, auth.StaffCookieName(role))
 	// Sesión de staff más corta que la de cliente (8h vs. 7 días) —
 	// tiene más privilegios, así que conviene que expire más rápido.
 	session.Options.MaxAge = 8 * 60 * 60
@@ -273,7 +282,17 @@ func startStaffSession(c *gin.Context, role string, id int64, name string, email
 	session.Values["staff_name"] = name
 	session.Values["staff_email"] = email
 	session.Values["staff_role"] = role
-	return session.Save(c.Request, c.Writer)
+	if err := session.Save(c.Request, c.Writer); err != nil {
+		return err
+	}
+	// La cookie vieja (una sola para todos) ya no se usa.
+	if _, err := c.Request.Cookie(auth.AdminSessionName); err == nil {
+		old, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
+		old.Options.MaxAge = -1
+		old.Save(c.Request, c.Writer)
+	}
+	http.SetCookie(c.Writer, &http.Cookie{Name: auth.LastStaffRoleCookie, Value: role, Path: "/", MaxAge: 8 * 60 * 60, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	return nil
 }
 
 // roleLabel traduce el rol interno (en inglés, usado en el código y

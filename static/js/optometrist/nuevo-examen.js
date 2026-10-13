@@ -53,13 +53,13 @@
   // Etapas: primero la historia clínica (plantilla activa) y, al
   // guardarla, la orden de laboratorio (plantilla kind="laboratorio")
   // ya precargada con el nombre, la fecha y la graduación.
-  // Después de la historia siguen, en este orden, las hojas que tengan
-  // plantilla: orden de laboratorio y garantía (cada una se puede omitir).
-  var stage = 'historia';     // 'historia' | 'laboratorio' | 'garantia'
-  var DOC_ORDER = ['laboratorio', 'garantia'];
-  var docTemplates = { laboratorio: null, garantia: null }; // se cargan al abrir
-  var savedExam = null;       // la historia clínica ya guardada
-  var histTemplate = null, histValues = null;
+  // Qué hoja es esta página: el examen (historia clínica) o, desde su
+  // propia sección, la orden de laboratorio o la garantía. Cada una se
+  // llena sola (ya no van encadenadas).
+  var DOC = document.body.dataset.doc === 'laboratorio' || document.body.dataset.doc === 'garantia' ? document.body.dataset.doc : '';
+  var stage = DOC || 'historia';     // 'historia' | 'laboratorio' | 'garantia'
+  var DOC_LIST_URL = DOC === 'garantia' ? '/optometrist/garantias' : '/optometrist/ordenes-lab';
+  var fromExamId = parseInt(new URLSearchParams(location.search).get('examId'), 10) || 0;
   function saveLabel(){
     return stage === 'laboratorio' ? 'Guardar orden' : stage === 'garantia' ? 'Guardar garantía' : 'Guardar examen';
   }
@@ -123,9 +123,11 @@
                 values.fields.nombre = item.dataset.name;
                 selectedPatientId = parseInt(item.dataset.id, 10);
                 if (telefonoStep && item.dataset.phone) values.fields[telefonoStep.fieldKey] = item.dataset.phone;
+                if (DOC && item.dataset.phone && !values.fields.telefono) values.fields.telefono = item.dataset.phone;
                 syncSheetFields();
                 closePatientDropdown();
                 if (mode === 'hoja') focusNextSheetInput(input, 1);
+                if (DOC) prefillFromPatient(item.dataset.name, selectedPatientId);
               });
             });
           })
@@ -248,7 +250,10 @@
     wrap.appendChild(input);
     stepContainer.appendChild(wrap);
 
-    if (step.fieldKey === 'nombre' && stage === 'historia') attachPatientSearch(input, findTelefonoStep());
+    if (step.fieldKey === 'nombre'){
+      attachPatientSearch(input, findTelefonoStep());
+      if (DOC) input.addEventListener('change', function(){ prefillFromPatient(input.value, 0); });
+    }
 
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
@@ -572,7 +577,10 @@
     sheetCurrent = null;
 
     var nombreInput = sheetCanvas.querySelector('.exf-input[data-field-key="nombre"]');
-    if (nombreInput && stage === 'historia') attachPatientSearch(nombreInput, findTelefonoStep());
+    if (nombreInput){
+      attachPatientSearch(nombreInput, findTelefonoStep());
+      if (DOC) nombreInput.addEventListener('change', function(){ prefillFromPatient(nombreInput.value, 0); });
+    }
 
     fitSheet();
   }
@@ -1133,12 +1141,7 @@
     })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
       .then(function(exam){
-        // Siguen la orden de laboratorio y la garantía (las que tengan
-        // plantilla); si no hay ninguna, al examen.
-        savedExam = exam;
-        histTemplate = template;
-        histValues = values;
-        goNextDoc();
+        window.location.href = '/optometrist/examen-vista/' + exam.id;
       })
       .catch(function(){
         showStatus('No se pudo guardar el examen. Intenta de nuevo.', 'error');
@@ -1148,11 +1151,8 @@
   }
 
   /* =========================================================
-     Orden de laboratorio (después de la historia clínica)
+     Orden de laboratorio / Garantía (cada una en su sección)
      ========================================================= */
-  var headTitle = document.querySelector('.cuenta-header h1');
-  var headSub = document.querySelector('.cuenta-header p');
-  var cancelLink = document.querySelector('.admin-header-actions a.btn');
 
   function normTxt(s){
     return String(s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -1202,15 +1202,15 @@
     return named.length ? named[named.length - 1] : (tables.length ? tables[tables.length - 1] : null);
   }
 
-  function buildLabValues(histTpl, histValues){
+  function buildLabValues(histTpl, srcValues){
     var v = { fields: {}, tables: {} };
-    var hf = histValues.fields || {};
+    var hf = srcValues.fields || {};
     if (hf.nombre) v.fields.nombre = hf.nombre;
     if (hf.telefono) v.fields.telefono = hf.telefono;
 
     // graduación: lo de la historia → columnas con el mismo dato
     var src = findFinalRxTable(histTpl);
-    var rows = src ? ((histValues.tables || {})[src.id] || []) : [];
+    var rows = src ? ((srcValues.tables || {})[src.id] || []) : [];
     if (src){
       var got = {}; // got[row][key] = valor
       (src.headers || []).forEach(function(h, c){
@@ -1224,7 +1224,7 @@
         });
       });
       var used = {};
-      (docTemplates.laboratorio.elements || []).forEach(function(el){
+      (template.elements || []).forEach(function(el){
         if (el.type !== 'table') return;
         (el.headers || []).forEach(function(h, c){
           var key = rxKey(h);
@@ -1245,105 +1245,113 @@
     return v;
   }
 
-  // Garantía: lo que ya se capturó (nombre, teléfono, dirección, correo…
-  // si la historia tiene esos campos) + TIPO = GARANTÍA + quién la recibe.
-  function buildGarantiaValues(){
-    var v = { fields: {}, tables: {} };
-    var hf = (histValues && histValues.fields) || {};
-    (docTemplates.garantia.elements || []).forEach(function(el){
+  // Garantía: lo que ya se sabe del paciente (nombre, teléfono, y
+  // dirección/correo si su examen los tiene) + TIPO = GARANTÍA + quién la
+  // recibe. srcFields: los campos de su examen (o {}).
+  function garantiaDefaults(v, srcFields){
+    srcFields = srcFields || {};
+    (template.elements || []).forEach(function(el){
       if (!el.fieldKey) return;
-      if (el.type === 'text' && (hf[el.fieldKey] || '').trim()) v.fields[el.fieldKey] = hf[el.fieldKey];
-      if (el.type === 'choice' && el.fieldKey === 'tipo'){
+      if (el.type === 'text' && !(v.fields[el.fieldKey] || '').trim() && (srcFields[el.fieldKey] || '').trim()) v.fields[el.fieldKey] = srcFields[el.fieldKey];
+      if (el.type === 'choice' && el.fieldKey === 'tipo' && !v.fields.tipo){
         var g = (el.options || []).filter(function(o){ return /GARANT/i.test(o); })[0];
         if (g) v.fields.tipo = g;
       }
-      if (el.fieldKey === 'recibido_por'){
+      if (el.fieldKey === 'recibido_por' && !v.fields.recibido_por){
         var me = document.querySelector('.mnav-name') || document.querySelector('.userbar-name');
         if (me && me.textContent.trim()) v.fields.recibido_por = me.textContent.trim();
       }
     });
-    if (!v.fields.nombre && savedExam) v.fields.nombre = savedExam.patientName || '';
-    if (!v.fields.telefono && savedExam && savedExam.patientPhone) v.fields.telefono = savedExam.patientPhone;
     return v;
   }
 
-  var DOC_TEXT = {
-    laboratorio: {
-      title: 'Orden de laboratorio',
-      sub: function(n){ return 'Historia clínica de ' + n + ' guardada. Ahora la hoja para el laboratorio — ya trae el nombre, la fecha y la graduación.'; },
-      skip: 'Terminar sin orden de laboratorio',
-      ok: 'Historia clínica guardada ✓ — falta la orden de laboratorio.'
-    },
-    garantia: {
-      title: 'Garantía',
-      sub: function(n){ return 'Solicitud de reparación / garantía de ' + n + '. Ya trae el nombre, la fecha y quién la recibe; omítela si no aplica.'; },
-      skip: 'Terminar sin garantía',
-      ok: 'Listo ✓ — por último, la garantía (si aplica).'
-    }
-  };
-
-  // Pasa a la siguiente hoja que tenga plantilla; si ya no hay, al examen.
-  // how: 'saved' | 'skipped' (cómo se dejó la hoja anterior, para el aviso)
-  var lastDocAction = 'saved';
-  function goNextDoc(how){
-    lastDocAction = how || 'saved';
-    var start = stage === 'historia' ? 0 : DOC_ORDER.indexOf(stage) + 1;
-    for (var i = start; i < DOC_ORDER.length; i++){
-      if (docTemplates[DOC_ORDER[i]]){ startDocStage(DOC_ORDER[i]); return; }
-    }
-    window.location.href = '/optometrist/examen-vista/' + (savedExam ? savedExam.id : '');
-  }
-
-  function startDocStage(kind){
-    var prev = stage;
-    stage = kind;
-    template = docTemplates[kind];
-    values = kind === 'laboratorio' ? buildLabValues(histTemplate, histValues) : buildGarantiaValues();
-    prefillToday();
-    closePatientDropdown();
-    sheetCurrent = null;
-    sheetZoom = 'lupa';
-    currentIndex = 0;
-
-    var txt = DOC_TEXT[kind];
-    var who = (savedExam && savedExam.patientName) || 'el paciente';
-    if (headTitle) headTitle.textContent = txt.title;
-    if (headSub) headSub.textContent = txt.sub(who);
-    if (cancelLink){
-      cancelLink.textContent = 'Omitir';
-      cancelLink.href = '/optometrist/examen-vista/' + (savedExam ? savedExam.id : '');
-      cancelLink.title = txt.skip;
-    }
-    document.title = txt.title + ' — Optometría · Avante Optics';
-    document.body.classList.remove('exam-stage-laboratorio', 'exam-stage-garantia');
-    document.body.classList.add('exam-stage-' + kind);
-    nextBtn.disabled = false;
-    window.scrollTo({ top: 0, behavior: 'auto' });
-    initWizard();
-    var msg = DOC_TEXT[kind].ok;
-    if (prev === 'laboratorio' && kind === 'garantia'){
-      msg = (lastDocAction === 'skipped' ? 'Orden de laboratorio omitida' : 'Orden de laboratorio guardada ✓') + ' — por último, la garantía (si aplica).';
-    }
-    showStatus(msg, 'ok');
-  }
-
-  // "Omitir": salta a la siguiente hoja (o termina).
-  if (cancelLink){
-    cancelLink.addEventListener('click', function(e){
-      if (stage === 'historia') return;
-      e.preventDefault();
-      goNextDoc('skipped');
+  function tablesEmpty(v){
+    return !Object.keys(v.tables || {}).some(function(id){
+      return (v.tables[id] || []).some(function(r){ return r && r.some(function(x){ return (x || '').trim(); }); });
     });
   }
 
+  // Trae lo del último examen del paciente: en la orden, la graduación
+  // (si todavía no se capturó nada); en la garantía, sus datos.
+  var prefillSeq = 0, prefilledFor = '';
+  function prefillFromPatient(name, userId){
+    name = (name || '').trim();
+    if (!DOC || name.length < 3) return;
+    var key = normTxt(name) + '|' + (userId || 0);
+    if (key === prefilledFor) return;
+    var my = ++prefillSeq;
+    fetch('/api/optometrist/examenes?paciente=' + encodeURIComponent(name), { headers: { Accept: 'application/json' } })
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(list){
+        if (my !== prefillSeq) return null;
+        var n = normTxt(name);
+        var exam = (list || []).filter(function(e){ return (userId && e.userId === userId) || normTxt(e.patientName) === n; })[0];
+        if (!exam) return null;
+        return fetch('/api/optometrist/plantillas/' + exam.templateId, { headers: { Accept: 'application/json' } })
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(t){ return t ? { exam: exam, template: t } : null; });
+      })
+      .then(function(found){
+        if (!found || my !== prefillSeq) return;
+        prefilledFor = key;
+        applyExamPrefill(found.exam, found.template, true);
+      })
+      .catch(function(){});
+  }
+
+  function examData(exam){
+    var d = exam.data;
+    if (typeof d === 'string'){ try { d = JSON.parse(d); } catch (e){ d = {}; } }
+    d = d || {};
+    d.fields = d.fields || {}; d.tables = d.tables || {};
+    return d;
+  }
+
+  // Llena la hoja con lo del examen. fromPick: viene de elegir al
+  // paciente (entonces se redibuja y se avisa).
+  function applyExamPrefill(exam, examTpl, fromPick){
+    var d = examData(exam);
+    var tpl = examTpl;
+    if (tpl && typeof tpl.elements === 'string'){ try { tpl.elements = JSON.parse(tpl.elements); } catch (e){ tpl.elements = []; } }
+    if (!values.fields.nombre && exam.patientName) values.fields.nombre = exam.patientName;
+    if (!values.fields.telefono && exam.patientPhone) values.fields.telefono = exam.patientPhone;
+    if (exam.userId && !selectedPatientId) selectedPatientId = exam.userId;
+    var changed = false;
+    if (DOC === 'laboratorio' && tpl && tablesEmpty(values)){
+      var rx = buildLabValues(tpl, d);
+      if (!tablesEmpty(rx)){ values.tables = rx.tables; changed = true; }
+    }
+    if (DOC === 'garantia'){ garantiaDefaults(values, d.fields); changed = true; }
+    if (fromPick && changed){
+      if (mode === 'hoja') syncSheetAll(); else renderStep();
+      showStatus(DOC === 'laboratorio'
+        ? 'Se trajo la graduación de su examen del ' + new Date(exam.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) + '.'
+        : 'Se trajeron sus datos de su último examen.', 'ok');
+    }
+  }
+
+  // Vuelve a dibujar la hoja con los valores actuales (sin perder el campo activo).
+  function syncSheetAll(){
+    if (sheetWrap.hidden) return;
+    var active = document.activeElement && sheetCanvas.contains(document.activeElement) ? sheetInputs.indexOf(document.activeElement) : -1;
+    mountSheet();
+    if (active >= 0 && sheetInputs[active]) sheetInputs[active].focus({ preventScroll: true });
+  }
+
   function saveDocSheet(){
-    var kind = stage;
+    var name = (values.fields.nombre || '').trim();
+    if (!name){
+      showStatus('Escribe el nombre del paciente.', 'error');
+      var ni = sheetCanvas.querySelector('.exf-input[data-field-key="nombre"]');
+      if (mode === 'hoja' && ni) ni.focus({ preventScroll: true });
+      return;
+    }
     var payload = {
-      kind: kind,
-      examId: savedExam ? savedExam.id : 0,
+      kind: DOC,
+      examId: fromExamId,
       templateId: template.id,
-      patientName: (values.fields.nombre || (savedExam && savedExam.patientName) || '').trim(),
-      patientPhone: (values.fields.telefono || (savedExam && savedExam.patientPhone) || '').trim(),
+      patientName: name,
+      patientPhone: (values.fields.telefono || '').trim(),
       userId: selectedPatientId,
       data: values
     };
@@ -1356,26 +1364,48 @@
       body: JSON.stringify(payload)
     })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
-      .then(function(){ goNextDoc('saved'); })
+      .then(function(){ window.location.href = DOC_LIST_URL + '?ok=1'; })
       .catch(function(){
-        showStatus(kind === 'garantia' ? 'No se pudo guardar la garantía. Intenta de nuevo.' : 'No se pudo guardar la orden de laboratorio. Intenta de nuevo.', 'error');
+        showStatus(DOC === 'garantia' ? 'No se pudo guardar la garantía. Intenta de nuevo.' : 'No se pudo guardar la orden de laboratorio. Intenta de nuevo.', 'error');
         nextBtn.disabled = false;
         nextBtn.textContent = originalText;
       });
   }
 
-  // Las plantillas de las hojas se cargan desde el inicio (así al guardar
-  // la historia aparecen al instante).
-  DOC_ORDER.forEach(function(kind){
-    fetch('/api/optometrist/plantillas/' + kind)
-      .then(function(res){ return res.ok ? res.json() : null; })
-      .then(function(t){ if (t && t.id) docTemplates[kind] = t; })
-      .catch(function(){});
-  });
+  // Al abrir una orden/garantía: si viene de un examen (?examId=), con sus
+  // datos; si no, con lo que venga en la liga (nombre, teléfono, userId).
+  function startDoc(){
+    var go = function(){
+      if (DOC === 'garantia') garantiaDefaults(values, {});
+      prefillToday();
+      initWizard();
+    };
+    if (!fromExamId){
+      go();
+      if (values.fields.nombre) prefillFromPatient(values.fields.nombre, selectedPatientId);
+      return;
+    }
+    fetch('/api/optometrist/examenes/' + fromExamId, { headers: { Accept: 'application/json' } })
+      .then(function(r){ if (!r.ok) throw new Error(); return r.json(); })
+      .then(function(exam){
+        return fetch('/api/optometrist/plantillas/' + exam.templateId, { headers: { Accept: 'application/json' } })
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(t){
+            applyExamPrefill(exam, t, false);
+            prefilledFor = normTxt(exam.patientName || '') + '|' + (exam.userId || 0);
+          });
+      })
+      .catch(function(){})
+      .then(go);
+  }
 
-  fetch('/api/optometrist/plantillas/activa')
+  fetch(DOC ? '/api/optometrist/plantillas/' + DOC : '/api/optometrist/plantillas/activa')
     .then(function(res){
-      if (res.status === 404){ noTemplateEl.style.display = 'block'; return null; }
+      if (res.status === 404){
+        if (DOC) noTemplateEl.innerHTML = 'No se encontró la plantilla de ' + (DOC === 'garantia' ? 'garantía' : 'orden de laboratorio') + '. Revisa en <a href="/optometrist/plantilla-examen">Plantilla de examen</a>.';
+        noTemplateEl.style.display = 'block';
+        return null;
+      }
       if (!res.ok){
         return res.json().catch(function(){ return {}; }).then(function(body){
           throw new Error('HTTP ' + res.status + ' — ' + (body.error || res.statusText));
@@ -1388,6 +1418,7 @@
       template = t;
       formWrap.style.display = 'block';
       prefillFromQueryParams();
+      if (DOC){ startDoc(); return; }
       prefillToday();
       initWizard();
     })
