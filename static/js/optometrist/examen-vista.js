@@ -206,7 +206,7 @@
   }
 
   function loadToday(){
-    return fetch('/api/citas')
+    return fetch('/api/citas', { cache: 'no-store', credentials: 'same-origin' })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
       .then(function(data){
         var todayStr = dayKey(new Date());
@@ -375,7 +375,7 @@
   if (staffSel) staffSel.addEventListener('change', renderExams);
 
   function loadExams(){
-    return fetch('/api/optometrist/examenes?lite=1')
+    return fetch('/api/optometrist/examenes?lite=1', { cache: 'no-store', credentials: 'same-origin' })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
       .then(function(exams){ allExams = exams || []; })
       .catch(function(){ countEl.textContent = 'No se pudieron cargar los exámenes.'; });
@@ -396,6 +396,27 @@
   // optometrista guardó un examen se ve reflejado (sin tocar la tabla
   // para no cerrar menús abiertos).
   setInterval(function(){ refreshAll(false); }, 60000);
+
+  // Tiempo real: cuando recepción agenda / edita / cancela una cita (o
+  // otro optometrista guarda un examen) llega "citas.changed" y la lista
+  // de "Citas de hoy" se actualiza al momento, sin esperar el minuto.
+  var rtTimer = null;
+  function refreshSoon(){
+    clearTimeout(rtTimer);
+    rtTimer = setTimeout(function(){ refreshAll(false); }, 250);
+  }
+  (function hookRealtime(tries){
+    if (window.AvanteRealtime && window.AvanteRealtime.on){
+      window.AvanteRealtime.on('citas.changed', refreshSoon);
+      // Si se cayó la conexión pudo perderse un aviso: se recarga.
+      window.AvanteRealtime.on('reconnect', refreshSoon);
+      return;
+    }
+    if (tries < 40) setTimeout(function(){ hookRealtime(tries + 1); }, 250);
+  })(0);
+  // Al volver a la pestaña (o al celular desbloqueado) también se recarga.
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) refreshSoon(); });
+  window.addEventListener('focus', refreshSoon);
 
   function wireRowMenus(){
     var menus = Array.prototype.slice.call(listEl.querySelectorAll('.row-menu')).concat(

@@ -72,13 +72,16 @@ window.AvanteExamModal = (function(){
       container.innerHTML = '<p class="exm-missing">La plantilla con la que se hizo este examen ya no existe, así que no se puede dibujar la hoja.</p>';
       return false;
     }
-    AvanteExamRender.mount(container, {
+    var opts = {
       canvasW: t.canvasW || 816,
       canvasH: t.canvasH || 1056,
       elements: parse(t.elements, []),
       readonly: true,
       data: parse(src.exam.data, { fields: {}, tables: {} })
-    });
+    };
+    AvanteExamRender.mount(container, opts);
+    // Próxima cita: solo en exámenes (no en órdenes de laboratorio ni garantías).
+    if (AvanteExamRender.nextVisit && !t.kind) AvanteExamRender.nextVisit(container, opts, src.exam.proximaCita);
     return true;
   }
 
@@ -131,7 +134,7 @@ window.AvanteExamModal = (function(){
 
   function fit(){
     if (!current || !current.template) return;
-    var w = current.template.canvasW || 816, h = current.template.canvasH || 1056;
+    var w = current.template.canvasW || 816, h = parseFloat(sheetEl.style.height) || current.template.canvasH || 1056;
     // clientWidth incluye el padding del cuerpo del modal: se descuenta
     // para que en el celular la hoja no se corte a la derecha.
     var body = scaleEl.parentNode, cs = getComputedStyle(body);

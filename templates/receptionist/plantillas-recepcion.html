@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
 <link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
 <link rel="stylesheet" href="/static/css/receptionist/plantillas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/presupuesto.css">
 </head>
 <body class="cuenta-body admin-body">
 
@@ -40,11 +41,17 @@
     </div>
 
     <div class="tkp-tabs" role="tablist">
-      <button type="button" class="tkp-tab active" role="tab" aria-selected="true">
+      <button type="button" class="tkp-tab active" role="tab" aria-selected="true" data-tkp-tab="ticket">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
         Ticket de venta
       </button>
+      <button type="button" class="tkp-tab" role="tab" aria-selected="false" data-tkp-tab="presupuesto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+        Presupuesto
+      </button>
     </div>
+
+    <div data-tkp-pane="ticket">
 
     <p class="tkp-status" id="tkpStatus" aria-live="polite"></p>
 
@@ -106,7 +113,8 @@
             <label class="tkp-switch"><input type="checkbox" data-path="mostrar.folio"><span class="tkp-switch-track"></span><span>No. de ticket</span></label>
             <label class="tkp-switch"><input type="checkbox" data-path="mostrar.fecha"><span class="tkp-switch-track"></span><span>Fecha</span></label>
             <label class="tkp-switch"><input type="checkbox" data-path="mostrar.hora"><span class="tkp-switch-track"></span><span>Hora</span></label>
-            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.rastreo"><span class="tkp-switch-track"></span><span>Números de rastreo</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.pedido"><span class="tkp-switch-track"></span><span>Clave de rastreo (abajo, para consultar el pedido)</span></label>
+            <label class="tkp-switch"><input type="checkbox" data-path="mostrar.rastreo"><span class="tkp-switch-track"></span><span>Clave de rastreo de cada producto</span></label>
             <label class="tkp-switch"><input type="checkbox" data-path="mostrar.formasPago"><span class="tkp-switch-track"></span><span>Formas de pago</span></label>
             <label class="tkp-switch"><input type="checkbox" data-path="mostrar.soloUsadas"><span class="tkp-switch-track"></span><span>Solo las formas usadas</span></label>
             <label class="tkp-switch"><input type="checkbox" data-path="mostrar.cambio"><span class="tkp-switch-track"></span><span>Cambio</span></label>
@@ -178,6 +186,100 @@
           <div class="tkp-paper" id="tkpPreview"></div>
         </div>
       </aside>
+    </div>
+    </div>
+
+    <!-- ================= Presupuesto (la hoja de papel, digitalizada) ================= -->
+    <div data-tkp-pane="presupuesto" hidden>
+      <div class="psp-bar">
+        <p>Llena la hoja y dale <strong>Imprimir</strong>. El total, el resto y la cantidad con letra del pagaré se calculan solos.</p>
+        <div class="psp-bar-actions">
+          <label class="psp-size"><span>Hoja</span>
+            <select id="pspSize">
+              <option value="media">Media carta</option>
+              <option value="carta">Carta</option>
+            </select>
+          </label>
+          <button type="button" class="btn small" id="pspClear">Limpiar</button>
+          <button type="button" class="btn solid small" id="pspPrint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimir
+          </button>
+        </div>
+      </div>
+
+      <div class="psp-stage">
+        <form class="psp-sheet" id="pspSheet" autocomplete="off" onsubmit="return false">
+          <header class="psp-head">
+            <div class="psp-brand">
+              <img src="/static/images/avante-logo.png" alt="Avante Optics">
+              <div class="psp-brand-text">
+                <strong>DE HERMOSILLO</strong>
+                <span>f avanteopticshmo</span>
+                <span>(6622) 561-704 · WhatsApp</span>
+                <span>avanteopticsmx.com</span>
+              </div>
+            </div>
+            <div class="psp-addr">
+              <span>LUIS DONALDO COLOSIO M. #69 COL. CENTRO C.P. 83000</span>
+              <span>TEL. (662) 213-17-92, HERMOSILLO, SONORA</span>
+              <span>SUCURSAL EMPALME TEL.: (622) 223-3881</span>
+              <label class="psp-folio">Nº <input type="text" data-k="folio" maxlength="10" inputmode="numeric"></label>
+            </div>
+          </header>
+
+          <div class="psp-row psp-right"><label>FECHA:</label><input type="text" data-k="fecha" class="psp-line psp-w-fecha"></div>
+          <div class="psp-row"><label>NOMBRE:</label><input type="text" data-k="nombre" class="psp-line"></div>
+          <div class="psp-row"><label>DIRECCIÓN:</label><input type="text" data-k="direccion" class="psp-line"></div>
+          <div class="psp-row"><label>POBLACIÓN</label><input type="text" data-k="poblacion" class="psp-line"><label>TEL.</label><input type="text" data-k="tel" class="psp-line psp-w-tel" inputmode="tel"></div>
+
+          <div class="psp-items">
+            <div class="psp-items-head"><span></span><span>TIPO</span><span>COSTO</span></div>
+            <div class="psp-item"><label>ARMAZÓN:</label><input type="text" data-k="armazon_tipo" class="psp-line"><input type="text" data-k="armazon_costo" class="psp-line psp-money" inputmode="decimal"></div>
+            <div class="psp-item"><label>MICAS:</label><input type="text" data-k="micas_tipo" class="psp-line"><input type="text" data-k="micas_costo" class="psp-line psp-money" inputmode="decimal"></div>
+            <div class="psp-item"><label>OTROS:</label><input type="text" data-k="otros_tipo" class="psp-line"><input type="text" data-k="otros_costo" class="psp-line psp-money" inputmode="decimal"></div>
+          </div>
+
+          <div class="psp-mid">
+            <div class="psp-cond">
+              <h4>GARANTÍA Y CONDICIONES:</h4>
+              <p><b>A).-</b> En AVANTE cada anteojo o lente de contacto está elaborado de acuerdo a su Receta óptica y específicamente hecho a sus necesidades.</p>
+              <p>Debido a que estos materiales son de uso personal y por su salud e higiene; no se Admiten cancelaciones, cambios devoluciones o modificaciones después de haber Ordenado sus lentes.</p>
+              <p>Si al recibir su trabajo no es lo ordenado en la receta óptica corregiremos el Defecto o error de fabricación o elaboración sin costo alguno, siempre y cuando es señalado en un plazo no mayor de 10 días.</p>
+              <p><b>B).-</b> Los anteojos y lentes de contacto no tienen garantía alguna contra rupturas de Ninguna índole, una vez que sean entregados en buenas condiciones.</p>
+              <p><b>C).-</b> AVANTE, no se hace responsable por ningún trabajo que no sea recogido después de 30 días.</p>
+              <p><b>D).-</b> Para cualquier aclaración es necesario presentar su recibo de pago.</p>
+              <p><b>E).-</b> Por ningún motivo se devolverá dinero en efectivo.</p>
+            </div>
+            <div class="psp-totals">
+              <div class="psp-tot"><label>TOTAL:</label><input type="text" data-k="total" class="psp-line psp-money" readonly tabindex="-1"></div>
+              <div class="psp-tot"><label></label><input type="text" data-k="extra1" class="psp-line psp-money"></div>
+              <div class="psp-tot"><label></label><input type="text" data-k="extra2" class="psp-line psp-money"></div>
+              <div class="psp-tot"><label>ANTICIPO</label><input type="text" data-k="anticipo" class="psp-line psp-money" inputmode="decimal"></div>
+              <div class="psp-tot"><label>TOTAL:</label><input type="text" data-k="resta" class="psp-line psp-money" readonly tabindex="-1"></div>
+            </div>
+          </div>
+
+          <div class="psp-row psp-obs"><label>OBSERVACIONES:</label><input type="text" data-k="obs1" class="psp-line"></div>
+          <div class="psp-row"><input type="text" data-k="obs2" class="psp-line"></div>
+
+          <div class="psp-accept">
+            <div class="psp-sign-line"></div>
+            <span>ACEPTO GARANTÍA Y CONDICIONES</span>
+            <span>DESPUÉS DE 30 DÍAS NO SE ACEPTAN DEVOLUCIONES</span>
+          </div>
+
+          <div class="psp-pagare">
+            <p>POR ESTE PAGARÉ ME(NOS) OBLIGO(AMOS) A PAGAR INCONDICIONALMENTE EN ESTA CIUDAD O EN CUALQUIER OTRA QUE SE ME REQUIERA EL PAGO A LA ORDEN DE <span id="pspBenef">ABEL CAIN CARRANZA JIMENEZ</span> LA CANTIDAD DE $<input type="text" data-k="p_monto" class="psp-in psp-w-80" inputmode="decimal">
+              (<input type="text" data-k="p_letra" class="psp-in psp-w-letra">) EL DÍA <input type="text" data-k="p_dia" class="psp-in psp-w-24" inputmode="numeric"> DE <input type="text" data-k="p_mes" class="psp-in psp-w-70"> DEL <input type="text" data-k="p_anio" class="psp-in psp-w-40" inputmode="numeric">
+              SUMA QUE RECONOZCO ADEUDARLE Y LA CUAL CAUSA INTERESES MORATORIOS DEL <input type="text" data-k="p_interes" class="psp-in psp-w-24" inputmode="decimal">% MENSUAL DESDE SU VENCIMIENTO. ME SOMETO A LOS TRIBUNALES QUE EL ACREEDOR ELIJA RENUNCIANDO AL FUERO DE MI DOMICILIO, EN CASO DE COBRO JUDICIAL PAGARÉ LOS GASTOS QUE SE OCASIONEN.</p>
+            <div class="psp-pagare-foot">
+              <span>HERMOSILLO, SON., A <input type="text" data-k="f_dia" class="psp-in psp-w-24" inputmode="numeric"> DE <input type="text" data-k="f_mes" class="psp-in psp-w-70"> DEL 20<input type="text" data-k="f_anio" class="psp-in psp-w-24" inputmode="numeric"></span>
+              <span class="psp-firma"><i></i>FIRMA</span>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   </main>
 </div>
@@ -274,5 +376,6 @@
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
 <script src="/static/js/receptionist/ticket-render.js"></script>
 <script src="/static/js/receptionist/plantillas-recepcion.js"></script>
+<script src="/static/js/receptionist/presupuesto.js"></script>
 </body>
 </html>

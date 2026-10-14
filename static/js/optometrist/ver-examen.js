@@ -61,14 +61,17 @@
         if (!res.ok) throw new Error('request failed');
         return res.json();
       }).then(function(t){
-        AvanteExamRender.mount(canvasEl, {
+        var mopts = {
           canvasW: t.canvasW,
           canvasH: t.canvasH,
           elements: (t.elements || []),
           readonly: true,
           data: (exam.data || {})
-        });
+        };
+        AvanteExamRender.mount(canvasEl, mopts);
         sheetW = t.canvasW || 816; sheetH = t.canvasH || 1056;
+        // Próxima cita (la revisión que programó recepción) al final.
+        if (AvanteExamRender.nextVisit) sheetH = AvanteExamRender.nextVisit(canvasEl, mopts, exam.proximaCita);
         fitSheet();
         // Vino del menú de tres puntos de la lista con ?action=pdf o
         // ?action=print — se dispara solo, sin que la persona tenga

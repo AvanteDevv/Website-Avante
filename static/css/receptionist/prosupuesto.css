@@ -1,0 +1,100 @@
+/* =========================================================
+   Plantillas → Presupuesto: la hoja de papel digitalizada.
+   Media carta (5.5 × 8.5 in) o carta (8.5 × 11 in). Todo va en
+   "em" para que la hoja escale igual en los dos tamaños.
+   ========================================================= */
+[data-tkp-pane][hidden]{ display:none !important; }
+.tkp-actions[hidden]{ display:none !important; }
+
+.psp-bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:0 0 16px; }
+.psp-bar p{ margin:0; font-size:13px; color:var(--muted); max-width:520px; }
+.psp-bar p strong{ color:var(--ink); }
+.psp-bar-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.psp-bar-actions .btn{ display:inline-flex; align-items:center; gap:7px; }
+.psp-bar-actions .btn svg{ width:15px; height:15px; }
+.psp-size{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--muted); }
+.psp-size select{ padding:7px 10px; border-radius:10px; border:1.5px solid var(--line); background:var(--white); color:var(--ink); font:600 13px var(--sans); }
+
+.psp-stage{ display:flex; justify-content:center; padding:22px; border-radius:var(--radius-lg, 18px); background:#e6e8f0; overflow:hidden; }
+body.dark .psp-stage{ background:rgba(255,255,255,.05); }
+
+.psp-sheet{
+  --ink-p:#111; --line-p:#222;
+  position:relative; flex:0 0 auto; box-sizing:border-box;
+  width:5.5in; height:8.5in; padding:.32in .34in .3in; font-size:9.6px;
+  background:#fff; color:var(--ink-p); font-family:Arial, Helvetica, sans-serif;
+  box-shadow:0 22px 44px -26px rgba(10,14,56,.55); transform-origin:top left;
+  display:flex; flex-direction:column; gap:.55em;
+}
+.psp-sheet.is-carta{ width:8.5in; height:11in; padding:.5in .55in .45in; font-size:14.4px; }
+.psp-stage:has(.psp-sheet[style*="scale"]){ justify-content:flex-start; }
+
+.psp-sheet input{
+  font:inherit; color:#0b2a8f; background:transparent; border:none; outline:none; padding:0 .2em; min-width:0;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+.psp-sheet input:focus{ background:#eef2ff; }
+.psp-line{ flex:1; border-bottom:1px solid var(--line-p) !important; height:1.6em; }
+.psp-in{ border-bottom:1px solid var(--line-p) !important; height:1.4em; text-align:center; }
+.psp-money{ text-align:right; }
+.psp-w-fecha{ flex:0 0 18em; }
+.psp-w-tel{ flex:0 0 14em; }
+.psp-w-24{ width:2.8em; }
+.psp-w-40{ width:4em; }
+.psp-w-70{ width:7.5em; }
+.psp-w-80{ width:7em; }
+.psp-w-letra{ width:26em; max-width:100%; text-align:left; }
+
+/* Encabezado */
+.psp-head{ display:flex; justify-content:space-between; gap:1em; align-items:flex-start; }
+.psp-brand{ display:flex; align-items:center; gap:.6em; }
+.psp-brand img{ height:5.6em; width:auto; filter:grayscale(1) contrast(1.2); }
+.psp-brand-text{ display:flex; flex-direction:column; line-height:1.25; font-size:.95em; font-weight:700; color:#333; }
+.psp-brand-text strong{ font-size:1.55em; font-weight:800; letter-spacing:.02em; color:#222; }
+.psp-addr{ display:flex; flex-direction:column; align-items:center; text-align:center; font-size:.78em; font-weight:700; line-height:1.3; color:#333; }
+.psp-folio{ margin-top:.6em; font-size:1.8em; font-weight:700; color:#c8102e; display:flex; align-items:center; gap:.2em; }
+.psp-folio input{ width:4.2em; color:#c8102e !important; font-weight:700; letter-spacing:.06em; border-bottom:1px dashed #c8102e !important; }
+
+.psp-row{ display:flex; align-items:flex-end; gap:.3em; }
+.psp-row label{ font-weight:600; white-space:nowrap; font-size:1.05em; }
+.psp-right{ justify-content:flex-end; }
+
+/* Armazón / micas / otros */
+.psp-items{ display:flex; flex-direction:column; gap:.65em; margin:.4em 0 .2em; }
+.psp-items-head, .psp-item{ display:grid; grid-template-columns:7.5em 1fr 1fr; gap:1.4em; align-items:end; }
+.psp-items-head span{ text-align:center; font-weight:600; font-size:1.05em; }
+.psp-item label{ font-weight:600; font-size:1.05em; }
+
+/* Condiciones + totales */
+.psp-mid{ display:grid; grid-template-columns:1.25fr 1fr; gap:1em; margin-top:.4em; }
+.psp-cond h4{ margin:0 0 .3em; text-align:center; font-size:.92em; font-style:italic; font-weight:800; }
+.psp-cond p{ margin:0; font-size:.74em; line-height:1.28; font-style:italic; }
+.psp-totals{ display:flex; flex-direction:column; gap:.9em; justify-content:flex-start; padding-top:.6em; }
+.psp-tot{ display:flex; align-items:flex-end; gap:.3em; }
+.psp-tot label{ min-width:5.2em; font-weight:600; font-size:1.05em; text-align:right; }
+.psp-tot input[readonly]{ font-weight:700; }
+
+.psp-obs{ margin-top:.6em; }
+
+.psp-accept{ display:flex; flex-direction:column; align-items:center; margin-top:auto; font-size:.74em; font-weight:600; line-height:1.3; }
+.psp-sign-line{ width:22em; border-top:1px solid var(--line-p); margin-bottom:.2em; }
+
+.psp-pagare{ border:1.5px solid var(--line-p); border-radius:.5em; padding:.6em .8em .5em; font-size:.74em; line-height:1.55; }
+.psp-pagare p{ margin:0; text-align:justify; }
+.psp-pagare-foot{ display:flex; justify-content:space-between; align-items:flex-end; gap:1em; margin-top:1.4em; }
+.psp-firma{ display:flex; flex-direction:column; align-items:center; font-weight:600; }
+.psp-firma i{ display:block; width:20em; border-top:1px solid var(--line-p); margin-bottom:.15em; }
+
+/* Imprimir solo la hoja */
+@media print{
+  body.psp-printing *{ visibility:hidden !important; }
+  body.psp-printing .psp-sheet, body.psp-printing .psp-sheet *{ visibility:visible !important; }
+  body.psp-printing .psp-sheet{ position:fixed !important; left:0; top:0; transform:none !important; box-shadow:none !important; margin:0; }
+  body.psp-printing .psp-sheet input{ background:transparent !important; }
+}
+@media (max-width:640px){
+  .psp-stage{ padding:10px; }
+}
+
+/* La barra lateral no se encoge cuando la hoja es ancha */
+.cuenta-sidebar{ flex-shrink:0; }

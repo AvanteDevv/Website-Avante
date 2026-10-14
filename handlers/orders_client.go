@@ -67,6 +67,12 @@ func TrackOrder(c *gin.Context) {
 
 	order, err := models.GetOrderByCode(code)
 	if err == models.ErrOrderNotFound {
+		// También sirve el número de rastreo de cualquier pieza del ticket.
+		if alt := models.OrderCodeForPieza(code); alt != "" {
+			order, err = models.GetOrderByCode(alt)
+		}
+	}
+	if err == models.ErrOrderNotFound {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pedido no encontrado."})
 		return
 	}

@@ -227,8 +227,10 @@ type PosSale struct {
 	Items      []PosSaleItem `json:"productos"`
 	CreatedAt  time.Time     `json:"fecha"`
 	// Si quedó algo a crédito:
-	CreditID int64  `json:"credit_id,omitempty"`
-	Vence    string `json:"vence,omitempty"` // "YYYY-MM-DD" o "" si el cliente no tiene días de crédito
+	// Pedido con clave de rastreo (si la venta lleva productos).
+	Pedido   *PosPedido `json:"pedido,omitempty"`
+	CreditID int64      `json:"credit_id,omitempty"`
+	Vence    string     `json:"vence,omitempty"` // "YYYY-MM-DD" o "" si el cliente no tiene días de crédito
 }
 
 // PosStockError: no alcanzó la existencia de un producto.
@@ -401,6 +403,13 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 		return nil, err
 	}
 	s.CreatedAt = time.Now().In(posLoc)
+	// Pedido con clave de rastreo: si falla, la venta ya quedó; se puede
+	// crear después desde Ventas.
+	if ped, err := CreatePosPedido(s.ID, s.Cajero); err == nil {
+		s.Pedido = ped
+	} else if !errors.Is(err, ErrPosPedidoSinProductos) {
+		log.Printf("pos: no se pudo abrir el pedido de la venta %d: %v", s.ID, err)
+	}
 	return &s, nil
 }
 
@@ -618,6 +627,9 @@ type PosSaleRow struct {
 	Saldo         float64 `json:"saldo"`   // lo que todavía debe de esa venta
 	Vence         string  `json:"vence"`
 	Estado        string  `json:"estado"` // pagada | debe | vencida
+	// Pedido (clave de rastreo) y su estatus; vacío si no tiene.
+	PedidoCode   string `json:"pedido_code"`
+	PedidoStatus string `json:"pedido_status"`
 }
 
 // PosSalesFilter: filtros del listado (fechas "YYYY-MM-DD", ambas incluidas).
@@ -652,7 +664,9 @@ func ListPosSales(f PosSalesFilter, limit int) ([]PosSaleRow, PosSalesTotals, er
 	query := `SELECT s.id, DATE_FORMAT(s.created_at, '%Y-%m-%dT%H:%i:%s'), COALESCE(s.client_id, 0), s.cliente, s.cajero,
 			COALESCE((SELECT SUM(i.cantidad) FROM pos_sale_items i WHERE i.sale_id = s.id), 0),
 			s.total, s.efectivo - s.cambio, s.tarjeta, s.transferencia, s.vales, s.cheque, s.credito,
-			COALESCE(cr.saldo, 0), COALESCE(DATE_FORMAT(cr.vence, '%Y-%m-%d'), ''), ` + estadoExpr + `
+			COALESCE(cr.saldo, 0), COALESCE(DATE_FORMAT(cr.vence, '%Y-%m-%d'), ''), ` + estadoExpr + `,
+			COALESCE((SELECT o.order_code FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), ''),
+			COALESCE((SELECT o.status FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), '')
 		FROM pos_sales s LEFT JOIN pos_credits cr ON cr.sale_id = s.id
 		WHERE 1 = 1`
 	args := []interface{}{today}
@@ -666,8 +680,8 @@ func ListPosSales(f PosSalesFilter, limit int) ([]PosSaleRow, PosSalesTotals, er
 	}
 	for _, w := range strings.Fields(strings.ToLower(f.Q)) {
 		like := "%" + w + "%"
-		query += " AND (LOWER(s.cliente) LIKE ? OR CAST(s.id AS CHAR) LIKE ? OR LOWER(s.cajero) LIKE ?)"
-		args = append(args, like, like, like)
+		query += " AND (LOWER(s.cliente) LIKE ? OR CAST(s.id AS CHAR) LIKE ? OR LOWER(s.cajero) LIKE ? OR EXISTS (SELECT 1 FROM orders o WHERE o.pos_sale_id = s.id AND LOWER(o.order_code) LIKE ?))"
+		args = append(args, like, like, like, like)
 	}
 	if f.Estado == "pagada" || f.Estado == "debe" || f.Estado == "vencida" {
 		query += " AND (" + estadoExpr + ") = ?"
@@ -687,7 +701,7 @@ func ListPosSales(f PosSalesFilter, limit int) ([]PosSaleRow, PosSalesTotals, er
 		var r PosSaleRow
 		if err := rows.Scan(&r.Folio, &r.Fecha, &r.ClientID, &r.Cliente, &r.Cajero, &r.Articulos,
 			&r.Total, &r.Efectivo, &r.Tarjeta, &r.Transferencia, &r.Vales, &r.Cheque, &r.Credito,
-			&r.Saldo, &r.Vence, &r.Estado); err != nil {
+			&r.Saldo, &r.Vence, &r.Estado, &r.PedidoCode, &r.PedidoStatus); err != nil {
 			return nil, t, err
 		}
 		r.Efectivo = round2(r.Efectivo)
@@ -808,7 +822,9 @@ func listPosSalesWhere(cond string, arg interface{}) ([]PosSaleRow, PosSalesTota
 			COALESCE((SELECT SUM(i.cantidad) FROM pos_sale_items i WHERE i.sale_id = s.id), 0),
 			s.total, s.efectivo - s.cambio, s.tarjeta, s.transferencia, s.vales, s.cheque, s.credito,
 			COALESCE(cr.saldo, 0), COALESCE(DATE_FORMAT(cr.vence, '%Y-%m-%d'), ''),
-			CASE WHEN COALESCE(cr.saldo,0) <= 0 THEN 'pagada' WHEN cr.vence IS NOT NULL AND cr.vence < ? THEN 'vencida' ELSE 'debe' END
+			CASE WHEN COALESCE(cr.saldo,0) <= 0 THEN 'pagada' WHEN cr.vence IS NOT NULL AND cr.vence < ? THEN 'vencida' ELSE 'debe' END,
+			COALESCE((SELECT o.order_code FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), ''),
+			COALESCE((SELECT o.status FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), '')
 		FROM pos_sales s LEFT JOIN pos_credits cr ON cr.sale_id = s.id WHERE `+cond, today, arg)
 	if err != nil {
 		return nil, PosSalesTotals{}, err
@@ -819,7 +835,7 @@ func listPosSalesWhere(cond string, arg interface{}) ([]PosSaleRow, PosSalesTota
 		var r PosSaleRow
 		if err := rows.Scan(&r.Folio, &r.Fecha, &r.ClientID, &r.Cliente, &r.Cajero, &r.Articulos,
 			&r.Total, &r.Efectivo, &r.Tarjeta, &r.Transferencia, &r.Vales, &r.Cheque, &r.Credito,
-			&r.Saldo, &r.Vence, &r.Estado); err != nil {
+			&r.Saldo, &r.Vence, &r.Estado, &r.PedidoCode, &r.PedidoStatus); err != nil {
 			return nil, PosSalesTotals{}, err
 		}
 		r.Efectivo, r.Saldo = round2(r.Efectivo), round2(r.Saldo)

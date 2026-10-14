@@ -56,7 +56,7 @@
             <div class="search-box-glow"></div>
             <div class="search-box-inner">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              <input type="search" id="vtSearch" placeholder="Buscar por cliente, ticket o cajero…" autocomplete="off">
+              <input type="search" id="vtSearch" placeholder="Buscar por cliente, ticket, cajero o clave de rastreo…" autocomplete="off">
             </div>
           </div>
           <div class="vt-chips" id="vtEstado" role="group" aria-label="Estado">
@@ -86,6 +86,7 @@
               <th class="num">Abonado</th>
               <th class="num">Debe</th>
               <th>Estado</th>
+              <th title="Estatus del pedido y su clave de rastreo">Estatus de rastreo</th>
             </tr>
           </thead>
           <tbody id="vtBody"></tbody>
@@ -101,6 +102,7 @@
               <td class="num" id="vtFtCredito"></td>
               <td class="num" id="vtFtAbonado"></td>
               <td class="num" id="vtFtSaldo"></td>
+              <td></td>
               <td></td>
             </tr>
           </tfoot>

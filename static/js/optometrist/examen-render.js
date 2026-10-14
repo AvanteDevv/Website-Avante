@@ -254,5 +254,44 @@ window.AvanteExamRender = (function(){
     return { fields: fields, tables: tables };
   }
 
-  return { mount: mount, toggleChoice: toggleChoice, syncChoice: syncChoice, choiceSelected: choiceSelected };
+  /* Próxima cita (revisión que programó recepción) al final de la hoja.
+     Se dibuja dentro de la hoja si queda espacio abajo; si no, la hoja
+     crece un poco. Regresa el alto final de la hoja. */
+  var MESES_TXT = { 3: '3 meses', 6: '6 meses', 12: '1 año' };
+  var MES_NOM = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  function nextVisit(container, opts, pc){
+    var h = opts.canvasH || 1056;
+    var old = container.querySelector('.exf-next');
+    if (old) old.remove();
+    // Sin revisión programada todavía: se avisa en pantalla (no se imprime).
+    var pending = !pc || !pc.fecha;
+    var txt = '';
+    if (!pending){
+      var p = pc.fecha.split('-');
+      txt = Number(p[2]) + ' de ' + (MES_NOM[Number(p[1]) - 1] || '') + ' de ' + p[0];
+    }
+    var bottom = 0, minX = Infinity, maxR = 0;
+    (opts.elements || []).forEach(function(el){
+      var x = Number(el.x) || 0, w = Number(el.w) || 0;
+      bottom = Math.max(bottom, (Number(el.y) || 0) + (Number(el.h) || 0));
+      minX = Math.min(minX, x); maxR = Math.max(maxR, x + w);
+    });
+    if (!isFinite(minX) || maxR <= minX){ minX = 40; maxR = (opts.canvasW || 816) - 40; }
+    var top = bottom + 14, need = 40;
+    if (top + need > h){ h = top + need + 10; container.style.height = h + 'px'; }
+    var node = document.createElement('div');
+    node.className = 'exf-next' + (pending ? ' is-pending' : '');
+    node.style.top = top + 'px';
+    node.style.left = minX + 'px';
+    node.style.width = (maxR - minX) + 'px';
+    node.innerHTML = '<span class="exf-next-lbl">PRÓXIMA CITA</span><strong></strong><em></em>';
+    node.querySelector('strong').textContent = pending ? 'POR PROGRAMAR' : txt.toUpperCase();
+    node.querySelector('em').textContent = pending
+      ? 'Recepción la programa (3, 6 meses o 1 año) al marcar la cita como «compró»'
+      : (MESES_TXT[pc.meses] ? 'Revisión cada ' + MESES_TXT[pc.meses] : '');
+    container.appendChild(node);
+    return h;
+  }
+
+  return { mount: mount, nextVisit: nextVisit, toggleChoice: toggleChoice, syncChoice: syncChoice, choiceSelected: choiceSelected };
 })();

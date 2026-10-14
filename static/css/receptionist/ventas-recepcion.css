@@ -133,4 +133,48 @@ body.dark .vt-owes b{ color:#ffd36e; }
   .vt-table-wrap{ max-height:none; }
   .vt-d-head{ grid-template-columns:1fr 1fr; }
   .vt-range input{ font-size:16px; }
-}.vt-rastreo{ display:block; margin-top:2px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:10.5px; color:var(--muted); word-break:break-word; }
+}
+.vt-rastreo{ display:block; margin-top:2px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:10.5px; color:var(--muted); word-break:break-word; }
+
+/* ---------- Pedido (clave de rastreo) ---------- */
+.vt-ped{ display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; padding:3px 9px 3px 7px; border-radius:100px;
+  color:var(--c); background:color-mix(in srgb, var(--c) 13%, transparent); white-space:nowrap; }
+.vt-ped i{ width:7px; height:7px; border-radius:50%; background:var(--c); }
+.vt-ped-cell small{ display:block; margin-top:3px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:10.5px; color:var(--muted); }
+.vt-d-pedido{ display:flex; gap:12px; align-items:stretch; flex-wrap:wrap; margin:0 0 16px; padding:14px 16px; border-radius:var(--radius-md, 14px);
+  border:1.5px solid var(--accent-border, var(--line)); background:var(--accent-soft); }
+.vt-d-pedido small{ display:block; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+.vt-ped-main{ flex:1 1 220px; min-width:0; }
+.vt-ped-code{ display:block; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:22px; font-weight:800; color:var(--accent); letter-spacing:.04em; }
+.vt-ped-main a{ font-size:12px; font-weight:600; color:var(--accent); text-decoration:none; }
+.vt-ped-main a:hover{ text-decoration:underline; }
+.vt-ped-status{ flex:0 1 220px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+.vt-ped-status select{ width:100%; padding:7px 10px; border-radius:10px; border:1.5px solid var(--line); background:var(--white); color:var(--ink); font:600 13px var(--sans); }
+.vt-ped-empty{ display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; }
+.vt-ped-empty span{ font-size:13px; color:var(--muted); }
+.vt-tabs{ display:inline-flex; gap:4px; padding:4px; margin:0 0 14px; border-radius:100px; background:var(--accent-soft); }
+.vt-tabs button{ border:none; background:none; padding:7px 16px; border-radius:100px; font:700 12.5px var(--sans); color:var(--muted); cursor:pointer; }
+.vt-tabs button.is-on{ background:var(--accent); color:#fff; box-shadow:0 6px 14px -6px rgba(4,28,255,.45); }
+.vt-ticket-wrap{ display:flex; justify-content:center; padding:18px; border-radius:var(--radius-md, 14px); background:#eceef4; max-height:60vh; overflow:auto; }
+body.dark .vt-ticket-wrap{ background:rgba(255,255,255,.06); }
+.vt-ticket .tk{ box-shadow:0 14px 30px -18px rgba(10,14,56,.5); }
+.vt-ticket-link{ margin:10px 0 0; font-size:12.5px; color:var(--muted); text-align:center; }
+.vt-ticket-link a, .vt-linkbtn{ color:var(--accent); font-weight:700; }
+.vt-linkbtn{ border:none; background:none; padding:0; cursor:pointer; font:inherit; font-weight:700; }
+.vt-wa{ display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+.vt-wa-field{ flex:1 1 180px; display:flex; flex-direction:column; gap:5px; }
+.vt-wa-field span{ font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.vt-wa-field input{ padding:9px 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--white); color:var(--ink); font:600 14px var(--sans); }
+.vt-wa-field input.is-bad{ border-color:#e5484d; animation:vtShake .3s; }
+@keyframes vtShake{ 25%{ transform:translateX(-4px); } 75%{ transform:translateX(4px); } }
+.vt-wa-btn{ display:inline-flex; align-items:center; gap:8px; background:#25d366 !important; border-color:#25d366 !important; color:#fff !important; }
+.vt-wa-btn svg{ width:17px; height:17px; }
+
+/* Detalle: columna "Clave de rastreo" (número AVT de la pieza vendida) */
+.vt-d-table-wrap{ overflow-x:auto; border-radius:12px; }
+.vt-rs-cell{ white-space:nowrap; }
+.vt-rs-code{ display:inline-block; margin:1px 4px 1px 0; padding:2px 7px; border-radius:6px; background:#eef7f0; color:#1f7a3d;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:11px; font-weight:700; letter-spacing:.02em; }
+body.dark .vt-rs-code{ background:rgba(46,204,113,.14); color:#6fe0a0; }
+.vt-desc{ display:block; font-size:10.5px; color:var(--muted); }
+.vt-d-table .vt-clave{ white-space:nowrap; }

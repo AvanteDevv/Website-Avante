@@ -763,6 +763,7 @@
           '<div class="timeline-item-date">' + fecha(e.createdAt) + (i === 0 ? ' <span class="pf-latest">Último</span>' : '') + '</div>' +
           '<div class="timeline-item-by">' + (e.createdByName ? 'Realizado por ' + escapeHTML(e.createdByName) + ' · ' : '') + (e.appointmentId ? 'Con cita' : 'Sin cita') + '</div>' +
           (rx ? '<div class="timeline-item-rx">' + escapeHTML(rx) + '</div>' : '') +
+          (e.proximaCita ? '<div class="timeline-item-next">Próxima cita: <strong>' + fecha(e.proximaCita.fecha + 'T12:00:00') + '</strong> · revisión cada ' + (e.proximaCita.meses === 12 ? 'año' : e.proximaCita.meses + ' meses') + '</div>' : '') +
         '</div>' +
         '<div class="timeline-item-actions">' +
           (file.exams.length > 1 ? '<button type="button" class="btn thin pf-compare-btn" data-id="' + e.id + '">Comparar</button>' : '') +

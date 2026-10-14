@@ -61,6 +61,9 @@ type EyeExam struct {
 	// en Citas de hoy) — 0 si se hizo sin cita.
 	AppointmentID int64     `json:"appointmentId,omitempty"`
 	CreatedAt     time.Time `json:"createdAt"`
+	// ProximaCita: la revisión que programó recepción (3, 6 o 12 meses).
+	// Solo se llena al ver un examen / la ficha (AttachNextVisits).
+	ProximaCita *ExamNextVisit `json:"proximaCita,omitempty"`
 }
 
 // eyeExamCols: columnas en el orden que espera scanEyeExamRow.

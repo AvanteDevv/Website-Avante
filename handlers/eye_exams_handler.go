@@ -59,6 +59,8 @@ func CreateEyeExam(c *gin.Context) {
 			}
 		}
 	}
+	// Otros optometristas y recepción ven al instante que ya se atendió.
+	BroadcastCitasChanged()
 	c.JSON(http.StatusCreated, exam)
 }
 
@@ -131,7 +133,9 @@ func GetEyeExam(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cargar el examen."})
 		return
 	}
-	c.JSON(http.StatusOK, exam)
+	one := []models.EyeExam{*exam}
+	models.AttachNextVisits(one)
+	c.JSON(http.StatusOK, one[0])
 }
 
 // GetMyEyeExams devuelve los exámenes ligados a la cuenta del cliente
@@ -208,6 +212,16 @@ func GetPatientFile(c *gin.Context) {
 		return
 	}
 
+	models.AttachNextVisits(exams)
+	// La próxima revisión de la ficha sale de su último examen (la cita que
+	// recepción marcó "compró · 3/6/12 meses"), aunque el examen se haya
+	// hecho sin ligarlo a la cita.
+	if len(exams) > 0 && exams[0].ProximaCita != nil {
+		if t, err := time.ParseInLocation("2006-01-02", exams[0].ProximaCita.Fecha, time.Local); err == nil {
+			p.RevisionMeses = exams[0].ProximaCita.Meses
+			p.NextRevision = t.Add(12 * time.Hour)
+		}
+	}
 	templates := map[string]*models.ExamTemplate{}
 	for _, e := range exams {
 		k := strconv.FormatInt(e.TemplateID, 10)

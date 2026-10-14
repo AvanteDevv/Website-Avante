@@ -318,7 +318,12 @@ func PosGetSale(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cargar la venta."})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"venta": d})
+	// ticket_url: enlace del ticket digital (para mandarlo por WhatsApp).
+	c.JSON(http.StatusOK, gin.H{
+		"venta":       d,
+		"ticket_url":  TicketPublicPath(d.Folio),
+		"cliente_tel": models.PosClientPhone(d.ClientID),
+	})
 }
 
 // PosClientLastSale — GET /api/receptionist/pos/clientes/:id/ultima-venta
@@ -339,4 +344,54 @@ func PosClientLastSale(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"venta": d})
+}
+
+// PosCreatePedido — POST /api/receptionist/pos/ventas/:id/pedido
+// Abre el pedido (clave de rastreo) de una venta que no lo tenía (ventas
+// de antes de este cambio). Si ya tiene, regresa ese.
+func PosCreatePedido(c *gin.Context) {
+	id, ok := posID(c, "id")
+	if !ok {
+		return
+	}
+	p, err := models.CreatePosPedido(id, staffName(c))
+	switch {
+	case errors.Is(err, models.ErrPosSaleNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "No existe el ticket " + strconv.FormatInt(id, 10) + "."})
+	case errors.Is(err, models.ErrPosPedidoSinProductos):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Esta venta solo tiene servicios, no lleva pedido."})
+	case err != nil:
+		log.Printf("pos.CreatePedido: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo crear el pedido."})
+	default:
+		c.JSON(http.StatusOK, gin.H{"pedido": p})
+	}
+}
+
+type posPedidoStatusInput struct {
+	Status string `json:"status"`
+}
+
+// PosSetPedidoStatus — PUT /api/receptionist/pos/ventas/:id/pedido/estado {status}
+func PosSetPedidoStatus(c *gin.Context) {
+	id, ok := posID(c, "id")
+	if !ok {
+		return
+	}
+	var in posPedidoStatusInput
+	if err := c.ShouldBindJSON(&in); err != nil || !models.IsOrderStatus(strings.TrimSpace(in.Status)) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese estatus no existe."})
+		return
+	}
+	p, err := models.SetPosPedidoStatus(id, strings.TrimSpace(in.Status), staffName(c))
+	if errors.Is(err, models.ErrOrderNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Esta venta no tiene pedido."})
+		return
+	}
+	if err != nil {
+		log.Printf("pos.SetPedidoStatus: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cambiar el estatus."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"pedido": p})
 }

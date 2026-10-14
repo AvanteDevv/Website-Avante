@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Tu ticket — Avante Optics</title>
+<link rel="icon" href="/static/images/avante-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#10132e; --muted:#5d6380; --accent:#041cff; --bg:#eef0f7; --card:#fff; --line:#dfe2ee; }
+  @media (prefers-color-scheme: dark){ :root{ --ink:#eef0ff; --muted:#a3a8c6; --bg:#0d1022; --card:#171b33; --line:#2a2f4d; } }
+  *{ box-sizing:border-box; }
+  body{ margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font-family:'Public Sans', system-ui, sans-serif; }
+  .td-wrap{ max-width:520px; margin:0 auto; padding:28px 16px 40px; }
+  .td-head{ text-align:center; margin-bottom:18px; }
+  .td-head img{ height:46px; }
+  .td-head h1{ font-family:'Fraunces', serif; font-size:24px; font-weight:600; margin:10px 0 4px; }
+  .td-head p{ margin:0; color:var(--muted); font-size:14px; }
+  .td-pedido{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 16px; margin-bottom:16px;
+    border-radius:16px; background:var(--card); border:1px solid var(--line); }
+  .td-pedido small{ display:block; font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+  .td-pedido strong{ font-family:ui-monospace, Menlo, Consolas, monospace; font-size:21px; color:var(--accent); letter-spacing:.04em; }
+  .td-status{ display:inline-flex; align-items:center; gap:6px; margin-top:4px; font-size:12px; font-weight:700; padding:4px 10px; border-radius:100px;
+    color:var(--c, #5b6475); background:color-mix(in srgb, var(--c, #5b6475) 14%, transparent); }
+  .td-status i{ width:7px; height:7px; border-radius:50%; background:var(--c, #5b6475); }
+  .td-btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 18px; border-radius:100px; border:1.5px solid var(--accent);
+    background:var(--accent); color:#fff; font:700 13px 'Public Sans', sans-serif; letter-spacing:.3px; text-decoration:none; cursor:pointer; }
+  .td-btn.is-ghost{ background:transparent; color:var(--accent); }
+  .td-ticket{ display:flex; justify-content:center; padding:18px 10px; border-radius:18px; background:#e3e6ef; overflow-x:auto; }
+  @media (prefers-color-scheme: dark){ .td-ticket{ background:#0a0c1a; } }
+  .td-ticket .tk{ box-shadow:0 18px 36px -20px rgba(10,14,56,.55); }
+  .td-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
+  .td-msg{ text-align:center; color:var(--muted); padding:40px 10px; }
+  @media print{
+    body{ background:#fff; }
+    .td-head, .td-pedido, .td-actions{ display:none !important; }
+    .td-wrap{ padding:0; max-width:none; }
+    .td-ticket{ background:none; padding:0; display:block; }
+    .td-ticket .tk{ box-shadow:none; }
+  }
+</style>
+</head>
+<body>
+<main class="td-wrap" id="tdPage" data-folio="{{.Folio}}" data-sig="{{.Sig}}">
+  <header class="td-head">
+    <img src="/static/images/avante-logo.png" alt="Avante Optics">
+    <h1>Tu ticket de compra</h1>
+    <p>Gracias por tu compra en Avante Optics.</p>
+  </header>
+  <section class="td-pedido" id="tdPedido" hidden>
+    <div>
+      <small>Clave de rastreo</small>
+      <strong id="tdCode"></strong>
+      <div><span class="td-status" id="tdStatus"><i></i><span></span></span></div>
+    </div>
+    <a class="td-btn" id="tdTrack" href="/rastreo">Ver mi pedido</a>
+  </section>
+  <div class="td-ticket" id="tdTicket"><p class="td-msg">Cargando tu ticket…</p></div>
+  <div class="td-actions" id="tdActions" hidden>
+    <button type="button" class="td-btn is-ghost" id="tdPrint">Imprimir / guardar PDF</button>
+  </div>
+</main>
+<script src="/static/js/receptionist/ticket-render.js"></script>
+<script>
+(function () {
+  var page = document.getElementById('tdPage');
+  var folio = page.getAttribute('data-folio'), sig = page.getAttribute('data-sig');
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function parseISO(s) { var m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):?(\d{2})?)?/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) : new Date(); }
+  Promise.all([
+    fetch('/api/ticket/' + encodeURIComponent(folio) + '/' + encodeURIComponent(sig)).then(function (r) { if (!r.ok) throw new Error(); return r.json(); }),
+    fetch('/api/estados').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; })
+  ]).then(function (res) {
+    var d = res[0], estados = Array.isArray(res[1]) ? res[1] : [];
+    var v = d.venta, T = window.AvanteTicket;
+    var tpl = T.merge(d.plantilla);
+    document.getElementById('tdTicket').innerHTML = T.html(tpl, {
+      folio: v.folio, fecha: parseISO(v.fecha), caja: 'Caja 1', cliente: v.cliente, cajero: v.cajero,
+      productos: v.productos || [], pagos: v.pagos || {}, cambio: v.cambio, vencimiento: v.vence || '',
+      pedido: v.pedido_code || ''
+    });
+    document.getElementById('tdActions').hidden = false;
+    if (v.pedido_code) {
+      var st = estados.filter(function (e) { return e.key === v.pedido_status; })[0] || { label: v.pedido_status, color: '' };
+      document.getElementById('tdCode').textContent = v.pedido_code;
+      var chip = document.getElementById('tdStatus');
+      chip.querySelector('span').textContent = st.label || '';
+      if (/^#[0-9a-f]{3,8}$/i.test(st.color || '')) chip.style.setProperty('--c', st.color);
+      document.getElementById('tdTrack').href = '/rastreo?pedido=' + encodeURIComponent(v.pedido_code);
+      document.getElementById('tdPedido').hidden = false;
+    }
+    document.title = 'Ticket ' + v.folio + ' — Avante Optics';
+  }).catch(function () {
+    document.getElementById('tdTicket').innerHTML = '<p class="td-msg">No encontramos este ticket. Revisa que el enlace esté completo.</p>';
+  });
+  document.getElementById('tdPrint').addEventListener('click', function () { window.print(); });
+})();
+</script>
+</body>
+</html>
