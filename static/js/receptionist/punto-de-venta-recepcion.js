@@ -38,7 +38,11 @@
   var products = [];
   var reqId = 0, timer;
 
-  function stockLabel(n) {
+  // Los servicios no llevan existencia: siempre se pueden vender.
+  var SERV_STOCK = 9999;
+  function avail(p) { return p.servicio ? SERV_STOCK : p.cantidad_actual; }
+  function stockLabel(n, servicio) {
+    if (servicio) return '<span class="pos-stock is-serv">Servicio</span>';
     if (n <= 0) return '<span class="pos-stock is-out">Agotado</span>';
     if (n <= 2) return '<span class="pos-stock is-low">Quedan ' + n + '</span>';
     return '<span class="pos-stock">' + n + ' en existencia</span>';
@@ -48,9 +52,9 @@
     var q = searchInput.value.trim();
     grid.innerHTML = products.map(function (p, i) {
       var inCart = lineOf(p.id);
-      var out = p.cantidad_actual <= 0;
+      var out = avail(p) <= 0;
       return '<button type="button" class="pos-prod' + (out ? ' is-out' : '') + (inCart ? ' in-cart' : '') + '" data-id="' + p.id + '" style="--i:' + Math.min(i, 12) + '"' + (out ? ' aria-disabled="true"' : '') + '>' +
-        // Foto: por ahora un marcador; después sale de Admin → Productos.
+        // Foto principal del artículo (Inventario → Editar → Fotos).
         '<span class="pos-prod-photo" aria-hidden="true">' +
           (p.foto ? '<img src="' + esc(p.foto) + '" alt="" loading="lazy">'
                   : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="14" r="3.5"/><circle cx="18" cy="14" r="3.5"/><path d="M9.5 14h5M2.5 13 4 7h3M21.5 13 20 7h-3"/></svg>') +
@@ -59,7 +63,7 @@
         '<span class="pos-prod-body">' +
           (p.clave ? '<span class="pos-prod-clave">' + esc(p.clave) + '</span>' : '') +
           '<span class="pos-prod-name">' + esc(p.descripcion) + '</span>' +
-          '<span class="pos-prod-foot"><strong>' + mxn.format(p.precio_venta) + '</strong>' + stockLabel(p.cantidad_actual) + '</span>' +
+          '<span class="pos-prod-foot"><strong>' + mxn.format(p.precio_venta) + '</strong>' + stockLabel(p.cantidad_actual, p.servicio) + '</span>' +
         '</span>' +
       '</button>';
     }).join('');
@@ -80,7 +84,7 @@
       .then(function (d) {
         if (my !== reqId) return;
         products = (d.items || []).map(function (p) {
-          return { id: p.id, clave: p.clave || '', descripcion: p.descripcion || '', precio_venta: Number(p.precio_venta) || 0, cantidad_actual: Number(p.cantidad_actual) || 0, foto: p.foto || '' };
+          return { id: p.id, clave: p.clave || '', descripcion: p.descripcion || '', precio_venta: Number(p.precio_venta) || 0, cantidad_actual: Number(p.cantidad_actual) || 0, servicio: !!p.servicio, foto: p.foto || '' };
         });
         renderProducts();
       })
@@ -100,7 +104,7 @@
     e.preventDefault();
     clearTimeout(timer);
     searchProducts().then(function () {
-      var first = products.filter(function (p) { return p.cantidad_actual > 0; })[0];
+      var first = products.filter(function (p) { return avail(p) > 0; })[0];
       if (first) { addToCart(first); searchInput.select(); }
     });
   });
@@ -109,7 +113,7 @@
     if (!b) return;
     var p = products.filter(function (x) { return String(x.id) === b.getAttribute('data-id'); })[0];
     if (!p) return;
-    if (p.cantidad_actual <= 0) { flash(b); return; }
+    if (avail(p) <= 0) { flash(b); return; }
     addToCart(p);
     b.classList.remove('is-added'); void b.offsetWidth; b.classList.add('is-added');
   });
@@ -136,7 +140,7 @@
       if (l.cantidad >= l.stock) { toast('Solo hay ' + l.stock + ' en existencia de ' + p.descripcion + '.'); return; }
       l.cantidad += 1;
     } else {
-      lines.push({ id: p.id, clave: p.clave, descripcion: p.descripcion, precio: p.precio_venta, cantidad: 1, descuento: 0, stock: p.cantidad_actual });
+      lines.push({ id: p.id, clave: p.clave, descripcion: p.descripcion, precio: p.precio_venta, cantidad: 1, descuento: 0, stock: avail(p), servicio: !!p.servicio });
     }
     lastAddedId = p.id;
     renderCart();

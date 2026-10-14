@@ -79,6 +79,9 @@ type InvArticulo struct {
 	Maximo         int     `json:"maximo"`
 	Localizacion   string  `json:"localizacion"`
 	UpdatedAt      string  `json:"updated_at"`
+	// Foto principal (URL) y, al traer uno solo, todas sus fotos.
+	Foto  string    `json:"foto"`
+	Fotos []InvFoto `json:"fotos,omitempty"`
 	// Solo al crear: los números de rastreo que se generaron.
 	NuevosRastreo []string `json:"nuevos_rastreo,omitempty"`
 }
@@ -91,19 +94,22 @@ const invArticuloSelect = `
 	       i.precio_costo, i.precio_venta, i.precio_2, i.precio_3, i.precio_4,
 	       i.mayoreo_2, i.mayoreo_3, i.mayoreo_4,
 	       i.cantidad_actual, i.inv_minimo, i.inv_maximo, i.localizacion,
-	       DATE_FORMAT(i.updated_at, '%Y-%m-%dT%H:%i:%s')
+	       DATE_FORMAT(i.updated_at, '%Y-%m-%dT%H:%i:%s'),
+	       COALESCE(` + invFotoPrincipalSQL + `, 0)
 	FROM inventory_items i
 	LEFT JOIN inv_departamentos d ON d.id = i.departamento_id
 	LEFT JOIN inv_categorias c ON c.id = i.categoria_id`
 
 func scanInvArticulo(sc interface{ Scan(...interface{}) error }) (InvArticulo, error) {
 	var a InvArticulo
+	var fotoID int64
 	err := sc.Scan(&a.ID, &a.Clave, &a.ClaveAlterna, &a.Descripcion,
 		&a.DepartamentoID, &a.Departamento, &a.CategoriaID, &a.Categoria,
 		&a.UnidadCompra, &a.UnidadVenta, &a.Factor, &a.Servicio, &a.IVA,
 		&a.PrecioCompra, &a.Precio1, &a.Precio2, &a.Precio3, &a.Precio4,
 		&a.Mayoreo2, &a.Mayoreo3, &a.Mayoreo4,
-		&a.Existencia, &a.Minimo, &a.Maximo, &a.Localizacion, &a.UpdatedAt)
+		&a.Existencia, &a.Minimo, &a.Maximo, &a.Localizacion, &a.UpdatedAt, &fotoID)
+	a.Foto = InvFotoURL(fotoID)
 	return a, err
 }
 
@@ -287,6 +293,9 @@ func DeleteInvArticulo(id int64) error {
 		return ErrInvTieneExistencia
 	}
 	_, err = db.DB.Exec("DELETE FROM inventory_items WHERE id = ?", id)
+	if err == nil {
+		db.DB.Exec("DELETE FROM inv_fotos WHERE item_id = ?", id)
+	}
 	return err
 }
 

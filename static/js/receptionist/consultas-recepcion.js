@@ -42,7 +42,8 @@
     return out + esc(t.slice(pos));
   }
 
-  function stockBadge(n) {
+  function stockBadge(n, servicio) {
+    if (servicio) return '<span class="csl-stock is-serv">Servicio</span>';
     if (n <= 0) return '<span class="csl-stock is-out">Agotado</span>';
     if (n <= 2) return '<span class="csl-stock is-low">Quedan ' + n + '</span>';
     return '<span class="csl-stock is-ok">' + n + ' en existencia</span>';
@@ -50,16 +51,17 @@
 
   function render() {
     var q = input.value.trim();
-    var list = onlyStock.checked ? items.filter(function (it) { return it.cantidad_actual > 0; }) : items;
+    var list = onlyStock.checked ? items.filter(function (it) { return it.servicio || it.cantidad_actual > 0; }) : items;
     results.innerHTML = list.map(function (it, i) {
-      return '<article class="csl-item' + (it.cantidad_actual <= 0 ? ' is-out' : '') + '" style="--i:' + Math.min(i, 12) + '">' +
+      return '<article class="csl-item' + (!it.servicio && it.cantidad_actual <= 0 ? ' is-out' : '') + '" style="--i:' + Math.min(i, 12) + '">' +
+        (it.foto ? '<img class="csl-photo" src="' + esc(it.foto) + '" alt="" loading="lazy">' : '') +
         '<div class="csl-item-main">' +
           (it.clave ? '<span class="csl-id">' + highlight(it.clave, q) + '</span>' : '') +
           '<h3>' + highlight(it.descripcion, q) + '</h3>' +
         '</div>' +
         '<div class="csl-item-side">' +
           '<span class="csl-price">' + mxn.format(Number(it.precio_venta) || 0) + '</span>' +
-          stockBadge(Number(it.cantidad_actual) || 0) +
+          stockBadge(Number(it.cantidad_actual) || 0, !!it.servicio) +
         '</div>' +
       '</article>';
     }).join('');

@@ -137,6 +137,7 @@
       <button type="button" class="inv-tab is-on" data-tab="general" role="tab">General</button>
       <button type="button" class="inv-tab" data-tab="precios" role="tab">Precios</button>
       <button type="button" class="inv-tab" data-tab="inventario" role="tab">Inventario</button>
+      <button type="button" class="inv-tab" data-tab="fotos" role="tab">Fotos <span class="inv-tab-count" id="aFotosCount" hidden></span></button>
     </div>
     <div class="admin-modal-body">
       <form class="staff-form inv-art-form" id="artForm" novalidate autocomplete="off">
@@ -238,6 +239,15 @@
             <input type="text" id="aLocal" maxlength="60" placeholder="Ej. VITRINA 2 · CAJÓN 3">
           </label>
           <p class="inv-hint">Con el mínimo te avisa cuando hay que resurtir (filtro <strong>Bajo mínimo</strong>); con el máximo, cuando hay de más.</p>
+        </div>
+
+        <!-- Fotos -->
+        <div class="inv-tabpane" data-pane="fotos">
+          <div class="inv-fotos" id="aFotos">
+            <!-- se llena con JS -->
+          </div>
+          <input type="file" id="aFotoInput" accept="image/jpeg,image/png,image/webp,image/*" multiple hidden>
+          <p class="inv-hint" id="aFotosHint">Hasta 6 fotos por artículo (JPG, PNG o WEBP). La <strong>principal</strong> es la que sale en el Punto de venta; toca la estrella para cambiarla.</p>
         </div>
 
         <p class="staff-error" id="artError"></p>

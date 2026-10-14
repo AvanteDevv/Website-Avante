@@ -304,7 +304,11 @@ func InvDeleteArticulo(c *gin.Context) {
 	if !ok {
 		return
 	}
+	fotoKeys := models.InvFotoKeysOfItem(id)
 	err := models.DeleteInvArticulo(id)
+	if err == nil {
+		invDeleteFotoFiles(fotoKeys)
+	}
 	switch {
 	case errors.Is(err, models.ErrInventoryNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ese artículo ya no existe."})

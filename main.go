@@ -234,6 +234,7 @@ func main() {
 	db.EnsureOrdenLabTables()
 	// Configuración de cada quien (avisos de cita: sonido, minutos antes)
 	db.EnsureStaffPreferencesTable()
+	db.EnsureInvFotosTable()
 
 	storage.Connect()
 	// Clarito: sube una sola vez los 3 formatos de static/pdf/clarito al
@@ -626,6 +627,10 @@ func main() {
 		apiInventario.PUT("/articulos/:id", handlers.InvUpdateArticulo)
 		apiInventario.DELETE("/articulos/:id", handlers.InvDeleteArticulo)
 		apiInventario.POST("/articulos/:id/ajustar", handlers.InvAjustarArticulo)
+		apiInventario.GET("/articulos/:id/fotos", handlers.InvListFotos)
+		apiInventario.POST("/articulos/:id/fotos", handlers.InvUploadFotos)
+		apiInventario.DELETE("/fotos/:fotoId", handlers.InvDeleteFoto)
+		apiInventario.POST("/fotos/:fotoId/principal", handlers.InvFotoPrincipal)
 		apiInventario.GET("/departamentos", handlers.InvListDepartamentos)
 		apiInventario.POST("/departamentos", handlers.InvCreateDepartamento)
 		apiInventario.PUT("/departamentos/:id", handlers.InvRenameDepartamento)
@@ -913,6 +918,7 @@ func main() {
 
 	router.GET("/media/blog/:key", handlers.ServeBlogImage)
 	router.GET("/media/promos/:key", handlers.ServeAdImage)
+	router.GET("/media/inventario/foto/:fotoId", handlers.ServeInvFoto)
 	router.GET("/media/productos/*key", handlers.ServeProductImage)
 	router.GET("/media/logos/*key", handlers.ServeLogoImage)
 	router.GET("/media/carrusel/*key", handlers.ServeCarouselImage)

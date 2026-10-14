@@ -256,8 +256,9 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 		var desc, clave string
 		var precio float64
 		var stock int
-		err := tx.QueryRow("SELECT descripcion, COALESCE(clave,''), precio_venta, cantidad_actual FROM inventory_items WHERE id = ? FOR UPDATE", it.InventoryID).
-			Scan(&desc, &clave, &precio, &stock)
+		var servicio bool
+		err := tx.QueryRow("SELECT descripcion, COALESCE(clave,''), precio_venta, cantidad_actual, servicio FROM inventory_items WHERE id = ? FOR UPDATE", it.InventoryID).
+			Scan(&desc, &clave, &precio, &stock, &servicio)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("un producto de la venta ya no existe en el inventario")
 		}
@@ -267,7 +268,7 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 		if it.Cantidad <= 0 {
 			it.Cantidad = 1
 		}
-		if stock < it.Cantidad {
+		if !servicio && stock < it.Cantidad {
 			return nil, &PosStockError{Descripcion: desc, Disponible: stock}
 		}
 		if it.Descuento < 0 {
@@ -280,6 +281,11 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 		it.Importe = round2(it.Precio * float64(it.Cantidad) * (1 - it.Descuento/100))
 		subtotal += it.Precio * float64(it.Cantidad)
 		total += it.Importe
+		// Los servicios no llevan existencia: no se descuentan ni van al kárdex.
+		if servicio {
+			stocks[i] = -1
+			continue
+		}
 		if _, err := tx.Exec("UPDATE inventory_items SET cantidad_actual = cantidad_actual - ? WHERE id = ?", it.Cantidad, it.InventoryID); err != nil {
 			return nil, err
 		}
@@ -360,6 +366,9 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 			return nil, err
 		}
 		// Kárdex (Inventario → Movimientos): salida por venta.
+		if stocks[i] < 0 {
+			continue // servicio
+		}
 		logInvVenta(tx, it.InventoryID, it.Cantidad, stocks[i], s.ID, s.Cajero)
 	}
 

@@ -34,6 +34,8 @@ type InventoryPublicItem struct {
 	Descripcion    string  `json:"descripcion"`
 	PrecioVenta    float64 `json:"precio_venta"`
 	CantidadActual int     `json:"cantidad_actual"`
+	Servicio       bool    `json:"servicio"`
+	Foto           string  `json:"foto"`
 }
 
 // ErrInventoryNotFound — no existe ese producto.
@@ -167,7 +169,7 @@ func SearchInventoryPublic(q string, limit int) ([]InventoryPublicItem, error) {
 			break
 		}
 	}
-	query := "SELECT id, COALESCE(clave, ''), descripcion, precio_venta, cantidad_actual FROM inventory_items"
+	query := "SELECT i.id, COALESCE(i.clave, ''), i.descripcion, i.precio_venta, i.cantidad_actual, i.servicio, COALESCE(" + invFotoPrincipalSQL + ", 0) FROM inventory_items i"
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -182,9 +184,11 @@ func SearchInventoryPublic(q string, limit int) ([]InventoryPublicItem, error) {
 	out := []InventoryPublicItem{}
 	for rows.Next() {
 		var it InventoryPublicItem
-		if err := rows.Scan(&it.ID, &it.Clave, &it.Descripcion, &it.PrecioVenta, &it.CantidadActual); err != nil {
+		var fotoID int64
+		if err := rows.Scan(&it.ID, &it.Clave, &it.Descripcion, &it.PrecioVenta, &it.CantidadActual, &it.Servicio, &fotoID); err != nil {
 			return nil, err
 		}
+		it.Foto = InvFotoURL(fotoID)
 		out = append(out, it)
 	}
 	return out, rows.Err()

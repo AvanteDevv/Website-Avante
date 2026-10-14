@@ -79,3 +79,8 @@ body.dark .csl-stock.is-out{ background:rgba(231,76,60,.16); color:#ff8b7d; }
   .csl-price{ font-size:16px; }
 }
 @media (prefers-reduced-motion:reduce){ .csl-item{ animation:none; } .csl-spinner{ animation-duration:2s; } }
+/* Servicios (no llevan existencia) y foto del artículo */
+.csl-stock.is-serv{ background:#e4e8ff; color:#2a3bd6; }
+body.dark .csl-stock.is-serv{ background:rgba(90,110,255,.18); color:#a9b4ff; }
+.csl-photo{ flex:0 0 auto; width:52px; height:52px; border-radius:10px; object-fit:cover; border:1px solid var(--line); background:#fff; }
+.csl-photo + .csl-item-main{ flex:1; }

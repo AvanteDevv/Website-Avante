@@ -90,6 +90,8 @@ body.dark .pos-preview-tag{ background:rgba(230,126,34,.16); color:#ffb877; }
 body.dark .pos-stock{ background:rgba(46,204,113,.16); color:#6fe0a0; }
 body.dark .pos-stock.is-low{ background:rgba(230,126,34,.16); color:#ffb877; }
 body.dark .pos-stock.is-out{ background:rgba(231,76,60,.16); color:#ff8b7d; }
+.pos-stock.is-serv{ background:#e4e8ff; color:#2a3bd6; }
+body.dark .pos-stock.is-serv{ background:rgba(90,110,255,.18); color:#a9b4ff; }
 
 .pos-empty{ text-align:center; padding:44px 20px 40px; font-size:13.5px; color:var(--muted); border:1.5px dashed var(--line); border-radius:var(--radius-md); }
 

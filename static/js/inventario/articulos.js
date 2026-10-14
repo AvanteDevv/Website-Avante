@@ -178,8 +178,10 @@
     var rows = filtered.slice(start, start + PAGE);
     $('invBody').innerHTML = rows.map(function (a, i) {
       return '<tr data-id="' + a.id + '" class="' + (a.id === selectedId ? 'is-selected' : '') + '" style="--i:' + Math.min(i, 20) + '" tabindex="-1">' +
-        '<td class="inv-cell-art"><span class="inv-clave">' + esc(a.clave || '—') + (a.clave_alterna ? '<em> / ' + esc(a.clave_alterna) + '</em>' : '') + '</span>' +
-          '<strong>' + esc(a.descripcion) + '</strong></td>' +
+        '<td class="inv-cell-art"><div class="inv-art-line">' +
+          (a.foto ? '<img class="inv-thumb" src="' + esc(a.foto) + '" alt="" loading="lazy">' : '<span class="inv-thumb is-empty" aria-hidden="true"></span>') +
+          '<div><span class="inv-clave">' + esc(a.clave || '—') + (a.clave_alterna ? '<em> / ' + esc(a.clave_alterna) + '</em>' : '') + '</span>' +
+          '<strong>' + esc(a.descripcion) + '</strong></div></div></td>' +
         '<td class="c-dep"><span>' + esc(a.departamento || 'Sin departamento') + '</span>' + (a.categoria ? '<small>' + esc(a.categoria) + '</small>' : '') + '</td>' +
         '<td class="num">' + existCell(a) + '</td>' +
         '<td class="num inv-price">' + mxn.format(a.precio_1) + '</td>' +
@@ -281,6 +283,7 @@
     }
     body.innerHTML =
       '<button type="button" class="inv-sheet-close" data-sheet-close aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>' +
+      (a.foto ? '<button type="button" class="inv-d-photo" data-act="fotos" title="Ver / cambiar fotos"><img src="' + esc(a.foto) + '" alt=""></button>' : '') +
       '<small class="inv-d-kicker">Artículo seleccionado</small>' +
       '<h2 class="inv-d-title">' + esc(a.descripcion) + '</h2>' +
       '<p class="inv-d-claves"><span>' + esc(a.clave || '—') + '</span>' + (a.clave_alterna ? '<span>' + esc(a.clave_alterna) + '</span>' : '') + '</p>' +
@@ -302,6 +305,7 @@
         (a.servicio ? '' : '<button type="button" class="btn solid small" data-act="ajustar">Ajustar existencia</button>') +
         (a.servicio ? '' : '<button type="button" class="btn small" data-act="rastreo">Números de rastreo</button>') +
         '<a class="btn small" href="' + I.base + '/movimientos?item=' + a.id + '">Ver movimientos</a>' +
+        '<button type="button" class="btn small" data-act="fotos">' + (a.foto ? 'Fotos' : 'Agregar fotos') + '</button>' +
       '</div>';
   }
   $('invDetailBody').addEventListener('click', function (e) {
@@ -309,6 +313,7 @@
     var b = e.target.closest('[data-act]');
     if (b && b.getAttribute('data-act') === 'ajustar') { closeSheet(); openAjuste(current()); }
     if (b && b.getAttribute('data-act') === 'rastreo') { closeSheet(); openRastreo(current()); }
+    if (b && b.getAttribute('data-act') === 'fotos') { closeSheet(); openEdit(current()); setTab('fotos'); }
   });
   // Celular: el detalle sale como hoja desde abajo.
   var backdrop = document.createElement('div');
@@ -410,6 +415,163 @@
     });
   });
 
+  /* ---------- Fotos del artículo ----------
+     Editando: cada cambio se guarda al momento.
+     Agregando / clonando: se quedan en espera y se suben al guardar. */
+  var MAX_FOTOS = 6;
+  var fotosSaved = [], fotosQueue = [], fotosBusy = false;
+  var fotosEl = $('aFotos'), fotoInput = $('aFotoInput');
+  var ICON_STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>';
+  var ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+
+  function fotosCount() { return fotosSaved.length + fotosQueue.length; }
+  function renderFotos() {
+    var html = fotosSaved.map(function (fo, i) {
+      return '<figure class="inv-foto' + (i === 0 ? ' is-main' : '') + '" data-foto="' + fo.id + '">' +
+        '<img src="' + esc(fo.url) + '" alt="" loading="lazy">' +
+        (i === 0 ? '<span class="inv-foto-badge">Principal</span>'
+          : '<button type="button" class="inv-foto-btn is-star" data-foto-main title="Hacer principal" aria-label="Hacer principal">' + ICON_STAR + '</button>') +
+        '<button type="button" class="inv-foto-btn is-del" data-foto-del title="Quitar foto" aria-label="Quitar foto">' + ICON_X + '</button>' +
+      '</figure>';
+    }).join('') + fotosQueue.map(function (q, i) {
+      var main = !fotosSaved.length && i === 0;
+      return '<figure class="inv-foto is-queued' + (main ? ' is-main' : '') + '" data-queue="' + i + '">' +
+        '<img src="' + q.url + '" alt="">' +
+        (main ? '<span class="inv-foto-badge">Principal</span>'
+          : '<button type="button" class="inv-foto-btn is-star" data-foto-main title="Hacer principal" aria-label="Hacer principal">' + ICON_STAR + '</button>') +
+        '<button type="button" class="inv-foto-btn is-del" data-foto-del title="Quitar foto" aria-label="Quitar foto">' + ICON_X + '</button>' +
+        '<span class="inv-foto-wait">Se sube al guardar</span>' +
+      '</figure>';
+    }).join('');
+    if (fotosCount() < MAX_FOTOS) {
+      html += '<button type="button" class="inv-foto-add" data-foto-add' + (fotosBusy ? ' disabled' : '') + '>' +
+        (fotosBusy ? '<span class="inv-foto-spin"></span><span>Subiendo…</span>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
+            '<span>' + (fotosCount() ? 'Agregar foto' : 'Subir fotos') + '</span><small>' + fotosCount() + ' de ' + MAX_FOTOS + '</small>') +
+      '</button>';
+    }
+    fotosEl.innerHTML = html;
+    var cnt = $('aFotosCount');
+    cnt.hidden = !fotosCount();
+    cnt.textContent = fotosCount();
+  }
+  function clearQueue() {
+    fotosQueue.forEach(function (q) { try { URL.revokeObjectURL(q.url); } catch (e) {} });
+    fotosQueue = [];
+  }
+  function resetFotos(a, mode) {
+    clearQueue();
+    fotosSaved = [];
+    fotosBusy = false;
+    renderFotos();
+    if (mode === 'edit' && a) {
+      I.api('/api/inventario/articulos/' + a.id + '/fotos').then(function (d) {
+        if (editing && editing.id === a.id) { fotosSaved = d.fotos || []; renderFotos(); }
+      }).catch(function () {});
+    }
+  }
+
+  // Reduce la foto en el navegador (máx. 1600 px, JPEG) antes de subirla.
+  function shrink(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var MAX = 1600, w = img.naturalWidth, h = img.naturalHeight;
+        var k = Math.min(1, MAX / Math.max(w, h));
+        if (k === 1 && file.size < 900 * 1024 && /^image\/(jpeg|png|webp)$/.test(file.type)) { resolve(file); return; }
+        var cv = document.createElement('canvas');
+        cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+        var ctx = cv.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        cv.toBlob(function (b) { b ? resolve(b) : reject(new Error('No se pudo leer la foto.')); }, 'image/jpeg', 0.86);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('«' + file.name + '» no es una foto que se pueda abrir (usa JPG, PNG o WEBP).')); };
+      img.src = url;
+    });
+  }
+  function uploadFotos(itemId, blobs) {
+    var fd = new FormData();
+    blobs.forEach(function (b, i) { fd.append('files', b, 'foto-' + (i + 1) + '.jpg'); });
+    return fetch('/api/inventario/articulos/' + itemId + '/fotos', { method: 'POST', body: fd, credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          if (!r.ok) throw new Error(d.error || 'No se pudieron subir las fotos.');
+          return d;
+        });
+      });
+  }
+  // Refleja la foto principal en la lista sin recargar todo.
+  function syncMainFoto(itemId) {
+    var a = byId[itemId];
+    if (!a) return;
+    a.foto = fotosSaved.length ? fotosSaved[0].url : '';
+    render();
+  }
+
+  fotosEl.addEventListener('click', function (e) {
+    if (e.target.closest('[data-foto-add]')) { fotoInput.click(); return; }
+    var fig = e.target.closest('figure');
+    if (!fig) return;
+    var isDel = !!e.target.closest('[data-foto-del]'), isMain = !!e.target.closest('[data-foto-main]');
+    if (!isDel && !isMain) return;
+    if (fig.hasAttribute('data-queue')) {
+      var qi = Number(fig.getAttribute('data-queue'));
+      var q = fotosQueue.splice(qi, 1)[0];
+      if (isDel) { try { URL.revokeObjectURL(q.url); } catch (e2) {} }
+      else fotosQueue.unshift(q);
+      renderFotos();
+      return;
+    }
+    var fid = Number(fig.getAttribute('data-foto'));
+    if (!editing) return;
+    var itemId = editing.id;
+    fig.classList.add('is-busy');
+    var req = isDel
+      ? I.api('/api/inventario/fotos/' + fid, { method: 'DELETE' })
+      : I.api('/api/inventario/fotos/' + fid + '/principal', { method: 'POST' });
+    req.then(function (d) {
+      fotosSaved = d.fotos || [];
+      renderFotos();
+      syncMainFoto(itemId);
+      I.toast(isDel ? 'Foto quitada.' : 'Foto principal cambiada.');
+    }).catch(function (err) {
+      fig.classList.remove('is-busy');
+      I.toast(err.message, 'error');
+    });
+  });
+
+  fotoInput.addEventListener('change', function () {
+    var files = Array.prototype.slice.call(fotoInput.files || []);
+    fotoInput.value = '';
+    if (!files.length) return;
+    var room = MAX_FOTOS - fotosCount();
+    if (files.length > room) {
+      I.toast('Solo caben ' + room + (room === 1 ? ' foto más' : ' fotos más') + ' (máximo ' + MAX_FOTOS + ').', 'error');
+      files = files.slice(0, room);
+    }
+    if (!files.length) return;
+    fotosBusy = true; renderFotos();
+    Promise.all(files.map(shrink)).then(function (blobs) {
+      if (!editing) {
+        blobs.forEach(function (b) { fotosQueue.push({ blob: b, url: URL.createObjectURL(b) }); });
+        return;
+      }
+      var itemId = editing.id;
+      return uploadFotos(itemId, blobs).then(function (d) {
+        fotosSaved = d.fotos || [];
+        syncMainFoto(itemId);
+        I.toast(blobs.length === 1 ? 'Foto agregada.' : blobs.length + ' fotos agregadas.');
+      });
+    }).catch(function (err) {
+      I.toast(err.message, 'error');
+    }).finally(function () {
+      fotosBusy = false; renderFotos();
+    });
+  });
+
   function fillForm(a, mode) {
     artForm.reset();
     $('artError').textContent = '';
@@ -441,6 +603,7 @@
     $('aMaximo').value = a && a.maximo ? a.maximo : '';
     $('aLocal').value = a ? a.localizacion : '';
     syncServicio();
+    resetFotos(a, mode);
   }
   function openAdd() { editing = null; $('artTitle').textContent = 'Agregar artículo'; fillForm(null, 'add'); openArt(); }
   function openEdit(a) { if (!a) return; editing = a; $('artTitle').textContent = 'Editar artículo'; fillForm(a, 'edit'); openArt(); }
@@ -489,9 +652,22 @@
       ? I.api('/api/inventario/articulos/' + editing.id, { method: 'PUT', body: body })
       : I.api('/api/inventario/articulos', { method: 'POST', body: body });
     req.then(function (d) {
+      // Fotos en espera (artículo nuevo): se suben ya con su id.
+      if (editing || !fotosQueue.length) return d;
+      btn.textContent = 'Subiendo fotos…';
+      return uploadFotos(d.item.id, fotosQueue.map(function (q) { return q.blob; })).then(function () {
+        clearQueue();
+        return d;
+      }).catch(function (e3) {
+        d.fotoError = 'El artículo se guardó, pero las fotos no: ' + e3.message + ' Ábrelo con Editar para subirlas.';
+        clearQueue();
+        return d;
+      });
+    }).then(function (d) {
       I.closeModal(artModal);
       var nuevos = d.item.nuevos_rastreo || [];
-      I.toast(editing ? 'Se guardaron los cambios de ' + d.item.descripcion + '.'
+      if (d.fotoError) I.toast(d.fotoError, 'error');
+      else I.toast(editing ? 'Se guardaron los cambios de ' + d.item.descripcion + '.'
         : 'Artículo ' + d.item.clave + ' agregado' + (nuevos.length ? ' con ' + nuevos.length + (nuevos.length === 1 ? ' número' : ' números') + ' de rastreo.' : '.'));
       selectedId = d.item.id;
       return load(true).then(function () {
