@@ -64,7 +64,8 @@
       mostrar: {
         folio: true, fecha: true, hora: true,
         formasPago: true, soloUsadas: false, cambio: true,
-        caja: true, cliente: true, cajero: true
+        caja: true, cliente: true, cajero: true,
+        rastreo: true
       },
       pagare: {
         activo: true,
@@ -102,7 +103,7 @@
       cliente: 'CLIENTE DE PRUEBA',
       cajero: cajero || 'Recepción',
       productos: [
-        { descripcion: 'PROGRESIVO/AR CONVENCIONAL', cantidad: 1, precio: 3219, descuento: 0 }
+        { descripcion: 'PROGRESIVO/AR CONVENCIONAL', cantidad: 1, precio: 3219, descuento: 0, rastreo: ['AVT000123'] }
       ],
       pagos: { efectivo: 0, cheque: 0, vales: 0, transferencia: 2000, tarjeta: 1219, credito: 0 },
       cambio: 0
@@ -225,6 +226,10 @@
     out.push('<div class="tk-sep"></div>');
     (venta.productos || []).forEach(function (p) {
       out.push('<div class="tk-desc">' + esc(up(p.descripcion)) + '</div>');
+      // Números de rastreo de las piezas vendidas (AVT000123, …).
+      if (m.rastreo && p.rastreo && p.rastreo.length) {
+        out.push('<div class="tk-rastreo">RASTREO: ' + p.rastreo.map(function (r) { return esc(r); }).join(', ') + '</div>');
+      }
       out.push('<div class="tk-row"><span>' + (Number(p.cantidad) || 0).toFixed(1) + '</span><span>' + money(p.precio) +
         '</span><span>' + (Number(p.descuento) || 0).toFixed(2) + '</span><span>' + money(p._importe) + '</span></div>');
     });
@@ -299,6 +304,7 @@
     '.tk-row{display:grid;grid-template-columns:1fr 1.4fr 1fr 1.5fr;gap:1mm;}',
     '.tk-row span{text-align:right;white-space:nowrap;}.tk-row span:first-child{text-align:left;}',
     '.tk-desc{word-break:break-word;}',
+    '.tk-rastreo{word-break:break-word;font-size:.92em;}',
     '.tk-kv{display:grid;grid-template-columns:1fr auto;gap:2mm;padding-left:12%;}',
     '.tk-kv span:first-child{text-align:right;}.tk-kv span:last-child{min-width:7em;text-align:right;}',
     '.tk-total{margin:1mm 0 1.5mm;font-size:1.08em;}',

@@ -133,4 +133,4 @@ body.dark .vt-owes b{ color:#ffd36e; }
   .vt-table-wrap{ max-height:none; }
   .vt-d-head{ grid-template-columns:1fr 1fr; }
   .vt-range input{ font-size:16px; }
-}
+}.vt-rastreo{ display:block; margin-top:2px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:10.5px; color:var(--muted); word-break:break-word; }

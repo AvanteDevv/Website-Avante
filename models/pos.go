@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"strings"
 	"time"
@@ -198,6 +199,9 @@ type PosSaleItem struct {
 	Precio      float64 `json:"precio"`
 	Descuento   float64 `json:"descuento"` // %
 	Importe     float64 `json:"importe"`
+	// Números de rastreo de las piezas que salieron en este renglón
+	// (vacío en servicios y en ventas viejas sin piezas).
+	Rastreo []string `json:"rastreo,omitempty"`
 }
 
 type PosPayments struct {
@@ -370,6 +374,10 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 			continue // servicio
 		}
 		logInvVenta(tx, it.InventoryID, it.Cantidad, stocks[i], s.ID, s.Cajero)
+	}
+	// Números de rastreo que quedaron vendidos (van en el ticket).
+	if err := fillPosRastreo(tx, s.ID, s.Items); err != nil {
+		log.Printf("pos: rastreo de la venta %d: %v", s.ID, err)
 	}
 
 	if p.Credito > 0 {
@@ -761,6 +769,10 @@ func GetPosSale(folio int64) (*PosSaleDetail, error) {
 		}
 		d.Productos = append(d.Productos, it)
 	}
+	irows.Close()
+	if err := fillPosRastreo(db.DB, folio, d.Productos); err != nil {
+		log.Printf("pos: rastreo de la venta %d: %v", folio, err)
+	}
 	var creditID sql.NullInt64
 	_ = db.DB.QueryRow("SELECT id FROM pos_credits WHERE sale_id = ?", folio).Scan(&creditID)
 	if creditID.Valid {
@@ -816,4 +828,42 @@ func listPosSalesWhere(cond string, arg interface{}) ([]PosSaleRow, PosSalesTota
 		out = append(out, r)
 	}
 	return out, PosSalesTotals{}, rows.Err()
+}
+
+// fillPosRastreo reparte entre los renglones de la venta los números de
+// rastreo de las piezas vendidas en ella (por artículo, en orden, según la
+// cantidad de cada renglón).
+func fillPosRastreo(q interface {
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+}, saleID int64, items []PosSaleItem) error {
+	rows, err := q.Query("SELECT item_id, numero FROM inv_piezas WHERE venta_id = ? AND estado = 'vendida' AND numero IS NOT NULL ORDER BY id", saleID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	byItem := map[int64][]string{}
+	for rows.Next() {
+		var id int64
+		var num string
+		if err := rows.Scan(&id, &num); err != nil {
+			return err
+		}
+		byItem[id] = append(byItem[id], num)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for i := range items {
+		nums := byItem[items[i].InventoryID]
+		if len(nums) == 0 {
+			continue
+		}
+		k := items[i].Cantidad
+		if k > len(nums) || k <= 0 {
+			k = len(nums)
+		}
+		items[i].Rastreo = append([]string(nil), nums[:k]...)
+		byItem[items[i].InventoryID] = nums[k:]
+	}
+	return nil
 }

@@ -216,7 +216,8 @@
 
     html += '<div class="vt-d-section"><h4>Productos</h4><table class="vt-d-table"><thead><tr><th>Cant.</th><th>Descripción</th><th class="num">P. unit.</th><th class="num">Desc.</th><th class="num">Importe</th></tr></thead><tbody>' +
       v.productos.map(function (p) {
-        return '<tr><td>' + p.cantidad + '</td><td>' + (p.clave ? '<small class="vt-clave">' + esc(p.clave) + '</small> ' : '') + esc(p.descripcion) + '</td>' +
+        return '<tr><td>' + p.cantidad + '</td><td>' + (p.clave ? '<small class="vt-clave">' + esc(p.clave) + '</small> ' : '') + esc(p.descripcion) +
+          (p.rastreo && p.rastreo.length ? '<small class="vt-rastreo">Rastreo: ' + p.rastreo.map(esc).join(', ') + '</small>' : '') + '</td>' +
           '<td class="num">' + money(p.precio) + '</td><td class="num">' + (p.descuento ? p.descuento + '%' : '—') + '</td><td class="num">' + money(p.importe) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
 
@@ -271,7 +272,7 @@
         caja: 'Caja 1',
         cliente: v.cliente,
         cajero: v.cajero || cajero,
-        productos: v.productos.map(function (p) { return { descripcion: p.descripcion, cantidad: p.cantidad, precio: p.precio, descuento: p.descuento || 0 }; }),
+        productos: v.productos.map(function (p) { return { descripcion: p.descripcion, cantidad: p.cantidad, precio: p.precio, descuento: p.descuento || 0, rastreo: p.rastreo || [] }; }),
         pagos: { efectivo: v.efectivo_recibido, tarjeta: v.tarjeta, transferencia: v.transferencia, vales: v.vales, cheque: v.cheque, credito: v.credito },
         cambio: v.cambio,
         referencia: v.referencia,
