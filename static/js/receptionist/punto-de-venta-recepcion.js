@@ -553,6 +553,7 @@
     $('payLetras').textContent = T ? '(' + T.numeroALetras(payTotal).replace('M.N.', 'MXN') + ')' : '';
     payInputs.forEach(function (i) { i.value = ''; });
     $('payRef').value = '';
+    if ($('payPropina')) { $('payPropina').value = ''; $('payPropinaForma').value = 'tarjeta'; }
     var credRow = $('payCreditRow');
     credRow.classList.toggle('is-disabled', !client);
     credRow.querySelector('input').disabled = !client;
@@ -589,7 +590,10 @@
         client_id: saleClient ? saleClient.id : 0,
         productos: lines.map(function (l) { return { inventory_id: l.id, cantidad: l.cantidad, descuento: l.descuento || 0 }; }),
         pagos: s.v,
-        referencia: $('payRef').value.trim()
+        referencia: $('payRef').value.trim(),
+        // Propina (aparte del total; la de efectivo no entra al corte de caja).
+        propina: $('payPropina') ? Math.round((parseFloat($('payPropina').value) || 0) * 100) / 100 : 0,
+        propina_forma: $('payPropinaForma') ? $('payPropinaForma').value : ''
       }
     }).then(function (d) {
       var v = d.venta;
@@ -600,8 +604,11 @@
         cliente: v.cliente || 'PÚBLICO EN GENERAL',
         cajero: v.cajero || cajero,
         productos: (v.productos || []).map(function (p) { return { descripcion: p.descripcion, cantidad: p.cantidad, precio: p.precio, descuento: p.descuento || 0, rastreo: p.rastreo || [] }; }),
+        pedido: v.pedido && v.pedido.code ? v.pedido.code : '',
         pagos: v.pagos,
         cambio: v.cambio,
+        propina: v.propina || 0,
+        propina_forma: v.propina_forma || '',
         referencia: v.referencia,
         vencimiento: v.vence || ''
       };
@@ -610,7 +617,8 @@
       $('posDoneTitle').textContent = 'Venta guardada · Ticket ' + v.folio;
       $('posDoneText').innerHTML = 'Total <strong>' + mxn.format(v.total) + '</strong>' +
         (v.cambio > 0 ? ' · Cambio <strong>' + mxn.format(v.cambio) + '</strong>' : '') +
-        (saleClient ? '<br>' + esc(saleClient.nombre) : '');
+        (saleClient ? '<br>' + esc(saleClient.nombre) : '') +
+        (v.pedido && v.pedido.code ? '<br>Clave de rastreo <strong>' + esc(v.pedido.code) + '</strong>' : '');
       var cr = v.pagos && v.pagos.credito > 0;
       $('posDoneCredit').hidden = !cr;
       $('posDoneCredits').hidden = !cr;
@@ -662,6 +670,7 @@
           cliente: v.cliente,
           cajero: v.cajero || cajero,
           productos: (v.productos || []).map(function (p) { return { descripcion: p.descripcion, cantidad: p.cantidad, precio: p.precio, descuento: p.descuento || 0, rastreo: p.rastreo || [] }; }),
+          pedido: v.pedido_code || '',
           pagos: { efectivo: v.efectivo_recibido, tarjeta: v.tarjeta, transferencia: v.transferencia, vales: v.vales, cheque: v.cheque, credito: v.credito },
           cambio: v.cambio,
           referencia: v.referencia,

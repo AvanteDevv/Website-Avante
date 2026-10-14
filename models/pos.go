@@ -226,6 +226,9 @@ type PosSale struct {
 	Referencia string        `json:"referencia"`
 	Items      []PosSaleItem `json:"productos"`
 	CreatedAt  time.Time     `json:"fecha"`
+	// Propina (opcional, aparte del total). En efectivo no entra al corte.
+	Propina      float64 `json:"propina"`
+	PropinaForma string  `json:"propina_forma"`
 	// Si quedó algo a crédito:
 	// Pedido con clave de rastreo (si la venta lleva productos).
 	Pedido   *PosPedido `json:"pedido,omitempty"`
@@ -316,6 +319,18 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 		return nil, fmt.Errorf("falta cobrar %.2f", round2(s.Total-paid))
 	}
 	s.Cambio = round2(paid - s.Total)
+	s.Propina = round2(s.Propina)
+	if s.Propina < 0 || s.Propina > 100000 {
+		return nil, fmt.Errorf("la propina no es válida")
+	}
+	switch s.PropinaForma {
+	case "efectivo", "tarjeta", "transferencia", "vales", "cheque":
+	default:
+		s.PropinaForma = "efectivo"
+	}
+	if s.Propina == 0 {
+		s.PropinaForma = ""
+	}
 
 	// Cliente y crédito
 	var client *PosClient
@@ -355,10 +370,10 @@ func CreatePosSale(s PosSale) (*PosSale, error) {
 		clientArg = client.ID
 	}
 	res, err := tx.Exec(
-		`INSERT INTO pos_sales (client_id, cliente, cajero, subtotal, descuento, total, efectivo, tarjeta, transferencia, vales, cheque, credito, cambio, referencia, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO pos_sales (client_id, cliente, cajero, subtotal, descuento, total, efectivo, tarjeta, transferencia, vales, cheque, credito, cambio, referencia, propina, propina_forma, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		clientArg, s.Cliente, s.Cajero, s.Subtotal, s.Descuento, s.Total,
-		p.Efectivo, p.Tarjeta, p.Transferencia, p.Vales, p.Cheque, p.Credito, s.Cambio, s.Referencia, posNow(),
+		p.Efectivo, p.Tarjeta, p.Transferencia, p.Vales, p.Cheque, p.Credito, s.Cambio, s.Referencia, s.Propina, s.PropinaForma, posNow(),
 	)
 	if err != nil {
 		return nil, err
@@ -589,7 +604,7 @@ func CancelPosCreditPayment(paymentID int64, by string) (*PosPaymentResult, erro
 		return nil, err
 	}
 	r.SaldoNuevo = round2(r.SaldoAnterior + p.Monto)
-	if _, err := tx.Exec("UPDATE pos_credit_payments SET cancelado = 1, cancelado_por = ? WHERE id = ?", by, paymentID); err != nil {
+	if _, err := tx.Exec("UPDATE pos_credit_payments SET cancelado = 1, cancelado_por = ?, cancelado_at = ? WHERE id = ?", by, posNow(), paymentID); err != nil {
 		return nil, err
 	}
 	if _, err := tx.Exec("UPDATE pos_credits SET saldo = ? WHERE id = ?", r.SaldoNuevo, p.CreditID); err != nil {
@@ -630,6 +645,13 @@ type PosSaleRow struct {
 	// Pedido (clave de rastreo) y su estatus; vacío si no tiene.
 	PedidoCode   string `json:"pedido_code"`
 	PedidoStatus string `json:"pedido_status"`
+	// Cancelación de la venta.
+	Cancelada    bool    `json:"cancelada"`
+	CanceladaAt  string  `json:"cancelada_at,omitempty"`
+	CanceladaPor string  `json:"cancelada_por,omitempty"`
+	CancelMotivo string  `json:"cancel_motivo,omitempty"`
+	Propina      float64 `json:"propina"`
+	PropinaForma string  `json:"propina_forma,omitempty"`
 }
 
 // PosSalesFilter: filtros del listado (fechas "YYYY-MM-DD", ambas incluidas).
@@ -650,6 +672,7 @@ type PosSalesTotals struct {
 	Pagado        float64 `json:"pagado"`
 	Credito       float64 `json:"credito"`
 	Saldo         float64 `json:"saldo"`
+	Canceladas    int     `json:"canceladas"`
 }
 
 // ListPosSales regresa las ventas del periodo (más nuevas primero) con lo
@@ -659,14 +682,15 @@ func ListPosSales(f PosSalesFilter, limit int) ([]PosSaleRow, PosSalesTotals, er
 		limit = 500
 	}
 	today := PosToday()
-	estadoExpr := `CASE WHEN COALESCE(cr.saldo,0) <= 0 THEN 'pagada'
+	estadoExpr := `CASE WHEN s.cancelada = 1 THEN 'cancelada' WHEN COALESCE(cr.saldo,0) <= 0 THEN 'pagada'
 		WHEN cr.vence IS NOT NULL AND cr.vence < ? THEN 'vencida' ELSE 'debe' END`
 	query := `SELECT s.id, DATE_FORMAT(s.created_at, '%Y-%m-%dT%H:%i:%s'), COALESCE(s.client_id, 0), s.cliente, s.cajero,
 			COALESCE((SELECT SUM(i.cantidad) FROM pos_sale_items i WHERE i.sale_id = s.id), 0),
 			s.total, s.efectivo - s.cambio, s.tarjeta, s.transferencia, s.vales, s.cheque, s.credito,
 			COALESCE(cr.saldo, 0), COALESCE(DATE_FORMAT(cr.vence, '%Y-%m-%d'), ''), ` + estadoExpr + `,
 			COALESCE((SELECT o.order_code FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), ''),
-			COALESCE((SELECT o.status FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), '')
+			COALESCE((SELECT o.status FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), ''),
+			s.cancelada, COALESCE(DATE_FORMAT(s.cancelada_at, '%Y-%m-%dT%H:%i:%s'), ''), s.cancelada_por, s.cancel_motivo, s.propina, s.propina_forma
 		FROM pos_sales s LEFT JOIN pos_credits cr ON cr.sale_id = s.id
 		WHERE 1 = 1`
 	args := []interface{}{today}
@@ -683,7 +707,7 @@ func ListPosSales(f PosSalesFilter, limit int) ([]PosSaleRow, PosSalesTotals, er
 		query += " AND (LOWER(s.cliente) LIKE ? OR CAST(s.id AS CHAR) LIKE ? OR LOWER(s.cajero) LIKE ? OR EXISTS (SELECT 1 FROM orders o WHERE o.pos_sale_id = s.id AND LOWER(o.order_code) LIKE ?))"
 		args = append(args, like, like, like, like)
 	}
-	if f.Estado == "pagada" || f.Estado == "debe" || f.Estado == "vencida" {
+	if f.Estado == "pagada" || f.Estado == "debe" || f.Estado == "vencida" || f.Estado == "cancelada" {
 		query += " AND (" + estadoExpr + ") = ?"
 		args = append(args, today, f.Estado)
 	}
@@ -701,7 +725,8 @@ func ListPosSales(f PosSalesFilter, limit int) ([]PosSaleRow, PosSalesTotals, er
 		var r PosSaleRow
 		if err := rows.Scan(&r.Folio, &r.Fecha, &r.ClientID, &r.Cliente, &r.Cajero, &r.Articulos,
 			&r.Total, &r.Efectivo, &r.Tarjeta, &r.Transferencia, &r.Vales, &r.Cheque, &r.Credito,
-			&r.Saldo, &r.Vence, &r.Estado, &r.PedidoCode, &r.PedidoStatus); err != nil {
+			&r.Saldo, &r.Vence, &r.Estado, &r.PedidoCode, &r.PedidoStatus,
+			&r.Cancelada, &r.CanceladaAt, &r.CanceladaPor, &r.CancelMotivo, &r.Propina, &r.PropinaForma); err != nil {
 			return nil, t, err
 		}
 		r.Efectivo = round2(r.Efectivo)
@@ -709,6 +734,10 @@ func ListPosSales(f PosSalesFilter, limit int) ([]PosSaleRow, PosSalesTotals, er
 		r.Saldo = round2(r.Saldo)
 		r.Abonado = round2(r.Credito - r.Saldo)
 		out = append(out, r)
+		if r.Cancelada { // las canceladas no suman
+			t.Canceladas++
+			continue
+		}
 		t.Ventas++
 		t.Total += r.Total
 		t.Efectivo += r.Efectivo
@@ -822,9 +851,10 @@ func listPosSalesWhere(cond string, arg interface{}) ([]PosSaleRow, PosSalesTota
 			COALESCE((SELECT SUM(i.cantidad) FROM pos_sale_items i WHERE i.sale_id = s.id), 0),
 			s.total, s.efectivo - s.cambio, s.tarjeta, s.transferencia, s.vales, s.cheque, s.credito,
 			COALESCE(cr.saldo, 0), COALESCE(DATE_FORMAT(cr.vence, '%Y-%m-%d'), ''),
-			CASE WHEN COALESCE(cr.saldo,0) <= 0 THEN 'pagada' WHEN cr.vence IS NOT NULL AND cr.vence < ? THEN 'vencida' ELSE 'debe' END,
+			CASE WHEN s.cancelada = 1 THEN 'cancelada' WHEN COALESCE(cr.saldo,0) <= 0 THEN 'pagada' WHEN cr.vence IS NOT NULL AND cr.vence < ? THEN 'vencida' ELSE 'debe' END,
 			COALESCE((SELECT o.order_code FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), ''),
-			COALESCE((SELECT o.status FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), '')
+			COALESCE((SELECT o.status FROM orders o WHERE o.pos_sale_id = s.id ORDER BY o.id LIMIT 1), ''),
+			s.cancelada, COALESCE(DATE_FORMAT(s.cancelada_at, '%Y-%m-%dT%H:%i:%s'), ''), s.cancelada_por, s.cancel_motivo, s.propina, s.propina_forma
 		FROM pos_sales s LEFT JOIN pos_credits cr ON cr.sale_id = s.id WHERE `+cond, today, arg)
 	if err != nil {
 		return nil, PosSalesTotals{}, err
@@ -835,7 +865,8 @@ func listPosSalesWhere(cond string, arg interface{}) ([]PosSaleRow, PosSalesTota
 		var r PosSaleRow
 		if err := rows.Scan(&r.Folio, &r.Fecha, &r.ClientID, &r.Cliente, &r.Cajero, &r.Articulos,
 			&r.Total, &r.Efectivo, &r.Tarjeta, &r.Transferencia, &r.Vales, &r.Cheque, &r.Credito,
-			&r.Saldo, &r.Vence, &r.Estado, &r.PedidoCode, &r.PedidoStatus); err != nil {
+			&r.Saldo, &r.Vence, &r.Estado, &r.PedidoCode, &r.PedidoStatus,
+			&r.Cancelada, &r.CanceladaAt, &r.CanceladaPor, &r.CancelMotivo, &r.Propina, &r.PropinaForma); err != nil {
 			return nil, PosSalesTotals{}, err
 		}
 		r.Efectivo, r.Saldo = round2(r.Efectivo), round2(r.Saldo)

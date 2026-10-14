@@ -187,6 +187,8 @@ func PosCreateSale(c *gin.Context) {
 		Items      []models.PosSaleItem `json:"productos"`
 		Pagos      models.PosPayments   `json:"pagos"`
 		Referencia string               `json:"referencia"`
+		Propina    float64              `json:"propina"`
+		PropinaFP  string               `json:"propina_forma"`
 	}
 	if err := c.ShouldBindJSON(&in); err != nil || len(in.Items) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "La venta no trae productos."})
@@ -198,6 +200,7 @@ func PosCreateSale(c *gin.Context) {
 	}
 	sale, err := models.CreatePosSale(models.PosSale{
 		ClientID: in.ClientID, Cajero: posStaffName(c), Items: in.Items, Pagos: in.Pagos, Referencia: ref,
+		Propina: in.Propina, PropinaForma: in.PropinaFP,
 	})
 	if err != nil {
 		var se *models.PosStockError
@@ -209,7 +212,8 @@ func PosCreateSale(c *gin.Context) {
 		case errors.Is(err, models.ErrPosCreditLimit):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "El crédito pasa del límite del cliente (" + strings.TrimPrefix(err.Error(), models.ErrPosCreditLimit.Error()+": ") + ")."})
 		case strings.HasPrefix(err.Error(), "tarjeta") || strings.HasPrefix(err.Error(), "falta") ||
-			strings.HasPrefix(err.Error(), "para dejar") || strings.HasPrefix(err.Error(), "un producto"):
+			strings.HasPrefix(err.Error(), "para dejar") || strings.HasPrefix(err.Error(), "un producto") ||
+			strings.HasPrefix(err.Error(), "la propina"):
 			msg := err.Error()
 			c.JSON(http.StatusBadRequest, gin.H{"error": strings.ToUpper(msg[:1]) + msg[1:] + "."})
 		default:

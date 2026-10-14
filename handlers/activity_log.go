@@ -751,6 +751,50 @@ func activityDescribe(c *gin.Context, route string, p map[string]interface{}, be
 		e.Action = "pos.abono.cancelar"
 		e.Description, intento = "Canceló el abono #"+c.Param("id"), "cancelar el abono #"+c.Param("id")
 
+	/* ----- Corte de caja ----- */
+	case method == http.MethodPost && route == "/api/receptionist/caja/cortes":
+		e.Action = "caja.corte"
+		e.Description, intento = "Hizo el corte de caja", "hacer el corte de caja"
+		ctx := []string{}
+		if ct, ok := p["contado"].(map[string]interface{}); ok {
+			for _, k := range []string{"efectivo", "cheque", "vales", "tarjeta"} {
+				if v, ok := ct[k].(float64); ok && v > 0 {
+					ctx = append(ctx, "Contado "+k+" $"+strconv.FormatFloat(v, 'f', 2, 64))
+				}
+			}
+		}
+		if rt, ok := p["retiro"].(map[string]interface{}); ok {
+			if v, ok := rt["efectivo"].(float64); ok && v > 0 {
+				ctx = append(ctx, "Retiro efectivo $"+strconv.FormatFloat(v, 'f', 2, 64))
+			}
+		}
+		e.Context = strings.Join(ctx, " · ")
+	case method == http.MethodPost && route == "/api/receptionist/caja/propinas":
+		e.Action = "caja.propinas"
+		e.Description, intento = "Hizo el corte de propinas", "hacer el corte de propinas"
+	case method == http.MethodPost && route == "/api/receptionist/caja/movimientos":
+		e.Action = "caja.movimiento"
+		monto, _ := p["monto"].(float64)
+		e.Description = "Registró un movimiento de caja (" + actOrDash(actStr(p, "concepto")) + ") por $" + strconv.FormatFloat(monto, 'f', 2, 64)
+		intento = "registrar un movimiento de caja"
+		e.Context = actOrDash(actStr(p, "forma_pago"))
+		if cm := actStr(p, "comentario"); cm != "" {
+			e.Context += " · " + cm
+		}
+	case method == http.MethodPost && route == "/api/receptionist/caja/movimientos/:id/cancelar":
+		e.Action = "caja.movimiento.cancelar"
+		e.Description, intento = "Canceló el movimiento de caja #"+c.Param("id"), "cancelar el movimiento de caja #"+c.Param("id")
+	case method == http.MethodPost && route == "/api/receptionist/caja/cortes/:id/email":
+		e.Action = "caja.corte.email"
+		e.Description, intento = "Mandó por correo el corte de caja #"+c.Param("id"), "mandar por correo el corte #"+c.Param("id")
+	case method == http.MethodPut && route == "/api/receptionist/caja/config":
+		e.Action = "caja.config"
+		e.Description, intento = "Cambió si recepción ve lo calculado en el corte de caja", "cambiar los permisos de la caja"
+	case method == http.MethodPost && route == "/api/receptionist/pos/ventas/:id/cancelar":
+		e.Action = "pos.venta.cancelar"
+		e.Description, intento = "Canceló la venta del ticket "+c.Param("id"), "cancelar la venta del ticket "+c.Param("id")
+		e.Context = "Motivo: " + actOrDash(actStr(p, "motivo"))
+
 	/* ----- Inventario ----- */
 	case method == http.MethodPost && route == "/api/inventario/articulos":
 		e.Action = "inv.articulo.crear"

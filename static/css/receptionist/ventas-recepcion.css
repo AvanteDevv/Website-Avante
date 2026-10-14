@@ -178,3 +178,20 @@ body.dark .vt-ticket-wrap{ background:rgba(255,255,255,.06); }
 body.dark .vt-rs-code{ background:rgba(46,204,113,.14); color:#6fe0a0; }
 .vt-desc{ display:block; font-size:10.5px; color:var(--muted); }
 .vt-d-table .vt-clave{ white-space:nowrap; }
+
+/* Ventas canceladas */
+.vt-table tbody tr.is-cancelada td{ color:var(--muted); }
+.vt-table tbody tr.is-cancelada td b{ text-decoration:line-through; }
+.vt-chip.is-cancelada{ background:#eceef3; color:#5b6475; }
+body.dark .vt-chip.is-cancelada{ background:rgba(255,255,255,.08); color:#aab0bd; }
+.vt-cancel-info{ margin:0 0 14px; padding:12px 14px; border-radius:12px; background:#fdecea; color:#8f1d14; font-size:13px; line-height:1.5; }
+.vt-cancel-info small{ color:#a8473f; }
+body.dark .vt-cancel-info{ background:rgba(231,76,60,.14); color:#ffb4aa; }
+.vt-cancel-box{ margin-top:14px; padding:14px; border:1.5px solid #f3b4ad; border-radius:14px; background:#fff7f6; }
+body.dark .vt-cancel-box{ background:rgba(231,76,60,.08); border-color:rgba(231,76,60,.4); }
+.vt-cancel-box label{ display:flex; flex-direction:column; gap:6px; font-size:12px; font-weight:700; color:var(--ink); }
+.vt-cancel-box input{ padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--white); color:var(--ink); font-family:var(--sans); font-size:13px; }
+.vt-cancel-note{ margin:8px 0 0; font-size:12px; color:var(--muted); }
+.vt-cancel-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.btn.vt-btn-danger{ background:#c0392b; border-color:#c0392b; color:#fff; }
+.btn.vt-btn-danger-ghost{ border-color:#e3a39b; color:#b42318; margin-right:auto; }

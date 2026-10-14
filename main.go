@@ -236,6 +236,8 @@ func main() {
 	db.EnsureStaffPreferencesTable()
 	db.EnsureInvFotosTable()
 	db.EnsurePosPedidoColumn()
+	// Corte de caja (cortes, movimientos de caja, propinas, cancelación de ventas)
+	db.EnsureCajaTables()
 
 	storage.Connect()
 	// Clarito: sube una sola vez los 3 formatos de static/pdf/clarito al
@@ -564,6 +566,7 @@ func main() {
 		receptionistGroup.GET("/configuracion", handlers.RequireRole(handlers.RoleReceptionist), handlers.ConfigPage("configuracion-recepcion.html", "receptionist-configuracion"))
 		receptionistGroup.GET("/punto-de-venta", handlers.ReceptionistPuntoDeVentaPage)
 		receptionistGroup.GET("/ventas", handlers.ReceptionistVentasPage)
+		receptionistGroup.GET("/corte-de-caja", handlers.CorteCajaPage)
 		receptionistGroup.GET("/plantillas", handlers.ReceptionistPlantillasPage)
 		receptionistGroup.GET("/administracion", handlers.ReceptionistAdministracionPage)
 		// Historial clínico (el mismo de optometría, solo consulta: sin
@@ -669,6 +672,20 @@ func main() {
 		apiReceptionist.GET("/pos/ventas", handlers.PosListSales)
 		apiReceptionist.GET("/pos/ventas/:id", handlers.PosGetSale)
 		apiReceptionist.POST("/pos/ventas", handlers.PosCreateSale)
+		apiReceptionist.POST("/pos/ventas/:id/cancelar", handlers.PosCancelSale)
+		// Corte de caja
+		apiReceptionist.GET("/caja/estado", handlers.CajaEstadoAPI)
+		apiReceptionist.GET("/caja/cortes", handlers.CajaListCortes)
+		apiReceptionist.POST("/caja/cortes", handlers.CajaSaveCorte)
+		apiReceptionist.GET("/caja/cortes/:id", handlers.CajaGetCorte)
+		apiReceptionist.POST("/caja/cortes/:id/email", handlers.CajaEmailCorte)
+		apiReceptionist.GET("/caja/propinas", handlers.CajaPropinasAPI)
+		apiReceptionist.POST("/caja/propinas", handlers.CajaSavePropinas)
+		apiReceptionist.GET("/caja/movimientos", handlers.CajaListMovimientos)
+		apiReceptionist.POST("/caja/movimientos", handlers.CajaCreateMovimiento)
+		apiReceptionist.POST("/caja/movimientos/:id/cancelar", handlers.CajaCancelMovimiento)
+		apiReceptionist.GET("/caja/config", handlers.CajaConfigAPI)
+		apiReceptionist.PUT("/caja/config", handlers.CajaSaveConfig)
 		apiReceptionist.POST("/pos/ventas/:id/pedido", handlers.PosCreatePedido)
 		apiReceptionist.PUT("/pos/ventas/:id/pedido/estado", handlers.PosSetPedidoStatus)
 		apiReceptionist.POST("/pos/creditos/:id/abonos", handlers.PosAddPayment)

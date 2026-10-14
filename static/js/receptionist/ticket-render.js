@@ -65,7 +65,7 @@
         folio: true, fecha: true, hora: true,
         formasPago: true, soloUsadas: false, cambio: true,
         caja: true, cliente: true, cajero: true,
-        rastreo: true
+        rastreo: true, pedido: true
       },
       pagare: {
         activo: true,
@@ -106,7 +106,8 @@
         { descripcion: 'PROGRESIVO/AR CONVENCIONAL', cantidad: 1, precio: 3219, descuento: 0, rastreo: ['AVT000123'] }
       ],
       pagos: { efectivo: 0, cheque: 0, vales: 0, transferencia: 2000, tarjeta: 1219, credito: 0 },
-      cambio: 0
+      cambio: 0,
+      pedido: 'AVT000123'
     };
   }
 
@@ -195,6 +196,13 @@
   /* ---------- HTML del ticket ---------- */
   function html(tpl, venta) {
     tpl = merge(tpl);
+    // Otro documento en formato ticket (p. ej. el corte de caja): trae su
+    // propio contenido y solo se le pone el papel de la plantilla.
+    if (venta && venta.bodyHtml) {
+      return '<div class="tk tk-w' + (tpl.papel.ancho === 58 ? '58' : '80') + (tpl.papel.negritas ? ' tk-bold' : '') + '" ' +
+        'style="--tk-font:' + (Number(tpl.papel.letra) || 12) + 'px;--tk-pad:' + (Number(tpl.papel.margen) || 0) + 'mm">' +
+        venta.bodyHtml + '</div>';
+    }
     venta = venta || sampleSale();
     var d = venta.fecha instanceof Date ? venta.fecha : new Date(venta.fecha || Date.now());
     var e = tpl.encabezado, m = tpl.mostrar, total = totals(venta);
@@ -250,6 +258,16 @@
         out.push('<div class="tk-kv"><span>' + f.label + ':</span><span>' + money(v) + '</span></div>');
       });
       if (m.cambio) out.push('<div class="tk-kv"><span>CAMBIO:</span><span>' + money(venta.cambio) + '</span></div>');
+      if (Number(venta.propina) > 0) out.push('<div class="tk-kv"><span>PROPINA' + (venta.propina_forma ? ' (' + esc(String(venta.propina_forma).toUpperCase()) + ')' : '') + ':</span><span>' + money(venta.propina) + '</span></div>');
+    }
+
+    // Pedido: clave para rastrearlo en la página (avanteopticsmx.com/rastreo)
+    if (m.pedido && venta.pedido) {
+      out.push('<div class="tk-sep"></div><div class="tk-pedido">' +
+        '<div class="tk-c">CLAVE DE RASTREO</div>' +
+        '<div class="tk-c tk-pedido-code">' + esc(venta.pedido) + '</div>' +
+        '<div class="tk-c tk-pedido-hint">CONSULTA TU PEDIDO EN<br>' + esc(tpl.rastreoUrl || 'avanteopticsmx.com/rastreo') + '</div>' +
+      '</div>');
     }
 
     // Caja / cliente / cajero
@@ -305,6 +323,7 @@
     '.tk-row span{text-align:right;white-space:nowrap;}.tk-row span:first-child{text-align:left;}',
     '.tk-desc{word-break:break-word;}',
     '.tk-rastreo{word-break:break-word;font-size:.92em;}',
+    '.tk-pedido{margin:1mm 0 2mm;}.tk-pedido-code{font-size:1.45em;letter-spacing:.06em;margin:.6mm 0;}.tk-pedido-hint{font-size:.9em;}',
     '.tk-kv{display:grid;grid-template-columns:1fr auto;gap:2mm;padding-left:12%;}',
     '.tk-kv span:first-child{text-align:right;}.tk-kv span:last-child{min-width:7em;text-align:right;}',
     '.tk-total{margin:1mm 0 1.5mm;font-size:1.08em;}',

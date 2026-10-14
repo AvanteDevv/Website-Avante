@@ -1,6 +1,7 @@
 package mailer
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"html"
@@ -8,6 +9,7 @@ import (
 	"net/smtp"
 	"os"
 	"strings"
+	"time"
 )
 
 // Envío de correos por SMTP de Gmail (cuenta personal + contraseña de
@@ -106,4 +108,83 @@ func SendVerificationCode(to, nombre, code string) error {
 </td></tr></table></body></html>`
 
 	return Send(to, "Tu código de verificación: "+code, body)
+}
+
+// Attachment — archivo adjunto de un correo.
+type Attachment struct {
+	Name string
+	Type string
+	Data []byte
+}
+
+// From — la cuenta que envía (para mostrarla en pantalla), "" si no hay.
+func From() string {
+	c, err := load()
+	if err != nil {
+		return ""
+	}
+	return c.user
+}
+
+// SendWithAttachments manda un correo HTML a varios destinatarios (Para y
+// CCO) con archivos adjuntos (multipart/mixed, base64).
+func SendWithAttachments(to, bcc []string, subject, htmlBody string, atts []Attachment) error {
+	c, err := load()
+	if err != nil {
+		return err
+	}
+	clean := func(list []string) []string {
+		out := []string{}
+		for _, a := range list {
+			a = strings.TrimSpace(a)
+			if a != "" && !strings.ContainsAny(a, "\r\n,;<>") && strings.Contains(a, "@") {
+				out = append(out, a)
+			}
+		}
+		return out
+	}
+	to, bcc = clean(to), clean(bcc)
+	if len(to) == 0 {
+		return errors.New("mailer: destinatario inválido")
+	}
+	boundary := fmt.Sprintf("avante-%x", time.Now().UnixNano())
+	from := fmt.Sprintf("%s <%s>", mime.QEncoding.Encode("utf-8", c.fromName), c.user)
+	var b strings.Builder
+	b.WriteString("From: " + from + "\r\n")
+	b.WriteString("To: " + strings.Join(to, ", ") + "\r\n")
+	b.WriteString("Subject: " + mime.QEncoding.Encode("utf-8", subject) + "\r\n")
+	b.WriteString("MIME-Version: 1.0\r\n")
+	b.WriteString("Content-Type: multipart/mixed; boundary=\"" + boundary + "\"\r\n\r\n")
+	b.WriteString("--" + boundary + "\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
+	b.WriteString(wrap76(base64.StdEncoding.EncodeToString([]byte(htmlBody))))
+	for _, a := range atts {
+		name := strings.Map(func(r rune) rune {
+			if r == '"' || r == '\r' || r == '\n' {
+				return '_'
+			}
+			return r
+		}, a.Name)
+		ct := a.Type
+		if ct == "" || strings.ContainsAny(ct, "\r\n") {
+			ct = "application/octet-stream"
+		}
+		b.WriteString("\r\n--" + boundary + "\r\n")
+		b.WriteString("Content-Type: " + ct + "; name=\"" + mime.QEncoding.Encode("utf-8", name) + "\"\r\n")
+		b.WriteString("Content-Transfer-Encoding: base64\r\n")
+		b.WriteString("Content-Disposition: attachment; filename=\"" + mime.QEncoding.Encode("utf-8", name) + "\"\r\n\r\n")
+		b.WriteString(wrap76(base64.StdEncoding.EncodeToString(a.Data)))
+	}
+	b.WriteString("\r\n--" + boundary + "--\r\n")
+	auth := smtp.PlainAuth("", c.user, c.pass, c.host)
+	return smtp.SendMail(c.host+":"+c.port, auth, c.user, append(append([]string{}, to...), bcc...), []byte(b.String()))
+}
+
+func wrap76(s string) string {
+	var b strings.Builder
+	for len(s) > 76 {
+		b.WriteString(s[:76] + "\r\n")
+		s = s[76:]
+	}
+	b.WriteString(s + "\r\n")
+	return b.String()
 }

@@ -35,6 +35,7 @@
     '/optometrist/garantias/nueva': 'Nueva garantía',
     '/optometrist/configuracion': 'Configuración',
     '/receptionist/configuracion': 'Configuración',
+    '/receptionist/corte-de-caja': 'Corte de caja',
     '/optometrist/examen-vista': 'Examen de la vista',
     '/optometrist/examen-vista/nuevo': 'Nuevo examen',
     '/optometrist/plantilla-examen': 'Plantilla de examen',

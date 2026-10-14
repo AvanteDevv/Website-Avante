@@ -304,6 +304,10 @@ body.dark .pos-client-tag{ background:rgba(245,179,1,.18); color:#ffd46b; }
 }
 .pos-rest:hover{ background:var(--accent-soft); }
 .pos-ref{ margin-top:14px; }
+.pos-propina{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.pos-propina select{ width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--white); color:var(--ink); font-family:var(--sans); font-size:13px; font-weight:600; }
+body.dark .pos-propina select{ color-scheme:dark; }
+@media (max-width:520px){ .pos-propina{ grid-template-columns:1fr; } }
 
 .pos-credit-box{
   display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; margin-top:14px;

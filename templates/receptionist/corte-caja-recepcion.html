@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corte de caja — Recepción · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/ventas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/corte-caja.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "receptionist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "receptionist-sidebar" .}}
+
+  <main class="cuenta-main admin-main cc-page" id="ccPage" data-cajero="{{.StaffName}}" data-caja="{{.Caja}}"
+        data-ve="{{if .VeCalculado}}1{{else}}0{{end}}" data-admin="{{if .EsAdmin}}1{{else}}0{{end}}"
+        data-mail="{{if .MailEnabled}}1{{else}}0{{end}}" data-mail-from="{{.MailFrom}}">
+    <div class="admin-header">
+      <div>
+        <h1>Corte de caja <span class="cc-caja-badge">{{.Caja}}</span></h1>
+        <p>Cuenta lo que tienes en caja y compáralo con lo que registró el sistema desde el último corte: ventas, abonos, gastos, retiros y demás entradas y salidas.</p>
+      </div>
+      {{if .EsAdmin}}
+      <label class="cc-perm" title="Como el rol «Ventas» de SICAR: recepción captura lo contado sin ver lo calculado.">
+        <input type="checkbox" id="ccPermVe">
+        <span class="cc-perm-track"></span>
+        <span><strong>Recepción ve «Calculado» y «Diferencia»</strong><small>Si está apagado, recepción cuenta a ciegas.</small></span>
+      </label>
+      {{end}}
+    </div>
+
+    <div class="vt-seg cc-tabs" id="ccTabs" role="tablist">
+      <button type="button" data-tab="corte" class="is-on">Corte de caja</button>
+      <button type="button" data-tab="consultar">Consultar cortes</button>
+      <button type="button" data-tab="estado">Estado de caja</button>
+      <button type="button" data-tab="movs">Entradas y salidas</button>
+    </div>
+
+    <!-- ================= Operaciones → Corte de caja ================= -->
+    <section class="cc-pane" data-pane="corte">
+      <div class="admin-panel cc-panel">
+        <div class="cc-toolbar">
+          <button type="button" class="cc-tool is-main" id="ccBtnCorte">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg>
+            <span>Corte</span><kbd>F3</kbd>
+          </button>
+          <button type="button" class="cc-tool" id="ccBtnPropina">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.2a2.6 2.6 0 0 0-2.4-1.4c-1.5 0-2.6.8-2.6 2s1.2 1.7 2.6 2 2.6.9 2.6 2.1-1.1 2.1-2.6 2.1a2.8 2.8 0 0 1-2.6-1.5M12 6.5v1.3M12 16.2v1.3"/></svg>
+            <span>Propina</span><kbd>F4</kbd>
+          </button>
+        </div>
+
+        <h3 class="cc-sub">Información del último corte de caja</h3>
+        <div class="cc-last" id="ccLast">
+          <div><small>Caja</small><strong id="ccLastCaja">—</strong></div>
+          <div><small>Usuario</small><strong id="ccLastUser">—</strong></div>
+          <div><small>Fecha</small><strong id="ccLastFecha">—</strong></div>
+          <div><small>Hora</small><strong id="ccLastHora">—</strong></div>
+        </div>
+        <p class="cc-hint" id="ccDesdeHint"></p>
+
+        <div class="cc-now" id="ccNow" hidden>
+          <h3 class="cc-sub">Lo que lleva la caja desde el último corte</h3>
+          <div class="vt-stats cc-now-stats" id="ccNowStats"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Consultas → Cortes de caja ================= -->
+    <section class="cc-pane" data-pane="consultar" hidden>
+      <div class="admin-panel cc-panel">
+        <div class="cc-toolbar is-wrap">
+          <button type="button" class="cc-tool" data-act="buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Buscar</span><kbd>F2</kbd></button>
+          <button type="button" class="cc-tool" data-act="previa" data-need="reporte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7"/><path d="M14 2v6h6v3"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.8-1.8"/></svg><span>Previa</span><kbd>Ctrl+R</kbd></button>
+          <button type="button" class="cc-tool is-xls" data-act="excel" data-need="reporte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg><span>Excel</span><kbd>Alt+X</kbd></button>
+          <button type="button" class="cc-tool is-pdf" data-act="pdf" data-need="reporte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h2.5a1.5 1.5 0 0 1 0 3H8v-3zm0 3v2"/></svg><span>PDF</span><kbd>Alt+P</kbd></button>
+          <button type="button" class="cc-tool" data-act="email" data-need="reporte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg><span>Email</span><kbd>F11</kbd></button>
+          <button type="button" class="cc-tool" data-act="imprimir" data-need="reporte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span>Imp</span><kbd>Ctrl+P</kbd></button>
+          <button type="button" class="cc-tool" data-act="ticket" data-need="corte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg><span>Ticket</span><kbd>Alt+T</kbd></button>
+        </div>
+
+        <div class="cc-subtabs" id="ccSubtabs">
+          <button type="button" data-sub="extendido" class="is-on">Corte de caja</button>
+          <button type="button" data-sub="detalle">Detalle de movimientos</button>
+        </div>
+
+        <div data-subpane="extendido">
+          <p class="cc-hint cc-ext-hint" id="ccExtHint"><b>Corte de caja extendido</b> · Selecciona un corte de caja desde <b>Buscar</b>; después presiona <b>Previa</b> para ver más información.</p>
+          <div class="cc-ext" id="ccExt"></div>
+        </div>
+        <div data-subpane="detalle" hidden>
+          <div class="cc-det-filters">
+            <div class="search-box cc-det-search">
+              <div class="search-box-glow"></div>
+              <div class="search-box-inner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="search" id="ccDetSearch" placeholder="Buscar en comentario, folio, usuario…" autocomplete="off">
+              </div>
+            </div>
+            <label class="cc-select"><span>Forma de pago</span>
+              <select id="ccDetFP">
+                <option value="">Todas</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="cheque">Cheque</option>
+                <option value="vales">Vales</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="credito">Crédito</option>
+              </select>
+            </label>
+          </div>
+          <div class="vt-table-wrap cc-det-wrap">
+            <table class="vt-table cc-det-table">
+              <thead><tr><th>Fecha</th><th>Comentario / Referencia</th><th>Mov</th><th>Doc</th><th class="num">Folio</th><th>FP</th><th>Usuario</th><th class="num">Entradas</th><th class="num">Salidas</th><th class="num">Saldo</th></tr></thead>
+              <tbody id="ccDetBody"></tbody>
+            </table>
+          </div>
+          <p class="vt-empty" id="ccDetEmpty">Selecciona un corte de caja desde Buscar.</p>
+          <div class="cc-det-totals" id="ccDetTotals"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Consultas → Estado de caja ================= -->
+    <section class="cc-pane" data-pane="estado" hidden>
+      <div class="admin-panel cc-panel">
+        <div class="cc-toolbar">
+          <button type="button" class="cc-tool" id="ccEstReload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg><span>Recargar</span><kbd>F5</kbd></button>
+          <div class="search-box cc-est-search">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="ccEstSearch" placeholder="Buscar caja…" autocomplete="off">
+            </div>
+          </div>
+          <p class="cc-est-upd">Última actualización: <b id="ccEstUpd">—</b></p>
+        </div>
+        <div class="vt-table-wrap">
+          <table class="vt-table cc-est-table">
+            <thead><tr><th>Caja</th><th class="num">Efectivo</th><th class="num">Cheque</th><th class="num">Vales</th><th class="num">Tarjeta</th><th class="num">Transferencia</th><th class="num">Total</th></tr></thead>
+            <tbody id="ccEstBody"></tbody>
+            <tfoot><tr id="ccEstFoot"></tr></tfoot>
+          </table>
+        </div>
+        <p class="vt-empty" id="ccEstEmpty" hidden></p>
+        <p class="cc-hint">Lo que debe haber en cada caja desde su último corte (fondo + entradas − salidas), por forma de pago.</p>
+      </div>
+    </section>
+
+    <!-- ================= Entradas y salidas de caja ================= -->
+    <section class="cc-pane" data-pane="movs" hidden>
+      <div class="admin-panel cc-panel">
+        <div class="cc-toolbar is-wrap">
+          <button type="button" class="cc-tool is-main" id="ccMovNew"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Nueva entrada / salida</span></button>
+          <div class="vt-range cc-mov-range">
+            <label><span>Desde</span><input type="date" id="ccMovDesde"></label>
+            <label><span>Hasta</span><input type="date" id="ccMovHasta"></label>
+          </div>
+        </div>
+        <p class="cc-hint">Gastos, compras, pagos a proveedores, notas de crédito, retiros, depósitos y devoluciones de proveedor: todo lo que entra o sale de la caja y no es una venta. Aparecen en el siguiente corte.</p>
+        <div class="vt-table-wrap">
+          <table class="vt-table cc-mov-table">
+            <thead><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Forma</th><th class="num">Monto</th><th>Comentario</th><th>Usuario</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="ccMovBody"></tbody>
+          </table>
+        </div>
+        <p class="vt-empty" id="ccMovEmpty" hidden>No hay entradas ni salidas en estas fechas.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ================= Modal: corte (F3) ================= -->
+<div class="admin-modal-overlay" id="ccCorteModal">
+  <div class="admin-modal-card cc-corte-card" role="dialog" aria-modal="true" aria-labelledby="ccCorteTitle">
+    <div class="admin-modal-head">
+      <h3 id="ccCorteTitle">Caja: {{.Caja}}</h3>
+      <button type="button" class="admin-modal-close" data-close aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="cc-hint" id="ccCorteDesde"></p>
+      <div class="cc-corte-grid">
+        <div class="cc-corte-main">
+          <table class="cc-corte-table" id="ccCorteTable">
+            <thead><tr><th></th><th>Contado</th><th class="cc-ve">Calculado</th><th class="cc-ve">Diferencia</th></tr></thead>
+            <tbody></tbody>
+            <tfoot><tr><th>Total</th><td id="ccTotContado">$0.00</td><td class="cc-ve" id="ccTotCalc">$0.00</td><td class="cc-ve" id="ccTotDif">$0.00</td></tr></tfoot>
+          </table>
+        </div>
+        <div class="cc-corte-retiro">
+          <h4>Retiro por corte</h4>
+          <div id="ccRetiros"></div>
+          <div class="cc-ret-total"><span>Total:</span><strong id="ccTotRetiro">$0.00</strong></div>
+          <p class="cc-hint">Lo que no retires se queda como fondo y aparece en el siguiente corte como <b>entrada por corte</b>.</p>
+        </div>
+      </div>
+      <div class="cc-info">
+        <h4>Información adicional</h4>
+        <div class="cc-info-row">
+          <div><small>Total transferencias</small><strong id="ccInfoTr">$0.00</strong></div>
+          <div><small>Total anticipos</small><strong id="ccInfoAn">$0.00</strong></div>
+          <div><small>Total pagos en línea</small><strong id="ccInfoPl">$0.00</strong></div>
+        </div>
+        <p class="cc-hint">El total de transferencias también se ve reflejado en los totales del corte de caja. Anticipos: lo que se pagó al momento en ventas que quedaron a crédito.</p>
+      </div>
+      <label class="cc-check"><input type="checkbox" id="ccAutoTicket"><span>Imprimir el ticket del corte al guardar</span></label>
+      <p class="staff-error" id="ccCorteError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-close>Cancelar</button>
+        <button type="button" class="btn solid small" id="ccCorteSave">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: contar billetes y monedas ================= -->
+<div class="admin-modal-overlay" id="ccDenomModal">
+  <div class="admin-modal-card cc-denom-card" role="dialog" aria-modal="true" aria-labelledby="ccDenomTitle">
+    <div class="admin-modal-head">
+      <h3 id="ccDenomTitle">Contar efectivo</h3>
+      <button type="button" class="admin-modal-close" data-close aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="cc-denom" id="ccDenom"></div>
+      <div class="cc-denom-total"><span>Total</span><strong id="ccDenomTotal">$0.00</strong></div>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" id="ccDenomClear">Limpiar</button>
+        <button type="button" class="btn solid small" id="ccDenomUse">Usar este total</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: corte de propinas (F4) ================= -->
+<div class="admin-modal-overlay" id="ccPropModal">
+  <div class="admin-modal-card cc-prop-card" role="dialog" aria-modal="true" aria-labelledby="ccPropTitle">
+    <div class="admin-modal-head">
+      <h3 id="ccPropTitle">Corte de propinas</h3>
+      <button type="button" class="admin-modal-close" data-close aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="cc-hint" id="ccPropDesde"></p>
+      <div class="cc-prop-grid" id="ccPropGrid"></div>
+      <div class="cc-prop-total"><span>Total a repartir</span><strong id="ccPropTotal">$0.00</strong></div>
+      <p class="cc-hint cc-prop-note" id="ccPropEf">Las propinas en efectivo no se toman en cuenta en el corte.</p>
+      <p class="cc-hint" id="ccPropLast"></p>
+      <p class="staff-error" id="ccPropError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-close>Cancelar</button>
+        <button type="button" class="btn solid small" id="ccPropSave">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: buscar corte (F2) ================= -->
+<div class="admin-modal-overlay" id="ccSearchModal">
+  <div class="admin-modal-card cc-search-card" role="dialog" aria-modal="true" aria-labelledby="ccSearchTitle">
+    <div class="admin-modal-head">
+      <h3 id="ccSearchTitle">Buscar corte de caja</h3>
+      <button type="button" class="admin-modal-close" data-close aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="cc-search-bar">
+        <div class="vt-range">
+          <label><span>Fecha inicial</span><input type="date" id="ccSDesde"></label>
+          <label><span>Fecha final</span><input type="date" id="ccSHasta"></label>
+        </div>
+        <button type="button" class="cc-tool" id="ccSReload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg><span>Recargar</span><kbd>F5</kbd></button>
+      </div>
+      <div class="vt-table-wrap cc-search-wrap">
+        <table class="vt-table cc-search-table">
+          <thead><tr><th>Fecha</th><th>Caja</th><th class="num">Contado</th><th class="num cc-ve">Calculado</th><th class="num cc-ve">Diferencia</th><th class="num">Retirado</th><th>Usuario</th></tr></thead>
+          <tbody id="ccSBody"></tbody>
+        </table>
+      </div>
+      <p class="vt-empty" id="ccSEmpty" hidden>No hay cortes en esas fechas.</p>
+      <div class="cc-pager">
+        <button type="button" id="ccSPrev" aria-label="Página anterior">‹</button>
+        <span>Página <b id="ccSPage">1</b> de <b id="ccSPages">1</b></span>
+        <button type="button" id="ccSNext" aria-label="Página siguiente">›</button>
+      </div>
+      <p class="cc-hint">Doble clic (o selecciónalo y presiona Enter) para abrir el corte.</p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-close>Cerrar</button>
+        <button type="button" class="btn solid small" id="ccSSelect" disabled>Seleccionar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: previa (reporte extendido) ================= -->
+<div class="admin-modal-overlay" id="ccPrevModal">
+  <div class="admin-modal-card cc-prev-card" role="dialog" aria-modal="true" aria-labelledby="ccPrevTitle">
+    <div class="admin-modal-head">
+      <h3 id="ccPrevTitle">Reporte de corte de caja extendido</h3>
+      <div class="cc-prev-actions">
+        <button type="button" class="cc-tool is-mini" data-act="excel">Excel</button>
+        <button type="button" class="cc-tool is-mini" data-act="pdf">PDF</button>
+        <button type="button" class="cc-tool is-mini" data-act="email">Email</button>
+        <button type="button" class="cc-tool is-mini" data-act="imprimir">Imp</button>
+      </div>
+      <button type="button" class="admin-modal-close" data-close aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body cc-prev-body">
+      <div class="cc-prev-scale" id="ccPrevScale"><div id="ccPrevDoc"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: email (F11) ================= -->
+<div class="admin-modal-overlay" id="ccMailModal">
+  <div class="admin-modal-card cc-mail-card" role="dialog" aria-modal="true" aria-labelledby="ccMailTitle">
+    <div class="admin-modal-head">
+      <h3 id="ccMailTitle">Enviar reporte de corte</h3>
+      <button type="button" class="admin-modal-close" data-close aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="cc-mail-row"><span>De:</span><div class="cc-mail-from" id="ccMailFrom">—</div></div>
+      <div class="cc-mail-row"><span>Para:</span><div class="cc-chips-input" id="ccMailTo"><input type="email" placeholder="correo@ejemplo.com · Enter para agregar"></div></div>
+      <div class="cc-mail-row"><span>CCO:</span><div class="cc-chips-input" id="ccMailBcc"><input type="email" placeholder="(opcional)"></div></div>
+      <div class="cc-mail-row"><span>Asunto:</span><input type="text" id="ccMailSubject" maxlength="150" value="Corte de Caja"></div>
+      <div class="cc-subtabs cc-mail-tabs">
+        <button type="button" data-mtab="mensaje" class="is-on">Mensaje</button>
+        <button type="button" data-mtab="adjuntar">Adjuntar</button>
+      </div>
+      <div data-mpane="mensaje"><textarea id="ccMailBody" rows="7">Con el gusto de saludarle, le hacemos llegar nuestro reporte.
+
+Sin más, nos despedimos de usted esperando poder servirle en el futuro.</textarea></div>
+      <div data-mpane="adjuntar" hidden>
+        <label class="cc-check"><input type="checkbox" id="ccMailPdf" checked><span><b>Corte de caja.pdf</b> — reporte extendido</span></label>
+        <label class="cc-check"><input type="checkbox" id="ccMailXls"><span><b>Corte de caja.xlsx</b> — reporte y detalle de movimientos</span></label>
+      </div>
+      <p class="staff-error" id="ccMailError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-close>Cancelar</button>
+        <button type="button" class="btn solid small" id="ccMailSend">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: entrada / salida ================= -->
+<div class="admin-modal-overlay" id="ccMovModal">
+  <div class="admin-modal-card cc-mov-card" role="dialog" aria-modal="true" aria-labelledby="ccMovTitle">
+    <div class="admin-modal-head">
+      <h3 id="ccMovTitle">Nueva entrada / salida de caja</h3>
+      <button type="button" class="admin-modal-close" data-close aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="staff-form" id="ccMovForm" novalidate autocomplete="off">
+        <div class="vt-seg cc-mov-tipo" id="ccMovTipo">
+          <button type="button" data-tipo="salida" class="is-on">Salida</button>
+          <button type="button" data-tipo="entrada">Entrada</button>
+        </div>
+        <label class="staff-field"><span>Concepto</span><select id="ccMovConcepto"></select></label>
+        <div class="staff-form-row">
+          <label class="staff-field"><span>Forma de pago</span><select id="ccMovForma"></select></label>
+          <label class="staff-field"><span>Monto</span><span class="cc-money"><span>$</span><input type="number" id="ccMovMonto" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span></label>
+        </div>
+        <label class="staff-field"><span>Comentario</span><input type="text" id="ccMovCom" maxlength="200" placeholder="Ej. Garrafón de agua, pago a proveedor de micas…"></label>
+        <label class="staff-field"><span>Referencia <em>(opcional)</em></span><input type="text" id="ccMovRef" maxlength="80" placeholder="Folio, factura, autorización…"></label>
+        <p class="cc-hint" id="ccMovHint"></p>
+        <p class="staff-error" id="ccMovError"></p>
+        <div class="staff-form-actions">
+          <button type="button" class="btn small" data-close>Cancelar</button>
+          <button type="submit" class="btn solid small" id="ccMovSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Confirmación ================= -->
+<div class="admin-modal-overlay" id="ccConfirmModal">
+  <div class="admin-modal-card cc-confirm-card" role="dialog" aria-modal="true" aria-labelledby="ccConfirmTitle">
+    <div class="admin-modal-head"><h3 id="ccConfirmTitle">¿Confirmas?</h3></div>
+    <div class="admin-modal-body">
+      <p id="ccConfirmText"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" id="ccConfirmNo">No</button>
+        <button type="button" class="btn solid small" id="ccConfirmYes">Sí</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/receptionist/ticket-render.js"></script>
+<script src="/static/js/receptionist/corte-caja.js"></script>
+</body>
+</html>

@@ -229,6 +229,23 @@
         <input type="text" id="payRef" maxlength="80">
       </label>
 
+      <div class="pos-propina">
+        <label class="staff-field">
+          <span>Propina <em>(opcional — aparte del total)</em></span>
+          <span class="pos-money"><span>$</span><input type="number" id="payPropina" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span>
+        </label>
+        <label class="staff-field">
+          <span>Forma de la propina</span>
+          <select id="payPropinaForma">
+            <option value="tarjeta">Tarjeta</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="vales">Vales</option>
+            <option value="cheque">Cheque</option>
+          </select>
+        </label>
+      </div>
+
       <div class="pos-credit-box" id="payCreditBox" hidden>
         <div><small>Días de crédito</small><strong id="payCreditDias">—</strong></div>
         <div><small>Límite</small><strong id="payCreditLimite">—</strong></div>
