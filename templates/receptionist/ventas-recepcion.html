@@ -25,6 +25,10 @@
         <h1>Ventas</h1>
         <p>Cada venta del punto de venta: cuánto pagó en efectivo y demás formas, cuánto quedó a crédito y cuánto debe todavía.</p>
       </div>
+      <button type="button" class="btn small vt-export-btn" id="vtExportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+        Exportar PDF
+      </button>
     </div>
 
     <!-- Resumen del periodo -->
@@ -40,6 +44,7 @@
     <div class="admin-panel vt-panel">
       <div class="vt-filters">
         <div class="vt-seg" id="vtPeriod" role="tablist" aria-label="Periodo">
+          <span class="vt-seg-glow" aria-hidden="true"></span>
           <button type="button" data-period="hoy" class="is-on">Hoy</button>
           <button type="button" data-period="ayer">Ayer</button>
           <button type="button" data-period="7d">7 días</button>
@@ -124,6 +129,40 @@
       </button>
     </div>
     <div class="admin-modal-body" id="vtDetailBody"></div>
+  </div>
+</div>
+
+<!-- ================= Modal: exportar reporte en PDF ================= -->
+<div class="admin-modal-overlay" id="vtExportModal">
+  <div class="admin-modal-card vt-export-card" role="dialog" aria-modal="true" aria-labelledby="vtExportTitle">
+    <div class="admin-modal-head">
+      <h3 id="vtExportTitle">Exportar reporte de ventas</h3>
+      <button type="button" class="admin-modal-close" id="vtExportClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="vt-export-hint">Un PDF con las estadísticas del periodo, una gráfica de barras de lo vendido y una de líneas por forma de pago.</p>
+      <div class="vt-seg vt-export-seg" id="vtExpTipo" role="tablist" aria-label="Periodo del reporte">
+        <span class="vt-seg-glow" aria-hidden="true"></span>
+        <button type="button" data-tipo="dia" class="is-on">Día</button>
+        <button type="button" data-tipo="semana">Semana</button>
+        <button type="button" data-tipo="mes">Mes</button>
+        <button type="button" data-tipo="actual">Periodo de la tabla</button>
+      </div>
+      <div class="vt-export-pick">
+        <label data-for="dia"><span>Día</span><input type="date" id="vtExpDia"></label>
+        <label data-for="semana" hidden><span>Cualquier día de la semana</span><input type="date" id="vtExpSemana"></label>
+        <label data-for="mes" hidden><span>Mes</span><input type="month" id="vtExpMes"></label>
+        <p data-for="actual" hidden class="vt-export-actual" id="vtExpActual"></p>
+      </div>
+      <p class="vt-export-range" id="vtExpRange"></p>
+      <p class="staff-error" id="vtExpError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" id="vtExpCancel">Cancelar</button>
+        <button type="button" class="btn solid small" id="vtExpGo">Descargar PDF</button>
+      </div>
+    </div>
   </div>
 </div>
 

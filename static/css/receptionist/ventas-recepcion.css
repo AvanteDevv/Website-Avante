@@ -195,3 +195,41 @@ body.dark .vt-cancel-box{ background:rgba(231,76,60,.08); border-color:rgba(231,
 .vt-cancel-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; flex-wrap:wrap; }
 .btn.vt-btn-danger{ background:#c0392b; border-color:#c0392b; color:#fff; }
 .btn.vt-btn-danger-ghost{ border-color:#e3a39b; color:#b42318; margin-right:auto; }
+
+/* ---------- Animación de los filtros de periodo ---------- */
+.vt-seg{ position:relative; }
+.vt-seg-glow{ display:none; }
+.vt-seg.has-glow .vt-seg-glow{
+  display:block; position:absolute; left:0; top:0; z-index:0; border-radius:100px; background:var(--accent);
+  box-shadow:0 6px 16px -4px rgba(4,28,255,.45); pointer-events:none;
+  transition:transform .42s cubic-bezier(.22,1.25,.36,1), width .42s cubic-bezier(.22,1.25,.36,1), height .3s ease, opacity .2s ease;
+}
+.vt-seg.has-glow button{ position:relative; z-index:1; background:transparent !important; box-shadow:none !important; transition:color .3s ease, transform .2s ease; }
+.vt-seg.has-glow button.is-on{ color:#fff; }
+.vt-seg button:active{ transform:scale(.95); }
+.vt-seg button.is-pop{ animation:vtSegPop .42s cubic-bezier(.22,1.4,.36,1); }
+@keyframes vtSegPop{ 0%{ transform:scale(.92); } 60%{ transform:scale(1.06); } 100%{ transform:scale(1); } }
+.vt-table-wrap.is-swap, .vt-stats.is-swap{ animation:vtSwap .38s ease; }
+@keyframes vtSwap{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce){
+  .vt-seg.has-glow .vt-seg-glow{ transition:none; }
+  .vt-seg button.is-pop, .vt-table-wrap.is-swap, .vt-stats.is-swap{ animation:none; }
+}
+
+/* ---------- Exportar PDF ---------- */
+.vt-export-btn{ display:inline-flex; align-items:center; gap:6px; }
+.vt-export-btn svg{ width:15px; height:15px; }
+.vt-export-card{ max-width:460px; width:calc(100% - 32px); }
+.vt-export-card .admin-modal-body{ display:flex; flex-direction:column; gap:14px; }
+.vt-export-hint{ margin:0; font-size:13px; opacity:.8; line-height:1.45; }
+.vt-export-seg{ align-self:stretch; }
+.vt-export-seg button{ flex:1 1 auto; }
+.vt-export-pick label{ display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; }
+.vt-export-pick label[hidden], .vt-export-pick p[hidden]{ display:none; }
+.vt-export-pick input{
+  padding:10px 12px; border-radius:12px; border:1px solid var(--border, #e2e2e2); background:var(--surface, #fff);
+  color:inherit; font:inherit; font-weight:500;
+}
+.vt-export-actual{ margin:0; font-size:13px; }
+.vt-export-range{ margin:0; padding:10px 12px; border-radius:12px; background:var(--accent-soft); font-size:13px; }
+body.dark .vt-export-pick input{ color-scheme:dark; background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.14); }
