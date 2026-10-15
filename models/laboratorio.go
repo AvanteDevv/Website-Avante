@@ -61,6 +61,10 @@ type LabOrder struct {
 	LastBy       string     `json:"lastBy,omitempty"`
 	LastRole     string     `json:"lastRole,omitempty"`
 	LastAt       *time.Time `json:"lastAt,omitempty"`
+	// Orden de laboratorio (hoja del optometrista) de este trabajo.
+	Hoja        *LabHojaRef `json:"hoja,omitempty"`
+	hojaID      int64
+	clientPhone string
 }
 
 // ListLabOrders: todos los pedidos, el más reciente primero, con su
@@ -71,8 +75,11 @@ func ListLabOrders() ([]LabOrder, error) {
 		       COALESCE(o.rx_option, ''), COALESCE(o.rx_od, ''), COALESCE(o.rx_oi, ''), COALESCE(o.customer_name, ''), o.user_id, o.status, o.created_at,
 		       COALESCE(o.inventory_id, 0), COALESCE(o.lab_notes, ''),
 		       COALESCE(i.clave, ''), i.cantidad_actual, COALESCE(d.nombre, ''),
-		       h.changed_by, h.changed_role, h.created_at
+		       h.changed_by, h.changed_role, h.created_at,
+		       COALESCE(o.lab_sheet_id, 0), COALESCE(pc.celular, '')
 		FROM orders o
+		LEFT JOIN pos_sales ps ON ps.id = o.pos_sale_id
+		LEFT JOIN pos_clients pc ON pc.id = ps.client_id
 		LEFT JOIN inventory_items i ON i.id = o.inventory_id
 		LEFT JOIN inv_departamentos d ON d.id = i.departamento_id
 		LEFT JOIN order_status_history h ON h.id = (
@@ -95,7 +102,7 @@ func ListLabOrders() ([]LabOrder, error) {
 			&o.ID, &o.OrderCode, &o.ProductName, &o.ProductBrand, &o.Quantity, &o.UnitPrice, &o.Total,
 			&o.RxOption, &o.RxOD, &o.RxOI, &o.CustomerName, &userID, &o.Status, &o.CreatedAt,
 			&o.InventoryID, &o.LabNotes, &o.Clave, &exist, &o.Departamento,
-			&lastBy, &lastRole, &lastAt,
+			&lastBy, &lastRole, &lastAt, &o.hojaID, &o.clientPhone,
 		); err != nil {
 			return nil, err
 		}
@@ -117,7 +124,11 @@ func ListLabOrders() ([]LabOrder, error) {
 		}
 		list = append(list, o)
 	}
-	return list, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	attachLabHojas(list)
+	return list, nil
 }
 
 // IsOrderStatus indica si la clave existe en los estados configurados.

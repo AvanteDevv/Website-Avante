@@ -250,6 +250,14 @@
   var landedId = null;
 
   function sortedStatuses() { return statuses.slice().sort(function (a, b) { return a.sortOrder - b.sortOrder || a.id - b.id; }); }
+  // Cada columna del tablero con su propio color (para distinguirlas de
+  // un vistazo), en el orden de los estados.
+  var PALETTE = ['#2563eb', '#ea580c', '#7c3aed', '#0891b2', '#16a34a', '#db2777', '#ca8a04', '#dc2626', '#0d9488', '#4f46e5', '#65a30d', '#9333ea'];
+  function colorOf(key) {
+    var i = sortedStatuses().findIndex(function (s) { return s.key === key; });
+    return i < 0 ? '#767b8a' : PALETTE[i % PALETTE.length];
+  }
+  function origenTxt(o) { return o.origen === 'laboratorio' ? 'Sucursal' : 'Ecommerce'; }
   function statusOf(key) { return statuses.filter(function (s) { return s.key === key; })[0] || null; }
   function doneKey() {
     var s = sortedStatuses();
@@ -273,6 +281,7 @@
   }
 
   function renderStats() {
+    if (!$('labStats')) return;
     var html = '<div class="stat-card-wrap"><div class="stat-card-glow"></div><div class="admin-stat-card"><div class="num">' + orders.length + '</div><div class="label">Trabajos</div></div></div>';
     sortedStatuses().forEach(function (s) {
       var n = orders.filter(function (o) { return o.status === s.key; }).length;
@@ -283,7 +292,7 @@
 
   function badge(key) {
     var s = statusOf(key);
-    return '<span class="lab-badge" style="--badge-color:' + esc(s ? s.color : '#767b8a') + '">' + esc(s ? s.label : key) + '</span>';
+    return '<span class="lab-badge" style="--badge-color:' + colorOf(key) + '">' + esc(s ? s.label : key) + '</span>';
   }
   function productLine(o) {
     return esc(o.productName) + (o.clave ? ' <span class="lab-muted">· ' + esc(o.clave) + '</span>' : '');
@@ -295,19 +304,29 @@
     return p.join(' · ');
   }
 
+  var DOC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>';
+  function hojaBtn(o, big) {
+    if (!o.hoja) return '';
+    return '<button type="button" class="lab-hoja-btn' + (big ? ' is-big' : '') + '" data-hoja="' + o.hoja.id + '" title="Ver la orden de laboratorio' + (o.hoja.folio ? ' Nº ' + o.hoja.folio : '') + '">' +
+      DOC_ICON + '<span>' + (o.hoja.folio ? 'Nº ' + o.hoja.folio : 'Orden') + '</span></button>';
+  }
   function cardHTML(o, i) {
     var nx = nextStatus(o.status);
     var rx = rxLine(o);
     return '<article class="lab-card' + (String(o.id) === String(landedId) ? ' is-landed' : '') + '" draggable="true" data-id="' + o.id + '" tabindex="0" style="--i:' + Math.min(i, 12) + '">' +
       '<div class="lab-card-top"><strong class="lab-code">' + esc(o.orderCode || ('#' + o.id)) + '</strong>' +
-        '<span class="lab-origin is-' + o.origen + '">' + (o.origen === 'laboratorio' ? 'Laboratorio' : 'Tienda') + '</span></div>' +
+        '<span class="lab-card-tags">' + hojaBtn(o) + '<span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span></span></div>' +
       '<div class="lab-card-client">' + esc(o.customerName || 'Cliente sin nombre') + '</div>' +
       '<div class="lab-card-prod">' + productLine(o) + (o.quantity > 1 ? ' <span class="lab-qty">×' + o.quantity + '</span>' : '') + '</div>' +
       (rx ? '<div class="lab-card-rx">' + esc(rx) + '</div>' : '') +
       (o.labNotes ? '<div class="lab-card-note" title="' + esc(o.labNotes) + '">' + esc(o.labNotes) + '</div>' : '') +
       '<div class="lab-card-foot"><span>' + (o.lastAt ? esc((o.lastBy || 'Alguien') + ' · ' + hace(o.lastAt)) : fecha(o.createdAt)) + '</span>' +
-        (nx ? '<button type="button" class="lab-next" data-next="' + esc(nx.key) + '" title="Pasar a ' + esc(nx.label) + '">' + esc(nx.label) +
-          ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>' : '') +
+        '<span class="lab-split">' +
+          (nx ? '<button type="button" class="lab-next" data-next="' + esc(nx.key) + '" title="Pasar a ' + esc(nx.label) + '">' + esc(nx.label) +
+            ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>' : '') +
+          '<button type="button" class="lab-next lab-next-menu' + (nx ? '' : ' is-alone') + '" data-status-menu="' + o.id + '" title="Cambiar estatus" aria-label="Cambiar estatus">' +
+            (nx ? '' : 'Estatus ') + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>' +
+        '</span>' +
       '</div>' +
     '</article>';
   }
@@ -325,7 +344,7 @@
     }
     cols.forEach(function (s) {
       var mine = list.filter(function (o) { return o.status === s.key; });
-      html += '<section class="lab-col" data-status="' + esc(s.key) + '" style="--col-color:' + esc(s.color) + '">' +
+      html += '<section class="lab-col" data-status="' + esc(s.key) + '" style="--col-color:' + colorOf(s.key) + '">' +
         '<header class="lab-col-head"><span class="lab-col-dot"></span><strong>' + esc(s.label) + '</strong><span class="lab-col-n">' + mine.length + '</span></header>' +
         '<div class="lab-col-body">' + (mine.length ? mine.map(cardHTML).join('') : '<p class="lab-col-empty">Suelta aquí un trabajo</p>') + '</div>' +
       '</section>';
@@ -338,7 +357,7 @@
     $('labRows').innerHTML = list.map(function (o, i) {
       return '<tr data-id="' + o.id + '" style="--i:' + Math.min(i, 20) + '" class="' + (String(o.id) === String(landedId) ? 'is-landed' : '') + '">' +
         '<td><strong class="lab-code">' + esc(o.orderCode || ('#' + o.id)) + '</strong><div class="lab-muted">' + fecha(o.createdAt) + '</div></td>' +
-        '<td>' + esc(o.customerName || 'Cliente sin nombre') + '<div><span class="lab-origin is-' + o.origen + '">' + (o.origen === 'laboratorio' ? 'Laboratorio' : 'Tienda') + '</span></div></td>' +
+        '<td>' + esc(o.customerName || 'Cliente sin nombre') + '<div><span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span>' + hojaBtn(o) + '</div></td>' +
         '<td>' + productLine(o) + (rxLine(o) ? '<div class="lab-muted">' + esc(rxLine(o)) + '</div>' : '') + '</td>' +
         '<td><button type="button" class="lab-status-btn" data-status-menu="' + o.id + '">' + badge(o.status) +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button></td>' +
@@ -356,7 +375,7 @@
     if (view === 'tablero') renderBoard(); else renderList();
     var empty = !orders.length || (!list.length && view === 'lista');
     $('labEmpty').hidden = !empty;
-    $('labEmpty').textContent = !orders.length ? 'Todavía no hay trabajos. Da de alta uno con “Nuevo trabajo”.' : 'Ningún trabajo coincide con la búsqueda.';
+    $('labEmpty').textContent = !orders.length ? 'Todavía no hay trabajos.' : 'Ningún trabajo coincide con la búsqueda.';
     landedId = null;
   }
 
@@ -437,6 +456,10 @@
     if (id) setStatus(id, col.dataset.status);
   });
   board.addEventListener('click', function (e) {
+    var hj = e.target.closest('[data-hoja]');
+    if (hj) { e.stopPropagation(); openHoja(hj.dataset.hoja); return; }
+    var sm = e.target.closest('[data-status-menu]');
+    if (sm) { e.stopPropagation(); if (menuEl && menuEl._for === sm.dataset.statusMenu) { closeStatusMenu(); return; } openStatusMenu(sm, sm.dataset.statusMenu); return; }
     var nx = e.target.closest('[data-next]');
     var card = e.target.closest('.lab-card');
     if (!card) return;
@@ -459,11 +482,12 @@
     menuEl.className = 'lab-menu';
     menuEl.innerHTML = '<div class="lab-menu-label">Cambiar estado</div>' + sortedStatuses().map(function (s, i) {
       return '<button type="button" data-set="' + esc(s.key) + '" class="' + (s.key === o.status ? 'is-active' : '') + '" style="--i:' + i + '">' +
-        '<span class="lab-menu-dot" style="background:' + esc(s.color) + '"></span>' + esc(s.label) + '</button>';
+        '<span class="lab-menu-dot" style="background:' + colorOf(s.key) + '"></span>' + esc(s.label) + '</button>';
     }).join('');
+    menuEl._for = String(id);
     document.body.appendChild(menuEl);
     var r = anchor.getBoundingClientRect();
-    var left = Math.min(window.innerWidth - menuEl.offsetWidth - 10, r.left);
+    var left = Math.min(window.innerWidth - menuEl.offsetWidth - 10, Math.max(r.left, r.right - menuEl.offsetWidth));
     var top = r.bottom + 6;
     if (top + menuEl.offsetHeight > window.innerHeight - 10) top = Math.max(10, r.top - menuEl.offsetHeight - 6);
     menuEl.style.left = Math.max(10, left) + 'px';
@@ -482,6 +506,8 @@
   $('labRows').addEventListener('click', function (e) {
     var sm = e.target.closest('[data-status-menu]');
     if (sm) { e.stopPropagation(); openStatusMenu(sm, sm.dataset.statusMenu); return; }
+    var hj = e.target.closest('[data-hoja]');
+    if (hj) { e.stopPropagation(); openHoja(hj.dataset.hoja); return; }
     var op = e.target.closest('[data-open]');
     if (op) { openDetail(op.dataset.open); return; }
     var tr = e.target.closest('tr[data-id]');
@@ -500,7 +526,7 @@
     var o = orders.filter(function (x) { return String(x.id) === detailId; })[0];
     if (!o) { closeModal('labDetailModal'); detailId = null; return; }
     $('labDetailTitle').textContent = o.orderCode || ('Pedido #' + o.id);
-    $('labDetailSub').textContent = (o.origen === 'laboratorio' ? 'Dado de alta en laboratorio' : 'Comprado en la tienda en línea') + ' · ' + fecha(o.createdAt);
+    $('labDetailSub').textContent = (o.origen === 'laboratorio' ? 'De sucursal' : 'Ecommerce') + ' · ' + fecha(o.createdAt);
     var steps = sortedStatuses();
     var cur = steps.findIndex(function (s) { return s.key === o.status; });
     var info = [
@@ -518,11 +544,20 @@
     $('labDetailBody').innerHTML =
       '<div class="lab-steps" style="--n:' + Math.max(steps.length, 1) + '">' + steps.map(function (s, i) {
         var cls = cur === -1 ? '' : (i < cur ? 'is-done' : (i === cur ? 'is-current' : ''));
-        return '<button type="button" class="lab-step ' + cls + '" data-step="' + esc(s.key) + '" style="--step-color:' + esc(s.color) + '" title="Pasar a ' + esc(s.label) + '">' +
+        return '<button type="button" class="lab-step ' + cls + '" data-step="' + esc(s.key) + '" style="--step-color:' + colorOf(s.key) + '" title="Pasar a ' + esc(s.label) + '">' +
           '<span class="lab-step-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>' +
           '<span class="lab-step-label">' + esc(s.label) + '</span></button>';
       }).join('') + '<span class="lab-steps-bar"><span style="width:' + (steps.length > 1 && cur > 0 ? (cur / (steps.length - 1) * 100) : 0) + '%"></span></span></div>' +
       '<p class="lab-hint">Toca un paso para cambiar el estado. El cliente lo ve igual en Rastreo.</p>' +
+      '<div class="lab-hoja-box">' + (o.hoja
+        ? '<div class="lab-hoja-info">' + DOC_ICON + '<div><strong>Orden de laboratorio' + (o.hoja.folio ? ' Nº ' + o.hoja.folio : '') + '</strong><small>' + esc(o.hoja.paciente) + ' · ' + fecha(o.hoja.fecha) +
+            (o.hoja.auto ? ' · encontrada por el nombre / celular del cliente' : ' · ligada a mano') + '</small></div></div>' +
+          '<div class="lab-hoja-actions"><button type="button" class="btn solid small" data-hoja="' + o.hoja.id + '">Ver hoja</button>' +
+            '<button type="button" class="btn small" id="labHojaPick">Cambiar</button>' + (o.hoja.auto ? '' : '<button type="button" class="btn small" id="labHojaUnlink">Quitar</button>') + '</div>'
+        : '<div class="lab-hoja-info is-none">' + DOC_ICON + '<div><strong>Sin orden de laboratorio</strong><small>No se encontró una con el nombre o celular de este cliente.</small></div></div>' +
+          '<div class="lab-hoja-actions"><button type="button" class="btn small" id="labHojaPick">Ligar una orden</button></div>') +
+        '<div class="lab-hoja-picker" id="labHojaPicker" hidden><input type="search" id="labHojaQ" placeholder="Buscar por paciente o celular…" autocomplete="off"><div class="lab-hoja-list" id="labHojaList"></div></div>' +
+      '</div>' +
       '<dl class="lab-info">' + info.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('') + '</dl>' +
       '<label class="lab-field lab-notes"><span>Notas del laboratorio</span><textarea id="labNotes" rows="3" maxlength="500" placeholder="Altura, tratamiento, observaciones…">' + esc(notesOld !== null && detailId === String(o.id) && document.activeElement && document.activeElement.id === 'labNotes' ? notesOld : (o.labNotes || '')) + '</textarea></label>' +
       '<div class="lab-detail-actions">' +
@@ -535,6 +570,7 @@
       b.addEventListener('click', function () { setStatus(o.id, b.dataset.step).then(loadHistory); });
     });
     $('labCopyTrack').addEventListener('click', function () { copyText(trackURL(o.orderCode), 'Link de rastreo copiado.'); });
+    wireHojaBox(o);
     $('labNotesSave').addEventListener('click', function () {
       var btn = this; btn.disabled = true;
       api('/api/laboratorio/pedidos/' + o.id + '/notas', { method: 'PUT', body: { notes: $('labNotes').value } }).then(function (r) {
@@ -549,7 +585,7 @@
     if (!el) return;
     el.innerHTML = list.length ? list.map(function (h) {
       var s = statusOf(h.status);
-      return '<li><span class="lab-menu-dot" style="background:' + esc(s ? s.color : '#767b8a') + '"></span>' +
+      return '<li><span class="lab-menu-dot" style="background:' + colorOf(h.status) + '"></span>' +
         '<span><strong>' + esc(s ? s.label : h.status) + '</strong> · ' + esc(h.by || 'Sistema') + '</span><time>' + fechaHora(h.at) + '</time></li>';
     }).join('') : '<li class="lab-muted">Sin cambios registrados todavía (los cambios se registran desde hoy).</li>';
   }
@@ -561,6 +597,78 @@
       if (detailId === id) paintHistory(historyCache[id]);
     }).catch(function () {});
   }
+
+  /* ---------- orden de laboratorio (la hoja del optometrista) ---------- */
+  var hojaCache = {};
+  function openHoja(id) {
+    var go = function (d) {
+      if (!window.AvanteExamModal) { toast('No se pudo abrir la hoja.'); return; }
+      if (!d.plantilla) { toast('La plantilla de la orden de laboratorio ya no existe.'); return; }
+      var h = d.hoja;
+      var sub = [fecha(h.createdAt), h.createdByName ? 'Llenó ' + h.createdByName : '', 'Orden de laboratorio' + (h.folio ? ' Nº ' + h.folio : '')].filter(Boolean).join(' · ');
+      AvanteExamModal.open({ exam: h, template: d.plantilla }, { subtitle: sub });
+    };
+    if (hojaCache[id]) return go(hojaCache[id]);
+    api('/api/laboratorio/hojas/' + id).then(function (d) { hojaCache[id] = d; go(d); }).catch(function (err) { toast(err.message); });
+  }
+  function wireHojaBox(o) {
+    var pickBtn = $('labHojaPick'), unlink = $('labHojaUnlink');
+    function link(sheetId) {
+      return api('/api/laboratorio/pedidos/' + o.id + '/hoja', { method: 'PUT', body: { sheetId: sheetId } }).then(function () {
+        toast(sheetId ? 'Orden de laboratorio ligada.' : 'Se quitó la orden ligada.');
+        return loadOrders();
+      }).catch(function (err) { toast(err.message); });
+    }
+    if (unlink) unlink.addEventListener('click', function () { link(0); });
+    if (!pickBtn) return;
+    var t = null;
+    function search() {
+      api('/api/laboratorio/hojas?q=' + encodeURIComponent($('labHojaQ').value.trim())).then(function (d) {
+        var list = d.hojas || [];
+        $('labHojaList').innerHTML = list.length ? list.map(function (h) {
+          return '<button type="button" data-link-hoja="' + h.id + '">' + DOC_ICON + '<span><strong>' + esc(h.paciente) + '</strong><small>' +
+            (h.folio ? 'Nº ' + h.folio + ' · ' : '') + fecha(h.fecha) + '</small></span><em data-view-hoja="' + h.id + '">Ver</em></button>';
+        }).join('') : '<p class="lab-empty-sm">No hay órdenes de laboratorio con esa búsqueda.</p>';
+      }).catch(function (err) { $('labHojaList').innerHTML = '<p class="lab-empty-sm">' + esc(err.message) + '</p>'; });
+    }
+    pickBtn.addEventListener('click', function () {
+      var pk = $('labHojaPicker');
+      pk.hidden = !pk.hidden;
+      if (!pk.hidden) { $('labHojaQ').value = ''; search(); $('labHojaQ').focus(); }
+    });
+    $('labHojaQ').addEventListener('input', function () { clearTimeout(t); t = setTimeout(search, 220); });
+    $('labHojaList').addEventListener('click', function (e) {
+      var v = e.target.closest('[data-view-hoja]');
+      if (v) { e.stopPropagation(); openHoja(v.dataset.viewHoja); return; }
+      var b = e.target.closest('[data-link-hoja]');
+      if (b) link(Number(b.dataset.linkHoja));
+    });
+  }
+  $('labDetailBody').addEventListener('click', function (e) {
+    var hj = e.target.closest('.lab-hoja-actions [data-hoja]');
+    if (hj) openHoja(hj.dataset.hoja);
+  });
+
+  /* ---------- pantalla completa: solo el tablero ---------- */
+  function setFull(on) {
+    document.body.classList.toggle('lab-full', on);
+    if (on) {
+      if (view !== 'tablero') setView('tablero');
+      var el = document.documentElement;
+      if (el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(function () {});
+    } else if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    }
+    store('labFull', on ? '1' : '0');
+  }
+  $('labFullBtn').addEventListener('click', function () { setFull(true); });
+  $('labFullExit').addEventListener('click', function () { setFull(false); });
+  document.addEventListener('fullscreenchange', function () {
+    if (!document.fullscreenElement && document.body.classList.contains('lab-full')) setFull(false);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.body.classList.contains('lab-full') && !document.querySelector('.admin-modal-overlay.open, .exm-overlay.open') && !menuEl) setFull(false);
+  });
 
   /* ---------- filtros y vista ---------- */
   var sw = $('labViewSwitch');

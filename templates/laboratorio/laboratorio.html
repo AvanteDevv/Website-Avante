@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
 <link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
 <link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-render.css">
+<link rel="stylesheet" href="/static/css/optometrist/examen-modal.css">
 <link rel="stylesheet" href="/static/css/laboratorio/laboratorio.css">
 </head>
 <body class="cuenta-body admin-body">
@@ -71,24 +73,14 @@
 
     {{else}}
     <!-- ===================== TRABAJOS ===================== -->
-    <div class="admin-header">
-      <div>
-        <h1>Trabajos</h1>
-        <p>El estado de cada pedido. Lo que cambies aquí se ve al momento en Admin → Pedidos y en la página de Rastreo del cliente.</p>
-      </div>
-      <button type="button" class="btn solid small lab-new-btn" data-new-job>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-        Nuevo trabajo
-      </button>
-    </div>
-
-    <div class="admin-stats" id="labStats"></div>
-
-    <div class="admin-panel">
-      <div class="admin-panel-head admin-panel-head--stacked">
-        <div class="admin-panel-head-row">
-          <h2>Trabajos por estado</h2>
+    <div class="admin-panel lab-panel" id="labPanel">
+      <div class="admin-panel-head admin-panel-head--stacked lab-head">
+        <div class="admin-panel-head-row lab-head-row">
           <div class="admin-panel-head-actions">
+            <button type="button" class="btn small lab-full-btn" id="labFullBtn" title="Ver solo el tablero en pantalla completa">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+              Pantalla completa
+            </button>
             <label class="lab-toggle" title="Ocultar los que ya se entregaron">
               <input type="checkbox" id="labHideDone">
               <span class="lab-toggle-track"><span class="lab-toggle-thumb"></span></span>
@@ -120,13 +112,17 @@
           </div>
           <div class="cf-seg" id="labOrigen" role="tablist" aria-label="Origen">
             <button type="button" data-origen="" class="is-on">Todos</button>
-            <button type="button" data-origen="laboratorio">Del laboratorio</button>
-            <button type="button" data-origen="tienda">De la tienda</button>
+            <button type="button" data-origen="laboratorio">De sucursal</button>
+            <button type="button" data-origen="tienda">Ecommerce</button>
           </div>
         </div>
       </div>
 
       <div class="lab-board" id="labBoard"></div>
+      <button type="button" class="lab-full-exit" id="labFullExit" title="Salir de pantalla completa (Esc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
+        Salir
+      </button>
 
       <div class="lab-table-wrap" id="labList" hidden>
         <table class="lab-table">
@@ -220,6 +216,8 @@
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/receptionist/sidebar-receptionist.js"></script>
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/optometrist/examen-render.js"></script>
+<script src="/static/js/optometrist/examen-modal.js"></script>
 <script src="/static/js/laboratorio/laboratorio.js"></script>
 </body>
 </html>

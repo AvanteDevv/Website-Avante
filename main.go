@@ -238,6 +238,8 @@ func main() {
 	db.EnsurePosPedidoColumn()
 	// Corte de caja (cortes, movimientos de caja, propinas, cancelación de ventas)
 	db.EnsureCajaTables()
+	// Laboratorio: orden de laboratorio ligada a cada trabajo
+	db.EnsureLabHojaColumn()
 
 	storage.Connect()
 	// Clarito: sube una sola vez los 3 formatos de static/pdf/clarito al
@@ -622,6 +624,9 @@ func main() {
 		apiLaboratorio.PUT("/pedidos/:id/notas", handlers.LabSetNotes)
 		apiLaboratorio.GET("/pedidos/:id/historial", handlers.LabOrderHistory)
 		apiLaboratorio.GET("/inventario", handlers.LabInventario)
+		apiLaboratorio.GET("/hojas", handlers.LabSearchHojas)
+		apiLaboratorio.GET("/hojas/:id", handlers.LabGetHoja)
+		apiLaboratorio.PUT("/pedidos/:id/hoja", handlers.LabLinkHoja)
 	}
 
 	apiInventario := router.Group("/api/inventario", handlers.RequireAdminAuth(), inventarioStaff)

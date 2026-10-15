@@ -77,11 +77,8 @@
 
   <nav class="cuenta-nav-group">
     <span class="cuenta-nav-blob" aria-hidden="true"></span>
-    {{/* Laboratorio: los trabajos (pedidos) por estado y el inventario
-         del que se toman los productos. */}}
+    {{/* Laboratorio: los trabajos (pedidos) por estado. */}}
     <a href="/laboratorio/trabajos" class="cuenta-nav-link{{if eq .ActivePage "lab-trabajos"}} active{{end}}"><i data-feather="tool"></i><span>Trabajos</span><span class="cuenta-nav-tooltip">Trabajos</span></a>
-    <a href="/laboratorio/inventario" class="cuenta-nav-link{{if eq .ActivePage "lab-inventario"}} active{{end}}"><i data-feather="package"></i><span>Inventario</span><span class="cuenta-nav-tooltip">Inventario</span></a>
-    <a href="/rastreo" class="cuenta-nav-link" target="_blank" rel="noopener"><i data-feather="map-pin"></i><span>Rastreo público</span><span class="cuenta-nav-tooltip">Rastreo público</span></a>
   </nav>
 
   <div class="cuenta-nav-divider"></div>

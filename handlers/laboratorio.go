@@ -207,3 +207,53 @@ func LabInventario(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, out)
 }
+
+// LabGetHoja — GET /api/laboratorio/hojas/:id (orden de laboratorio + plantilla)
+func LabGetHoja(c *gin.Context) {
+	id, ok := labParamID(c)
+	if !ok {
+		return
+	}
+	h, t, err := models.GetLabHojaFull(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Esa orden de laboratorio ya no existe."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"hoja": h, "plantilla": t})
+}
+
+// LabSearchHojas — GET /api/laboratorio/hojas?q=
+func LabSearchHojas(c *gin.Context) {
+	list, err := models.SearchLabHojas(c.Query("q"), 40)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar las órdenes de laboratorio."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"hojas": list})
+}
+
+// LabLinkHoja — PUT /api/laboratorio/pedidos/:id/hoja {sheetId} (0 = automática)
+func LabLinkHoja(c *gin.Context) {
+	id, ok := labParamID(c)
+	if !ok {
+		return
+	}
+	var in struct {
+		SheetID int64 `json:"sheetId"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	err := models.SetOrderLabHoja(id, in.SheetID)
+	switch {
+	case errors.Is(err, models.ErrLabHojaNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "Esa orden de laboratorio ya no existe."})
+	case errors.Is(err, models.ErrOrderNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese trabajo ya no existe."})
+	case err != nil:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo ligar la orden."})
+	default:
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	}
+}
