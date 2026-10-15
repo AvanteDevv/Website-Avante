@@ -681,11 +681,30 @@
   }
   sw.addEventListener('click', function (e) { var b = e.target.closest('.view-switch-btn'); if (b && b.dataset.view !== view) setView(b.dataset.view); });
   $('labSearch').addEventListener('input', function () { search = this.value; render(); });
-  $('labOrigen').addEventListener('click', function (e) {
+  // Filtro Todos / De sucursal / Ecommerce: la pastilla azul se desliza
+  // al botón elegido y el tablero entra con una transición.
+  var seg = $('labOrigen'), segGlow = seg.querySelector('.lab-seg-glow');
+  function moveGlow(instant) {
+    var on = seg.querySelector('button.is-on');
+    if (!on || !segGlow) return;
+    if (instant) segGlow.style.transition = 'none';
+    segGlow.style.width = on.offsetWidth + 'px';
+    segGlow.style.height = on.offsetHeight + 'px';
+    segGlow.style.transform = 'translate(' + on.offsetLeft + 'px,' + on.offsetTop + 'px)';
+    if (instant) { void segGlow.offsetWidth; segGlow.style.transition = ''; }
+  }
+  seg.classList.add('has-glow');
+  requestAnimationFrame(function () { moveGlow(true); });
+  window.addEventListener('resize', function () { moveGlow(true); });
+  seg.addEventListener('click', function (e) {
     var b = e.target.closest('button[data-origen]');
-    if (!b) return;
+    if (!b || b.classList.contains('is-on')) return;
     origen = b.dataset.origen;
-    $('labOrigen').querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); });
+    seg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); });
+    moveGlow();
+    b.classList.remove('is-pop'); void b.offsetWidth; b.classList.add('is-pop');
+    var area = view === 'tablero' ? $('labBoard') : $('labList');
+    area.classList.remove('is-swap'); void area.offsetWidth; area.classList.add('is-swap');
     render();
   });
   $('labHideDone').checked = hideDone;

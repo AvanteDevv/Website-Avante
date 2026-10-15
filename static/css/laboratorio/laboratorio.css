@@ -334,3 +334,26 @@ body.lab-full .lab-full-exit{
 }
 body.lab-full .lab-full-exit svg{ width:15px; height:15px; }
 body.lab-full .lab-full-exit:hover{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* Filtro Todos / De sucursal / Ecommerce con pastilla deslizante */
+#labOrigen{ position:relative; isolation:isolate; }
+.lab-seg-glow{ display:none; }
+#labOrigen.has-glow .lab-seg-glow{
+  display:block; position:absolute; left:0; top:0; z-index:0; border-radius:100px; background:var(--accent);
+  box-shadow:0 6px 16px -4px rgba(4,28,255,.45); pointer-events:none;
+  transition:transform .42s cubic-bezier(.22,1.25,.36,1), width .42s cubic-bezier(.22,1.25,.36,1), height .3s var(--ease);
+}
+#labOrigen.has-glow button{ position:relative; z-index:1; background:transparent !important; box-shadow:none !important; transition:color .3s var(--ease), transform .2s var(--ease); }
+#labOrigen.has-glow button.is-on{ color:#fff; }
+#labOrigen button:active{ transform:scale(.95); }
+#labOrigen button.is-pop{ animation:labSegPop .42s cubic-bezier(.22,1.4,.36,1); }
+@keyframes labSegPop{ 0%{ transform:scale(.92); } 60%{ transform:scale(1.06); } 100%{ transform:scale(1); } }
+
+/* El tablero / la lista entra con una transición al cambiar el filtro */
+.lab-board.is-swap, #labList.is-swap{ animation:labSwap .38s var(--ease); }
+@keyframes labSwap{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+.lab-board.is-swap .lab-card{ animation:labCardIn .34s var(--ease) both; animation-delay:calc(var(--i, 0) * 30ms); }
+@media (prefers-reduced-motion: reduce){
+  #labOrigen.has-glow .lab-seg-glow{ transition:none; }
+  #labOrigen button.is-pop, .lab-board.is-swap, #labList.is-swap, .lab-board.is-swap .lab-card{ animation:none; }
+}
