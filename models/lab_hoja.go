@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -159,4 +160,112 @@ func GetLabHojaFull(id int64) (*LabOrderSheet, *ExamTemplate, error) {
 		t = nil
 	}
 	return h, t, nil
+}
+
+// Estatus que solo pone recepción ("Listo para la entrega" y los que van
+// después, como "Entregado"): el laboratorio no los ve.
+func RecepcionOnlyStatuses(all []OrderStatus) map[string]bool {
+	out := map[string]bool{}
+	cut := -1
+	for _, s := range all {
+		if s.Key == "listo_entrega" {
+			cut = s.SortOrder
+		}
+	}
+	for _, s := range all {
+		l := NormalizePatientName(s.Label)
+		if s.Key == "listo_entrega" || s.Key == "entregado" || (cut >= 0 && s.SortOrder >= cut) ||
+			strings.Contains(l, "entregad") || strings.Contains(l, "listo para la entrega") {
+			out[s.Key] = true
+		}
+	}
+	return out
+}
+
+// SetOrderLabExterno marca / desmarca "laboratorio externo".
+func SetOrderLabExterno(orderID int64, on bool) error {
+	res, err := db.DB.Exec("UPDATE orders SET lab_externo = ? WHERE id = ?", on, orderID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		var x int
+		if db.DB.QueryRow("SELECT COUNT(*) FROM orders WHERE id = ?", orderID).Scan(&x) == nil && x == 0 {
+			return ErrOrderNotFound
+		}
+	}
+	return nil
+}
+
+/* ---------- ventas que esperan su orden de laboratorio (optometrista) ---------- */
+
+// VentaPendienteOrden — una venta de recepción con pedido que todavía no
+// tiene orden de laboratorio.
+type VentaPendienteOrden struct {
+	PedidoID   int64     `json:"pedidoId"`
+	Code       string    `json:"code"`
+	Folio      int64     `json:"folio"`
+	Cliente    string    `json:"cliente"`
+	Celular    string    `json:"celular"`
+	Productos  []string  `json:"productos"`
+	Total      float64   `json:"total"`
+	Cajero     string    `json:"cajero"`
+	Fecha      time.Time `json:"fecha"`
+	TicketPath string    `json:"ticketPath"`
+}
+
+// ListVentasPendientesOrden — ventas (no canceladas, de los últimos 60
+// días) cuyo pedido no tiene orden de laboratorio ni se marcó "sin orden".
+func ListVentasPendientesOrden() ([]VentaPendienteOrden, error) {
+	list, err := ListLabOrders()
+	if err != nil {
+		return nil, err
+	}
+	desde := time.Now().AddDate(0, 0, -60)
+	ids := []int64{}
+	byID := map[int64]*LabOrder{}
+	for i := range list {
+		o := &list[i]
+		if o.PosSaleID == 0 || o.Hoja != nil || o.SinHoja || o.CreatedAt.Before(desde) {
+			continue
+		}
+		ids = append(ids, o.ID)
+		byID[o.ID] = o
+	}
+	out := []VentaPendienteOrden{}
+	for _, id := range ids {
+		o := byID[id]
+		var v VentaPendienteOrden
+		var cancelada bool
+		err := db.DB.QueryRow(`SELECT s.id, s.cliente, COALESCE(c.celular, ''), s.total, s.cajero, s.created_at, s.cancelada
+			FROM pos_sales s LEFT JOIN pos_clients c ON c.id = s.client_id WHERE s.id = ?`, o.PosSaleID).
+			Scan(&v.Folio, &v.Cliente, &v.Celular, &v.Total, &v.Cajero, &v.Fecha, &cancelada)
+		if err != nil || cancelada {
+			continue
+		}
+		v.PedidoID, v.Code = o.ID, o.OrderCode
+		rows, err := db.DB.Query(`SELECT it.cantidad, it.descripcion FROM pos_sale_items it
+			LEFT JOIN inventory_items inv ON inv.id = it.inventory_id WHERE it.sale_id = ? ORDER BY it.id`, v.Folio)
+		if err == nil {
+			for rows.Next() {
+				var q int
+				var d string
+				if rows.Scan(&q, &d) == nil {
+					if q > 1 {
+						d = strconv.Itoa(q) + " × " + d
+					}
+					v.Productos = append(v.Productos, d)
+				}
+			}
+			rows.Close()
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+// MarkPedidoSinHoja — la venta no lleva orden de laboratorio.
+func MarkPedidoSinHoja(orderID int64) error {
+	_, err := db.DB.Exec("UPDATE orders SET lab_sin_hoja = 1 WHERE id = ? AND pos_sale_id IS NOT NULL", orderID)
+	return err
 }

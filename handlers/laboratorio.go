@@ -58,11 +58,53 @@ func LabListOrders(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar los trabajos."})
 		return
 	}
-	statuses, _ := models.GetAllOrderStatuses()
-	if statuses == nil {
-		statuses = []models.OrderStatus{}
+	all, _ := models.GetAllOrderStatuses()
+	// "Listo para la entrega" y "Entregado" los pone recepción: el
+	// laboratorio no los ve. Las ventas de recepción llegan al tablero
+	// cuando el optometrista hace su orden de laboratorio (o marca que no
+	// lleva).
+	hidden := models.RecepcionOnlyStatuses(all)
+	statuses := []models.OrderStatus{}
+	for _, s := range all {
+		if !hidden[s.Key] {
+			statuses = append(statuses, s)
+		}
 	}
-	c.JSON(http.StatusOK, gin.H{"pedidos": list, "estados": statuses})
+	pedidos := []models.LabOrder{}
+	for _, o := range list {
+		if hidden[o.Status] {
+			continue
+		}
+		if o.PosSaleID > 0 && o.Hoja == nil && !o.SinHoja {
+			continue
+		}
+		pedidos = append(pedidos, o)
+	}
+	c.JSON(http.StatusOK, gin.H{"pedidos": pedidos, "estados": statuses})
+}
+
+// LabSetExterno — PUT /api/laboratorio/pedidos/:id/externo {externo}
+func LabSetExterno(c *gin.Context) {
+	id, ok := labParamID(c)
+	if !ok {
+		return
+	}
+	var in struct {
+		Externo bool `json:"externo"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	if err := models.SetOrderLabExterno(id, in.Externo); err != nil {
+		if errors.Is(err, models.ErrOrderNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Ese trabajo ya no existe."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"externo": in.Externo})
 }
 
 type labStatusInput struct {
@@ -83,6 +125,10 @@ func LabSetStatus(c *gin.Context) {
 	status := strings.TrimSpace(in.Status)
 	if !models.IsOrderStatus(status) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese estado no existe. Revisa los estados en Admin → Pedidos."})
+		return
+	}
+	if all, _ := models.GetAllOrderStatuses(); models.RecepcionOnlyStatuses(all)[status] {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Ese estatus lo pone recepción."})
 		return
 	}
 	if err := models.SetOrderStatusBy(id, status, staffName(c), labRole(c)); err != nil {

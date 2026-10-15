@@ -461,4 +461,47 @@
   }
 })();
 
+/* =========================================================
+   Ventas de recepción que esperan su orden de laboratorio:
+   globito en "Orden de laboratorio" + aviso al momento de la venta.
+   ========================================================= */
+(function () {
+  if (!document.querySelector('[data-lab-pend]')) return;
+  var last = null;
+  function load() {
+    return fetch('/api/optometrist/ventas-pendientes', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var list = d.ventas || [];
+        document.querySelectorAll('[data-lab-pend]').forEach(function (el) {
+          el.textContent = list.length > 99 ? '99+' : String(list.length);
+          el.hidden = !list.length;
+        });
+        if (last !== null && list.length > last && window.AvanteStaff) {
+          var v = list[0];
+          window.AvanteStaff.toast({
+            title: 'Nueva venta · Ticket ' + v.folio,
+            body: (v.cliente || '') + ' — haz su orden de laboratorio',
+            href: '/optometrist/ordenes-lab',
+            duration: 9000
+          });
+        }
+        last = list.length;
+        window.dispatchEvent(new CustomEvent('lab-pendientes', { detail: list }));
+      }).catch(function () {});
+  }
+  window.AvanteLabPendientes = { reload: load };
+  load();
+  (function hook(tries) {
+    if (window.AvanteRealtime && window.AvanteRealtime.on) {
+      window.AvanteRealtime.on('lab.pendiente', function () { setTimeout(load, 300); });
+      window.AvanteRealtime.on('reconnect', load);
+      return;
+    }
+    if (tries < 40) setTimeout(function () { hook(tries + 1); }, 250);
+  })(0);
+  setInterval(function () { if (!document.hidden) load(); }, 120000);
+})();
+
 if (window.feather) feather.replace();

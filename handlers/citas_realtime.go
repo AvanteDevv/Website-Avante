@@ -32,3 +32,12 @@ func NotifyCitasChanged() gin.HandlerFunc {
 		}
 	}
 }
+
+// BroadcastLabPendiente — cambió la lista de ventas que esperan orden de
+// laboratorio (recepción vendió, o el optometrista ya hizo la orden).
+func BroadcastLabPendiente() {
+	realtime.Default.Broadcast(realtime.Event{
+		Type: "lab.pendiente",
+		Data: gin.H{"at": time.Now().Unix()},
+	})
+}

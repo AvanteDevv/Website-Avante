@@ -627,6 +627,7 @@ func main() {
 		apiLaboratorio.GET("/hojas", handlers.LabSearchHojas)
 		apiLaboratorio.GET("/hojas/:id", handlers.LabGetHoja)
 		apiLaboratorio.PUT("/pedidos/:id/hoja", handlers.LabLinkHoja)
+		apiLaboratorio.PUT("/pedidos/:id/externo", handlers.LabSetExterno)
 	}
 
 	apiInventario := router.Group("/api/inventario", handlers.RequireAdminAuth(), inventarioStaff)
@@ -789,6 +790,8 @@ func main() {
 		apiOptometrist.GET("/plantillas", handlers.ListExamTemplates)
 		apiOptometrist.GET("/plantillas/activa", handlers.GetActiveExamTemplate)
 		apiOptometrist.GET("/plantillas/laboratorio", handlers.GetLabExamTemplateHandler)
+		apiOptometrist.GET("/ventas-pendientes", handlers.VentasPendientesOrden)
+		apiOptometrist.POST("/ventas-pendientes/:id/sin-orden", handlers.VentaSinOrden)
 		apiOptometrist.GET("/plantillas/garantia", handlers.GetGarantiaTemplateHandler)
 		apiOptometrist.GET("/plantillas/:id", handlers.GetExamTemplate)
 		apiOptometrist.POST("/plantillas", handlers.CreateExamTemplate)

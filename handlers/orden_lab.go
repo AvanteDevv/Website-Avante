@@ -49,6 +49,9 @@ type createLabOrderSheetInput struct {
 	PatientPhone string          `json:"patientPhone"`
 	UserID       int64           `json:"userId"`
 	Data         json.RawMessage `json:"data"`
+	// Si se hizo desde una venta de recepción: el pedido (trabajo) al que
+	// se liga, para que le llegue al laboratorio en su tablero.
+	PedidoID int64 `json:"pedidoId"`
 }
 
 // CreateLabOrderSheetHandler — POST /api/optometrist/ordenes-lab
@@ -88,6 +91,13 @@ func CreateLabOrderSheetHandler(c *gin.Context) {
 		log.Println("orden-lab: guardar:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar la hoja."})
 		return
+	}
+	if in.PedidoID > 0 && in.Kind == models.ExamTemplateKindLab {
+		if err := models.SetOrderLabHoja(in.PedidoID, o.ID); err != nil {
+			log.Println("orden-lab: ligar al pedido:", err)
+		} else {
+			BroadcastLabPendiente()
+		}
 	}
 	c.Set("lab_order_sheet", o.PatientName)
 	c.JSON(http.StatusCreated, o)
@@ -207,4 +217,36 @@ func docActivePage(kind string) string {
 		return "optometrist-garantias"
 	}
 	return "optometrist-ordenes"
+}
+
+// VentasPendientesOrden — GET /api/optometrist/ventas-pendientes
+// Ventas de recepción que esperan su orden de laboratorio, con su ticket digital.
+func VentasPendientesOrden(c *gin.Context) {
+	list, err := models.ListVentasPendientesOrden()
+	if err != nil {
+		log.Println("ventas-pendientes:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar las ventas."})
+		return
+	}
+	for i := range list {
+		list[i].TicketPath = TicketPublicPath(list[i].Folio)
+	}
+	c.Header("Cache-Control", "no-store")
+	c.JSON(http.StatusOK, gin.H{"ventas": list})
+}
+
+// VentaSinOrden — POST /api/optometrist/ventas-pendientes/:id/sin-orden
+// Esa venta no lleva orden de laboratorio: el trabajo pasa al tablero sin hoja.
+func VentaSinOrden(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Pedido inválido."})
+		return
+	}
+	if err := models.MarkPedidoSinHoja(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar."})
+		return
+	}
+	BroadcastLabPendiente()
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

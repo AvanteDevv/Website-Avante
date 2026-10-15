@@ -357,3 +357,22 @@ body.lab-full .lab-full-exit:hover{ background:var(--accent); border-color:var(-
   #labOrigen.has-glow .lab-seg-glow{ transition:none; }
   #labOrigen button.is-pop, .lab-board.is-swap, #labList.is-swap, .lab-board.is-swap .lab-card{ animation:none; }
 }
+
+/* Laboratorio externo */
+.lab-ext-tag{
+  display:inline-flex; align-items:center; gap:4px; align-self:flex-start; padding:3px 8px; border-radius:100px;
+  background:#fdecef; color:#be123c; border:1px solid #f9c4cf; font-size:10px; font-weight:800; letter-spacing:.03em; text-transform:uppercase;
+}
+.lab-ext-tag svg{ width:11px; height:11px; }
+.lab-ext-tag.is-inline{ margin-left:6px; }
+body.dark .lab-ext-tag{ background:rgba(244,63,94,.14); color:#fda4af; border-color:rgba(244,63,94,.35); }
+.lab-ext-toggle{ display:flex; align-items:center; gap:10px; margin:0 0 12px; padding:10px 14px; border-radius:14px; border:1.5px solid var(--line); cursor:pointer; }
+.lab-ext-toggle input{ position:absolute; opacity:0; pointer-events:none; }
+.lab-ext-toggle strong{ display:block; font-size:13px; color:var(--ink); }
+.lab-ext-toggle small{ display:block; font-size:11.5px; color:var(--muted); }
+.lab-ext-toggle input:checked + .lab-toggle-track{ background:#e11d48; }
+.lab-ext-toggle input:checked + .lab-toggle-track .lab-toggle-thumb{ transform:translateX(15px); }
+
+/* El botón de la esquina siempre completo; lo que se recorta es "quién · cuándo" */
+.lab-card-foot > span:first-child{ flex:1 1 0; min-width:0; }
+.lab-split{ flex:0 0 auto; max-width:none; }

@@ -1,0 +1,35 @@
+/* OPTOMETRISTA → Orden de laboratorio: ventas que esperan su orden */
+.vp-panel{ margin-bottom:22px; border-color:color-mix(in srgb, #0d9488 35%, var(--line)); background:color-mix(in srgb, #0d9488 4%, var(--white)); }
+.vp-panel h2{ display:flex; align-items:center; gap:8px; }
+.vp-count{ display:inline-grid; place-items:center; min-width:24px; height:24px; padding:0 7px; border-radius:100px; background:#0d9488; color:#fff; font-family:var(--sans); font-size:12px; font-weight:800; }
+.vp-list{ display:flex; flex-direction:column; gap:10px; }
+.vp-item{
+  display:flex; align-items:center; gap:16px; padding:14px 16px; border-radius:16px; border:1.5px solid var(--line); background:var(--white);
+  animation:vpIn .35s var(--ease, ease) backwards; animation-delay:calc(var(--i, 0) * 40ms);
+}
+@keyframes vpIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+.vp-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.vp-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px; }
+.vp-top strong{ color:var(--ink); }
+.vp-code{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:11px; font-weight:800; color:#0f766e; background:color-mix(in srgb, #0d9488 12%, var(--white)); padding:2px 7px; border-radius:6px; }
+.vp-when{ font-size:11.5px; color:var(--grey); }
+.vp-client{ font-size:15px; font-weight:700; color:var(--ink); }
+.vp-client small{ font-size:12px; font-weight:600; color:var(--grey); }
+.vp-prods{ font-size:12.5px; color:var(--ink); line-height:1.4; }
+.vp-meta{ font-size:11.5px; color:var(--grey); }
+.vp-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.vp-skip{ border:0; background:none; padding:4px 2px; cursor:pointer; font-family:var(--sans); font-size:12px; font-weight:600; color:var(--grey); text-decoration:underline; }
+.vp-skip:hover{ color:#b42318; }
+.vp-ticket-ov{ position:fixed; inset:0; z-index:320; background:rgba(10,14,56,.5); display:flex; align-items:center; justify-content:center; padding:20px; }
+.vp-ticket-ov[hidden]{ display:none; }
+.vp-ticket-card{ width:min(440px, 100%); height:min(86vh, 900px); display:flex; flex-direction:column; border-radius:20px; overflow:hidden; background:#eef1f8; box-shadow:0 30px 60px -20px rgba(0,0,0,.5); }
+.vp-ticket-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--white); color:var(--ink); }
+.vp-x{ width:32px; height:32px; border-radius:50%; border:1px solid var(--line); background:var(--white); color:var(--ink); font-size:20px; line-height:1; cursor:pointer; }
+.vp-ticket-card iframe{ flex:1; width:100%; border:0; background:#eef1f8; }
+body.dark .vp-panel{ background:color-mix(in srgb, #0d9488 8%, var(--white)); }
+body.dark .vp-code{ color:#5eead4; }
+@media (max-width: 720px){
+  .vp-item{ flex-direction:column; align-items:stretch; }
+  .vp-actions{ justify-content:flex-start; }
+  .vp-actions .btn{ flex:1 1 auto; text-align:center; justify-content:center; }
+}

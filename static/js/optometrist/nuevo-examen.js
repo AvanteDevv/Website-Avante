@@ -60,6 +60,8 @@
   var stage = DOC || 'historia';     // 'historia' | 'laboratorio' | 'garantia'
   var DOC_LIST_URL = DOC === 'garantia' ? '/optometrist/garantias' : '/optometrist/ordenes-lab';
   var fromExamId = parseInt(new URLSearchParams(location.search).get('examId'), 10) || 0;
+  // Orden hecha desde una venta de recepción: se liga a su trabajo (pedido).
+  var fromPedidoId = parseInt(new URLSearchParams(location.search).get('pedido'), 10) || 0;
   function saveLabel(){
     return stage === 'laboratorio' ? 'Guardar orden' : stage === 'garantia' ? 'Guardar garantía' : 'Guardar examen';
   }
@@ -1365,7 +1367,8 @@
       patientName: name,
       patientPhone: (values.fields.telefono || '').trim(),
       userId: selectedPatientId,
-      data: values
+      data: values,
+      pedidoId: DOC === 'laboratorio' ? fromPedidoId : 0
     };
     nextBtn.disabled = true;
     var originalText = nextBtn.textContent;

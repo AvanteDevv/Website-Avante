@@ -222,6 +222,10 @@ func PosCreateSale(c *gin.Context) {
 		}
 		return
 	}
+	if sale.Pedido != nil {
+		// Le avisa al optometrista: hay una venta para hacer su orden de laboratorio.
+		BroadcastLabPendiente()
+	}
 	c.JSON(http.StatusCreated, gin.H{"venta": sale})
 }
 

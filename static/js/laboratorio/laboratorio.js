@@ -245,7 +245,9 @@
      ======================================================= */
   var orders = [], statuses = [];
   var search = '', origen = '';
-  var hideDone = store('labHideDone') === '1';
+  // "Listo para la entrega" y "Entregado" ya no llegan al laboratorio
+  // (los pone recepción), así que no hay nada que ocultar.
+  var hideDone = false;
   var view = store('labView') === 'lista' ? 'lista' : 'tablero';
   var landedId = null;
 
@@ -304,6 +306,7 @@
     return p.join(' · ');
   }
 
+  var EXT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6v6M10 14 20 4"/></svg>';
   var DOC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>';
   function hojaBtn(o, big) {
     if (!o.hoja) return '';
@@ -316,6 +319,7 @@
     return '<article class="lab-card' + (String(o.id) === String(landedId) ? ' is-landed' : '') + '" draggable="true" data-id="' + o.id + '" tabindex="0" style="--i:' + Math.min(i, 12) + '">' +
       '<div class="lab-card-top"><strong class="lab-code">' + esc(o.orderCode || ('#' + o.id)) + '</strong>' +
         '<span class="lab-card-tags">' + hojaBtn(o) + '<span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span></span></div>' +
+      (o.externo ? '<div class="lab-ext-tag" title="Este trabajo está en un laboratorio externo">' + EXT_ICON + 'Laboratorio externo</div>' : '') +
       '<div class="lab-card-client">' + esc(o.customerName || 'Cliente sin nombre') + '</div>' +
       '<div class="lab-card-prod">' + productLine(o) + (o.quantity > 1 ? ' <span class="lab-qty">×' + o.quantity + '</span>' : '') + '</div>' +
       (rx ? '<div class="lab-card-rx">' + esc(rx) + '</div>' : '') +
@@ -357,7 +361,7 @@
     $('labRows').innerHTML = list.map(function (o, i) {
       return '<tr data-id="' + o.id + '" style="--i:' + Math.min(i, 20) + '" class="' + (String(o.id) === String(landedId) ? 'is-landed' : '') + '">' +
         '<td><strong class="lab-code">' + esc(o.orderCode || ('#' + o.id)) + '</strong><div class="lab-muted">' + fecha(o.createdAt) + '</div></td>' +
-        '<td>' + esc(o.customerName || 'Cliente sin nombre') + '<div><span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span>' + hojaBtn(o) + '</div></td>' +
+        '<td>' + esc(o.customerName || 'Cliente sin nombre') + '<div><span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span>' + hojaBtn(o) + (o.externo ? '<span class="lab-ext-tag is-inline">' + EXT_ICON + 'Externo</span>' : '') + '</div></td>' +
         '<td>' + productLine(o) + (rxLine(o) ? '<div class="lab-muted">' + esc(rxLine(o)) + '</div>' : '') + '</td>' +
         '<td><button type="button" class="lab-status-btn" data-status-menu="' + o.id + '">' + badge(o.status) +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button></td>' +
@@ -549,6 +553,8 @@
           '<span class="lab-step-label">' + esc(s.label) + '</span></button>';
       }).join('') + '<span class="lab-steps-bar"><span style="width:' + (steps.length > 1 && cur > 0 ? (cur / (steps.length - 1) * 100) : 0) + '%"></span></span></div>' +
       '<p class="lab-hint">Toca un paso para cambiar el estado. El cliente lo ve igual en Rastreo.</p>' +
+      '<label class="lab-ext-toggle"><input type="checkbox" id="labExtToggle"' + (o.externo ? ' checked' : '') + '><span class="lab-toggle-track"><span class="lab-toggle-thumb"></span></span>' +
+        '<span><strong>Laboratorio externo</strong><small>Márcalo si este trabajo se mandó a otro laboratorio.</small></span></label>' +
       '<div class="lab-hoja-box">' + (o.hoja
         ? '<div class="lab-hoja-info">' + DOC_ICON + '<div><strong>Orden de laboratorio' + (o.hoja.folio ? ' Nº ' + o.hoja.folio : '') + '</strong><small>' + esc(o.hoja.paciente) + ' · ' + fecha(o.hoja.fecha) +
             (o.hoja.auto ? ' · encontrada por el nombre / celular del cliente' : ' · ligada a mano') + '</small></div></div>' +
@@ -571,6 +577,14 @@
     });
     $('labCopyTrack').addEventListener('click', function () { copyText(trackURL(o.orderCode), 'Link de rastreo copiado.'); });
     wireHojaBox(o);
+    $('labExtToggle').addEventListener('change', function () {
+      var on = this.checked, box = this;
+      box.disabled = true;
+      api('/api/laboratorio/pedidos/' + o.id + '/externo', { method: 'PUT', body: { externo: on } }).then(function () {
+        o.externo = on; render();
+        toast(on ? (o.orderCode || 'El trabajo') + ' marcado como laboratorio externo.' : 'Se quitó «laboratorio externo».');
+      }).catch(function (err) { box.checked = !on; toast(err.message); }).finally(function () { box.disabled = false; });
+    });
     $('labNotesSave').addEventListener('click', function () {
       var btn = this; btn.disabled = true;
       api('/api/laboratorio/pedidos/' + o.id + '/notas', { method: 'PUT', body: { notes: $('labNotes').value } }).then(function (r) {
@@ -707,8 +721,7 @@
     area.classList.remove('is-swap'); void area.offsetWidth; area.classList.add('is-swap');
     render();
   });
-  $('labHideDone').checked = hideDone;
-  $('labHideDone').addEventListener('change', function () { hideDone = this.checked; store('labHideDone', hideDone ? '1' : '0'); render(); });
+
   $('labRefresh').addEventListener('click', function () {
     this.classList.remove('is-spinning'); void this.offsetWidth; this.classList.add('is-spinning');
     loadOrders();
@@ -718,6 +731,8 @@
   loadOrders();
   loadInv().catch(function () {});
   // Cada minuto: si alguien cambió algo desde Admin → Pedidos, se ve aquí.
-  setInterval(function () { if (!document.hidden && !dragId && !menuEl) loadOrders(); }, 60000);
+  // Cada 20 s: así llegan solas las órdenes que hace el optometrista.
+  setInterval(function () { if (!document.hidden && !dragId && !menuEl) loadOrders(); }, 20000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && !dragId && !menuEl) loadOrders(); });
   if (window.feather) feather.replace();
 })();
