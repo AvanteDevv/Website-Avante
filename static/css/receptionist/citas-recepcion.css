@@ -1647,3 +1647,121 @@ body.citas-focus-mode .cf-tipos-head{ display:none !important; }
   .cf-tipo-num{ font-size:18px; }
   .cf-tipo-bar{ left:11px; right:11px; bottom:6px; }
 }
+/* =========================================================
+   Animación de filtros (pastilla que se desliza) — igual que Ventas
+   ========================================================= */
+.cf-seg{ position:relative; }
+.cf-seg-glow{ display:none; }
+.cf-seg.has-glow .cf-seg-glow{
+  display:block; position:absolute; left:0; top:0; z-index:0; border-radius:100px; background:var(--accent);
+  box-shadow:0 6px 16px -4px rgba(4,28,255,.45); pointer-events:none;
+  transition:transform .42s cubic-bezier(.22,1.25,.36,1), width .42s cubic-bezier(.22,1.25,.36,1), height .3s var(--ease), opacity .2s var(--ease);
+}
+.cf-seg.has-glow button{ position:relative; z-index:1; background:transparent !important; box-shadow:none !important; transition:color .3s var(--ease), transform .2s var(--ease); }
+.cf-seg.has-glow button.is-on{ color:#fff; }
+.cf-seg button:active{ transform:scale(.95); }
+.cf-seg button.is-pop, .cf-tipo.is-pop{ animation:cfSegPop .42s cubic-bezier(.22,1.4,.36,1); }
+@keyframes cfSegPop{ 0%{ transform:scale(.92); } 60%{ transform:scale(1.05); } 100%{ transform:scale(1); } }
+.admin-stats.is-swap .stat-card-wrap, .cf-tipos.is-swap .cf-tipo{ animation:cfSwap .42s var(--ease) both; }
+.admin-stats.is-swap .stat-card-wrap:nth-child(2), .cf-tipos.is-swap .cf-tipo:nth-child(2){ animation-delay:.04s; }
+.admin-stats.is-swap .stat-card-wrap:nth-child(3), .cf-tipos.is-swap .cf-tipo:nth-child(3){ animation-delay:.08s; }
+.admin-stats.is-swap .stat-card-wrap:nth-child(4), .cf-tipos.is-swap .cf-tipo:nth-child(4){ animation-delay:.12s; }
+.admin-stats.is-swap .stat-card-wrap:nth-child(5), .cf-tipos.is-swap .cf-tipo:nth-child(5){ animation-delay:.16s; }
+.admin-table-wrap.is-swap{ animation:cfSwap .38s var(--ease); }
+@keyframes cfSwap{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+
+/* =========================================================
+   Modal de la cita: datos en renglones + opciones animadas
+   ========================================================= */
+.cev-info{
+  display:flex; flex-direction:column; border:1.5px solid var(--line); border-radius:16px; overflow:hidden;
+  background:var(--white); margin-bottom:4px;
+}
+.cev-row{ display:flex; align-items:center; gap:12px; padding:11px 14px; }
+.cev-row + .cev-row{ border-top:1px solid var(--line); }
+.cev-row[hidden]{ display:none; }
+.cev-row--who{ background:var(--accent-soft); }
+.cev-avatar{
+  width:36px; height:36px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  background:var(--accent); color:#fff; font-size:13px; font-weight:800; letter-spacing:.02em;
+}
+.cev-ico{
+  width:36px; height:36px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  background:var(--accent-soft); color:var(--accent);
+}
+.cev-ico svg{ width:16px; height:16px; }
+.cev-txt{ display:flex; flex-direction:column; min-width:0; flex:1 1 auto; }
+.cev-txt small{ font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+.cev-txt strong{ font-size:14px; font-weight:700; color:var(--ink); line-height:1.3; overflow-wrap:anywhere; }
+.cev-row--who .cev-txt strong{ font-size:15px; }
+.cev-row--who .admin-badge{ margin-left:auto; flex-shrink:0; align-self:center; }
+.cal-event-modal .cal-event-reason{ margin-top:12px; }
+.cal-event-modal .cal-event-seg{ margin-top:12px; }
+
+/* Entrada escalonada al abrir el modal */
+.admin-modal-overlay.open .cev-row,
+.admin-modal-overlay.open .cal-event-modal .cita-tag-pick,
+.admin-modal-overlay.open .cal-event-actions .cal-action{
+  animation:cevIn .46s cubic-bezier(.22,1.2,.36,1) both;
+}
+.admin-modal-overlay.open .cev-row:nth-child(1){ animation-delay:.04s; }
+.admin-modal-overlay.open .cev-row:nth-child(2){ animation-delay:.08s; }
+.admin-modal-overlay.open .cev-row:nth-child(3){ animation-delay:.12s; }
+.admin-modal-overlay.open .cev-row:nth-child(4){ animation-delay:.16s; }
+.admin-modal-overlay.open .cal-event-modal .cita-tag-pick{ animation-delay:.18s; }
+.admin-modal-overlay.open .cal-event-actions .cal-action:nth-child(1){ animation-delay:.2s; }
+.admin-modal-overlay.open .cal-event-actions .cal-action:nth-child(2){ animation-delay:.24s; }
+.admin-modal-overlay.open .cal-event-actions .cal-action:nth-child(3){ animation-delay:.28s; }
+.admin-modal-overlay.open .cal-event-actions .cal-action:nth-child(4){ animation-delay:.32s; }
+.admin-modal-overlay.open .cal-event-actions .cal-action:nth-child(5){ animation-delay:.36s; }
+.admin-modal-overlay.open .cal-event-actions .cal-action:nth-child(6){ animation-delay:.40s; }
+.admin-modal-overlay.open .cal-event-actions .cal-action:nth-child(7){ animation-delay:.44s; }
+@keyframes cevIn{ from{ opacity:0; transform:translateY(12px) scale(.98); } to{ opacity:1; transform:none; } }
+.admin-modal-overlay.open .cev-row--who .admin-badge{ animation:cevBadge .5s cubic-bezier(.22,1.5,.36,1) .3s both; }
+@keyframes cevBadge{ from{ opacity:0; transform:scale(.6); } to{ opacity:1; transform:scale(1); } }
+
+/* El ligero desplazamiento al pasar el mouse no debe crear scroll horizontal */
+.cal-event-modal, .cal-event-modal .admin-modal-body{ overflow-x:hidden; }
+
+/* Hover: la opción se recorre un poco y su ícono hace un pequeño giro */
+.cal-action{ position:relative; }
+.cal-action .cal-action-icon{ transition:transform .32s cubic-bezier(.22,1.5,.36,1); }
+.cal-action:hover .cal-action-icon{ transform:scale(1.12) rotate(-8deg); }
+.cal-action:hover{ transform:translateX(4px); }
+.cal-action:active{ transform:translateX(2px) scale(.98); }
+.cal-action::after{
+  content:''; position:absolute; right:16px; top:50%; width:7px; height:7px;
+  border-right:2px solid currentColor; border-top:2px solid currentColor; opacity:0;
+  transform:translate(-6px,-50%) rotate(45deg); transition:opacity .2s var(--ease), transform .25s var(--ease);
+}
+.cal-action:hover::after{ opacity:.45; transform:translate(0,-50%) rotate(45deg); }
+
+/* =========================================================
+   Exportar PDF
+   ========================================================= */
+.ce-export-btn{ display:inline-flex; align-items:center; gap:6px; }
+.ce-export-btn svg{ width:15px; height:15px; }
+.ce-export-card{ max-width:470px; width:calc(100% - 32px); }
+.ce-export-card .admin-modal-body{ display:flex; flex-direction:column; gap:14px; }
+.ce-export-hint{ margin:0; font-size:13px; color:var(--muted); line-height:1.45; }
+.ce-export-seg{ align-self:stretch; }
+.ce-export-seg button{ flex:1 1 auto; }
+.ce-export-pick label{ display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:700; color:var(--ink); }
+.ce-export-pick label[hidden], .ce-export-pick p[hidden]{ display:none; }
+.ce-export-pick input{
+  padding:10px 12px; border-radius:12px; border:1.5px solid var(--line); background:var(--white);
+  color:var(--ink); font-family:var(--sans); font-size:13.5px; font-weight:500;
+}
+.ce-export-actual{ margin:0; font-size:13px; color:var(--ink); }
+.ce-export-range{ margin:0; padding:10px 12px; border-radius:12px; background:var(--accent-soft); font-size:13px; color:var(--ink); }
+.ce-export-card .staff-error:empty{ display:none; }
+body.dark .ce-export-pick input{ color-scheme:dark; background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.14); }
+
+@media (prefers-reduced-motion:reduce){
+  .cf-seg.has-glow .cf-seg-glow{ transition:none; }
+  .cf-seg button.is-pop, .cf-tipo.is-pop, .admin-stats.is-swap .stat-card-wrap, .cf-tipos.is-swap .cf-tipo, .admin-table-wrap.is-swap,
+  .admin-modal-overlay.open .cev-row, .admin-modal-overlay.open .cal-event-modal .cita-tag-pick,
+  .admin-modal-overlay.open .cal-event-actions .cal-action, .admin-modal-overlay.open .cev-row--who .admin-badge{ animation:none; }
+}
+body.dark .cev-ico{ background:rgba(137,146,255,.14); color:#aab4ff; }
+body.dark .cev-row--who{ background:rgba(137,146,255,.1); }

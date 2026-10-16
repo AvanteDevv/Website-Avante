@@ -24,12 +24,17 @@
         <h1>Citas</h1>
         <p>Citas agendadas por clientes desde el sitio público.</p>
       </div>
+      <button type="button" class="btn small ce-export-btn" id="ceExportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+        Exportar PDF
+      </button>
     </div>
 
     <!-- Periodo: filtra indicadores y tabla por el día de la cita -->
     <div class="cf-bar" id="citasFiltro">
       <span class="cf-label">Periodo</span>
       <div class="cf-seg" role="tablist" aria-label="Periodo">
+        <span class="cf-seg-glow" aria-hidden="true"></span>
         <button type="button" data-period="todas" class="is-on">Todas</button>
         <button type="button" data-period="hoy">Hoy</button>
         <button type="button" data-period="semana">Esta semana</button>
@@ -428,11 +433,27 @@
       </button>
     </div>
     <div class="admin-modal-body">
-      <div class="cal-event-when">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-        <span id="calEventWhen"></span>
+      {{/* Datos de la cita en renglones (los llena citas-recepcion.js). */}}
+      <div class="cev-info">
+        <div class="cev-row cev-row--who">
+          <span class="cev-avatar" id="calEventAvatar"></span>
+          <div class="cev-txt"><small>Paciente</small><strong id="calEventNombre">—</strong></div>
+          <span class="admin-badge" id="calEventStatus"></span>
+        </div>
+        <div class="cev-row">
+          <span class="cev-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+          <div class="cev-txt"><small>Día</small><strong id="calEventDia">—</strong></div>
+        </div>
+        <div class="cev-row">
+          <span class="cev-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
+          <div class="cev-txt"><small>Hora</small><strong id="calEventHora">—</strong></div>
+        </div>
+        <div class="cev-row" id="calEventTelRow">
+          <span class="cev-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>
+          <div class="cev-txt"><small>Celular</small><strong id="calEventTel">—</strong></div>
+        </div>
       </div>
-      <span class="admin-badge" id="calEventStatus"></span>
+      <span id="calEventWhen" hidden></span>
       <p class="cal-event-reason" id="calEventReason" hidden></p>
       {{/* Si asistió: si compró y cuándo le toca su revisión (lo llena citas-recepcion.js). */}}
       <div class="cal-event-seg" id="calEventSeg" hidden>
@@ -724,9 +745,44 @@
   </div>
 </div>
 
+<!-- Exportar reporte de citas en PDF -->
+<div class="admin-modal-overlay" id="ceExportModal">
+  <div class="admin-modal-card ce-export-card" role="dialog" aria-modal="true" aria-labelledby="ceExportTitle">
+    <div class="admin-modal-head">
+      <h3 id="ceExportTitle">Exportar reporte de citas</h3>
+      <button type="button" class="admin-modal-close" id="ceExportClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="ce-export-hint">Un PDF con las estadísticas del periodo: cuántas citas hubo, cuántos asistieron, cómo llegaron, cómo nos conocieron, con gráfica de barras y de líneas.</p>
+      <div class="cf-seg ce-export-seg" id="ceExpTipo" role="tablist" aria-label="Periodo del reporte">
+        <span class="cf-seg-glow" aria-hidden="true"></span>
+        <button type="button" data-tipo="dia" class="is-on">Día</button>
+        <button type="button" data-tipo="semana">Semana</button>
+        <button type="button" data-tipo="mes">Mes</button>
+        <button type="button" data-tipo="actual">Periodo filtrado</button>
+      </div>
+      <div class="ce-export-pick">
+        <label data-for="dia"><span>Día</span><input type="date" id="ceExpDia"></label>
+        <label data-for="semana" hidden><span>Cualquier día de la semana</span><input type="date" id="ceExpSemana"></label>
+        <label data-for="mes" hidden><span>Mes</span><input type="month" id="ceExpMes"></label>
+        <p data-for="actual" hidden class="ce-export-actual" id="ceExpActual"></p>
+      </div>
+      <p class="ce-export-range" id="ceExpRange"></p>
+      <p class="staff-error" id="ceExpError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" id="ceExpCancel">Cancelar</button>
+        <button type="button" class="btn solid small" id="ceExpGo">Descargar PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/receptionist/sidebar-receptionist.js"></script>
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
 <script src="/static/js/receptionist/citas-recepcion.js"></script>
+<script src="/static/js/receptionist/citas-export.js"></script>
 </body>
 </html>

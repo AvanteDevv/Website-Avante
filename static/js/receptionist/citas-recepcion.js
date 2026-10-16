@@ -427,6 +427,8 @@ window.CitasFiltro = (function(){
     inRange: inRange,
     matches: matches,
     renderTipos: renderTipos,
+    bounds: bounds,
+    label: function(){ var b = bounds(); return !b[0] && !b[1] ? 'Todas las fechas' : b[0] === b[1] ? fmt(b[0]) : (fmt(b[0]) || '…') + ' – ' + (fmt(b[1]) || '…'); },
     onChange: function(fn){ listeners.push(fn); },
     TIPOS: TIPOS
   };
@@ -1312,8 +1314,22 @@ window.CitasFiltro = (function(){
 
       document.getElementById('calEventId').textContent = '#' + id;
       document.getElementById('calEventWhen').textContent = (nombre ? nombre + ' — ' : '') + dia + ' — ' + hora;
+      // Renglones ordenados: paciente (con su estado a la derecha), día, hora y celular.
+      var nomLimpio = nombre.replace(/\s+/g, ' ');
+      document.getElementById('calEventNombre').textContent = nomLimpio || 'Sin nombre';
+      document.getElementById('calEventAvatar').textContent = (nomLimpio.split(' ').filter(Boolean).slice(0, 2).map(function(w){ return w.charAt(0); }).join('') || '?').toUpperCase();
+      var dParts = (row.dataset.date || '').split('-').map(Number);
+      var DSEM = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      document.getElementById('calEventDia').textContent = dParts.length === 3
+        ? DSEM[new Date(dParts[0], dParts[1] - 1, dParts[2]).getDay()] + ' ' + dParts[2] + ' de ' + MESES[dParts[1] - 1] + ' de ' + dParts[0]
+        : (dia || '—');
+      var hm = /^(\d{1,2}):(\d{2})/.exec(hora);
+      document.getElementById('calEventHora').textContent = hm ? (((+hm[1] % 12) || 12) + ':' + hm[2] + (+hm[1] < 12 ? ' a.m.' : ' p.m.')) : (hora || '—');
+      var tel = (row.dataset.celular || '').trim();
+      document.getElementById('calEventTel').textContent = tel || '—';
+      document.getElementById('calEventTelRow').hidden = !tel;
       var statusEl = document.getElementById('calEventStatus');
-      statusEl.textContent = status;
+      statusEl.textContent = ({ no_asistio: 'no asistió', asistio: 'asistió' })[status] || status;
       statusEl.className = 'admin-badge ' + status;
 
       var reasonEl = document.getElementById('calEventReason');

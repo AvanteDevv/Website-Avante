@@ -741,6 +741,7 @@
   function pctTxt(now, before) {
     if (!(before > 0)) return '';
     var p = (now - before) / before * 100;
+    if (Math.round(p) === 0) return 'igual que el periodo anterior';
     return '<span class="' + (p >= 0 ? 'vr-up' : 'vr-down') + '">' + (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p).toFixed(0) + '%</span> vs. periodo anterior';
   }
   function reportHTML(r, data, prev) {
@@ -808,14 +809,24 @@
       var imgs = el.querySelectorAll('img');
       return Promise.all(Array.prototype.map.call(imgs, function (im) { return im.complete ? null : new Promise(function (r) { im.onload = im.onerror = r; }); }))
         .then(function () { return document.fonts && document.fonts.ready; })
-        .then(function () { return window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', logging: false }); })
+        .then(function () {
+          // Puntos donde se puede cortar la hoja: inicio de cada sección y de cada renglón de tabla.
+          var top0 = el.getBoundingClientRect().top;
+          el._cuts = Array.prototype.map.call(el.querySelectorAll('.vr-sec, tbody tr:nth-child(n+3), tfoot tr'), function (n) { return n.getBoundingClientRect().top - top0 - 6; });
+          return window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', logging: false });
+        })
         .then(function (cv) {
           host.remove();
           var W = 816, H = 1056, k = cv.width / W, margin = Math.round(34 * k), pageH = Math.floor(H * k), y = 0, first = true;
           var pdf = new window.jspdf.jsPDF({ unit: 'px', format: [W, H], orientation: 'portrait', hotfixes: ['px_scaling'] });
           var src = cv.getContext('2d');
+          var cuts = (el._cuts || []).map(function (c) { return Math.round(c * k); });
           function cutAt(limit) {
             if (limit >= cv.height) return cv.height;
+            // Primero: cortar justo antes de una sección o renglón, para no dejar un título solo.
+            var best = -1;
+            cuts.forEach(function (c) { if (c <= limit && c > y + pageH * 0.45 && c > best) best = c; });
+            if (best > 0) return best;
             for (var yy = limit; yy > limit - Math.round(90 * k); yy--) {
               var row = src.getImageData(0, yy, cv.width, 1).data, blank = true;
               for (var i = 0; i < row.length; i += 16) { if (row[i] < 240 || row[i + 1] < 240 || row[i + 2] < 240) { blank = false; break; } }
