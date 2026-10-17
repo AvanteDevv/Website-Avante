@@ -192,7 +192,8 @@ window.InvLabels = (function () {
     // barras y clave siguen con los comandos normales (salen nítidos).
     out += 'SIZE ' + cfg.w + ' mm,' + cfg.h + ' mm\r\nGAP ' + cfg.gap + ' mm,0 mm\r\nDIRECTION 1\r\nREFERENCE 0,0\r\nCODEPAGE 1252\r\n';
     labels.map(norm).forEach(function (l) {
-      var codeH = 22, bh = Math.max(36, Math.round(H * 0.2));
+      // Código de barras de ~6.5 mm de alto (52 puntos en 25 mm): fácil para escáneres económicos.
+      var codeH = 22, bh = Math.max(48, Math.round(H * 0.26));
       var bcY = H - 4 - codeH - bh;
       var pTop = descY + 24, pH = Math.max(24, bcY - 6 - pTop);
       var narrow = c128Width(l.code, 2) <= W - 16 ? 2 : 1;

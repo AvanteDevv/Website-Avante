@@ -238,6 +238,8 @@ func main() {
 	db.EnsurePosPedidoColumn()
 	// Corte de caja (cortes, movimientos de caja, propinas, cancelación de ventas)
 	db.EnsureCajaTables()
+	// Clarito+ (registros del programa de clientes preferentes)
+	db.EnsureClaritoPlusTables()
 	// Laboratorio: orden de laboratorio ligada a cada trabajo
 	db.EnsureLabHojaColumn()
 
@@ -569,6 +571,7 @@ func main() {
 		receptionistGroup.GET("/punto-de-venta", handlers.ReceptionistPuntoDeVentaPage)
 		receptionistGroup.GET("/ventas", handlers.ReceptionistVentasPage)
 		receptionistGroup.GET("/corte-de-caja", handlers.CorteCajaPage)
+		receptionistGroup.GET("/clarito-plus", handlers.ClaritoPlusPage)
 		receptionistGroup.GET("/plantillas", handlers.ReceptionistPlantillasPage)
 		receptionistGroup.GET("/administracion", handlers.ReceptionistAdministracionPage)
 		// Historial clínico (el mismo de optometría, solo consulta: sin
@@ -681,6 +684,12 @@ func main() {
 		apiReceptionist.POST("/pos/ventas/:id/cancelar", handlers.PosCancelSale)
 		// Corte de caja
 		apiReceptionist.GET("/caja/estado", handlers.CajaEstadoAPI)
+		// Clarito+
+		apiReceptionist.GET("/clarito-plus", handlers.ClaritoPlusList)
+		apiReceptionist.POST("/clarito-plus", handlers.ClaritoPlusCreate)
+		apiReceptionist.POST("/clarito-plus/importar", handlers.ClaritoPlusImport)
+		apiReceptionist.PUT("/clarito-plus/:id", handlers.ClaritoPlusUpdate)
+		apiReceptionist.DELETE("/clarito-plus/:id", handlers.ClaritoPlusDelete)
 		apiReceptionist.GET("/caja/cortes", handlers.CajaListCortes)
 		apiReceptionist.POST("/caja/cortes", handlers.CajaSaveCorte)
 		apiReceptionist.GET("/caja/cortes/:id", handlers.CajaGetCorte)
@@ -985,6 +994,7 @@ func main() {
 			"ActivePage": "rastreo",
 		}))
 	})
+	router.GET("/clarito-plus", handlers.ClaritoPlusPublicPage)
 	router.GET("/aviso-privacidad", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "aviso-privacidad.html", handlers.WithUser(c, gin.H{
 			"ActivePage": "aviso-privacidad",

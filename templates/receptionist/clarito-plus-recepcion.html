@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clarito+ — Recepción · Avante Optics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+<link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/ventas-recepcion.css">
+<link rel="stylesheet" href="/static/css/receptionist/clarito-plus.css">
+</head>
+<body class="cuenta-body admin-body">
+
+{{template "receptionist-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "receptionist-sidebar" .}}
+
+  <main class="cuenta-main admin-main cp-page" id="cpPage" data-asesor="{{.StaffName}}" data-admin="{{if .EsAdmin}}1{{else}}0{{end}}">
+    <div class="admin-header">
+      <div>
+        <h1>Clarito<span class="cp-plus">+</span></h1>
+        <p>Miembros del programa, clientes VIP y el registro de llamadas. Toca un renglón para ver o editar todos sus datos; los estados se cambian directo en la tabla.</p>
+      </div>
+      <div class="cp-head-actions">
+        <a class="btn small cp-ghost" href="/clarito-plus" target="_blank" rel="noopener" title="La página de beneficios que ve el cliente">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg>
+          Beneficios
+        </a>
+        <button type="button" class="btn small cp-ghost" id="cpImportBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+          Importar Excel
+        </button>
+        <input type="file" id="cpImportFile" accept=".xlsx,.xls,.csv" hidden>
+        <div class="cp-menu-wrap">
+          <button type="button" class="btn small cp-ghost" id="cpExportBtn" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>
+            Exportar
+            <svg class="cp-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="cp-menu" id="cpExportMenu" role="menu">
+            <button type="button" role="menuitem" data-exp="xlsx-hoja"><i class="cp-ico is-xls">XLS</i><span><strong>Excel · esta hoja</strong><small id="cpExpHint1">Lo que ves en la tabla</small></span></button>
+            <button type="button" role="menuitem" data-exp="xlsx-libro"><i class="cp-ico is-xls">XLS</i><span><strong>Excel · libro completo</strong><small>Las 3 hojas, igual que el Excel original</small></span></button>
+            <button type="button" role="menuitem" data-exp="pdf-hoja"><i class="cp-ico is-pdf">PDF</i><span><strong>PDF · esta hoja</strong><small id="cpExpHint2">Lo que ves en la tabla</small></span></button>
+          </div>
+        </div>
+        <button type="button" class="btn solid small" id="cpNewBtn">+ <span id="cpNewLabel">Nuevo miembro</span></button>
+      </div>
+    </div>
+
+    <div class="vt-seg cp-tabs" id="cpTabs" role="tablist" aria-label="Hojas">
+      <span class="vt-seg-glow" aria-hidden="true"></span>
+      <button type="button" data-hoja="miembros" class="is-on">Miembros Clarito+ <b data-count="miembros">0</b></button>
+      <button type="button" data-hoja="vip">VIP actualizados 2026 <b data-count="vip">0</b></button>
+      <button type="button" data-hoja="contactos">Registro de contactos <b data-count="contactos">0</b></button>
+    </div>
+
+    <div class="vt-stats cp-stats" id="cpStats"></div>
+
+    <div class="admin-panel vt-panel cp-panel">
+      <div class="vt-filters">
+        <div class="vt-filters-row">
+          <div class="search-box vt-search-box">
+            <div class="search-box-glow"></div>
+            <div class="search-box-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="cpSearch" placeholder="Buscar por nombre, folio, teléfono, correo, empresa…  ( / )" autocomplete="off">
+            </div>
+          </div>
+          <div class="vt-chips" id="cpChips" role="group" aria-label="Filtro"></div>
+        </div>
+      </div>
+      <p class="vt-caption" id="cpCaption"></p>
+      <div class="vt-table-wrap cp-table-wrap">
+        <table class="vt-table cp-table" id="cpTable">
+          <thead id="cpHead"></thead>
+          <tbody id="cpBody"></tbody>
+        </table>
+        <div class="cp-empty" id="cpEmpty" hidden>
+          <div class="cp-empty-art" aria-hidden="true">
+            <svg viewBox="0 0 120 60" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><circle cx="30" cy="34" r="20"/><circle cx="90" cy="34" r="20"/><path d="M50 32c6-6 14-6 20 0M10 26 4 18M110 26l6-8"/></svg>
+          </div>
+          <strong id="cpEmptyTitle">Todavía no hay registros</strong>
+          <p id="cpEmptyText">Agrega el primero con el botón azul o importa tu Excel de clientes preferentes.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ Panel lateral: ver / editar un registro ============ -->
+<div class="cp-drawer-backdrop" id="cpBackdrop"></div>
+<aside class="cp-drawer" id="cpDrawer" role="dialog" aria-modal="true" aria-labelledby="cpDrawerTitle" aria-hidden="true">
+  <form id="cpForm" novalidate autocomplete="off">
+    <header class="cp-drawer-head">
+      <div class="cp-drawer-who">
+        <span class="cp-avatar" id="cpAvatar">+</span>
+        <div>
+          <small id="cpDrawerKicker">Nuevo miembro</small>
+          <h3 id="cpDrawerTitle">Miembro Clarito+</h3>
+        </div>
+      </div>
+      <button type="button" class="admin-modal-close" id="cpDrawerClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </header>
+    <div class="cp-quick" id="cpQuick"></div>
+    <div class="cp-drawer-body" id="cpFields"></div>
+    <footer class="cp-drawer-foot">
+      <p class="staff-error" id="cpError"></p>
+      <p class="cp-meta" id="cpMeta"></p>
+      <div class="cp-foot-row">
+        <button type="button" class="btn small cp-danger" id="cpDelete" hidden>Eliminar</button>
+        <span class="cp-spacer"></span>
+        <button type="button" class="btn small" id="cpCancel">Cancelar</button>
+        <button type="submit" class="btn solid small" id="cpSave">Guardar</button>
+      </div>
+      <label class="cp-again" id="cpAgainWrap"><input type="checkbox" id="cpAgain"> Al guardar, abrir otro en blanco</label>
+    </footer>
+  </form>
+</aside>
+
+<!-- ============ Importar Excel ============ -->
+<div class="admin-modal-overlay" id="cpImportModal">
+  <div class="admin-modal-card cp-import-card" role="dialog" aria-modal="true" aria-labelledby="cpImportTitle">
+    <div class="admin-modal-head">
+      <h3 id="cpImportTitle">Importar Excel</h3>
+      <button type="button" class="admin-modal-close" data-cp-close aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="cp-import-file" id="cpImportName"></p>
+      <div class="cp-import-list" id="cpImportList"></div>
+      <p class="cp-import-note">Se agregan como registros nuevos. Las filas que ya existen (mismo nombre, folio y teléfono) se brincan, así que puedes volver a importar el mismo archivo sin duplicar.</p>
+      <p class="staff-error" id="cpImportError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-cp-close>Cancelar</button>
+        <button type="button" class="btn solid small" id="cpImportGo">Importar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Confirmar ============ -->
+<div class="admin-modal-overlay" id="cpConfirm">
+  <div class="admin-modal-card admin-modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="cpConfirmTitle">
+    <div class="admin-modal-head">
+      <h3 id="cpConfirmTitle">Eliminar registro</h3>
+      <button type="button" class="admin-modal-close" data-cp-close aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="admin-confirm-text" id="cpConfirmText"></p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" data-cp-close>No, volver</button>
+        <button type="button" class="btn small danger" id="cpConfirmYes">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cp-toast" id="cpToast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="/static/js/receptionist/sidebar-receptionist.js"></script>
+<script src="/static/js/receptionist/userbar-receptionist.js"></script>
+<script src="/static/js/receptionist/clarito-plus.js"></script>
+</body>
+</html>

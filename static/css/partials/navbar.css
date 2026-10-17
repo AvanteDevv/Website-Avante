@@ -250,3 +250,11 @@ nav a.active::after, nav a:hover::after{ width:100%; }
   #mainNav a{ width:100%; padding:16px 0; border-bottom:1px solid var(--line); font-size:15px; }
   .hamburger{ display:flex; }
 }
+/* Enlace Clarito+ (programa de beneficios): un puntito amarillo lo resalta */
+nav a.nav-clarito::before{
+  content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:#ffc400;
+  margin-right:6px; vertical-align:middle; box-shadow:0 0 0 3px rgba(255,196,0,.25);
+  animation:navClaritoPulse 2.4s ease-in-out infinite;
+}
+@keyframes navClaritoPulse{ 0%,100%{ box-shadow:0 0 0 3px rgba(255,196,0,.25); } 50%{ box-shadow:0 0 0 6px rgba(255,196,0,.08); } }
+@media (prefers-reduced-motion: reduce){ nav a.nav-clarito::before{ animation:none; } }

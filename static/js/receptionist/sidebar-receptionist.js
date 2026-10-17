@@ -72,6 +72,11 @@
   }
 
   highlight(activeLink());
+  // Los íconos (feather) y las fuentes cambian el alto de los links al
+  // cargar: se vuelve a acomodar la burbuja para que quede centrada.
+  window.addEventListener('load', function () { highlight(activeLink()); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { highlight(activeLink()); });
+  setTimeout(function () { highlight(activeLink()); }, 450);
 })();
 
 /* ---------- Toggle de tema claro/oscuro ---------- */

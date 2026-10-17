@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clarito+ · Beneficios exclusivos — Avante Optics</title>
+<meta name="description" content="Clarito+: más que una tarjeta, un mundo de beneficios. Lentes gratis, reparación ilimitada, garantías especiales, crédito Clarifácil y promociones exclusivas en Avante Optics.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@1,800;1,900&family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/partials/navbar.css">
+<link rel="stylesheet" href="/static/css/partials/footer.css">
+<link rel="stylesheet" href="/static/css/admin/elementor-editor.css">
+<link rel="stylesheet" href="/static/css/pages/clarito-plus.css">
+</head>
+<body>
+
+{{template "navbar" .}}
+
+{{/* =====================================================================
+     IMÁGENES: cuando las tengas, súbelas a static/images/clarito/ con
+     estos nombres y aparecen solas (mientras, se ve la ilustración):
+       clarito-hero.png       · gato Clarito con la tarjeta (portada)
+       clarito-pulgar.png     · gato Clarito con el pulgar arriba (lentes gratis)
+       clarito-garantias.png  · lentes en la burbuja "Protección especial"
+       clarito-tarjetas.png   · tarjetas Clarito+ (crédito Clarifácil)
+       clarito-promos.png     · gato Clarito + tarjeta (promos exclusivas)
+     PNG con fondo transparente se ve mejor.
+     ===================================================================== */}}
+
+<main class="cl">
+
+  <!-- ============ PORTADA ============ -->
+  <section class="cl-hero cl-blue" id="inicio">
+    <div class="cl-hero-bg" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="cl-wrap cl-hero-grid">
+      <div class="cl-hero-txt">
+        <div class="cl-logo cl-rise" aria-label="Clarito+ Beneficios exclusivos">
+          <span class="cl-logo-word">CLARITO<b>+</b></span>
+          <span class="cl-logo-sub">Beneficios Exclusivos</span>
+        </div>
+        <h1 class="cl-rise" style="--d:.08s">Más que una tarjeta, un mundo de <em>beneficios</em> para ti y los tuyos.</h1>
+        <span class="cl-rule cl-rise" style="--d:.14s"></span>
+        <p class="cl-lead cl-rise" style="--d:.2s">Ahorra, protege tus compras y disfruta de ventajas únicas cada día.</p>
+        <div class="cl-ctas cl-rise" style="--d:.28s">
+          <a class="cl-btn is-yellow" href="https://wa.me/526622561704?text=Hola%2C%20quiero%20mi%20tarjeta%20Clarito%2B" target="_blank" rel="noopener">
+            Quiero mi Clarito+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="cl-btn is-ghost" href="#beneficios">Ver beneficios</a>
+        </div>
+      </div>
+      <div class="cl-hero-art">
+        <div class="cl-art" data-art>
+          <img class="cl-img" src="/static/images/clarito/clarito-hero.png" alt="Clarito, el gato de Avante, con su tarjeta Clarito+" loading="eager">
+          <div class="cl-fallback">
+            <div class="cl-card3d" data-tilt>
+              <div class="cl-card is-front">
+                <span class="cl-card-logo">CLARITO<b>+</b></span>
+                <span class="cl-card-sub">Beneficios Exclusivos</span>
+                <span class="cl-card-chip"></span>
+                <span class="cl-card-num">AVANTE OPTICS</span>
+                <span class="cl-card-shine"></span>
+              </div>
+            </div>
+            <svg class="cl-cat cl-cat-hero" viewBox="0 0 220 230" aria-hidden="true"><use href="#clarito-cat"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <a class="cl-scroll" href="#club" aria-label="Bajar"><span></span></a>
+  </section>
+
+  <!-- ============ CLUB EXCLUSIVO ============ -->
+  <section class="cl-club" id="club">
+    <div class="cl-wrap cl-center">
+      <h2 class="cl-display cl-reveal">¡Ahora formas parte de<br class="cl-br"> un <mark>club exclusivo!</mark></h2>
+      <p class="cl-tagline cl-reveal">Tu visión está en las <b>mejores manos</b>, ¡miau!</p>
+      <nav class="cl-perks" id="beneficios" aria-label="Beneficios">
+        <a class="cl-perk cl-reveal" href="#lentes" style="--d:0s">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="15" r="4"/><circle cx="18" cy="15" r="4"/><path d="M14 15a2 2 0 0 0-4 0M2.5 13 5 7c.7-1.3 1.4-2 3-2M21.5 13 19 7c-.7-1.3-1.5-2-3-2"/></svg></i>
+          <span>Lentes gratis</span>
+        </a>
+        <a class="cl-perk cl-reveal" href="#reparacion" style="--d:.05s">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></svg></i>
+          <span>Reparación ilimitada</span>
+        </a>
+        <a class="cl-perk cl-reveal" href="#garantias" style="--d:.1s">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></i>
+          <span>Garantías especiales</span>
+        </a>
+        <a class="cl-perk cl-reveal" href="#credito" style="--d:.15s">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></i>
+          <span>Crédito Clarifácil</span>
+        </a>
+        <a class="cl-perk cl-reveal" href="#promos" style="--d:.2s">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.5"/></svg></i>
+          <span>Promos exclusivas</span>
+        </a>
+        <a class="cl-perk cl-reveal" href="#comparte" style="--d:.25s">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1M16 3.1a4 4 0 0 1 0 7.8M22 21v-1a6 6 0 0 0-4-5.6"/></svg></i>
+          <span>Comparte</span>
+        </a>
+      </nav>
+    </div>
+  </section>
+
+  <!-- ============ COMPARTE ============ -->
+  <section class="cl-blue cl-band" id="comparte">
+    <div class="cl-wrap cl-center">
+      <h2 class="cl-display is-light cl-reveal"><span class="cl-y">Comparte</span> tus beneficios y obtén<br class="cl-br"> tus <span class="cl-y">recompensas más rápido</span></h2>
+      <p class="cl-copy is-light cl-reveal">Compartir siempre se siente bien, aquí te lo <span class="cl-y">recompensamos</span>.</p>
+      <div class="cl-share cl-reveal" aria-hidden="true">
+        <span class="cl-share-you"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><small>Tú</small></span>
+        <span class="cl-share-line"><i></i><i></i><i></i></span>
+        <span class="cl-share-card">CLARITO<b>+</b></span>
+        <span class="cl-share-line"><i></i><i></i><i></i></span>
+        <span class="cl-share-you is-them"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1M16 3.1a4 4 0 0 1 0 7.8M22 21v-1a6 6 0 0 0-4-5.6"/></svg><small>Los tuyos</small></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LENTES GRATIS ============ -->
+  <section class="cl-lentes" id="lentes">
+    <div class="cl-wrap cl-split">
+      <div class="cl-art cl-reveal" data-art>
+        <img class="cl-img" src="/static/images/clarito/clarito-pulgar.png" alt="Clarito con el pulgar arriba" loading="lazy">
+        <div class="cl-fallback">
+          <svg class="cl-cat cl-cat-big" viewBox="0 0 220 230" aria-hidden="true"><use href="#clarito-cat"/></svg>
+          <span class="cl-thumb" aria-hidden="true">👍</span>
+        </div>
+      </div>
+      <div class="cl-lentes-txt">
+        <h2 class="cl-stack cl-reveal">
+          <span class="cl-box">¡Tus lentes gratis!</span>
+          <span class="cl-blue-txt">Cada compra* te genera 1 punto</span>
+        </h2>
+        <div class="cl-points cl-reveal" data-points aria-label="4 puntos equivalen a 1 lente gratis">
+          <span class="cl-pt"><i>1</i></span><span class="cl-pt"><i>2</i></span><span class="cl-pt"><i>3</i></span><span class="cl-pt"><i>4</i></span>
+          <span class="cl-eq">=</span>
+          <span class="cl-free"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="15" r="4"/><circle cx="18" cy="15" r="4"/><path d="M14 15a2 2 0 0 0-4 0M2.5 13 5 7c.7-1.3 1.4-2 3-2M21.5 13 19 7c-.7-1.3-1.5-2-3-2"/></svg>1 lente gratis*</span>
+        </div>
+        <p class="cl-big-eq cl-reveal"><span>4 puntos</span> = <mark>1 lente gratis*</mark></p>
+        <p class="cl-fine cl-reveal">*Aplican términos y condiciones. Solo las compras de lentes completos (mica + armazón) generan puntos. Cualquier otra compra registrada con tu tarjeta contribuye a incrementar el valor promedio de tu recompensa. El lente gratis corresponde a un lente completo (mica + armazón) con un valor máximo equivalente al promedio de tus últimos 4 lentes adquiridos, más el valor de otras compras realizadas en la óptica. Para hacer válidas tus recompensas, es necesario contar con tu tarjeta Clarito+ vigente al momento del canje.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REPARACIÓN ILIMITADA ============ -->
+  <section class="cl-blue cl-band" id="reparacion">
+    <div class="cl-wrap cl-center">
+      <h2 class="cl-display is-light cl-reveal">Reparación ilimitada</h2>
+      <p class="cl-sub is-light cl-reveal">Sin costo durante la <span class="cl-y">vida útil</span> de tu lente.</p>
+      <span class="cl-rule is-center cl-reveal"></span>
+      <p class="cl-copy is-light cl-reveal">Incluye enderezamiento, cambio de varillas, cambio de plaquetas y cambio de tornillos en nuestro <span class="cl-y">taller especializado</span>.</p>
+      <div class="cl-repairs">
+        <div class="cl-repair cl-reveal" style="--d:0s">
+          <i><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="28" r="8"/><circle cx="35" cy="28" r="8"/><path d="M21 27c2-2 4-2 6 0M5 26 2 20M43 26l3-6"/><path d="M14 12c4-4 16-4 20 0" stroke-dasharray="3 4"/></svg></i>
+          <strong>Enderezamiento</strong>
+          <small>Si se doblan, te los dejamos como nuevos.</small>
+        </div>
+        <div class="cl-repair cl-reveal" style="--d:.07s">
+          <i><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20h22c4 0 6 2 8 6l6 10"/><path d="M6 26h20c3 0 5 2 6 4"/><path d="m34 10 4 4-4 4" /><path d="M38 14H26"/></svg></i>
+          <strong>Cambio de varillas</strong>
+          <small>Varillas nuevas cuando se rompen o se aflojan.</small>
+        </div>
+        <div class="cl-repair cl-reveal" style="--d:.14s">
+          <i><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 14c-4 4-4 12 0 16"/><path d="M30 14c4 4 4 12 0 16"/><ellipse cx="15" cy="32" rx="4" ry="6"/><ellipse cx="33" cy="32" rx="4" ry="6"/></svg></i>
+          <strong>Cambio de plaquetas</strong>
+          <small>Para que tus lentes vuelvan a sentirse cómodos.</small>
+        </div>
+        <div class="cl-repair cl-reveal" style="--d:.21s">
+          <i><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h12v6H18z"/><path d="M24 14v26"/><path d="M19 20h10M19 26h10M19 32h10"/><path d="m22 40 2 4 2-4"/></svg></i>
+          <strong>Cambio de tornillos</strong>
+          <small>Tornillos nuevos y bien ajustados.</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GARANTÍAS ESPECIALES ============ -->
+  <section class="cl-garantias" id="garantias">
+    <div class="cl-wrap cl-split">
+      <div class="cl-art cl-reveal" data-art>
+        <img class="cl-img" src="/static/images/clarito/clarito-garantias.png" alt="Lentes protegidos en una burbuja: protección especial" loading="lazy">
+        <div class="cl-fallback">
+          <div class="cl-bubble">
+            <svg class="cl-bubble-ring" viewBox="0 0 200 200" aria-hidden="true">
+              <defs><path id="clArc" d="M30 100a70 70 0 0 1 140 0"/></defs>
+              <text><textPath href="#clArc" startOffset="50%" text-anchor="middle">PROTECCIÓN ESPECIAL</textPath></text>
+            </svg>
+            <svg class="cl-red-glasses" viewBox="0 0 120 50" fill="none" stroke="#e5242b" stroke-width="7" stroke-linecap="round" aria-hidden="true"><circle cx="30" cy="28" r="18"/><circle cx="90" cy="28" r="18"/><path d="M48 26c8-7 16-7 24 0M12 22 4 12M108 22l8-10"/></svg>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2 class="cl-stack cl-reveal"><span class="cl-box">Garantías especiales</span></h2>
+        <ul class="cl-checks">
+          <li class="cl-reveal" style="--d:0s"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></i><span>Protección <b>contra robo.</b></span></li>
+          <li class="cl-reveal" style="--d:.08s"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></i><span>Protección <b>contra extravío.</b></span></li>
+          <li class="cl-reveal" style="--d:.16s"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></i><span>Protección <b>contra accidentes.</b></span></li>
+        </ul>
+        <p class="cl-copy cl-reveal">Protegemos tu inversión con tres <span class="cl-y-dark">garantías exclusivas</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CRÉDITO CLARIFÁCIL ============ -->
+  <section class="cl-blue cl-band" id="credito">
+    <div class="cl-wrap cl-split is-rev">
+      <div class="cl-credit-txt">
+        <h2 class="cl-display is-light is-left cl-reveal">Crédito <i>Clarifácil</i></h2>
+        <p class="cl-sub is-light is-left cl-reveal">Un <span class="cl-y">crédito especial</span> para miembros Clarito+</p>
+        <span class="cl-rule cl-reveal"></span>
+        <p class="cl-copy is-light is-left cl-reveal">Haz tu compra hoy y termina de pagarla en 2 cómodos pagos quincenales. <span class="cl-y">Fácil, rápido y sin complicaciones.</span></p>
+        <ol class="cl-steps cl-reveal" aria-label="Cómo funciona">
+          <li><b>Hoy</b><span>Te llevas tus lentes</span></li>
+          <li><b>1.ª quincena</b><span>Primer pago</span></li>
+          <li><b>2.ª quincena</b><span>¡Listo, pagados!</span></li>
+        </ol>
+      </div>
+      <div class="cl-art cl-reveal" data-art>
+        <img class="cl-img" src="/static/images/clarito/clarito-tarjetas.png" alt="Tarjetas Clarito+" loading="lazy">
+        <div class="cl-fallback">
+          <div class="cl-cards-pair">
+            <div class="cl-card is-back"><span class="cl-card-stripe"></span><span class="cl-card-qr"></span><span class="cl-card-sig">FOLIO</span></div>
+            <div class="cl-card is-front is-tilt"><span class="cl-card-logo">CLARITO<b>+</b></span><span class="cl-card-sub">Beneficios Exclusivos</span><span class="cl-card-chip"></span><span class="cl-card-shine"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROMOS EXCLUSIVAS ============ -->
+  <section class="cl-promos" id="promos">
+    <div class="cl-wrap cl-split">
+      <div class="cl-art cl-reveal" data-art>
+        <img class="cl-img" src="/static/images/clarito/clarito-promos.png" alt="Clarito con su tarjeta Clarito+" loading="lazy">
+        <div class="cl-fallback">
+          <div class="cl-promo-art">
+            <div class="cl-card is-front is-tilt-r"><span class="cl-card-logo">CLARITO<b>+</b></span><span class="cl-card-sub">Beneficios Exclusivos</span><span class="cl-card-chip"></span><span class="cl-card-shine"></span></div>
+            <svg class="cl-cat cl-cat-peek" viewBox="0 0 220 230" aria-hidden="true"><use href="#clarito-cat"/></svg>
+            <span class="cl-tag">%</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2 class="cl-stack cl-reveal"><span class="cl-box">Promos exclusivas</span></h2>
+        <p class="cl-sub cl-reveal">Accede a <span class="cl-y-dark">promociones únicas</span> durante el año.</p>
+        <p class="cl-copy is-blue cl-reveal">Como miembro de Clarito+ tienes acceso a <span class="cl-y-dark">promociones especiales y beneficios extra</span> en las ofertas de temporada durante el año. <span class="cl-y-dark">¡Solo por ser parte!</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CIERRE ============ -->
+  <section class="cl-blue cl-cta">
+    <div class="cl-wrap cl-center">
+      <h2 class="cl-display is-light cl-reveal">¿Todavía no tienes tu <span class="cl-y">Clarito+</span>?</h2>
+      <p class="cl-copy is-light cl-reveal">Pídela en tu próxima visita a Avante Optics o escríbenos y te decimos cómo.</p>
+      <div class="cl-ctas is-center cl-reveal">
+        <a class="cl-btn is-yellow" href="https://wa.me/526622561704?text=Hola%2C%20quiero%20mi%20tarjeta%20Clarito%2B" target="_blank" rel="noopener">Pedir por WhatsApp</a>
+        <a class="cl-btn is-ghost" href="/agendar">Agendar mi cita</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="cl-legal">
+    <div class="cl-wrap">
+      <p>Aplican términos y condiciones. Al formar parte del programa Clarito+, el titular autoriza el uso de los datos personales proporcionados de manera voluntaria, exclusivamente para fines promocionales, informativos y comerciales relacionados con la tarjeta Clarito+ y los servicios de la óptica, en apego al <a href="/aviso-privacidad">aviso de privacidad</a> vigente. Esta tarjeta es propiedad del emisor. La posesión de la misma no garantiza la disponibilidad de los beneficios. Los beneficios, descuentos y condiciones asociadas podrán modificarse sin previo aviso. No es tarjeta de crédito, débito ni medio de pago electrónico. No tiene valor monetario, no es canjeable por efectivo ni reembolsable en caso de extravío, robo o vencimiento. La vigencia de los beneficios queda sujeta a las políticas internas vigentes al momento de su uso. Su uso implica la aceptación plena de los términos y condiciones disponibles en establecimiento.</p>
+    </div>
+  </section>
+</main>
+
+{{/* Clarito (ilustración mientras llegan las imágenes): gato negro con lentes rojos y bata. */}}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="clarito-cat" viewBox="0 0 220 230">
+      <!-- bata -->
+      <path d="M46 230c2-38 26-62 64-62s62 24 64 62z" fill="#ffffff"/>
+      <path d="M110 170l-14 60M110 170l14 60" stroke="#d9def7" stroke-width="3"/>
+      <path d="M96 172l14 14 14-14" fill="#e5242b"/>
+      <!-- orejas -->
+      <path d="M44 86 40 14l52 40z" fill="#121318"/>
+      <path d="M176 86l4-72-52 40z" fill="#121318"/>
+      <path d="M52 66 50 30l26 22z" fill="#f2a7b6"/>
+      <path d="M168 66l2-36-26 22z" fill="#f2a7b6"/>
+      <!-- cabeza -->
+      <ellipse cx="110" cy="104" rx="76" ry="68" fill="#16171d"/>
+      <ellipse cx="88" cy="70" rx="30" ry="12" fill="#2a2c36" opacity=".55"/>
+      <!-- ojos -->
+      <circle cx="80" cy="102" r="20" fill="#fff"/>
+      <circle cx="140" cy="102" r="20" fill="#fff"/>
+      <circle cx="83" cy="104" r="10" fill="#12131a"/>
+      <circle cx="137" cy="104" r="10" fill="#12131a"/>
+      <circle cx="87" cy="99" r="3.5" fill="#fff"/>
+      <circle cx="141" cy="99" r="3.5" fill="#fff"/>
+      <!-- lentes rojos -->
+      <g fill="none" stroke="#e5242b" stroke-width="7">
+        <circle cx="80" cy="102" r="27"/>
+        <circle cx="140" cy="102" r="27"/>
+        <path d="M107 98c2-4 4-4 6 0" stroke-linecap="round"/>
+        <path d="M53 96 34 88M167 96l19-8" stroke-linecap="round"/>
+      </g>
+      <!-- nariz y boca -->
+      <path d="M103 132h14l-7 8z" fill="#f2a7b6"/>
+      <path d="M110 140c-3 8-12 9-16 4M110 140c3 8 12 9 16 4" fill="none" stroke="#3a3c48" stroke-width="3" stroke-linecap="round"/>
+      <!-- bigotes -->
+      <g stroke="#5a5d6c" stroke-width="2.4" stroke-linecap="round">
+        <path d="M60 134 26 128M60 142 28 146M160 134l34-6M160 142l32 4"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+{{template "footer" .}}
+
+<script src="/static/js/partials/footer.js"></script>
+<a href="https://wa.me/526622561704?text=Hola%2C%20quiero%20informaci%C3%B3n%20de%20Clarito%2B" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contáctanos por WhatsApp">
+  <span class="whatsapp-float-ring"></span>
+  <span class="whatsapp-float-ring delay"></span>
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.4 2 12c0 1.9.5 3.6 1.4 5.1L2 22l5.1-1.3A10 10 0 0 0 12 22c5.5 0 10-4.4 10-10S17.5 2 12 2Zm0 18.1c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 1 1 20.1 12 8.2 8.2 0 0 1 12 20.1Z"/><path d="M17.4 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.1.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4Z"/></svg>
+  <span class="whatsapp-float-tip">Pregunta por Clarito+</span>
+</a>
+<script src="/static/js/partials/navbar.js"></script>
+<script src="/static/js/admin/elementor-editor.js"></script>
+<script src="/static/js/partials/page-blink.js"></script>
+<script src="/static/js/pages/clarito-plus.js"></script>
+</body>
+</html>

@@ -13,6 +13,7 @@
       {{end}}
       <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}" data-edit-id="navbar-link-blog" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Blog">Blog</a>
       <a href="/agendar" class="{{if eq .ActivePage "agendar"}}active{{end}}" data-edit-id="navbar-link-agendar" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Agendar">Agendar</a>
+      <a href="/clarito-plus" class="nav-clarito{{if eq .ActivePage "clarito-plus"}} active{{end}}" data-edit-id="navbar-link-clarito" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Clarito+">Clarito+</a>
       {{if .LoggedIn}}
       <a href="/mis-pedidos" class="{{if eq .ActivePage "pedidos"}}active{{end}}" data-edit-id="navbar-link-pedidos" data-edit-text="true" data-edit-href="true" data-edit-label="Enlace: Mis pedidos">Mis pedidos</a>
       {{end}}
@@ -118,6 +119,7 @@
     {{end}}
     <a href="/blog" class="{{if eq .ActivePage "blog"}}active{{end}}" data-edit-id="navbar-link-blog" data-edit-text="true" data-edit-href="true">Blog</a>
     <a href="/agendar" data-edit-id="navbar-link-agendar" data-edit-text="true" data-edit-href="true">Agendar</a>
+    <a href="/clarito-plus" class="{{if eq .ActivePage "clarito-plus"}}active{{end}}">Clarito+</a>
     <a href="/rastreo">Rastreo</a>
     {{if .LoggedIn}}
     <a href="/dashboard">Mi cuenta</a>
