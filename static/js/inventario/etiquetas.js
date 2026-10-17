@@ -17,7 +17,7 @@
 window.InvLabels = (function () {
   var AGENT = 'http://127.0.0.1:17771';
   var KEY = 'avante.etiquetadora';
-  var DEF = { printer: '', lang: 'tspl', w: 50, h: 25, gap: 2, enabled: true };
+  var DEF = { printer: '', lang: 'tspl', w: 50, h: 25, gap: 2, enabled: true, priceImg: true };
 
   function config() {
     var c = {};
@@ -89,6 +89,44 @@ window.InvLabels = (function () {
     return '$' + n.toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: 2 });
   }
 
+  // Dibuja el precio en negritas, lo más grande que quepa en (ancho × alto)
+  // puntos, y lo convierte a la imagen de 1 bit que entiende TSPL (BITMAP):
+  // bit 0 = punto negro, bit 1 = blanco. Regresa {x, wb, h, data} o null.
+  function priceBitmap(text, W, maxH) {
+    try {
+      if (typeof document === 'undefined') return null;
+      var cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+      var font = function (px) { return '900 ' + px + 'px Arial, Helvetica, sans-serif'; };
+      var size = Math.round(maxH * 1.5), m, tw, th;
+      for (; size > 12; size -= 2) {
+        ctx.font = font(size);
+        m = ctx.measureText(text);
+        tw = Math.ceil((m.actualBoundingBoxLeft || 0) + (m.actualBoundingBoxRight || m.width)) + 4;
+        th = Math.ceil((m.actualBoundingBoxAscent || size * 0.75) + (m.actualBoundingBoxDescent || size * 0.18)) + 4;
+        if (tw <= W - 12 && th <= maxH) break;
+      }
+      var wb = Math.ceil(tw / 8), w = wb * 8, h = th;
+      cv.width = w; cv.height = h;
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+      ctx.font = font(size); ctx.fillStyle = '#000'; ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(1, Math.round(size / 28));
+      var bx = 2 + (m.actualBoundingBoxLeft || 0), by = 2 + (m.actualBoundingBoxAscent || size * 0.75);
+      ctx.fillText(text, bx, by); ctx.strokeText(text, bx, by);
+      var px = ctx.getImageData(0, 0, w, h).data, out = '';
+      for (var y = 0; y < h; y++) {
+        for (var xb = 0; xb < wb; xb++) {
+          var byte = 0;
+          for (var bit = 0; bit < 8; bit++) {
+            var i = (y * w + xb * 8 + bit) * 4;
+            var dark = (px[i] + px[i + 1] + px[i + 2]) / 3 < 140;
+            if (!dark) byte |= (0x80 >> bit);
+          }
+          out += String.fromCharCode(byte);
+        }
+      }
+      return { x: Math.max(0, Math.round((W - w) / 2)), wb: wb, h: h, data: out };
+    } catch (e) { return null; }
+  }
+
   // labels: [{code, desc, price, sub}]  ·  203 dpi = 8 puntos por mm
   //   code  → lo que lleva el código de barras (la clave del artículo;
   //           el Punto de venta lo encuentra al escanearlo)
@@ -148,27 +186,34 @@ window.InvLabels = (function () {
       return out;
     }
     // TSPL (SICAR EVA58, TSC, Xprinter, 3nStar…)
+    // Muchas TSPL económicas (como la EVA58) NO agrandan su letra interna
+    // aunque se les pida: por eso el precio se manda como IMAGEN (BITMAP),
+    // dibujado en negritas del tamaño que quepa. Descripción, código de
+    // barras y clave siguen con los comandos normales (salen nítidos).
     out += 'SIZE ' + cfg.w + ' mm,' + cfg.h + ' mm\r\nGAP ' + cfg.gap + ' mm,0 mm\r\nDIRECTION 1\r\nREFERENCE 0,0\r\nCODEPAGE 1252\r\n';
     labels.map(norm).forEach(function (l) {
-      // Precio: fuente 5 (32×48 puntos = 6 mm de alto); en etiquetas altas se
-      // duplica. Si no cabe a lo ancho, baja a la fuente 4 (24×32).
-      var font = '5', cw = 32, ch = 48, mul = 3;
-      // El más grande que quepa a lo ancho y deje lugar al código de barras (26) y la clave (22).
-      while (mul > 1 && (l.price.length * cw * mul > W - 12 || H - (priceY + ch * mul + 6) < 52)) mul--;
-      if (l.price.length * cw * mul > W - 12) { font = '4'; cw = 24; ch = 32; mul = 1; }
-      if (l.price.length * cw * mul > W - 12) { font = '3'; cw = 16; ch = 24; mul = 1; }
-      var pw = l.price.length * cw * mul, px = Math.max(4, Math.round((W - pw) / 2));
-      var bcY = priceY + ch * mul + 6, bh = Math.max(26, Math.min(Math.round(H * 0.28), H - bcY - 26));
+      var codeH = 22, bh = Math.max(36, Math.round(H * 0.2));
+      var bcY = H - 4 - codeH - bh;
+      var pTop = descY + 24, pH = Math.max(24, bcY - 6 - pTop);
       var narrow = c128Width(l.code, 2) <= W - 16 ? 2 : 1;
       var x = Math.max(0, Math.round((W - c128Width(l.code, narrow)) / 2));
       var d = cut(l.desc, maxChars), c = cut(l.code + (l.sub ? '  ' + l.sub : ''), maxChars + 4);
+      var price = '';
+      if (l.price) {
+        var bmp = cfg.priceImg !== false ? priceBitmap(l.price, W, pH) : null;
+        if (bmp) {
+          price = 'BITMAP ' + bmp.x + ',' + pTop + ',' + bmp.wb + ',' + bmp.h + ',0,' + bmp.data + '\r\n';
+        } else {
+          // Sin imagen: letra interna más grande (fuente 5) por si la impresora sí la escala.
+          var pw = l.price.length * 32, px = Math.max(4, Math.round((W - pw) / 2));
+          price = 'TEXT ' + px + ',' + pTop + ',"5",0,1,1,"' + l.price + '"\r\nTEXT ' + (px + 1) + ',' + pTop + ',"5",0,1,1,"' + l.price + '"\r\n';
+        }
+      }
       out += 'CLS\r\n' +
         'TEXT ' + Math.max(4, Math.round((W - d.length * 12) / 2)) + ',' + descY + ',"2",0,1,1,"' + d + '"\r\n' +
-        // El precio se imprime dos veces, recorrido 1 punto: queda en negritas.
-        (l.price ? 'TEXT ' + px + ',' + priceY + ',"' + font + '",0,' + mul + ',' + mul + ',"' + l.price + '"\r\n' +
-                   'TEXT ' + (px + 1) + ',' + priceY + ',"' + font + '",0,' + mul + ',' + mul + ',"' + l.price + '"\r\n' : '') +
+        price +
         'BARCODE ' + x + ',' + bcY + ',"128",' + bh + ',0,0,' + narrow + ',' + narrow + ',"' + l.code + '"\r\n' +
-        'TEXT ' + Math.max(4, Math.round((W - c.length * 12) / 2)) + ',' + (bcY + bh + 4) + ',"2",0,1,1,"' + c + '"\r\n' +
+        'TEXT ' + Math.max(4, Math.round((W - c.length * 12) / 2)) + ',' + (bcY + bh + 3) + ',"2",0,1,1,"' + c + '"\r\n' +
         'PRINT 1,1\r\n';
     });
     return out;
@@ -201,5 +246,5 @@ window.InvLabels = (function () {
     return print([{ code: 'PRUEBA01', desc: 'Prueba de etiqueta Avante', price: 1250 }], cfg);
   }
 
-  return { config: config, setConfig: setConfig, status: status, print: print, test: test, guess: guess, looksLikeLabel: looksLikeLabel, isEva: isEva, build: build, priceText: priceText };
+  return { config: config, setConfig: setConfig, status: status, print: print, test: test, guess: guess, looksLikeLabel: looksLikeLabel, isEva: isEva, build: build, priceText: priceText, priceBitmap: priceBitmap };
 })();

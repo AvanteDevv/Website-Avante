@@ -1050,6 +1050,7 @@
     lblLang = c.lang; syncLang();
     $('lblW').value = c.w; $('lblH').value = c.h; $('lblGap').value = c.gap;
     $('lblDirect').checked = !!c.enabled;
+    $('lblPriceImg').checked = c.priceImg !== false;
     $('lblError').textContent = '';
     lblSel.setOptions(c.printer ? [{ value: c.printer, label: c.printer }] : []);
     lblSel.set(c.printer, true); syncLang();
@@ -1080,7 +1081,8 @@
       w: Math.min(L && L.isEva(lblSel.get()) ? 58 : 110, Math.max(20, parseFloat($('lblW').value) || 50)),
       h: Math.min(100, Math.max(10, parseFloat($('lblH').value) || 25)),
       gap: Math.min(10, Math.max(0, parseFloat($('lblGap').value) || 0)),
-      enabled: $('lblDirect').checked
+      enabled: $('lblDirect').checked,
+      priceImg: $('lblPriceImg').checked
     };
   }
   $('rsLblCfg').addEventListener('click', openLblCfg);
