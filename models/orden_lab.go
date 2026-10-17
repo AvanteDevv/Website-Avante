@@ -76,16 +76,24 @@ type LabOrderSheet struct {
 	CreatedByRole string          `json:"createdByRole"`
 	CreatedByName string          `json:"createdByName"`
 	CreatedAt     time.Time       `json:"createdAt"`
+	// Última edición (vacío si nunca se editó).
+	UpdatedAt     *time.Time `json:"updatedAt,omitempty"`
+	UpdatedByName string     `json:"updatedByName,omitempty"`
 }
 
-const labOrderSheetCols = "id, kind, folio, exam_id, template_id, patient_name, patient_phone, user_id, data, created_by_role, created_by_name, created_at"
+const labOrderSheetCols = "id, kind, folio, exam_id, template_id, patient_name, patient_phone, user_id, data, created_by_role, created_by_name, created_at, updated_at, COALESCE(updated_by_name, '')"
 
 func scanLabOrderSheet(sc interface{ Scan(...any) error }) (*LabOrderSheet, error) {
 	var o LabOrderSheet
 	var examID, userID, folio sql.NullInt64
 	var raw []byte
-	if err := sc.Scan(&o.ID, &o.Kind, &folio, &examID, &o.TemplateID, &o.PatientName, &o.PatientPhone, &userID, &raw, &o.CreatedByRole, &o.CreatedByName, &o.CreatedAt); err != nil {
+	var upd sql.NullTime
+	if err := sc.Scan(&o.ID, &o.Kind, &folio, &examID, &o.TemplateID, &o.PatientName, &o.PatientPhone, &userID, &raw, &o.CreatedByRole, &o.CreatedByName, &o.CreatedAt, &upd, &o.UpdatedByName); err != nil {
 		return nil, err
+	}
+	if upd.Valid {
+		t := upd.Time
+		o.UpdatedAt = &t
 	}
 	if examID.Valid {
 		o.ExamID = &examID.Int64
@@ -173,6 +181,33 @@ func withFolio(data json.RawMessage, n int) json.RawMessage {
 }
 
 var ErrLabOrderSheetNotFound = errors.New("orden de laboratorio no encontrada")
+
+// UpdateLabOrderSheet guarda los cambios de una orden / garantía ya hecha
+// (Editar). El tipo, el Nº, la plantilla y quién la hizo no cambian; en
+// la orden se vuelve a poner su Nº en la hoja por si lo borraron.
+func UpdateLabOrderSheet(id int64, patientName, patientPhone string, userID int64, data json.RawMessage, byName string) (*LabOrderSheet, error) {
+	cur, err := GetLabOrderSheet(id)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		data = json.RawMessage(`{}`)
+	}
+	if cur.Kind == ExamTemplateKindLab && cur.Folio != nil {
+		data = withFolio(data, *cur.Folio)
+	}
+	var user any
+	if userID > 0 {
+		user = userID
+	}
+	if _, err := db.DB.Exec(
+		"UPDATE lab_order_sheets SET patient_name = ?, patient_phone = ?, user_id = COALESCE(?, user_id), data = ?, updated_at = NOW(), updated_by_name = ? WHERE id = ?",
+		patientName, patientPhone, user, []byte(data), byName, id,
+	); err != nil {
+		return nil, err
+	}
+	return GetLabOrderSheet(id)
+}
 
 // GetLabOrderSheet busca una orden por id.
 func GetLabOrderSheet(id int64) (*LabOrderSheet, error) {

@@ -187,10 +187,13 @@
       node.style.fontSize = (el.fontSize || 12) + 'px';
       var cw = document.createElement('div');
       cw.className = 'tpl-choice' + (el.direction === 'column' ? ' tpl-choice--col' : '');
+      var pitch = el.direction === 'column' && +el.pitch > 0 ? +el.pitch : 0;
+      if (pitch) cw.style.gap = '0';
       (el.options || []).forEach(function(opt){
         var chip = document.createElement('span');
         chip.className = 'tpl-choice-opt';
         chip.textContent = opt;
+        if (pitch){ chip.style.height = pitch + 'px'; chip.style.display = 'flex'; chip.style.alignItems = 'center'; }
         cw.appendChild(chip);
       });
       node.appendChild(cw);

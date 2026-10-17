@@ -90,7 +90,7 @@ window.AvanteExamModal = (function(){
   }
 
   /* ---------- modal ---------- */
-  var ov, titleEl, subEl, scaleEl, sheetEl, pdfBtn, printBtn, fullLink, current = null, seq = 0;
+  var ov, titleEl, subEl, scaleEl, sheetEl, pdfBtn, printBtn, fullLink, editLink, current = null, seq = 0;
 
   function build(){
     if (ov) return;
@@ -103,6 +103,8 @@ window.AvanteExamModal = (function(){
         '<div class="exm-head">' +
           '<div class="exm-head-text"><h3 id="exmTitle"></h3><p id="exmSub"></p></div>' +
           '<div class="exm-actions">' +
+            '<a class="exm-btn" id="exmEdit" href="#" hidden>' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Editar</span></a>' +
             '<a class="exm-btn" id="exmFull" href="#" hidden>' +
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg><span>Página completa</span></a>' +
             '<button type="button" class="exm-btn" id="exmPrint">' +
@@ -123,6 +125,7 @@ window.AvanteExamModal = (function(){
     pdfBtn = ov.querySelector('#exmPdf');
     printBtn = ov.querySelector('#exmPrint');
     fullLink = ov.querySelector('#exmFull');
+    editLink = ov.querySelector('#exmEdit');
 
     ov.addEventListener('click', function(e){ if (e.target === ov) close(); });
     ov.querySelector('#exmClose').addEventListener('click', close);
@@ -158,6 +161,7 @@ window.AvanteExamModal = (function(){
     scaleEl.classList.add('is-loading');
     pdfBtn.disabled = printBtn.disabled = true;
     fullLink.hidden = true;
+    editLink.hidden = true;
     ov.classList.add('open');
     ov.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -174,6 +178,10 @@ window.AvanteExamModal = (function(){
       var ok = mountSheet(sheetEl, data);
       pdfBtn.disabled = printBtn.disabled = !ok;
       if (opts.fullPage && e.id){ fullLink.href = '/optometrist/examen-vista/' + e.id; fullLink.hidden = false; }
+      // Editar: lo pide quien abre el modal (opts.editUrl); los exámenes que se
+      // abren con "Página completa" (optometría) también lo traen.
+      var editUrl = opts.editUrl || (opts.fullPage && e.id ? '/optometrist/examen-vista/nuevo?edit=' + e.id : '');
+      if (editUrl){ editLink.href = editUrl; editLink.hidden = false; }
       fit();
       sheetEl.classList.remove('exm-in'); void sheetEl.offsetWidth; sheetEl.classList.add('exm-in');
     }).catch(function(err){

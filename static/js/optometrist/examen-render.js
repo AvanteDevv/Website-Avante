@@ -116,6 +116,10 @@ window.AvanteExamRender = (function(){
     input.dataset.choiceMulti = el.multi ? '1' : '';
     wrap.appendChild(input);
 
+    // pitch: alto fijo de cada renglón (px), para que cada opción quede a
+    // la altura de su campo (p. ej. la columna Lenses / Oversize / Tint…).
+    var pitch = el.direction === 'column' && +el.pitch > 0 ? +el.pitch : 0;
+    if (pitch) wrap.classList.add('exf-choice--pitch');
     (el.options || []).forEach(function(opt, i){
       var b = document.createElement('button');
       b.type = 'button';
@@ -125,7 +129,15 @@ window.AvanteExamRender = (function(){
       b.dataset.index = i;
       b.tabIndex = -1;
       b.disabled = readonly;
-      wrap.appendChild(b);
+      if (pitch){
+        var row = document.createElement('span');
+        row.className = 'exf-choice-row';
+        row.style.height = pitch + 'px';
+        row.appendChild(b);
+        wrap.appendChild(row);
+      } else {
+        wrap.appendChild(b);
+      }
     });
 
     if (!readonly){

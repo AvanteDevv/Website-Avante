@@ -767,6 +767,7 @@
         '</div>' +
         '<div class="timeline-item-actions">' +
           (file.exams.length > 1 ? '<button type="button" class="btn thin pf-compare-btn" data-id="' + e.id + '">Comparar</button>' : '') +
+          (IS_RECEPTION ? '' : '<a class="btn thin" href="/optometrist/examen-vista/nuevo?edit=' + e.id + '">Editar</a>') +
           '<button type="button" class="btn thin" data-view-exam="' + e.id + '">Ver hoja</button>' +
         '</div>' +
       '</div>';
@@ -856,6 +857,7 @@
             (detail ? '<div class="timeline-item-rx">' + escapeHTML(detail) + '</div>' : '') +
           '</div>' +
           '<div class="timeline-item-actions">' +
+            (IS_RECEPTION ? '' : '<a class="btn thin" href="' + (s.kind === 'garantia' ? '/optometrist/garantias' : '/optometrist/ordenes-lab') + '/nueva?edit=' + s.id + '">Editar</a>') +
             '<button type="button" class="btn thin" data-pdf-sheet="' + s.id + '">PDF</button>' +
             '<button type="button" class="btn thin" data-view-sheet="' + s.id + '">Ver hoja</button>' +
           '</div>' +
@@ -871,7 +873,10 @@
     var src = { exam: s, template: sheetTemplate(s) };
     if (b.dataset.pdfSheet){ AvanteExamModal.exportPdf(src); return; }
     var tipo = sheetTipo(s);
-    AvanteExamModal.open(src, { subtitle: [fecha(s.createdAt), s.createdByName ? 'Llenó ' + s.createdByName : '', tipo === 'lab' ? 'Orden de laboratorio' + (s.folio ? ' Nº ' + s.folio : '') : tipo === 'gar' ? 'Garantía' : 'Reparación'].filter(Boolean).join(' · ') });
+    AvanteExamModal.open(src, {
+      subtitle: [fecha(s.createdAt), s.createdByName ? 'Llenó ' + s.createdByName : '', tipo === 'lab' ? 'Orden de laboratorio' + (s.folio ? ' Nº ' + s.folio : '') : tipo === 'gar' ? 'Garantía' : 'Reparación', s.updatedAt ? 'Editada ' + fecha(s.updatedAt) + (s.updatedByName ? ' por ' + s.updatedByName : '') : ''].filter(Boolean).join(' · '),
+      editUrl: IS_RECEPTION ? '' : (s.kind === 'garantia' ? '/optometrist/garantias' : '/optometrist/ordenes-lab') + '/nueva?edit=' + s.id
+    });
   });
 
   // "Ver hoja": el examen en un modal encima de la ficha (con imprimir y

@@ -64,6 +64,41 @@ func CreateEyeExam(c *gin.Context) {
 	c.JSON(http.StatusCreated, exam)
 }
 
+// UpdateEyeExam — PUT /api/optometrist/examenes/:id
+// Editar una historia clínica ya guardada (mismos datos que al crearla).
+func UpdateEyeExam(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Examen inválido."})
+		return
+	}
+	var input createEyeExamInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos de examen inválidos."})
+		return
+	}
+	input.PatientName = strings.TrimSpace(input.PatientName)
+	if input.PatientName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe el nombre del paciente."})
+		return
+	}
+	if len(input.Data) > 0 && !json.Valid(input.Data) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos de examen inválidos."})
+		return
+	}
+	exam, err := models.UpdateEyeExam(id, input.PatientName, strings.TrimSpace(input.PatientPhone), input.Data, input.UserID, staffName(c))
+	if err != nil {
+		if errors.Is(err, models.ErrEyeExamNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Ese examen ya no existe."})
+			return
+		}
+		log.Printf("UpdateEyeExam #%d: %v", id, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron guardar los cambios."})
+		return
+	}
+	c.JSON(http.StatusOK, exam)
+}
+
 // SearchPatients busca clientes por nombre o teléfono (para el
 // autocompletado del campo "Nombre" en Nuevo examen) —
 // GET /api/optometrist/pacientes?q=...

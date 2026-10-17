@@ -62,7 +62,13 @@
   var fromExamId = parseInt(new URLSearchParams(location.search).get('examId'), 10) || 0;
   // Orden hecha desde una venta de recepción: se liga a su trabajo (pedido).
   var fromPedidoId = parseInt(new URLSearchParams(location.search).get('pedido'), 10) || 0;
+  // EDITAR: ?edit=<id> abre la hoja ya guardada (historia clínica, orden o
+  // garantía) con sus datos, y al guardar se actualiza la misma (la orden
+  // conserva su Nº) en lugar de crear otra.
+  var EDIT_ID = parseInt(new URLSearchParams(location.search).get('edit'), 10) || 0;
+  var editDoc = null; // el examen u hoja que se está editando
   function saveLabel(){
+    if (EDIT_ID) return 'Guardar cambios';
     return stage === 'laboratorio' ? 'Guardar orden' : stage === 'garantia' ? 'Guardar garantía' : 'Guardar examen';
   }
 
@@ -472,6 +478,7 @@
   // arranca en el primer paso que sigue vacío.
   function startWizardAtFirstEmpty(){
     if (!steps.length){ updateNavButtons(); progressEl.style.display = 'none'; return; }
+    if (EDIT_ID){ currentIndex = Math.min(currentIndex, steps.length - 1); renderStep(); return; }
     var firstUnfilled = -1;
     for (var i = 0; i < steps.length; i++){
       if (!isStepFilled(steps[i])){ firstUnfilled = i; break; }
@@ -500,8 +507,9 @@
       updateSheetBar();
       var first = firstEmptySheetInput();
       // Zoom directo al primer campo vacío (p. ej. la fecha ya viene
-      // puesta, así que arranca en el siguiente).
-      if (first) first.focus({ preventScroll: true });
+      // puesta, así que arranca en el siguiente). Al editar, se muestra
+      // la hoja tal cual y se toca el campo que se quiere cambiar.
+      if (first && !EDIT_ID) first.focus({ preventScroll: true });
     } else {
       sheetWrap.hidden = true;
       sheetCanvas.innerHTML = '';
@@ -614,7 +622,11 @@
   function isSheetMobile(){ return mqSheetMobile.matches; }
   var LUPA_DESKTOP = 1.7;   // en compu (así se ve bien)
   var LUPA_TARGET_PX = 16;  // en celular/tablet: la letra de la hoja se ve a ~16px
-  var sheetZoom = 'lupa';   // 'lupa' | 'hoja'
+  // 'lupa' | 'hoja'. Si eligieron "Ver hoja completa", se queda así (también
+  // al llenar: tocar un campo o Enter ya no acerca). Se recuerda aquí.
+  var ZOOM_KEY = 'avanteExamSheetZoom';
+  var sheetZoom = 'lupa';
+  try { if (localStorage.getItem(ZOOM_KEY) === 'hoja') sheetZoom = 'hoja'; } catch (e) {}
   var sheetCurrent = null;
   var cam = { k: 1, x: 0, y: 0 };
   var sheetLabels = typeof WeakMap === 'function' ? new WeakMap() : null;
@@ -798,6 +810,7 @@
 
   function setSheetZoom(z){
     sheetZoom = z;
+    try { localStorage.setItem(ZOOM_KEY, z); } catch (e) {}
     fitSheet();
     updateSheetBar();
   }
@@ -825,6 +838,18 @@
       var target = window.scrollY + br.top - topGap;
       window.scrollTo({ top: Math.max(0, target), behavior: isSheetMobile() ? 'auto' : 'smooth' });
     }
+  }
+
+  // Hoja completa: el campo enfocado tiene que verse (entre el encabezado
+  // fijo y la barra de abajo del celular).
+  function keepInView(input){
+    var r = input.getBoundingClientRect();
+    var vv = window.visualViewport;
+    var top = (vv ? vv.offsetTop : 0) + (isSheetMobile() ? 70 : 90);
+    var bottom = (vv ? vv.offsetTop + vv.height : window.innerHeight) - (sheetBar && !sheetBar.hidden ? sheetBar.offsetHeight + 16 : 24);
+    if (r.top >= top && r.bottom <= bottom) return;
+    var mid = (top + bottom) / 2;
+    window.scrollTo({ top: Math.max(0, window.scrollY + r.top + r.height / 2 - mid), behavior: 'smooth' });
   }
 
   // Arrastrar (dedo o mouse) mueve la hoja; la rueda también.
@@ -981,7 +1006,13 @@
     var t = e.target;
     if (!t.matches || !t.matches('input')) return;
     sheetCurrent = t;
-    if (sheetZoom !== 'lupa'){ sheetZoom = 'lupa'; fitSheet(); }
+    if (sheetZoom !== 'lupa'){
+      // Hoja completa: se llena sin acercar; solo se cuida que el campo
+      // quede a la vista (si está fuera de la pantalla, se baja/sube).
+      keepInView(t);
+      updateSheetBar();
+      return;
+    }
     revealSheetBox();
     aimAt(t);
     updateSheetBar();
@@ -1148,17 +1179,17 @@
     var originalText = nextBtn.textContent;
     nextBtn.textContent = 'Guardando...';
 
-    fetch('/api/optometrist/examenes', {
-      method: 'POST',
+    fetch(EDIT_ID ? '/api/optometrist/examenes/' + EDIT_ID : '/api/optometrist/examenes', {
+      method: EDIT_ID ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
       .then(function(exam){
-        window.location.href = '/optometrist/examen-vista/' + exam.id;
+        window.location.href = '/optometrist/examen-vista/' + exam.id + (EDIT_ID ? '?editado=1' : '');
       })
       .catch(function(){
-        showStatus('No se pudo guardar el examen. Intenta de nuevo.', 'error');
+        showStatus(EDIT_ID ? 'No se pudieron guardar los cambios. Intenta de nuevo.' : 'No se pudo guardar el examen. Intenta de nuevo.', 'error');
         nextBtn.disabled = false;
         nextBtn.textContent = originalText;
       });
@@ -1373,15 +1404,15 @@
     nextBtn.disabled = true;
     var originalText = nextBtn.textContent;
     nextBtn.textContent = 'Guardando...';
-    fetch('/api/optometrist/ordenes-lab', {
-      method: 'POST',
+    fetch(EDIT_ID ? '/api/optometrist/ordenes-lab/' + EDIT_ID : '/api/optometrist/ordenes-lab', {
+      method: EDIT_ID ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
       .then(function(res){ if (!res.ok) throw new Error('request failed'); return res.json(); })
-      .then(function(){ window.location.href = DOC_LIST_URL + '?ok=1'; })
+      .then(function(){ window.location.href = DOC_LIST_URL + (EDIT_ID ? '?editado=1' : '?ok=1'); })
       .catch(function(){
-        showStatus(DOC === 'garantia' ? 'No se pudo guardar la garantía. Intenta de nuevo.' : 'No se pudo guardar la orden de laboratorio. Intenta de nuevo.', 'error');
+        showStatus(EDIT_ID ? 'No se pudieron guardar los cambios. Intenta de nuevo.' : DOC === 'garantia' ? 'No se pudo guardar la garantía. Intenta de nuevo.' : 'No se pudo guardar la orden de laboratorio. Intenta de nuevo.', 'error');
         nextBtn.disabled = false;
         nextBtn.textContent = originalText;
       });
@@ -1419,6 +1450,62 @@
       .catch(function(){})
       .then(go);
   }
+
+  // ---------- Editar: carga la hoja guardada y SU plantilla ----------
+  function fmtFecha(iso){
+    var d = iso ? new Date(iso) : null;
+    return d && !isNaN(d) ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  }
+  function startEdit(){
+    var url = DOC ? '/api/optometrist/ordenes-lab/' + EDIT_ID : '/api/optometrist/examenes/' + EDIT_ID;
+    var h1 = document.querySelector('.cuenta-header h1'), lead = document.querySelector('.cuenta-header p');
+    var cancel = document.querySelector('.admin-header-actions a.btn');
+    showStatus('Cargando…');
+    fetch(url, { headers: { Accept: 'application/json' } })
+      .then(function(r){ if (!r.ok) throw new Error(r.status === 404 ? 'Esa hoja ya no existe.' : 'No se pudo abrir la hoja.'); return r.json(); })
+      .then(function(doc){
+        editDoc = doc;
+        if (DOC && doc.kind && doc.kind !== DOC) throw new Error('Esa hoja es de otro tipo.');
+        return fetch('/api/optometrist/plantillas/' + doc.templateId, { headers: { Accept: 'application/json' } })
+          .then(function(r){ if (!r.ok) throw new Error('No se encontró la plantilla con la que se hizo esta hoja.'); return r.json(); });
+      })
+      .then(function(t){
+        if (t && typeof t.elements === 'string'){ try { t.elements = JSON.parse(t.elements); } catch (e){ t.elements = []; } }
+        template = t;
+        var d = examData(editDoc);
+        values = { fields: Object.assign({}, d.fields), tables: JSON.parse(JSON.stringify(d.tables || {})) };
+        // Hojas viejitas que no traen el nombre/teléfono dentro: se toman del registro.
+        if (!(values.fields.nombre || '').trim() && editDoc.patientName) values.fields.nombre = editDoc.patientName;
+        if (!(values.fields.telefono || '').trim() && editDoc.patientPhone) values.fields.telefono = editDoc.patientPhone;
+        selectedPatientId = editDoc.userId || 0;
+        appointmentId = editDoc.appointmentId || 0;
+        if (DOC){ fromExamId = editDoc.examId || 0; prefilledFor = normTxt(editDoc.patientName || '') + '|' + (editDoc.userId || 0); }
+        var what = DOC === 'garantia' ? 'garantía / reparación' : DOC === 'laboratorio' ? 'orden de laboratorio' + (editDoc.folio ? ' Nº ' + editDoc.folio : '') : 'historia clínica';
+        document.title = 'Editar ' + what + ' — Optometría · Avante Optics';
+        if (h1) h1.textContent = 'Editar ' + what;
+        if (lead) lead.textContent = (editDoc.patientName || 'Sin nombre') + ' · hecha el ' + fmtFecha(editDoc.createdAt) + (editDoc.createdByName ? ' por ' + editDoc.createdByName : '') +
+          (editDoc.updatedAt ? ' · última edición: ' + fmtFecha(editDoc.updatedAt) + (editDoc.updatedByName ? ' (' + editDoc.updatedByName + ')' : '') : '');
+        if (cancel) cancel.href = DOC ? DOC_LIST_URL : '/optometrist/examen-vista/' + EDIT_ID;
+        // En "Paso a paso" se puede guardar en cualquier momento.
+        if (!document.getElementById('editSaveNow')){
+          var b = document.createElement('button');
+          b.type = 'button'; b.id = 'editSaveNow'; b.className = 'btn thin';
+          b.textContent = 'Guardar cambios';
+          b.addEventListener('click', function(){ finishExam(); });
+          nextBtn.parentNode.insertBefore(b, backBtn);
+          var sync = function(){ b.style.display = mode === 'hoja' ? 'none' : ''; };
+          sync(); modeSwitch.addEventListener('click', function(){ setTimeout(sync, 0); });
+        }
+        formWrap.style.display = 'block';
+        showStatus('');
+        initWizard();
+      })
+      .catch(function(err){
+        showStatus(err.message || 'No se pudo abrir la hoja.', 'error');
+      });
+  }
+
+  if (EDIT_ID){ startEdit(); if (window.feather) feather.replace(); return; }
 
   fetch(DOC ? '/api/optometrist/plantillas/' + DOC : '/api/optometrist/plantillas/activa')
     .then(function(res){

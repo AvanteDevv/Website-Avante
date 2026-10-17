@@ -61,13 +61,16 @@ type EyeExam struct {
 	// en Citas de hoy) — 0 si se hizo sin cita.
 	AppointmentID int64     `json:"appointmentId,omitempty"`
 	CreatedAt     time.Time `json:"createdAt"`
+	// Última edición (vacío si nunca se editó).
+	UpdatedAt     *time.Time `json:"updatedAt,omitempty"`
+	UpdatedByName string     `json:"updatedByName,omitempty"`
 	// ProximaCita: la revisión que programó recepción (3, 6 o 12 meses).
 	// Solo se llena al ver un examen / la ficha (AttachNextVisits).
 	ProximaCita *ExamNextVisit `json:"proximaCita,omitempty"`
 }
 
 // eyeExamCols: columnas en el orden que espera scanEyeExamRow.
-const eyeExamCols = `id, template_id, patient_name, patient_phone, data, created_by_role, created_by_id, created_by_name, user_id, appointment_id, created_at`
+const eyeExamCols = `id, template_id, patient_name, patient_phone, data, created_by_role, created_by_id, created_by_name, user_id, appointment_id, created_at, updated_at, COALESCE(updated_by_name, '')`
 
 // PatientMatch es lo mínimo que necesita el autocompletado de
 // "Nombre" en Nuevo examen para ofrecer resultados de la tabla
@@ -117,8 +120,13 @@ var ErrEyeExamNotFound = errors.New("examen no encontrado")
 func scanEyeExamRow(row rowScanner, e *EyeExam) error {
 	var raw []byte
 	var userID, apptID sql.NullInt64
-	if err := row.Scan(&e.ID, &e.TemplateID, &e.PatientName, &e.PatientPhone, &raw, &e.CreatedByRole, &e.CreatedByID, &e.CreatedByName, &userID, &apptID, &e.CreatedAt); err != nil {
+	var upd sql.NullTime
+	if err := row.Scan(&e.ID, &e.TemplateID, &e.PatientName, &e.PatientPhone, &raw, &e.CreatedByRole, &e.CreatedByID, &e.CreatedByName, &userID, &apptID, &e.CreatedAt, &upd, &e.UpdatedByName); err != nil {
 		return err
+	}
+	if upd.Valid {
+		t := upd.Time
+		e.UpdatedAt = &t
 	}
 	e.Data = json.RawMessage(raw)
 	if userID.Valid {
@@ -155,6 +163,28 @@ func CreateEyeExam(templateID int64, patientName, patientPhone string, data json
 	id, err := result.LastInsertId()
 	if err != nil {
 		return nil, err
+	}
+	return GetEyeExamByID(id)
+}
+
+// UpdateEyeExam guarda los cambios de un examen ya hecho (Editar). La
+// plantilla, quién lo hizo y cuándo no cambian; se registra quién editó.
+func UpdateEyeExam(id int64, patientName, patientPhone string, data json.RawMessage, userID int64, byName string) (*EyeExam, error) {
+	var userIDArg interface{}
+	if userID > 0 {
+		userIDArg = userID
+	}
+	res, err := db.DB.Exec(
+		`UPDATE eye_exams SET patient_name = ?, patient_phone = ?, data = ?, user_id = COALESCE(?, user_id), updated_at = NOW(), updated_by_name = ? WHERE id = ?`,
+		patientName, patientPhone, []byte(data), userIDArg, byName, id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		if _, err := GetEyeExamByID(id); err != nil {
+			return nil, err
+		}
 	}
 	return GetEyeExamByID(id)
 }

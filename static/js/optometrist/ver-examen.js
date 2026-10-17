@@ -54,7 +54,13 @@
         metaEl.innerHTML = '<strong>' + exam.patientName + '</strong>' +
           (exam.patientPhone ? ' · ' + exam.patientPhone : '') +
           ' · ' + fecha(exam.createdAt) +
-          (exam.createdByName ? ' · Realizado por ' + exam.createdByName : '');
+          (exam.createdByName ? ' · Realizado por ' + exam.createdByName : '') +
+          (exam.updatedAt ? ' · Editado ' + fecha(exam.updatedAt) + (exam.updatedByName ? ' por ' + exam.updatedByName : '') : '');
+      }
+      if (new URLSearchParams(location.search).get('editado') === '1'){
+        showStatus('Cambios guardados ✓', 'ok');
+        history.replaceState(null, '', location.pathname);
+        setTimeout(function(){ showStatus(''); }, 4000);
       }
 
       return fetch('/api/optometrist/plantillas/' + exam.templateId).then(function(res){

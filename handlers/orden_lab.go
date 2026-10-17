@@ -103,6 +103,49 @@ func CreateLabOrderSheetHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, o)
 }
 
+// UpdateLabOrderSheetHandler — PUT /api/optometrist/ordenes-lab/:id
+// Editar una orden de laboratorio o garantía ya guardada (conserva su Nº).
+func UpdateLabOrderSheetHandler(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Hoja inválida."})
+		return
+	}
+	var in createLabOrderSheetInput
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos de la hoja inválidos."})
+		return
+	}
+	in.PatientName = strings.TrimSpace(in.PatientName)
+	if r := []rune(in.PatientName); len(r) > 160 {
+		in.PatientName = string(r[:160])
+	}
+	in.PatientPhone = strings.TrimSpace(in.PatientPhone)
+	if r := []rune(in.PatientPhone); len(r) > 40 {
+		in.PatientPhone = string(r[:40])
+	}
+	if len(in.Data) > 0 && !json.Valid(in.Data) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos de la hoja inválidos."})
+		return
+	}
+	o, err := models.UpdateLabOrderSheet(id, in.PatientName, in.PatientPhone, in.UserID, in.Data, staffName(c))
+	if err != nil {
+		if errors.Is(err, models.ErrLabOrderSheetNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Esa hoja ya no existe."})
+			return
+		}
+		log.Println("orden-lab: editar:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron guardar los cambios."})
+		return
+	}
+	// El laboratorio ve la orden actualizada en su tablero.
+	if o.Kind == models.ExamTemplateKindLab {
+		BroadcastLabPendiente()
+	}
+	c.Set("lab_order_sheet", o.PatientName)
+	c.JSON(http.StatusOK, o)
+}
+
 // ListLabOrderSheetsHandler — GET /api/optometrist/ordenes-lab[?examId=&kind=]
 func ListLabOrderSheetsHandler(c *gin.Context) {
 	examID, _ := strconv.ParseInt(c.Query("examId"), 10, 64)

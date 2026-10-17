@@ -113,6 +113,7 @@
       '</button>' +
       '<div class="row-menu-dropdown">' +
         '<button type="button" class="row-menu-item" data-doc-act="ver" data-id="' + s.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg> Ver</button>' +
+        '<a class="row-menu-item" href="' + (IS_GAR ? '/optometrist/garantias' : '/optometrist/ordenes-lab') + '/nueva?edit=' + s.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar</a>' +
         '<button type="button" class="row-menu-item" data-doc-act="pdf" data-id="' + s.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16"/></svg> Exportar PDF</button>' +
         '<button type="button" class="row-menu-item" data-doc-act="print" data-id="' + s.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2M6 14h12v7H6z"/></svg> Imprimir</button>' +
         (s.examId ? '<a class="row-menu-item" href="/optometrist/examen-vista/' + s.examId + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg> Ver su examen</a>' : '') +
@@ -212,9 +213,9 @@
   // Aviso al volver de guardar una hoja
   (function(){
     var p = new URLSearchParams(location.search);
-    if (p.get('ok') === '1'){
+    if (p.get('ok') === '1' || p.get('editado') === '1'){
       var st = document.getElementById('docStatus');
-      st.textContent = IS_GAR ? 'Hoja guardada ✓' : 'Orden guardada ✓';
+      st.textContent = p.get('editado') === '1' ? 'Cambios guardados ✓' : IS_GAR ? 'Hoja guardada ✓' : 'Orden guardada ✓';
       st.className = 'tpl-status ok';
       history.replaceState(null, '', location.pathname);
       setTimeout(function(){ st.textContent = ''; st.className = 'tpl-status'; }, 4000);
@@ -245,6 +246,7 @@
   function subtitle(s){
     var parts = [fecha(s.createdAt) + ', ' + hora(s.createdAt)];
     if (s.createdByName) parts.push('Llenó ' + s.createdByName);
+    if (s.updatedAt) parts.push('Editada ' + fecha(s.updatedAt) + (s.updatedByName ? ' por ' + s.updatedByName : ''));
     if (IS_GAR) parts.push(tipoOf(s) === 'garantia' ? 'Garantía' : 'Reparación');
     else parts.push('Orden de laboratorio' + (s.folio ? ' Nº ' + s.folio : ''));
     return parts.join(' · ');
@@ -276,7 +278,7 @@
     if (!s) return;
     document.querySelectorAll('.row-menu.is-open').forEach(function(m){ m.classList.remove('is-open'); });
     var act = a.dataset.docAct;
-    if (act === 'ver') AvanteExamModal.open(srcOf(s), { subtitle: subtitle(s) });
+    if (act === 'ver') AvanteExamModal.open(srcOf(s), { subtitle: subtitle(s), editUrl: (IS_GAR ? '/optometrist/garantias' : '/optometrist/ordenes-lab') + '/nueva?edit=' + s.id });
     else if (act === 'pdf') AvanteExamModal.exportPdf(srcOf(s));
     else if (act === 'print') AvanteExamModal.print(srcOf(s));
     else if (act === 'delete'){
