@@ -47,9 +47,16 @@ type execer interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
+// RastreoPorPieza: antes cada pieza que entraba recibía su número AVT.
+// Ahora la clave de rastreo se crea POR COMPRA (una por venta del Punto de
+// venta, ver CreatePosPedido), así que ya no se generan números por pieza.
+// Los que ya existen se conservan: se pueden seguir consultando y se marcan
+// como vendidos / baja cuando sale mercancía.
+const RastreoPorPieza = false
+
 // addPiezas da de alta n piezas del artículo y regresa sus números.
 func addPiezas(tx execer, itemID int64, n int, origen string, ajusteID int64, now string) ([]string, error) {
-	if n <= 0 {
+	if !RastreoPorPieza || n <= 0 {
 		return nil, nil
 	}
 	if n > MaxPiezasPorMovimiento {

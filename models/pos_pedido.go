@@ -9,8 +9,10 @@ import (
 	"avante-optics/db"
 )
 
-// Cada venta del Punto de venta que lleva productos (no solo servicios)
-// abre un pedido en "orders" con su clave de rastreo (la misma que usa
+// Cada venta (compra) del Punto de venta que lleva productos abre un
+// pedido con UNA clave de rastreo. No cuentan los servicios ni los
+// artículos marcados "sin clave de rastreo" (microfibra, estuche…): si la
+// venta solo trae esos, no se crea clave. Abre un pedido en "orders" con su clave de rastreo (la misma que usa
 // la página pública de Rastreo y el panel de Laboratorio). Así:
 //   - la clave sale en el ticket y el cliente consulta cómo va su trabajo,
 //   - el laboratorio le cambia el estatus,
@@ -23,7 +25,7 @@ type PosPedido struct {
 	Status string `json:"status"`
 }
 
-var ErrPosPedidoSinProductos = errors.New("esta venta solo tiene servicios: no lleva pedido")
+var ErrPosPedidoSinProductos = errors.New("esta venta solo tiene servicios o artículos sin clave de rastreo: no lleva pedido")
 
 // GetPosPedido — el pedido de esa venta (nil si no tiene).
 func GetPosPedido(saleID int64) (*PosPedido, error) {
@@ -67,7 +69,7 @@ func CreatePosPedido(saleID int64, by string) (*PosPedido, error) {
 		SELECT COALESCE(it.inventory_id, 0), it.descripcion, it.cantidad, it.importe
 		FROM pos_sale_items it
 		LEFT JOIN inventory_items inv ON inv.id = it.inventory_id
-		WHERE it.sale_id = ? AND COALESCE(inv.servicio, 0) = 0
+		WHERE it.sale_id = ? AND COALESCE(inv.servicio, 0) = 0 AND COALESCE(inv.sin_rastreo, 0) = 0
 		ORDER BY it.id`, saleID)
 	if err != nil {
 		return nil, err

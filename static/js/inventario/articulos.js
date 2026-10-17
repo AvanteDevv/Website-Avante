@@ -236,6 +236,7 @@
     var a = current();
     ['tbEditar', 'tbEliminar', 'tbAjustar', 'tbClonar'].forEach(function (id) { $(id).disabled = !a; });
     $('tbAjustar').disabled = !a || a.servicio;
+    $('tbEtiquetas').disabled = !a;
     var kx = $('tbKardex');
     kx.href = a ? I.base + '/movimientos?item=' + a.id : I.base + '/movimientos';
     kx.setAttribute('aria-disabled', a ? 'false' : 'true');
@@ -297,13 +298,14 @@
         '<div class="inv-d-row"><span>Departamento</span><strong>' + esc(a.departamento || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Categoría</span><strong>' + esc(a.categoria || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Localización</span><strong>' + esc(a.localizacion || '—') + '</strong></div>' +
+        (a.servicio ? '' : '<div class="inv-d-row"><span>Clave de rastreo</span><strong>' + (a.sin_rastreo ? 'No se le crea' : 'Se crea al venderlo') + '</strong></div>') +
         (I.canCost ? '<div class="inv-d-row"><span>Precio de compra</span><strong>' + mxn.format(a.precio_compra) + '</strong></div>' : '') +
         otros +
         (a.factor > 1 || a.unidad_compra !== a.unidad_venta ? '<div class="inv-d-row"><span>Compra / venta</span><strong>1 ' + esc(a.unidad_compra) + ' = ' + I.num(a.factor) + ' ' + esc(a.unidad_venta) + '</strong></div>' : '') +
       '</div>' +
       '<div class="inv-d-actions">' +
         (a.servicio ? '' : '<button type="button" class="btn solid small" data-act="ajustar">Ajustar existencia</button>') +
-        (a.servicio ? '' : '<button type="button" class="btn small" data-act="rastreo">Números de rastreo</button>') +
+        '<button type="button" class="btn small" data-act="etiquetas">Imprimir etiquetas</button>' +
         '<a class="btn small" href="' + I.base + '/movimientos?item=' + a.id + '">Ver movimientos</a>' +
         '<button type="button" class="btn small" data-act="fotos">' + (a.foto ? 'Fotos' : 'Agregar fotos') + '</button>' +
       '</div>';
@@ -313,6 +315,7 @@
     var b = e.target.closest('[data-act]');
     if (b && b.getAttribute('data-act') === 'ajustar') { closeSheet(); openAjuste(current()); }
     if (b && b.getAttribute('data-act') === 'rastreo') { closeSheet(); openRastreo(current()); }
+    if (b && b.getAttribute('data-act') === 'etiquetas') { closeSheet(); openEtiquetas(current()); }
     if (b && b.getAttribute('data-act') === 'fotos') { closeSheet(); openEdit(current()); setTab('fotos'); }
   });
   // Celular: el detalle sale como hoja desde abajo.
@@ -405,6 +408,8 @@
     var s = $('aServicio').checked;
     ['aExistencia', 'aMinimo', 'aMaximo'].forEach(function (id) { $(id).disabled = s || (id === 'aExistencia' && !!editing); });
     if (s) { $('aExistencia').value = ''; }
+    // Los servicios nunca llevan clave de rastreo: la opción no aplica.
+    $('aSinRastreoWrap').hidden = s;
   }
   $('aServicio').addEventListener('change', syncServicio);
   ['aClave', 'aClaveAlt'].forEach(function (id) {
@@ -585,6 +590,7 @@
     aUV.set(a ? a.unidad_venta : 'PZA', true);
     $('aFactor').value = a ? (a.factor || 1) : 1;
     $('aServicio').checked = !!(a && a.servicio);
+    $('aSinRastreo').checked = !!(a && a.sin_rastreo);
     if ($('aCompra')) $('aCompra').value = a && a.precio_compra ? a.precio_compra.toFixed(2) : '';
     $('aIva').checked = a ? !!a.iva : true;
     [1, 2, 3, 4].forEach(function (n) {
@@ -628,6 +634,7 @@
       unidad_venta: aUV.get(),
       factor: parseFloat($('aFactor').value) || 1,
       servicio: $('aServicio').checked,
+      sin_rastreo: !$('aServicio').checked && $('aSinRastreo').checked,
       iva: $('aIva').checked,
       precio_compra: I.round2(compra()),
       existencia: editing ? 0 : intVal('aExistencia'),
@@ -665,14 +672,13 @@
       });
     }).then(function (d) {
       I.closeModal(artModal);
-      var nuevos = d.item.nuevos_rastreo || [];
       if (d.fotoError) I.toast(d.fotoError, 'error');
-      else I.toast(editing ? 'Se guardaron los cambios de ' + d.item.descripcion + '.'
-        : 'Artículo ' + d.item.clave + ' agregado' + (nuevos.length ? ' con ' + nuevos.length + (nuevos.length === 1 ? ' número' : ' números') + ' de rastreo.' : '.'));
+      else I.toast(editing ? 'Se guardaron los cambios de ' + d.item.descripcion + '.' : 'Artículo ' + d.item.clave + ' agregado.');
       selectedId = d.item.id;
       return load(true).then(function () {
         revealSelected();
-        if (!editing && nuevos.length) openRastreo(byId[d.item.id], nuevos);
+        // Recién dado de alta con existencia: se ofrecen sus etiquetas.
+        if (!editing && !d.item.servicio && d.item.existencia > 0) openEtiquetas(byId[d.item.id], d.item.existencia, 'Se agregó con ' + I.num(d.item.existencia) + ' en existencia: ¿imprimes sus etiquetas?');
       });
     }).catch(function (e2) {
       err.textContent = e2.message;
@@ -797,16 +803,16 @@
     I.api('/api/inventario/articulos/' + ajArt.id + '/ajustar', { method: 'POST', body: { modo: ajModo, cantidad: ajCantidad(), comentario: $('ajComentario').value.trim() } })
       .then(function (d) {
         var a = d.ajuste.articulo;
+        var entro = a.existencia - (ajArt ? ajArt.existencia : a.existencia);
         I.closeModal(ajModal);
-        var nuevos = d.ajuste.nuevos_rastreo || [];
-        I.toast('Ajuste #' + d.ajuste.folio + ': ' + a.descripcion + ' quedó en ' + I.num(a.existencia) + '.' +
-          (nuevos.length ? ' Se generaron ' + nuevos.length + ' números de rastreo.' : d.ajuste.bajas ? ' ' + d.ajuste.bajas + ' números de rastreo quedaron de baja.' : ''));
+        I.toast('Ajuste #' + d.ajuste.folio + ': ' + a.descripcion + ' quedó en ' + I.num(a.existencia) + '.');
         var i = items.findIndex(function (x) { return x.id === a.id; });
         if (i >= 0) items[i] = a;
         byId[a.id] = a;
         renderStats();
         apply(true);
-        if (nuevos.length) openRastreo(a, nuevos);
+        // Entró mercancía: se ofrecen las etiquetas de lo que entró.
+        if (entro > 0) openEtiquetas(a, entro, 'Entraron ' + I.num(entro) + ': ¿imprimes sus etiquetas?');
       })
       .catch(function (e2) { $('ajError').textContent = e2.message; })
       .finally(function () { btn.textContent = 'Guardar ajuste'; ajRender(); });
@@ -914,12 +920,13 @@
   /* ---------- etiquetas: directo a la etiquetadora (Avante Impresión) ---------- */
   var L = window.InvLabels;
   function labelsOf(list) {
-    var line = rsArt.clave + '  ' + mxn.format(rsArt.precio_1);
-    return list.map(function (p) { return { numero: p.numero, desc: rsArt.descripcion, linea: line }; });
+    return list.map(function (p) { return { code: p.numero, desc: rsArt.descripcion, price: rsArt.precio_1, sub: rsArt.clave }; });
   }
   function syncLblName() {
     var c = L ? L.config() : null;
-    $('rsLblName').textContent = c && c.printer ? c.printer + ' · ' + c.lang.toUpperCase() : 'Impresora de etiquetas';
+    var t = c && c.printer ? c.printer + ' · ' + c.lang.toUpperCase() : 'Impresora de etiquetas';
+    $('rsLblName').textContent = t;
+    $('etqLblName').textContent = t;
   }
   $('rsPrint').addEventListener('click', function () {
     var list = rsFiltered();
@@ -927,7 +934,7 @@
     var cfg = L ? L.config() : null;
     if (!cfg || !cfg.printer || !cfg.enabled) {
       I.toast('Elige la impresora de etiquetas para imprimir directo. Mientras, se abrió la vista previa.');
-      previewLabels(list);
+      previewLabels(labelsOf(list));
       return;
     }
     var btn = this; btn.disabled = true; btn.textContent = 'Imprimiendo…';
@@ -935,10 +942,81 @@
       I.toast('Se mandaron ' + list.length + (list.length === 1 ? ' etiqueta' : ' etiquetas') + ' a ' + cfg.printer + '.');
     }, function (err) {
       I.toast((err.offline ? 'Avante Impresión no está abierto en esta compu.' : 'No se pudo imprimir directo: ' + err.message + '.') + ' Se abrió la vista previa.', 'error');
-      previewLabels(list);
+      previewLabels(labelsOf(list));
     }).finally(function () { btn.disabled = false; btn.textContent = 'Imprimir etiquetas'; });
   });
-  $('rsPreview').addEventListener('click', function () { var l = rsFiltered(); if (l.length) previewLabels(l); });
+  $('rsPreview').addEventListener('click', function () { var l = rsFiltered(); if (l.length) previewLabels(labelsOf(l)); });
+
+  /* ---------- etiquetas del artículo (botón Etiquetas / F7) ----------
+     La etiqueta lleva la descripción, el PRECIO en grande, el código de
+     barras de la clave (el Punto de venta lo encuentra al escanearlo) y la
+     clave abajo. Ya no depende de los números de rastreo. */
+  var etqModal = $('etqModal'), etqArt = null, etqMax = 0;
+  function etqCode(a) { return String(a.clave || a.clave_alterna || ('ART' + a.id)).toUpperCase().replace(/\s+/g, ''); }
+  function etqLabels(a, n) {
+    var one = { code: etqCode(a), desc: a.descripcion, price: a.precio_1, sub: '' };
+    var out = []; for (var i = 0; i < n; i++) out.push(one);
+    return out;
+  }
+  function etqQty() { return Math.max(1, Math.min(500, parseInt($('etqQty').value, 10) || 1)); }
+  function openEtiquetas(a, qty, note) {
+    if (!a) return;
+    etqArt = a; etqMax = a.servicio ? 0 : Math.max(0, a.existencia || 0);
+    $('etqDesc').textContent = a.descripcion;
+    $('etqClave').textContent = etqCode(a);
+    $('etqNote').hidden = !note; $('etqNote').textContent = note || '';
+    $('etqQty').value = Math.max(1, Math.min(500, qty || 1));
+    $('etqAll').hidden = !(etqMax > 1);
+    $('etqAll').textContent = 'Una por pieza (' + I.num(etqMax) + ')';
+    $('etqError').textContent = '';
+    var c = L ? L.config() : { w: 50, h: 25 };
+    var lbl = $('etqLbl');
+    lbl.style.aspectRatio = c.w + ' / ' + c.h;
+    $('etqSize').textContent = 'Etiqueta de ' + c.w + ' × ' + c.h + ' mm';
+    $('etqLblDesc').textContent = a.descripcion;
+    $('etqLblPrice').textContent = L ? L.priceText(a.precio_1) : mxn.format(a.precio_1);
+    $('etqLblCode').textContent = etqCode(a);
+    drawBars($('etqLblBc'), etqCode(a));
+    syncLblName();
+    I.openModal(etqModal);
+  }
+  // Barras de muestra (la imagen real la hace la impresora).
+  function drawBars(svgEl, text) {
+    var x = 0, out = '', seed = 0;
+    for (var i = 0; i < text.length; i++) seed = (seed * 31 + text.charCodeAt(i)) % 9973;
+    while (x < 100) {
+      seed = (seed * 9301 + 49297) % 233280;
+      var w = 0.6 + (seed % 3) * 0.6;
+      out += '<rect x="' + x.toFixed(2) + '" y="0" width="' + w.toFixed(2) + '" height="20"/>';
+      x += w + 0.6 + ((seed >> 3) % 2) * 0.7;
+    }
+    svgEl.innerHTML = out;
+  }
+  $('etqModal').querySelector('.inv-etq-qty').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-step]');
+    if (b) { $('etqQty').value = Math.max(1, Math.min(500, etqQty() + Number(b.getAttribute('data-step')))); }
+  });
+  $('etqAll').addEventListener('click', function () { $('etqQty').value = Math.min(500, etqMax); });
+  $('etqLblCfg').addEventListener('click', openLblCfg);
+  $('etqPreview').addEventListener('click', function () { if (etqArt) previewLabels(etqLabels(etqArt, etqQty())); });
+  $('etqPrint').addEventListener('click', function () {
+    if (!etqArt) return;
+    var n = etqQty(), labels = etqLabels(etqArt, n);
+    var cfg = L ? L.config() : null;
+    if (!cfg || !cfg.printer || !cfg.enabled) {
+      I.toast('Elige la impresora de etiquetas para imprimir directo. Mientras, se abrió la vista previa.');
+      previewLabels(labels);
+      return;
+    }
+    var btn = this; btn.disabled = true; btn.textContent = 'Imprimiendo…'; $('etqError').textContent = '';
+    L.print(labels, cfg).then(function () {
+      I.closeModal(etqModal);
+      I.toast('Se mandaron ' + n + (n === 1 ? ' etiqueta' : ' etiquetas') + ' a ' + cfg.printer + '.');
+    }, function (err) {
+      $('etqError').textContent = err.offline ? 'Avante Impresión no está abierto en esta compu. Se abrió la vista previa.' : 'No se pudo imprimir directo: ' + err.message;
+      previewLabels(labels);
+    }).finally(function () { btn.disabled = false; btn.textContent = 'Imprimir'; });
+  });
 
   // Configurar la etiquetadora (se guarda en esta compu).
   var lblModal = $('lblModal'), lblLang = 'tspl', lblPrinters = [];
@@ -1024,21 +1102,26 @@
   syncLblName();
 
   // Vista previa en una ventana (también sirve para imprimir en hoja normal).
-  function previewLabels(list) {
-    if (!list.length || !rsArt) return;
+  // labels: [{code, desc, price, sub}] — el precio va GRANDE.
+  function previewLabels(labels) {
+    if (!labels.length) return;
     var w = window.open('', '_blank', 'width=900,height=700');
     if (!w) { I.toast('Permite las ventanas emergentes para imprimir las etiquetas.', 'error'); return; }
-    var desc = esc(rsArt.descripcion), price = mxn.format(rsArt.precio_1);
-    w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Etiquetas · ' + desc + '</title>' +
+    var c = L ? L.config() : { w: 50, h: 25 };
+    var title = esc(labels[0].desc);
+    var pt = function (v) { return L ? L.priceText(v) : mxn.format(v); };
+    w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Etiquetas · ' + title + '</title>' +
       '<style>@page{margin:8mm}body{font-family:Arial,sans-serif;margin:0}' +
-      '.grid{display:grid;grid-template-columns:repeat(auto-fill,50mm);gap:3mm}' +
-      '.lbl{width:50mm;height:25mm;box-sizing:border-box;border:1px dashed #bbb;padding:1.5mm 2mm;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;page-break-inside:avoid}' +
-      '.d{font-size:7pt;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
-      '.p{font-size:6.5pt}.n{font-family:monospace;font-size:9pt;font-weight:bold;letter-spacing:.5px}svg{width:100%;height:10mm}@media print{.lbl{border-color:transparent}.bar{display:none}}' +
+      '.grid{display:grid;grid-template-columns:repeat(auto-fill,' + c.w + 'mm);gap:3mm}' +
+      '.lbl{width:' + c.w + 'mm;height:' + c.h + 'mm;box-sizing:border-box;border:1px dashed #bbb;padding:1mm 2mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;overflow:hidden;page-break-inside:avoid}' +
+      '.d{font-size:7pt;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.1}' +
+      '.p{font-size:' + Math.max(16, Math.round(c.h * 0.95)) + 'pt;font-weight:900;line-height:1;letter-spacing:-.5px}' +
+      '.c{font-family:monospace;font-size:7.5pt;font-weight:bold;letter-spacing:.5px;line-height:1}svg{width:100%;height:' + Math.max(5, Math.round(c.h * 0.24)) + 'mm}' +
+      '@media print{.lbl{border-color:transparent}.bar{display:none}}' +
       '.bar{padding:10px;font-size:13px;display:flex;gap:10px;align-items:center}.bar button{padding:8px 14px;font-size:13px;cursor:pointer}</style></head><body>' +
-      '<div class="bar"><button onclick="window.print()">Imprimir</button><span>' + list.length + ' etiquetas · ' + desc + '</span></div><div class="grid">' +
-      list.map(function (p) {
-        return '<div class="lbl"><div class="d">' + desc + '</div><svg class="bc" data-v="' + esc(p.numero) + '"></svg><div class="n">' + esc(p.numero) + '</div><div class="p">' + esc(rsArt.clave) + ' · ' + price + '</div></div>';
+      '<div class="bar"><button onclick="window.print()">Imprimir</button><span>' + labels.length + (labels.length === 1 ? ' etiqueta · ' : ' etiquetas · ') + title + '</span></div><div class="grid">' +
+      labels.map(function (l) {
+        return '<div class="lbl"><div class="d">' + esc(l.desc) + '</div><div class="p">' + esc(pt(l.price)) + '</div><svg class="bc" data-v="' + esc(l.code) + '"></svg><div class="c">' + esc(l.code) + (l.sub ? ' · ' + esc(l.sub) : '') + '</div></div>';
       }).join('') +
       '</div><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>' +
       '<script>window.addEventListener("load",function(){document.querySelectorAll(".bc").forEach(function(s){try{JsBarcode(s,s.getAttribute("data-v"),{format:"CODE128",height:34,margin:0,displayValue:false})}catch(e){}});});<\/script>' +
@@ -1053,10 +1136,11 @@
   $('tbEliminar').addEventListener('click', function () { openDelete(current()); });
   $('tbAjustar').addEventListener('click', function () { openAjuste(current()); });
   $('tbClonar').addEventListener('click', function () { openClone(current()); });
+  $('tbEtiquetas').addEventListener('click', function () { openEtiquetas(current()); });
 
   document.addEventListener('keydown', function (e) {
     var modal = document.querySelector('.admin-modal-overlay.open');
-    var keys = { F2: 1, F3: 1, F4: 1, F5: 1, F6: 1, F8: 1, F9: 1 };
+    var keys = { F2: 1, F3: 1, F4: 1, F5: 1, F6: 1, F7: 1, F8: 1, F9: 1 };
     if (keys[e.key]) {
       if (modal) { if (e.key === 'F5') e.preventDefault(); return; }
       e.preventDefault();
@@ -1065,6 +1149,7 @@
       if (e.key === 'F4') openEdit(current());
       if (e.key === 'F5') $('tbRecargar').click();
       if (e.key === 'F6') openDelete(current());
+      if (e.key === 'F7') openEtiquetas(current());
       if (e.key === 'F8') openAjuste(current());
       if (e.key === 'F9') openClone(current());
       return;

@@ -62,6 +62,7 @@
       <span class="inv-tool-sep"></span>
       <button type="button" class="inv-tool" id="tbAjustar" disabled><i data-feather="sliders"></i><span>Ajustar</span><kbd>F8</kbd></button>
       <button type="button" class="inv-tool" id="tbClonar" disabled><i data-feather="copy"></i><span>Clonar</span><kbd>F9</kbd></button>
+      <button type="button" class="inv-tool" id="tbEtiquetas" disabled><i data-feather="printer"></i><span>Etiquetas</span><kbd>F7</kbd></button>
       <a class="inv-tool" id="tbKardex" href="{{.InvBase}}/movimientos" aria-disabled="true"><i data-feather="repeat"></i><span>Movimientos</span></a>
     </div>
 
@@ -185,6 +186,11 @@
             <input type="checkbox" id="aServicio">
             <span class="inv-check-box"></span>
             <span><strong>Es un servicio</strong><small>No lleva existencia (ej. examen de la vista, ajuste de armazón).</small></span>
+          </label>
+          <label class="inv-check" id="aSinRastreoWrap">
+            <input type="checkbox" id="aSinRastreo">
+            <span class="inv-check-box"></span>
+            <span><strong>No crearle clave de rastreo</strong><small>La clave de rastreo se crea por cada compra. Márcalo en artículos que no la necesitan (ej. microfibra, estuche, líquido): si en la venta solo van estos, no se crea clave.</small></span>
           </label>
         </div>
 
@@ -332,6 +338,47 @@
         <button type="button" class="btn small" id="rsPreview">Vista previa</button>
         <button type="button" class="btn small" id="rsCopy">Copiar números</button>
         <button type="button" class="btn solid small" id="rsPrint">Imprimir etiquetas</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: imprimir etiquetas del artículo ================= -->
+<div class="admin-modal-overlay" id="etqModal">
+  <div class="admin-modal-card inv-etq-card" role="dialog" aria-modal="true" aria-labelledby="etqTitle">
+    <div class="admin-modal-head">
+      <h3 id="etqTitle">Imprimir etiquetas</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="inv-aj-who"><strong id="etqDesc">—</strong><span id="etqClave"></span></div>
+      <p class="inv-hint" id="etqNote" hidden></p>
+      <div class="inv-etq-preview" aria-label="Así se verá la etiqueta">
+        <div class="inv-etq-lbl" id="etqLbl">
+          <div class="inv-etq-d" id="etqLblDesc"></div>
+          <div class="inv-etq-p" id="etqLblPrice"></div>
+          <svg class="inv-etq-bc" id="etqLblBc" viewBox="0 0 100 20" preserveAspectRatio="none"></svg>
+          <div class="inv-etq-c" id="etqLblCode"></div>
+        </div>
+        <small id="etqSize"></small>
+      </div>
+      <div class="staff-field">
+        <span>¿Cuántas etiquetas?</span>
+        <div class="inv-etq-qty">
+          <button type="button" class="inv-etq-step" data-step="-1" aria-label="Menos">−</button>
+          <input type="number" id="etqQty" min="1" max="500" step="1" inputmode="numeric" value="1">
+          <button type="button" class="inv-etq-step" data-step="1" aria-label="Más">+</button>
+          <button type="button" class="inv-etq-all" id="etqAll" hidden></button>
+        </div>
+      </div>
+      <p class="staff-error" id="etqError"></p>
+      <div class="staff-form-actions inv-rs-actions">
+        <button type="button" class="inv-btn-ghost" id="etqLblCfg" title="Impresora de etiquetas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg><span id="etqLblName">Impresora de etiquetas</span></button>
+        <span class="inv-rs-spacer"></span>
+        <button type="button" class="btn small" id="etqPreview">Vista previa</button>
+        <button type="button" class="btn solid small" id="etqPrint">Imprimir</button>
       </div>
     </div>
   </div>

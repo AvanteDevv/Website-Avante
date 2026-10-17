@@ -1,5 +1,5 @@
 /* =========================================================
-   INVENTARIO — impresión directa de ETIQUETAS (números de rastreo)
+   INVENTARIO — impresión directa de ETIQUETAS (precio grande + código de barras)
    Igual que el ticket: se manda por el programa "Avante Impresión"
    (127.0.0.1:17771) directo a la impresora de etiquetas, sin diálogo.
 
@@ -82,48 +82,93 @@ window.InvLabels = (function () {
   // Ancho del código 128 (en puntos) para centrarlo.
   function c128Width(text, narrow) { return (11 * (text.length + 3) + 2) * narrow; }
 
-  // labels: [{numero, desc, linea}]  ·  203 dpi = 8 puntos por mm
+  // Precio para la etiqueta: sin centavos si son .00 ("$1,250"), para que
+  // quepa en letra grande.
+  function priceText(v) {
+    var n = Number(v) || 0, cents = Math.round(n * 100) % 100 !== 0;
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: 2 });
+  }
+
+  // labels: [{code, desc, price, sub}]  ·  203 dpi = 8 puntos por mm
+  //   code  → lo que lleva el código de barras (la clave del artículo;
+  //           el Punto de venta lo encuentra al escanearlo)
+  //   price → número; se imprime GRANDE para que se vea de lejos
+  // (También acepta el formato viejo {numero, desc, linea}.)
+  function norm(l) {
+    return {
+      code: plain(l.code || l.numero || '').replace(/\s/g, ''),
+      desc: l.desc || '',
+      price: l.price != null ? priceText(l.price) : '',
+      sub: l.sub != null ? l.sub : (l.price != null ? '' : (l.linea || ''))
+    };
+  }
   function build(cfg, labels) {
     // La EVA58 no imprime en el último milímetro de cada lado: se centra en 56 mm.
     var W = Math.round((isEva(cfg.printer) ? Math.min(cfg.w, 56) : cfg.w) * 8), H = Math.round(cfg.h * 8);
     var maxChars = Math.max(10, Math.floor((W - 16) / 12));
+    // Alturas: descripción arriba, PRECIO grande, código de barras y la clave abajo.
+    var descY = Math.max(4, Math.round(H * 0.035));
+    var priceY = descY + 24;
     var out = '';
     if (cfg.lang === 'zpl') {
-      labels.forEach(function (l) {
-        var narrow = c128Width(l.numero, 2) <= W - 16 ? 2 : 1;
-        var x = Math.max(0, Math.round((W - c128Width(l.numero, narrow)) / 2));
-        var bh = Math.max(30, Math.round(H * 0.38));
+      labels.map(norm).forEach(function (l) {
+        var ph = Math.max(40, Math.min(Math.round(H * 0.45), H - priceY - 58));
+        while (ph > 30 && l.price.length * ph * 0.56 > W - 12) ph -= 4;
+        var bcY = priceY + ph + 6, bh = Math.max(26, Math.min(Math.round(H * 0.28), H - bcY - 30));
+        var narrow = c128Width(l.code, 2) <= W - 16 ? 2 : 1;
+        var x = Math.max(0, Math.round((W - c128Width(l.code, narrow)) / 2));
         out += '^XA^CI28^PW' + W + '^LL' + H + '^LH0,0' +
-          '^FO0,' + Math.round(H * 0.06) + '^FB' + W + ',1,0,C^A0N,22,20^FD' + cut(l.desc, maxChars) + '^FS' +
-          '^FO' + x + ',' + Math.round(H * 0.2) + '^BY' + narrow + '^BCN,' + bh + ',Y,N,N^FD' + l.numero + '^FS' +
-          '^FO0,' + (H - 26) + '^FB' + W + ',1,0,C^A0N,18,16^FD' + cut(l.linea, maxChars + 4) + '^FS' +
+          '^FO0,' + descY + '^FB' + W + ',1,0,C^A0N,22,20^FD' + cut(l.desc, maxChars) + '^FS' +
+          (l.price ? '^FO0,' + priceY + '^FB' + W + ',1,0,C^A0N,' + ph + ',' + Math.round(ph * 0.92) + '^FD' + l.price + '^FS' : '') +
+          '^FO' + x + ',' + bcY + '^BY' + narrow + '^BCN,' + bh + ',N,N,N^FD' + l.code + '^FS' +
+          '^FO0,' + (bcY + bh + 4) + '^FB' + W + ',1,0,C^A0N,20,18^FD' + cut(l.code + (l.sub ? '  ' + l.sub : ''), maxChars + 4) + '^FS' +
           '^PQ1^XZ\n';
       });
       return out;
     }
     if (cfg.lang === 'epl') {
       out += 'N\nq' + W + '\nQ' + H + ',' + Math.round(cfg.gap * 8) + '\n';
-      labels.forEach(function (l) {
-        var narrow = c128Width(l.numero, 2) <= W - 16 ? 2 : 1;
-        var x = Math.max(0, Math.round((W - c128Width(l.numero, narrow)) / 2));
+      labels.map(norm).forEach(function (l) {
+        // Fuente 5 = 32×48 (la más grande); si no cabe, la 4 (14×24) al doble.
+        var pf = 5, pmx = 2, cw = 64, ch = 96;
+        if (l.price.length * cw > W - 12 || H - (priceY + ch + 6) < 52) { pmx = 1; cw = 32; ch = 48; }
+        if (l.price.length * cw > W - 12) { pf = 4; pmx = 2; cw = 28; ch = 48; }
+        if (l.price.length * cw > W - 12) { pf = 4; pmx = 1; cw = 14; ch = 24; }
+        var bcY = priceY + ch + 6, bh = Math.max(26, Math.min(Math.round(H * 0.28), H - bcY - 26));
+        var narrow = c128Width(l.code, 2) <= W - 16 ? 2 : 1;
+        var x = Math.max(0, Math.round((W - c128Width(l.code, narrow)) / 2));
+        var d = cut(l.desc, maxChars), c = cut(l.code + (l.sub ? '  ' + l.sub : ''), maxChars + 4);
         out += 'N\n' +
-          'A10,' + Math.round(H * 0.05) + ',0,2,1,1,N,"' + cut(l.desc, maxChars) + '"\n' +
-          'B' + x + ',' + Math.round(H * 0.2) + ',0,1,' + narrow + ',' + (narrow * 2) + ',' + Math.max(30, Math.round(H * 0.38)) + ',B,"' + l.numero + '"\n' +
-          'A10,' + (H - 24) + ',0,1,1,1,N,"' + cut(l.linea, maxChars + 4) + '"\n' +
+          'A' + Math.max(4, Math.round((W - d.length * 10) / 2)) + ',' + descY + ',0,2,1,1,N,"' + d + '"\n' +
+          (l.price ? 'A' + Math.max(4, Math.round((W - l.price.length * cw) / 2)) + ',' + priceY + ',0,' + pf + ',' + pmx + ',' + pmx + ',N,"' + l.price + '"\n' : '') +
+          'B' + x + ',' + bcY + ',0,1,' + narrow + ',' + (narrow * 2) + ',' + bh + ',N,"' + l.code + '"\n' +
+          'A' + Math.max(4, Math.round((W - c.length * 10) / 2)) + ',' + (bcY + bh + 4) + ',0,2,1,1,N,"' + c + '"\n' +
           'P1\n';
       });
       return out;
     }
-    // TSPL (TSC, Xprinter, 3nStar…)
+    // TSPL (SICAR EVA58, TSC, Xprinter, 3nStar…)
     out += 'SIZE ' + cfg.w + ' mm,' + cfg.h + ' mm\r\nGAP ' + cfg.gap + ' mm,0 mm\r\nDIRECTION 1\r\nREFERENCE 0,0\r\nCODEPAGE 1252\r\n';
-    labels.forEach(function (l) {
-      var narrow = c128Width(l.numero, 2) <= W - 16 ? 2 : 1;
-      var x = Math.max(0, Math.round((W - c128Width(l.numero, narrow)) / 2));
-      var d = cut(l.desc, maxChars), ln = cut(l.linea, maxChars + 4);
+    labels.map(norm).forEach(function (l) {
+      // Precio: fuente 5 (32×48 puntos = 6 mm de alto); en etiquetas altas se
+      // duplica. Si no cabe a lo ancho, baja a la fuente 4 (24×32).
+      var font = '5', cw = 32, ch = 48, mul = 3;
+      // El más grande que quepa a lo ancho y deje lugar al código de barras (26) y la clave (22).
+      while (mul > 1 && (l.price.length * cw * mul > W - 12 || H - (priceY + ch * mul + 6) < 52)) mul--;
+      if (l.price.length * cw * mul > W - 12) { font = '4'; cw = 24; ch = 32; mul = 1; }
+      if (l.price.length * cw * mul > W - 12) { font = '3'; cw = 16; ch = 24; mul = 1; }
+      var pw = l.price.length * cw * mul, px = Math.max(4, Math.round((W - pw) / 2));
+      var bcY = priceY + ch * mul + 6, bh = Math.max(26, Math.min(Math.round(H * 0.28), H - bcY - 26));
+      var narrow = c128Width(l.code, 2) <= W - 16 ? 2 : 1;
+      var x = Math.max(0, Math.round((W - c128Width(l.code, narrow)) / 2));
+      var d = cut(l.desc, maxChars), c = cut(l.code + (l.sub ? '  ' + l.sub : ''), maxChars + 4);
       out += 'CLS\r\n' +
-        'TEXT ' + Math.max(4, Math.round((W - d.length * 12) / 2)) + ',' + Math.round(H * 0.05) + ',"2",0,1,1,"' + d + '"\r\n' +
-        'BARCODE ' + x + ',' + Math.round(H * 0.2) + ',"128",' + Math.max(30, Math.round(H * 0.38)) + ',2,0,' + narrow + ',' + narrow + ',"' + l.numero + '"\r\n' +
-        'TEXT ' + Math.max(4, Math.round((W - ln.length * 8) / 2)) + ',' + (H - 22) + ',"1",0,1,1,"' + ln + '"\r\n' +
+        'TEXT ' + Math.max(4, Math.round((W - d.length * 12) / 2)) + ',' + descY + ',"2",0,1,1,"' + d + '"\r\n' +
+        // El precio se imprime dos veces, recorrido 1 punto: queda en negritas.
+        (l.price ? 'TEXT ' + px + ',' + priceY + ',"' + font + '",0,' + mul + ',' + mul + ',"' + l.price + '"\r\n' +
+                   'TEXT ' + (px + 1) + ',' + priceY + ',"' + font + '",0,' + mul + ',' + mul + ',"' + l.price + '"\r\n' : '') +
+        'BARCODE ' + x + ',' + bcY + ',"128",' + bh + ',0,0,' + narrow + ',' + narrow + ',"' + l.code + '"\r\n' +
+        'TEXT ' + Math.max(4, Math.round((W - c.length * 12) / 2)) + ',' + (bcY + bh + 4) + ',"2",0,1,1,"' + c + '"\r\n' +
         'PRINT 1,1\r\n';
     });
     return out;
@@ -153,8 +198,8 @@ window.InvLabels = (function () {
     }, Promise.resolve());
   }
   function test(cfg) {
-    return print([{ numero: 'AVT000000', desc: 'Prueba de etiqueta', linea: 'Avante Optics' }], cfg);
+    return print([{ code: 'PRUEBA01', desc: 'Prueba de etiqueta Avante', price: 1250 }], cfg);
   }
 
-  return { config: config, setConfig: setConfig, status: status, print: print, test: test, guess: guess, looksLikeLabel: looksLikeLabel, isEva: isEva, build: build };
+  return { config: config, setConfig: setConfig, status: status, print: print, test: test, guess: guess, looksLikeLabel: looksLikeLabel, isEva: isEva, build: build, priceText: priceText };
 })();

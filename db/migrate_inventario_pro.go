@@ -29,6 +29,8 @@ func EnsureInventarioProTables() {
 		{"unidad_venta", "VARCHAR(12) NOT NULL DEFAULT 'PZA'"},
 		{"factor", "DECIMAL(10,3) NOT NULL DEFAULT 1"},
 		{"servicio", "TINYINT(1) NOT NULL DEFAULT 0"},
+		// 1 = este artículo no genera clave de rastreo al venderse (microfibras, estuches…).
+		{"sin_rastreo", "TINYINT(1) NOT NULL DEFAULT 0"},
 		{"iva", "TINYINT(1) NOT NULL DEFAULT 1"},
 		{"precio_2", "DECIMAL(12,2) NOT NULL DEFAULT 0"},
 		{"precio_3", "DECIMAL(12,2) NOT NULL DEFAULT 0"},

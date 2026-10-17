@@ -65,20 +65,22 @@ type InvArticulo struct {
 	UnidadVenta    string  `json:"unidad_venta"`
 	Factor         float64 `json:"factor"`
 	Servicio       bool    `json:"servicio"`
-	IVA            bool    `json:"iva"`
-	PrecioCompra   float64 `json:"precio_compra"`
-	Precio1        float64 `json:"precio_1"`
-	Precio2        float64 `json:"precio_2"`
-	Precio3        float64 `json:"precio_3"`
-	Precio4        float64 `json:"precio_4"`
-	Mayoreo2       int     `json:"mayoreo_2"`
-	Mayoreo3       int     `json:"mayoreo_3"`
-	Mayoreo4       int     `json:"mayoreo_4"`
-	Existencia     int     `json:"existencia"`
-	Minimo         int     `json:"minimo"`
-	Maximo         int     `json:"maximo"`
-	Localizacion   string  `json:"localizacion"`
-	UpdatedAt      string  `json:"updated_at"`
+	// SinRastreo: al venderlo no se le crea clave de rastreo (microfibra, estuche…).
+	SinRastreo   bool    `json:"sin_rastreo"`
+	IVA          bool    `json:"iva"`
+	PrecioCompra float64 `json:"precio_compra"`
+	Precio1      float64 `json:"precio_1"`
+	Precio2      float64 `json:"precio_2"`
+	Precio3      float64 `json:"precio_3"`
+	Precio4      float64 `json:"precio_4"`
+	Mayoreo2     int     `json:"mayoreo_2"`
+	Mayoreo3     int     `json:"mayoreo_3"`
+	Mayoreo4     int     `json:"mayoreo_4"`
+	Existencia   int     `json:"existencia"`
+	Minimo       int     `json:"minimo"`
+	Maximo       int     `json:"maximo"`
+	Localizacion string  `json:"localizacion"`
+	UpdatedAt    string  `json:"updated_at"`
 	// Foto principal (URL) y, al traer uno solo, todas sus fotos.
 	Foto  string    `json:"foto"`
 	Fotos []InvFoto `json:"fotos,omitempty"`
@@ -90,7 +92,7 @@ const invArticuloSelect = `
 	SELECT i.id, COALESCE(i.clave, ''), i.clave_alterna, i.descripcion,
 	       COALESCE(i.departamento_id, 0), COALESCE(d.nombre, ''),
 	       COALESCE(i.categoria_id, 0), COALESCE(c.nombre, ''),
-	       i.unidad_compra, i.unidad_venta, i.factor, i.servicio, i.iva,
+	       i.unidad_compra, i.unidad_venta, i.factor, i.servicio, i.sin_rastreo, i.iva,
 	       i.precio_costo, i.precio_venta, i.precio_2, i.precio_3, i.precio_4,
 	       i.mayoreo_2, i.mayoreo_3, i.mayoreo_4,
 	       i.cantidad_actual, i.inv_minimo, i.inv_maximo, i.localizacion,
@@ -105,7 +107,7 @@ func scanInvArticulo(sc interface{ Scan(...interface{}) error }) (InvArticulo, e
 	var fotoID int64
 	err := sc.Scan(&a.ID, &a.Clave, &a.ClaveAlterna, &a.Descripcion,
 		&a.DepartamentoID, &a.Departamento, &a.CategoriaID, &a.Categoria,
-		&a.UnidadCompra, &a.UnidadVenta, &a.Factor, &a.Servicio, &a.IVA,
+		&a.UnidadCompra, &a.UnidadVenta, &a.Factor, &a.Servicio, &a.SinRastreo, &a.IVA,
 		&a.PrecioCompra, &a.Precio1, &a.Precio2, &a.Precio3, &a.Precio4,
 		&a.Mayoreo2, &a.Mayoreo3, &a.Mayoreo4,
 		&a.Existencia, &a.Minimo, &a.Maximo, &a.Localizacion, &a.UpdatedAt, &fotoID)
@@ -199,11 +201,11 @@ func CreateInvArticulo(a InvArticulo, usuario string) (*InvArticulo, error) {
 	res, err := tx.Exec(
 		`INSERT INTO inventory_items
 		   (clave, clave_alterna, descripcion, departamento_id, categoria_id, unidad_compra, unidad_venta, factor,
-		    servicio, iva, precio_costo, precio_venta, precio_2, precio_3, precio_4, mayoreo_2, mayoreo_3, mayoreo_4,
+		    servicio, sin_rastreo, iva, precio_costo, precio_venta, precio_2, precio_3, precio_4, mayoreo_2, mayoreo_3, mayoreo_4,
 		    cantidad, cantidad_actual, inv_minimo, inv_maximo, localizacion)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		nullClave(NormalizeInventoryClave(a.Clave)), a.ClaveAlterna, a.Descripcion, nullID(a.DepartamentoID), nullID(a.CategoriaID),
-		a.UnidadCompra, a.UnidadVenta, a.Factor, a.Servicio, a.IVA,
+		a.UnidadCompra, a.UnidadVenta, a.Factor, a.Servicio, a.SinRastreo, a.IVA,
 		round2(a.PrecioCompra), round2(a.Precio1), round2(a.Precio2), round2(a.Precio3), round2(a.Precio4),
 		a.Mayoreo2, a.Mayoreo3, a.Mayoreo4,
 		a.Existencia, a.Existencia, a.Minimo, a.Maximo, a.Localizacion,
@@ -224,7 +226,7 @@ func CreateInvArticulo(a InvArticulo, usuario string) (*InvArticulo, error) {
 			return nil, err
 		}
 	}
-	// Un número de rastreo por cada pieza (AVT000001…).
+	// Ya no se numera cada pieza: la clave de rastreo se crea por compra (ver pos_pedido.go).
 	nuevos, err := addPiezas(tx, id, a.Existencia, "alta", 0, invNow())
 	if err != nil {
 		return nil, err
@@ -263,12 +265,12 @@ func UpdateInvArticulo(a InvArticulo, keepCost bool) (*InvArticulo, error) {
 	_, err = db.DB.Exec(
 		`UPDATE inventory_items SET
 		   clave = ?, clave_alterna = ?, descripcion = ?, departamento_id = ?, categoria_id = ?,
-		   unidad_compra = ?, unidad_venta = ?, factor = ?, servicio = ?, iva = ?,
+		   unidad_compra = ?, unidad_venta = ?, factor = ?, servicio = ?, sin_rastreo = ?, iva = ?,
 		   precio_costo = ?, precio_venta = ?, precio_2 = ?, precio_3 = ?, precio_4 = ?,
 		   mayoreo_2 = ?, mayoreo_3 = ?, mayoreo_4 = ?, inv_minimo = ?, inv_maximo = ?, localizacion = ?
 		 WHERE id = ?`,
 		nullClave(NormalizeInventoryClave(a.Clave)), a.ClaveAlterna, a.Descripcion, nullID(a.DepartamentoID), nullID(a.CategoriaID),
-		a.UnidadCompra, a.UnidadVenta, a.Factor, a.Servicio, a.IVA,
+		a.UnidadCompra, a.UnidadVenta, a.Factor, a.Servicio, a.SinRastreo, a.IVA,
 		round2(a.PrecioCompra), round2(a.Precio1), round2(a.Precio2), round2(a.Precio3), round2(a.Precio4),
 		a.Mayoreo2, a.Mayoreo3, a.Mayoreo4, a.Minimo, a.Maximo, a.Localizacion,
 		a.ID,
