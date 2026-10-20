@@ -52,16 +52,27 @@ if (form) {
   });
 }
 
-/* ---------- Mostrar / ocultar contraseña ---------- */
+/* ---------- Mostrar / ocultar contraseña ----------
+   El ojo parpadea al tocarlo; cuando la contraseña se ve, una línea lo
+   tacha (se dibuja) y el texto aparece con un pequeño desenfoque. */
 (function initPasswordToggle() {
   const toggle = document.getElementById('adminPasswordToggle');
   if (!toggle) return;
+  const input = document.getElementById('adminPassword');
   toggle.addEventListener('click', function () {
-    const input = document.getElementById('adminPassword');
-    const showing = input.type === 'text';
-    input.type = showing ? 'password' : 'text';
-    this.querySelector('.icon-eye').style.display = showing ? '' : 'none';
-    this.querySelector('.icon-eye-off').style.display = showing ? 'none' : '';
-    this.setAttribute('aria-label', showing ? 'Mostrar contraseña' : 'Ocultar contraseña');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    this.classList.toggle('is-shown', show);
+    this.setAttribute('aria-pressed', show ? 'true' : 'false');
+    this.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    this.classList.remove('is-blink'); void this.offsetWidth; this.classList.add('is-blink');
+    input.classList.remove('is-reveal', 'is-hide'); void input.offsetWidth;
+    input.classList.add(show ? 'is-reveal' : 'is-hide');
+    // El cursor se queda al final para seguir escribiendo.
+    input.focus({ preventScroll: true });
+    const n = input.value.length;
+    try { input.setSelectionRange(n, n); } catch (e) {}
   });
+  // Al tocar el ojo no se pierde el foco del campo.
+  toggle.addEventListener('mousedown', function (e) { e.preventDefault(); });
 })();
