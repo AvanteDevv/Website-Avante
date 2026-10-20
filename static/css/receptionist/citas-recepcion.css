@@ -1765,3 +1765,39 @@ body.dark .ce-export-pick input{ color-scheme:dark; background:rgba(255,255,255,
 }
 body.dark .cev-ico{ background:rgba(137,146,255,.14); color:#aab4ff; }
 body.dark .cev-row--who{ background:rgba(137,146,255,.1); }
+
+/* Fecha de nacimiento: se escribe (dd/mm/aaaa) o se elige en el calendario */
+.cb-dp-typed{ cursor:default; gap:8px; }
+.cb-dp-cal{
+  display:flex; align-items:center; justify-content:center; width:26px; height:26px; margin:-4px 0 -4px -4px; padding:0;
+  border:0; border-radius:8px; background:transparent; color:var(--muted); cursor:pointer; transition:background .2s, color .2s;
+}
+.cb-dp-cal:hover{ background:var(--accent-soft); color:var(--accent); }
+.cb-dp-cal svg{ width:16px; height:16px; }
+.cb-dp-input{
+  flex:1 1 auto; min-width:0; border:0; outline:none; background:transparent; padding:0;
+  font:inherit; color:var(--ink); letter-spacing:.02em;
+}
+.cb-dp-input::placeholder{ color:var(--muted); }
+.cb-dp-typed .time-picker-caret{ cursor:pointer; }
+.cb-datepicker.is-bad .cb-datepicker-trigger{ border-color:#d92d20; box-shadow:0 0 0 4px rgba(217,45,32,.12); }
+.cb-dp-typed:focus-within{ border-color:var(--blue-600); box-shadow:0 0 0 5px var(--blue-100); }
+
+/* Búsqueda desde la vista Día (todo el mes, agrupado por día) */
+.day-view-chip.is-search{ background:var(--accent-soft); color:var(--accent); font-weight:700; }
+.day-view-chip.is-search svg{ width:13px; height:13px; margin-right:5px; vertical-align:-2px; }
+.day-search-date{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px; width:100%;
+  margin:14px 0 6px; padding:6px 4px; border:0; border-bottom:1.5px solid var(--line); background:transparent;
+  font-family:var(--sans); font-size:12.5px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; color:var(--ink);
+  cursor:pointer; text-align:left; animation:dayItemIn .3s var(--ease) both;
+}
+.day-search-date:first-child{ margin-top:4px; }
+.day-search-date small{ font-size:11.5px; font-weight:700; text-transform:none; letter-spacing:0; color:var(--accent); opacity:.7; transition:opacity .2s, transform .2s; }
+.day-search-date:hover small{ opacity:1; transform:translateX(3px); }
+.day-search-date.is-today span{ color:var(--accent); }
+.staff-field .cb-dp-typed input.cb-dp-input,
+.staff-field .cb-dp-typed input.cb-dp-input:focus{
+  border:0 !important; padding:0 !important; box-shadow:none !important; background:transparent !important;
+  height:auto !important; min-height:0 !important; border-radius:0 !important; font-size:14px; font-weight:600;
+}

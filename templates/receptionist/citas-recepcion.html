@@ -656,11 +656,14 @@
         <label class="staff-field">
           <span>Fecha de nacimiento (opcional)</span>
           <div class="cb-datepicker" id="crearCitaNacimientoPicker">
-            <button type="button" class="cb-datepicker-trigger" id="crearCitaNacimientoBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              <span class="cb-datepicker-value" id="crearCitaNacimientoLabel">dd/mm/aaaa</span>
+            {{/* Se puede escribir la fecha (dd/mm/aaaa) o elegirla en el calendario. */}}
+            <div class="cb-datepicker-trigger cb-dp-typed" id="crearCitaNacimientoBtn">
+              <button type="button" class="cb-dp-cal" id="crearCitaNacimientoCal" aria-label="Abrir calendario" title="Elegir en el calendario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              </button>
+              <input type="text" class="cb-dp-input" id="crearCitaNacimientoLabel" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off" aria-label="Fecha de nacimiento (dd/mm/aaaa)">
               <svg class="time-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
+            </div>
             <div class="cb-datepicker-menu" id="crearCitaNacimientoMenu">
               <div class="cb-datepicker-nav">
                 <button type="button" id="crearCitaNacimientoPrev" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
@@ -694,6 +697,7 @@
             <label class="qchip"><input type="radio" name="como_se_entero" value="recomendado"><span>Me recomendaron</span></label>
             <label class="qchip"><input type="radio" name="como_se_entero" value="casualidad"><span>Pasé por casualidad</span></label>
             <label class="qchip"><input type="radio" name="como_se_entero" value="recurrente"><span>Cliente recurrente</span></label>
+            <label class="qchip"><input type="radio" name="como_se_entero" value="por_empresa"><span>Por empresa</span></label>
           </div>
         </div>
         <div class="staff-field">

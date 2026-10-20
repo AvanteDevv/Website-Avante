@@ -733,6 +733,7 @@ window.CitasFiltro = (function(){
     recomendado: 'Me recomendaron',
     casualidad: 'Pasó por casualidad',
     recurrente: 'Cliente recurrente',
+    por_empresa: 'Por empresa',
     empresa: 'Una empresa',
     unison: 'La Unison',
     ninguno: 'Ninguno',
@@ -1498,8 +1499,10 @@ window.CitasFiltro = (function(){
       saveDvDate();
       animateDaySwap(dir);
       var term = searchTerm.toLowerCase().trim();
+      // Con algo en el buscador, se busca en TODO el mes (no solo en este día).
+      if (term){ renderDaySearch(term); return; }
+      dvView.classList.remove('is-searching');
       var rows = allRows.filter(function(r){ return r.dataset.date === dvDate; })
-        .filter(function(r){ return !term || r.textContent.toLowerCase().indexOf(term) !== -1; })
         .sort(function(a, b){ return (a.dataset.time || '').localeCompare(b.dataset.time || ''); });
 
       var p = dvDate.split('-').map(Number);
@@ -1601,6 +1604,112 @@ window.CitasFiltro = (function(){
       });
     }
 
+    /* ---------- Buscar desde la vista Día: todo el mes ----------
+       Recepción suele buscar al cliente estando en "Día"; antes solo se
+       buscaba en ese día y no salía. Ahora se busca en el mes del día que
+       se está viendo (agrupado por día). Si ese mes no hay, se busca en
+       las demás fechas (las más cercanas primero). */
+    function searchMatch(r, term){
+      var t = term.normalize ? term.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : term;
+      var hay = (r.textContent + ' ' + (r.dataset.celular || '') + ' ' + (r.dataset.correo || '')).toLowerCase();
+      if (hay.normalize) hay = hay.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (hay.indexOf(t) !== -1) return true;
+      var dg = term.replace(/\D/g, '');
+      return dg.length >= 4 && (r.dataset.celular || '').replace(/\D/g, '').indexOf(dg) !== -1;
+    }
+    function renderDaySearch(term){
+      dvView.classList.add('is-searching');
+      var month = dvDate.slice(0, 7);
+      var p = dvDate.split('-').map(Number);
+      var monthName = MESES[p[1] - 1] + ' ' + p[0];
+      var matches = allRows.filter(function(r){ return searchMatch(r, term); });
+      var inMonth = matches.filter(function(r){ return (r.dataset.date || '').slice(0, 7) === month; });
+      var others = !inMonth.length;
+      var list = others ? matches : inMonth;
+      var todayStr = todayISO();
+      list = list.slice().sort(function(a, b){
+        if (others){
+          // las más cercanas a hoy primero
+          var da = Math.abs(new Date(a.dataset.date) - new Date(todayStr)), db = Math.abs(new Date(b.dataset.date) - new Date(todayStr));
+          if (da !== db) return da - db;
+        } else if (a.dataset.date !== b.dataset.date) return a.dataset.date < b.dataset.date ? -1 : 1;
+        return (a.dataset.time || '').localeCompare(b.dataset.time || '');
+      }).slice(0, 80);
+
+      dvLabel.textContent = others ? 'Búsqueda en todas las fechas' : 'Búsqueda en ' + monthName;
+      dvToday.hidden = true;
+      dvCount.textContent = (others ? matches.length : inMonth.length) + ((others ? matches.length : inMonth.length) === 1 ? ' resultado' : ' resultados');
+      dvSummary.innerHTML = '<span class="day-view-chip is-search">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>' +
+        (others ? 'No hay en ' + monthName + '; se muestran otras fechas' : 'Se busca en todo ' + monthName + ', no solo en el día') + '</span>';
+      dvList.innerHTML = '';
+      if (!list.length){
+        var empty = document.createElement('div');
+        empty.className = 'day-view-empty';
+        empty.textContent = 'Ninguna cita coincide con tu búsqueda.';
+        dvList.appendChild(empty);
+        return;
+      }
+      var lastDate = '';
+      list.forEach(function(row){
+        var dte = row.dataset.date || '';
+        if (dte !== lastDate){
+          lastDate = dte;
+          var dp = dte.split('-').map(Number);
+          var dd = new Date(dp[0], dp[1] - 1, dp[2]);
+          var head = document.createElement('button');
+          head.type = 'button';
+          head.className = 'day-search-date' + (dte === todayStr ? ' is-today' : '');
+          head.dataset.goDate = dte;
+          head.innerHTML = '<span>' + DIAS[dd.getDay()] + ' ' + dd.getDate() + ' de ' + MESES[dd.getMonth()] + (dd.getFullYear() !== new Date().getFullYear() || others ? ' de ' + dd.getFullYear() : '') + (dte === todayStr ? ' · hoy' : '') + '</span><small>Ver ese día →</small>';
+          dvList.appendChild(head);
+        }
+        dvList.appendChild(dayItem(row, dte < todayStr, false));
+      });
+    }
+    // Un renglón de cita (lo usan el día y la búsqueda).
+    function dayItem(row, past, isNext){
+      var st = row.dataset.status;
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'day-item status-' + st + (past ? ' is-past' : '');
+      item.dataset.eventId = row.dataset.id;
+      var timeEl = document.createElement('span');
+      timeEl.className = 'day-item-time';
+      timeEl.textContent = row.dataset.time || '';
+      var bar = document.createElement('span');
+      bar.className = 'day-item-bar';
+      var info = document.createElement('span');
+      info.className = 'day-item-info';
+      var name = document.createElement('strong');
+      name.textContent = (row.dataset.nombre || '').trim() || 'Sin nombre';
+      var sub = document.createElement('small');
+      var bits = [];
+      if (row.dataset.celular) bits.push(row.dataset.celular);
+      if (row.dataset.correo) bits.push(row.dataset.correo);
+      sub.textContent = bits.join(' · ');
+      info.appendChild(name);
+      if (bits.length) info.appendChild(sub);
+      var right = document.createElement('span');
+      right.className = 'day-item-right';
+      if (isNext){
+        var next = document.createElement('span');
+        next.className = 'day-item-next';
+        next.textContent = 'Siguiente';
+        right.appendChild(next);
+      }
+      if (row.dataset.tag) right.insertAdjacentHTML('beforeend', CitaTags.pill(row.dataset.tag));
+      var badge = document.createElement('span');
+      badge.className = 'admin-badge ' + st;
+      badge.textContent = STATUS_LABELS[st] || st;
+      right.appendChild(badge);
+      item.appendChild(timeEl);
+      item.appendChild(bar);
+      item.appendChild(info);
+      item.appendChild(right);
+      return item;
+    }
+
     function openDayView(iso){
       dvDate = iso;
       setCitasView('dia');
@@ -1616,6 +1725,15 @@ window.CitasFiltro = (function(){
         renderDay(dir);
       });
       dvList.addEventListener('click', function(e){
+        var go = e.target.closest('[data-go-date]');
+        if (go){
+          // "Ver ese día": quita la búsqueda y abre el día de la cita.
+          var dir = go.dataset.goDate > dvDate ? 1 : (go.dataset.goDate < dvDate ? -1 : 0);
+          dvDate = go.dataset.goDate;
+          if (searchInput){ searchInput.value = ''; searchTerm = ''; currentPage = 1; renderView(); }
+          renderDay(dir);
+          return;
+        }
         var item = e.target.closest('[data-event-id]');
         if (item) openEventModal(item.dataset.eventId);
       });
@@ -2158,8 +2276,38 @@ window.CitasFiltro = (function(){
   }
   function setNacimiento(y, m, d){
     nacHidden.value = iso(y, m, d);
-    nacLabel.textContent = pad(d) + '/' + pad(m + 1) + '/' + y;
+    nacLabel.value = pad(d) + '/' + pad(m + 1) + '/' + y;
+    nacPicker.classList.remove('is-bad');
   }
+  // Escribir la fecha a mano: solo números, las diagonales se ponen solas
+  // (16101985 → 16/10/1985). Cuando está completa y es válida, se guarda.
+  function nacFromText(txt){
+    var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(txt.trim());
+    if (!m) return null;
+    var d = +m[1], mo = +m[2] - 1, y = +m[3];
+    var dt = new Date(y, mo, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo || dt.getDate() !== d) return null; // 31/02…
+    var isoTxt = iso(y, mo, d);
+    if (isoTxt > todayISO || y < today.getFullYear() - 120) return null;
+    return { y: y, m: mo, d: d, iso: isoTxt };
+  }
+  nacLabel.addEventListener('input', function(){
+    var digits = nacLabel.value.replace(/\D/g, '').slice(0, 8);
+    var out = digits.slice(0, 2) + (digits.length > 2 ? '/' + digits.slice(2, 4) : '') + (digits.length > 4 ? '/' + digits.slice(4) : '');
+    if (out !== nacLabel.value) nacLabel.value = out;
+    var ok = nacFromText(out);
+    nacHidden.value = ok ? ok.iso : '';
+    nacPicker.classList.toggle('is-bad', out.length === 10 && !ok);
+    if (ok && nacPicker.classList.contains('is-open')){ nacViewYear = ok.y; nacViewMonth = ok.m; renderNacimientoGrid(); }
+  });
+  nacLabel.addEventListener('blur', function(){
+    var v = nacLabel.value.trim();
+    nacPicker.classList.toggle('is-bad', !!v && !nacFromText(v));
+  });
+  nacLabel.addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){ e.preventDefault(); nacPicker.classList.remove('is-open'); }
+  });
+  nacLabel.addEventListener('click', function(e){ e.stopPropagation(); });
   function fillNacYearMenu(){
     var years = [];
     for (var y = today.getFullYear(); y >= today.getFullYear() - 100; y--) years.push(y);
@@ -2196,7 +2344,8 @@ window.CitasFiltro = (function(){
   document.getElementById('crearCitaNacimientoClear').addEventListener('click', function(e){
     e.stopPropagation();
     nacHidden.value = '';
-    nacLabel.textContent = 'dd/mm/aaaa';
+    nacLabel.value = '';
+    nacPicker.classList.remove('is-bad');
     renderNacimientoGrid();
   });
   nacGrid.addEventListener('click', function(e){
@@ -2209,6 +2358,7 @@ window.CitasFiltro = (function(){
   });
   nacBtn.addEventListener('click', function(e){
     e.stopPropagation();
+    if (e.target === nacLabel) return; // escribiendo: no abre el calendario
     if (nacPicker.classList.contains('is-open')) { nacPicker.classList.remove('is-open'); return; }
     closeAllPickers();
     nacViewYear = nacHidden.value ? Number(nacHidden.value.split('-')[0]) : today.getFullYear();
@@ -2372,7 +2522,8 @@ window.CitasFiltro = (function(){
     ladaMenu.querySelectorAll('.admin-role-option').forEach(function(o){ o.classList.toggle('active', o.dataset.lada === '+52'); });
 
     nacHidden.value = '';
-    nacLabel.textContent = 'dd/mm/aaaa';
+    nacLabel.value = '';
+    nacPicker.classList.remove('is-bad');
 
     var body = overlay.querySelector('.admin-modal-body');
     if (body) body.scrollTop = 0; // que no se quede donde iba la vez anterior
@@ -2562,6 +2713,13 @@ window.CitasFiltro = (function(){
     var celularDigits = document.getElementById('crearCitaCelular').value.trim();
     var correo = document.getElementById('crearCitaCorreo').value.trim();
     var nacimiento = document.getElementById('crearCitaNacimiento').value;
+    var nacTxt = document.getElementById('crearCitaNacimientoLabel').value.trim();
+    if (nacTxt && !nacimiento) {
+      errorEl.textContent = 'Revisa la fecha de nacimiento: escríbela como dd/mm/aaaa (ej. 16/10/1985).';
+      document.getElementById('crearCitaNacimientoPicker').classList.add('is-bad');
+      document.getElementById('crearCitaNacimientoLabel').focus();
+      return;
+    }
     // Si la crea recepción, ya está confirmada: siempre "verificada".
     var status = 'verificada';
     var cuestionario = collectQuestionnaire();
