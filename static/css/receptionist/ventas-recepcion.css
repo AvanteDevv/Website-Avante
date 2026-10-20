@@ -233,3 +233,4 @@ body.dark .vt-cancel-box{ background:rgba(231,76,60,.08); border-color:rgba(231,
 .vt-export-actual{ margin:0; font-size:13px; }
 .vt-export-range{ margin:0; padding:10px 12px; border-radius:12px; background:var(--accent-soft); font-size:13px; }
 body.dark .vt-export-pick input{ color-scheme:dark; background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.14); }
+.vt-ped-status .av-select{ width:100%; min-width:180px; }

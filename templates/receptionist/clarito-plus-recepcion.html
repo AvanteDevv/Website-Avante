@@ -24,7 +24,7 @@
     <div class="admin-header">
       <div>
         <h1>Clarito<span class="cp-plus">+</span></h1>
-        <p>Miembros del programa, clientes VIP y el registro de llamadas. Toca un renglón para ver o editar todos sus datos; los estados se cambian directo en la tabla.</p>
+        <p>Miembros del programa Clarito+. Toca un renglón para ver o editar todos sus datos; la revisión y los lentes se cambian directo en la tabla.</p>
       </div>
       <div class="cp-head-actions">
         <a class="btn small cp-ghost" href="/clarito-plus" target="_blank" rel="noopener" title="La página de beneficios que ve el cliente">
@@ -43,20 +43,18 @@
             <svg class="cp-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="cp-menu" id="cpExportMenu" role="menu">
-            <button type="button" role="menuitem" data-exp="xlsx-hoja"><i class="cp-ico is-xls">XLS</i><span><strong>Excel · esta hoja</strong><small id="cpExpHint1">Lo que ves en la tabla</small></span></button>
-            <button type="button" role="menuitem" data-exp="xlsx-libro"><i class="cp-ico is-xls">XLS</i><span><strong>Excel · libro completo</strong><small>Las 3 hojas, igual que el Excel original</small></span></button>
-            <button type="button" role="menuitem" data-exp="pdf-hoja"><i class="cp-ico is-pdf">PDF</i><span><strong>PDF · esta hoja</strong><small id="cpExpHint2">Lo que ves en la tabla</small></span></button>
+            <button type="button" role="menuitem" data-exp="xlsx-hoja"><i class="cp-ico is-xls">XLS</i><span><strong>Excel</strong><small id="cpExpHint1">Lo que ves en la tabla</small></span></button>
+            <button type="button" role="menuitem" data-exp="pdf-hoja"><i class="cp-ico is-pdf">PDF</i><span><strong>PDF</strong><small id="cpExpHint2">Lo que ves en la tabla</small></span></button>
           </div>
         </div>
         <button type="button" class="btn solid small" id="cpNewBtn">+ <span id="cpNewLabel">Nuevo miembro</span></button>
       </div>
     </div>
 
-    <div class="vt-seg cp-tabs" id="cpTabs" role="tablist" aria-label="Hojas">
+    {{/* Solo se usa la hoja de Miembros (VIP y Registro de contactos se quitaron). */}}
+    <div class="vt-seg cp-tabs" id="cpTabs" role="tablist" aria-label="Hojas" hidden>
       <span class="vt-seg-glow" aria-hidden="true"></span>
       <button type="button" data-hoja="miembros" class="is-on">Miembros Clarito+ <b data-count="miembros">0</b></button>
-      <button type="button" data-hoja="vip">VIP actualizados 2026 <b data-count="vip">0</b></button>
-      <button type="button" data-hoja="contactos">Registro de contactos <b data-count="contactos">0</b></button>
     </div>
 
     <div class="vt-stats cp-stats" id="cpStats"></div>

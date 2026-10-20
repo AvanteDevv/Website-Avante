@@ -155,3 +155,74 @@
     if (dx < -60) close();
   });
 })();
+/* =========================================================
+   Para TODAS las páginas de recepción:
+   1) Campos de número: el scroll (rueda o dos dedos en el touchpad) ya
+      no sube ni baja el número; la página se desplaza normal.
+   2) Pestañas (.vt-seg, .vt-tabs, .cc-tabs…): la pastilla azul se
+      desliza a la pestaña elegida. Las que ya traen su propia animación
+      (.vt-seg-glow / .cf-seg-glow) se dejan como están.
+   ========================================================= */
+(function () {
+  // 1) Rueda sobre un número enfocado: se quita el foco para que el
+  //    navegador no cambie el valor; el scroll sigue a la página.
+  document.addEventListener('wheel', function (e) {
+    var t = e.target;
+    if (t && t.tagName === 'INPUT' && t.type === 'number' && document.activeElement === t) t.blur();
+  }, { passive: true });
+
+  // 2) Pastilla deslizante en las pestañas
+  var SEL = '.vt-seg, .vt-tabs, .cc-tabs, .cc-seg';
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function enhance(seg) {
+    if (!seg || seg._glow || seg.classList.contains('has-glow') || seg.querySelector(':scope > .vt-seg-glow, :scope > .cf-seg-glow')) return;
+    var btns = seg.querySelectorAll(':scope > button');
+    if (btns.length < 2) return;
+    var g = document.createElement('span');
+    g.className = 'seg-glow';
+    g.setAttribute('aria-hidden', 'true');
+    seg.insertBefore(g, seg.firstChild);
+    seg.classList.add('seg-auto-glow');
+    var first = true;
+    function move() {
+      var on = seg.querySelector(':scope > button.is-on, :scope > button.active');
+      if (!on || !on.offsetWidth) { g.style.opacity = '0'; return; }
+      var instant = first || reduce;
+      if (instant) g.style.transition = 'none';
+      g.style.opacity = '1';
+      g.style.width = on.offsetWidth + 'px';
+      g.style.height = on.offsetHeight + 'px';
+      g.style.transform = 'translate(' + on.offsetLeft + 'px,' + on.offsetTop + 'px)';
+      if (instant) { void g.offsetWidth; g.style.transition = ''; }
+      first = false;
+    }
+    seg._glow = move;
+    new MutationObserver(move).observe(seg, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    if (window.ResizeObserver) new ResizeObserver(function () { var f = first; first = true; move(); first = f && first; }).observe(seg);
+    seg.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b || b.parentNode !== seg) return;
+      b.classList.remove('seg-pop'); void b.offsetWidth; b.classList.add('seg-pop');
+    });
+    move();
+  }
+  function scan(root) {
+    if (!root || !root.querySelectorAll) return;
+    if (root.matches && root.matches(SEL)) enhance(root);
+    Array.prototype.forEach.call(root.querySelectorAll(SEL), enhance);
+  }
+  function start() {
+    scan(document.body);
+    // Pestañas que se pintan después (p. ej. al abrir el detalle de una venta)
+    new MutationObserver(function (list) {
+      list.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) scan(n); }); });
+    }).observe(document.body, { childList: true, subtree: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.seg-auto-glow'), function (s) { if (s._glow) s._glow(); });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  window.addEventListener('resize', function () {
+    Array.prototype.forEach.call(document.querySelectorAll('.seg-auto-glow'), function (s) { if (s._glow) s._glow(); });
+  });
+})();

@@ -370,6 +370,8 @@
   function wirePedido() {
     var v = current;
     var sel = $('vtPedStatus'), mk = $('vtPedCreate');
+    // Estatus del pedido: dropdown animado (av-select.js).
+    if (sel && window.AvSelect) window.AvSelect.enhance(sel);
     if (sel) sel.addEventListener('change', function () {
       var val = sel.value;
       sel.disabled = true;

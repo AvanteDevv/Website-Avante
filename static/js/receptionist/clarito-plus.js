@@ -136,7 +136,8 @@
      ESTADO
      ======================================================= */
   var state = { hoja: 'miembros', q: '', chip: '', sort: { k: '', dir: 1 } };
-  try { var sv = JSON.parse(localStorage.getItem('avanteClaritoPlus') || 'null'); if (sv && HOJAS[sv.hoja]) state.hoja = sv.hoja; } catch (e) {}
+  // Solo la hoja de Miembros (VIP y Registro de contactos se quitaron).
+  var SOLO = 'miembros';
   var cache = {}; // hoja → [registros]
   var conteos = { miembros: 0, vip: 0, contactos: 0 };
 
@@ -902,7 +903,8 @@
       });
       out.push({ sheet: sn, hoja: h, filas: filas, cols: Object.keys(map).length, totalCols: headers.filter(Boolean).length });
     });
-    return out;
+    // Solo se importa la hoja de Miembros.
+    return out.filter(function (x) { return x.hoja === SOLO; });
   }
   function showImport(name) {
     $('cpImportName').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' + esc(name);
@@ -912,7 +914,7 @@
         '<input type="checkbox" data-imp="' + i + '"' + (p.filas.length ? ' checked' : ' disabled') + '>' +
         '<span class="cp-imp-main"><strong>' + esc(p.sheet) + '</strong><small>→ ' + esc(HOJAS[p.hoja].label) + ' · ' + p.cols + ' de ' + p.totalCols + ' columnas reconocidas</small></span>' +
         '<b class="cp-imp-n">' + p.filas.length + '</b></label>';
-    }).join('') || '<p>No se encontraron hojas con datos.</p>';
+    }).join('') || '<p>No se encontró la hoja de Miembros Clarito+ en este archivo.</p>';
     openModal(importModal);
   }
   $('cpImportGo').addEventListener('click', function () {

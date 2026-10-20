@@ -286,3 +286,25 @@ body .cuenta-shell{
   .cuenta-sidebar.shrink .cuenta-themeLabel:before{ width:calc(50% - 2px); }
   .cuenta-sidebar.shrink .cuenta-themeLabel.switched:before{ left:50%; }
 }
+/* ---------- Todas las páginas de recepción ---------- */
+/* Campos de número sin flechitas de subir/bajar */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+input[type="number"]{ -moz-appearance:textfield; appearance:textfield; }
+
+/* Pestañas: pastilla que se desliza a la elegida (sidebar-receptionist.js) */
+.seg-auto-glow{ position:relative; }
+.seg-auto-glow > .seg-glow{
+  position:absolute; left:0; top:0; z-index:0; border-radius:100px; pointer-events:none; opacity:0;
+  background:var(--accent, #041cff); box-shadow:0 6px 16px -4px rgba(4,28,255,.4);
+  transition:transform .42s cubic-bezier(.22,1.25,.36,1), width .42s cubic-bezier(.22,1.25,.36,1), height .3s ease, opacity .2s ease;
+}
+.seg-auto-glow > button{ position:relative; z-index:1; background:transparent !important; box-shadow:none !important; transition:color .3s ease, transform .2s ease; }
+.seg-auto-glow > button.is-on, .seg-auto-glow > button.active{ color:#fff !important; }
+.seg-auto-glow > button:active{ transform:scale(.95); }
+.seg-auto-glow > button.seg-pop{ animation:segPop .42s cubic-bezier(.22,1.4,.36,1); }
+@keyframes segPop{ 0%{ transform:scale(.92); } 60%{ transform:scale(1.05); } 100%{ transform:scale(1); } }
+@media (prefers-reduced-motion:reduce){
+  .seg-auto-glow > .seg-glow{ transition:none; }
+  .seg-auto-glow > button.seg-pop{ animation:none; }
+}

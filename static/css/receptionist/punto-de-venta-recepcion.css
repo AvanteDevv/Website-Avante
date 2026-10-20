@@ -535,4 +535,5 @@ body.dark .pos-cr-card.is-overdue{ background:rgba(231,76,60,.12); }
   .pos-cr-summary .pos-cr-card:first-child{ grid-column:1 / -1; }
   .pos-credits-btn{ padding-left:12px; padding-right:12px; }
   .pos-credits-btn kbd, .pos-cr-section-head kbd{ display:none; }
-}
+}.pos-propina .av-select{ width:100%; min-width:0; }
+.pos-propina .av-select-btn{ padding:10px 12px; }

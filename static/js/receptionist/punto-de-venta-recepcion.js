@@ -553,7 +553,10 @@
     $('payLetras').textContent = T ? '(' + T.numeroALetras(payTotal).replace('M.N.', 'MXN') + ')' : '';
     payInputs.forEach(function (i) { i.value = ''; });
     $('payRef').value = '';
-    if ($('payPropina')) { $('payPropina').value = ''; $('payPropinaForma').value = 'tarjeta'; }
+    if ($('payPropina')) {
+      $('payPropina').value = ''; $('payPropinaForma').value = 'tarjeta';
+      if ($('payPropinaForma')._av) $('payPropinaForma')._av.sync();
+    }
     var credRow = $('payCreditRow');
     credRow.classList.toggle('is-disabled', !client);
     credRow.querySelector('input').disabled = !client;
@@ -962,3 +965,6 @@
   renderCart();
   searchProducts();
 })();
+
+// Forma de la propina: dropdown animado (av-select.js).
+if (window.AvSelect) window.AvSelect.enhance(document.getElementById('payPropinaForma'));
