@@ -72,6 +72,15 @@ window.AvSelect = (function(){
     function setOpen(on){
       if (on){
         closeAll(wrap);
+        // Si abajo no cabe (p. ej. al final de un modal), abre hacia arriba.
+        wrap.classList.remove('is-up');
+        var r = btn.getBoundingClientRect(), limit = window.innerHeight, top = 0;
+        for (var p = wrap.parentElement; p && p !== document.body; p = p.parentElement){
+          var ov = getComputedStyle(p).overflowY;
+          if (ov === 'auto' || ov === 'scroll' || ov === 'hidden'){ var pr = p.getBoundingClientRect(); limit = Math.min(limit, pr.bottom); top = Math.max(top, pr.top); break; }
+        }
+        var need = Math.min(280, sel.options.length * 38 + 16);
+        if (limit - r.bottom < need + 12 && r.top - top > limit - r.bottom) wrap.classList.add('is-up');
         wrap.classList.add('is-open');
         btn.setAttribute('aria-expanded', 'true');
         openOne = wrap;

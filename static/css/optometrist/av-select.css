@@ -30,6 +30,8 @@
   transition:opacity .22s var(--ease, ease), transform .22s var(--ease, ease);
 }
 .av-select.is-open .av-select-menu{ opacity:1; transform:none; pointer-events:auto; }
+.av-select.is-up .av-select-menu{ top:auto; bottom:calc(100% + 8px); transform:translateY(8px) scale(.98); transform-origin:bottom center; }
+.av-select.is-up.is-open .av-select-menu{ transform:none; }
 .av-select-option{
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   width:100%; text-align:left; padding:9px 11px; border-radius:9px; border:none; background:none;
