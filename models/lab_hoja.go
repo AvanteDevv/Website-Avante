@@ -66,6 +66,14 @@ func attachLabHojas(list []LabOrder) {
 	for _, h := range hojas {
 		byID[h.ref.ID] = h
 	}
+	// Las órdenes hechas sin venta ya tienen su propio trabajo: no se
+	// buscan solas para otro pedido.
+	propias := map[int64]bool{}
+	for _, o := range list {
+		if o.Directo && o.hojaID > 0 {
+			propias[o.hojaID] = true
+		}
+	}
 	for i := range list {
 		o := &list[i]
 		if o.hojaID > 0 {
@@ -86,7 +94,7 @@ func attachLabHojas(list []LabOrder) {
 		limitHi := o.CreatedAt.Add(72 * time.Hour)
 		limitLo := o.CreatedAt.Add(-120 * 24 * time.Hour)
 		for _, h := range hojas { // de la más nueva a la más vieja
-			if h.ref.Fecha.After(limitHi) || h.ref.Fecha.Before(limitLo) {
+			if propias[h.ref.ID] || h.ref.Fecha.After(limitHi) || h.ref.Fecha.Before(limitLo) {
 				continue
 			}
 			if (len(phone) >= 7 && h.phone == phone) || (name != "" && h.name == name) {

@@ -100,12 +100,14 @@ func AttachOrderToUser(orderID int64, userID int64) error {
 }
 
 // GetAllOrders returns every order, most recently created first — used
-// by the admin Pedidos panel.
+// by the admin Pedidos panel. Los trabajos que salieron de una orden de
+// laboratorio sin venta (lab_directo) no llevan clave de rastreo, así que
+// solo se ven en el panel de Laboratorio.
 func GetAllOrders() ([]Order, error) {
 	rows, err := db.DB.Query(
 		`SELECT id, order_code, product_name, product_brand, quantity, unit_price, total,
 		        rx_option, rx_od, rx_oi, customer_name, user_id, status, created_at
-		 FROM orders ORDER BY created_at DESC`,
+		 FROM orders WHERE lab_directo = 0 ORDER BY created_at DESC`,
 	)
 	if err != nil {
 		return nil, err

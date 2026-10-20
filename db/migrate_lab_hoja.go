@@ -9,6 +9,8 @@ import "log"
 //   - orders.lab_sin_hoja: el optometrista marcó que esa venta no lleva
 //     orden de laboratorio (el trabajo pasa al tablero sin hoja).
 //   - orders.lab_externo: el trabajo está en un laboratorio externo.
+//   - orders.lab_directo: el trabajo salió de una orden de laboratorio
+//     hecha sin venta (sin pasar por Punto de venta, sin clave de rastreo).
 //   - Estatus "Corte" antes de "Control de calidad" (una sola vez; si el
 //     admin lo borra después, no se vuelve a crear).
 func EnsureLabHojaColumn() {
@@ -16,6 +18,7 @@ func EnsureLabHojaColumn() {
 		{"lab_sheet_id", "BIGINT NULL"},
 		{"lab_sin_hoja", "TINYINT(1) NOT NULL DEFAULT 0"},
 		{"lab_externo", "TINYINT(1) NOT NULL DEFAULT 0"},
+		{"lab_directo", "TINYINT(1) NOT NULL DEFAULT 0"},
 	} {
 		if err := addColumnIfMissing("orders", c.col, c.ddl); err != nil {
 			log.Printf("laboratorio: columna orders.%s: %v", c.col, err)

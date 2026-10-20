@@ -98,6 +98,14 @@ func CreateLabOrderSheetHandler(c *gin.Context) {
 		} else {
 			BroadcastLabPendiente()
 		}
+	} else if in.Kind == models.ExamTemplateKindLab {
+		// Sin venta (no se usó Punto de venta): la orden le llega igual al
+		// laboratorio como trabajo propio, sin clave de rastreo.
+		if _, err := models.CreateDirectLabJob(o, staffName(c), role); err != nil {
+			log.Println("orden-lab: trabajo sin venta:", err)
+		} else {
+			BroadcastLabPendiente()
+		}
 	}
 	c.Set("lab_order_sheet", o.PatientName)
 	c.JSON(http.StatusCreated, o)
@@ -140,6 +148,7 @@ func UpdateLabOrderSheetHandler(c *gin.Context) {
 	}
 	// El laboratorio ve la orden actualizada en su tablero.
 	if o.Kind == models.ExamTemplateKindLab {
+		models.SyncDirectLabJob(o.ID, o.PatientName)
 		BroadcastLabPendiente()
 	}
 	c.Set("lab_order_sheet", o.PatientName)
@@ -232,6 +241,8 @@ func DeleteLabOrderSheetHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar."})
 		return
 	}
+	models.DeleteDirectLabJob(id)
+	BroadcastLabPendiente()
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

@@ -215,7 +215,7 @@
     var p = new URLSearchParams(location.search);
     if (p.get('ok') === '1' || p.get('editado') === '1'){
       var st = document.getElementById('docStatus');
-      st.textContent = p.get('editado') === '1' ? 'Cambios guardados ✓' : IS_GAR ? 'Hoja guardada ✓' : 'Orden guardada ✓';
+      st.textContent = p.get('editado') === '1' ? 'Cambios guardados ✓' : IS_GAR ? 'Hoja guardada ✓' : 'Orden guardada ✓ · ya le llegó al laboratorio';
       st.className = 'tpl-status ok';
       history.replaceState(null, '', location.pathname);
       setTimeout(function(){ st.textContent = ''; st.className = 'tpl-status'; }, 4000);

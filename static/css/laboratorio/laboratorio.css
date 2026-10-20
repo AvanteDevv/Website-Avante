@@ -77,6 +77,8 @@
 .lab-origin{ font-size:9.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:3px 7px; border-radius:100px; background:var(--accent-soft); color:var(--accent); white-space:nowrap; }
 .lab-origin.is-tienda{ background:#fff4d6; color:#8a5a00; }
 body.dark .lab-origin.is-tienda{ background:rgba(245,179,1,.18); color:#f2c26b; }
+.lab-origin.is-optometria{ background:#e6f7f1; color:#0f7a55; }
+body.dark .lab-origin.is-optometria{ background:rgba(16,185,129,.18); color:#6ee7b7; }
 .lab-card-client{ font-size:13.5px; font-weight:700; color:var(--ink); margin-top:2px; }
 .lab-card-prod{ font-size:12.5px; color:var(--ink); line-height:1.35; }
 .lab-qty{ font-weight:800; color:var(--accent); }

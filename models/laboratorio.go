@@ -66,6 +66,7 @@ type LabOrder struct {
 	PosSaleID   int64       `json:"posSaleId,omitempty"`
 	SinHoja     bool        `json:"sinHoja,omitempty"` // el optometrista dijo que no lleva orden
 	Externo     bool        `json:"externo"`           // está en un laboratorio externo
+	Directo     bool        `json:"directo,omitempty"` // salió de una orden de laboratorio sin venta
 	hojaID      int64
 	clientPhone string
 }
@@ -80,7 +81,7 @@ func ListLabOrders() ([]LabOrder, error) {
 		       COALESCE(i.clave, ''), i.cantidad_actual, COALESCE(d.nombre, ''),
 		       h.changed_by, h.changed_role, h.created_at,
 		       COALESCE(o.lab_sheet_id, 0), COALESCE(pc.celular, ''),
-		       COALESCE(o.pos_sale_id, 0), o.lab_sin_hoja, o.lab_externo
+		       COALESCE(o.pos_sale_id, 0), o.lab_sin_hoja, o.lab_externo, o.lab_directo
 		FROM orders o
 		LEFT JOIN pos_sales ps ON ps.id = o.pos_sale_id
 		LEFT JOIN pos_clients pc ON pc.id = ps.client_id
@@ -107,7 +108,7 @@ func ListLabOrders() ([]LabOrder, error) {
 			&o.RxOption, &o.RxOD, &o.RxOI, &o.CustomerName, &userID, &o.Status, &o.CreatedAt,
 			&o.InventoryID, &o.LabNotes, &o.Clave, &exist, &o.Departamento,
 			&lastBy, &lastRole, &lastAt, &o.hojaID, &o.clientPhone,
-			&o.PosSaleID, &o.SinHoja, &o.Externo,
+			&o.PosSaleID, &o.SinHoja, &o.Externo, &o.Directo,
 		); err != nil {
 			return nil, err
 		}
@@ -121,6 +122,9 @@ func ListLabOrders() ([]LabOrder, error) {
 		o.Origen = "tienda"
 		if o.InventoryID > 0 {
 			o.Origen = "laboratorio"
+		}
+		if o.Directo {
+			o.Origen = "optometria"
 		}
 		o.LastBy, o.LastRole = lastBy.String, lastRole.String
 		if lastAt.Valid {
