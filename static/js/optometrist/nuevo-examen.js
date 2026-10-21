@@ -66,6 +66,20 @@
   // garantía) con sus datos, y al guardar se actualiza la misma (la orden
   // conserva su Nº) en lugar de crear otra.
   var EDIT_ID = parseInt(new URLSearchParams(location.search).get('edit'), 10) || 0;
+  // Convenio de la orden de laboratorio (Unison / empresa): pasa al trabajo del laboratorio.
+  var docConv = { c: '', e: '' };
+  var docConvChips = document.getElementById('docConvChips');
+  function setDocConv(c, e){
+    docConv = { c: c || '', e: c === 'empresa' ? (e || '') : '' };
+    if (!docConvChips) return;
+    docConvChips.querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('is-on', (b.dataset.conv || '') === docConv.c && (docConv.c !== 'empresa' || b.dataset.emp === docConv.e));
+    });
+  }
+  if (docConvChips) docConvChips.addEventListener('click', function(ev){
+    var b = ev.target.closest('button[data-conv]');
+    if (b) setDocConv(b.dataset.conv, b.dataset.emp);
+  });
   var editDoc = null; // el examen u hoja que se está editando
   function saveLabel(){
     if (EDIT_ID) return 'Guardar cambios';
@@ -1399,8 +1413,11 @@
       patientPhone: (values.fields.telefono || '').trim(),
       userId: selectedPatientId,
       data: values,
-      pedidoId: DOC === 'laboratorio' ? fromPedidoId : 0
+      pedidoId: DOC === 'laboratorio' ? fromPedidoId : 0,
+      convenio: DOC === 'laboratorio' ? docConv.c : '',
+      empresa: DOC === 'laboratorio' ? docConv.e : ''
     };
+    if (DOC === 'laboratorio') payload.data = Object.assign({}, values, { convenio: { c: docConv.c, e: docConv.e } });
     nextBtn.disabled = true;
     var originalText = nextBtn.textContent;
     nextBtn.textContent = 'Guardando...';
@@ -1474,6 +1491,7 @@
         template = t;
         var d = examData(editDoc);
         values = { fields: Object.assign({}, d.fields), tables: JSON.parse(JSON.stringify(d.tables || {})) };
+        if (d.convenio) setDocConv(d.convenio.c || '', d.convenio.e || '');
         // Hojas viejitas que no traen el nombre/teléfono dentro: se toman del registro.
         if (!(values.fields.nombre || '').trim() && editDoc.patientName) values.fields.nombre = editDoc.patientName;
         if (!(values.fields.telefono || '').trim() && editDoc.patientPhone) values.fields.telefono = editDoc.patientPhone;

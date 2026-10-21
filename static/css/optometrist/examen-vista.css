@@ -535,3 +535,16 @@ body.dark .doc-tag.is-gar{ color:#f2c26b; background:rgba(154,91,0,.25); }
   font-size:11px; font-weight:800; color:#c0392b; background:#fdecea; font-variant-numeric:tabular-nums; vertical-align:1px;
 }
 body.dark .doc-folio{ color:#f19a90; background:rgba(176,58,46,.22); }
+/* Convenio de la orden de laboratorio (Unison / empresa) */
+.doc-conv-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:4px 0 14px; }
+.doc-conv-title{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted, #6670A6); }
+.doc-conv-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+.doc-conv-chips button{
+  border:1.5px solid var(--line, #DDE3FA); background:var(--white, #fff); color:var(--ink, #0A0E38); border-radius:100px; padding:7px 14px; cursor:pointer;
+  font-family:inherit; font-size:13px; font-weight:600; transition:background .2s ease, border-color .2s ease, color .2s ease, transform .15s ease;
+}
+.doc-conv-chips button:hover{ border-color:var(--accent-border, #8992FF); }
+.doc-conv-chips button:active{ transform:scale(.96); }
+.doc-conv-chips button.is-on{ background:var(--accent, #041cff); border-color:var(--accent, #041cff); color:#fff; animation:docConvPop .3s cubic-bezier(.22,1.4,.36,1); }
+@keyframes docConvPop{ 0%{ transform:scale(.9); } 100%{ transform:none; } }
+@media (prefers-reduced-motion:reduce){ .doc-conv-chips button.is-on{ animation:none; } }

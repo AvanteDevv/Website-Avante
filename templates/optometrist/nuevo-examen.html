@@ -55,6 +55,17 @@
       </div>
     </div>
 
+    {{if .Doc}}{{if eq .Doc "laboratorio"}}
+    <!-- Convenio: el laboratorio filtra sus trabajos por Unison / empresa -->
+    <div class="doc-conv-row" id="docConvRow">
+      <span class="doc-conv-title">Convenio</span>
+      <div class="doc-conv-chips" id="docConvChips">
+        <button type="button" data-conv="" class="is-on">Ninguno</button>
+        <button type="button" data-conv="unison">Unison</button>
+        {{range .Empresas}}<button type="button" data-conv="empresa" data-emp="{{.}}">{{.}}</button>{{end}}
+      </div>
+    </div>
+    {{end}}{{end}}
     <p class="tpl-status" id="examStatus"></p>
 
     <div class="exam-wizard-progress" id="examWizardProgress" style="display:none;">

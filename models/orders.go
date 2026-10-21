@@ -190,7 +190,10 @@ func scanOrders(rows *sql.Rows) ([]Order, error) {
 // the admin ships it). Valid values are whatever status_key's exist in
 // order_statuses (configurable from the admin gear icon).
 func UpdateOrderStatus(id int64, status string) error {
-	result, err := db.DB.Exec("UPDATE orders SET status = ? WHERE id = ?", status, id)
+	// Si cambia de estatus, vuelve a salir en el tablero del laboratorio
+	// aunque se haya limpiado su columna (lab_limpio va primero porque
+	// MySQL aplica el SET en orden).
+	result, err := db.DB.Exec("UPDATE orders SET lab_limpio = IF(status = ?, lab_limpio, 0), status = ? WHERE id = ?", status, status, id)
 	if err != nil {
 		return err
 	}

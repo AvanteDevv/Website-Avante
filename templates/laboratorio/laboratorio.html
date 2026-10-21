@@ -7,8 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+{{if eq .Panel "admin"}}
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+{{else}}
 <link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
 <link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+{{end}}
 <link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
 <link rel="stylesheet" href="/static/css/optometrist/examen-render.css">
 <link rel="stylesheet" href="/static/css/optometrist/examen-modal.css">
@@ -16,12 +21,12 @@
 </head>
 <body class="cuenta-body admin-body">
 
-{{template "laboratorio-userbar" .}}
+{{if eq .Panel "admin"}}{{template "admin-userbar" .}}{{else}}{{template "laboratorio-userbar" .}}{{end}}
 
 <div class="cuenta-shell">
-  {{template "laboratorio-sidebar" .}}
+  {{if eq .Panel "admin"}}{{template "admin-sidebar" .}}{{else}}{{template "laboratorio-sidebar" .}}{{end}}
 
-  <main class="cuenta-main admin-main lab-page" id="labPage" data-vista="{{.Vista}}" data-staff="{{.StaffName}}">
+  <main class="cuenta-main admin-main lab-page" id="labPage" data-vista="{{.Vista}}" data-staff="{{.StaffName}}" data-panel="{{.Panel}}" data-empresas="{{range $i, $e := .Empresas}}{{if $i}}|{{end}}{{$e}}{{end}}">
 
     {{if eq .Vista "inventario"}}
     <!-- ===================== INVENTARIO ===================== -->
@@ -73,10 +78,24 @@
 
     {{else}}
     <!-- ===================== TRABAJOS ===================== -->
+    {{if eq .Panel "admin"}}
+    <div class="admin-header">
+      <div>
+        <h1>Laboratorio</h1>
+        <p>Cómo va cada trabajo del laboratorio. Desde aquí puedes eliminar definitivamente los trabajos de prueba.</p>
+      </div>
+    </div>
+    {{end}}
     <div class="admin-panel lab-panel" id="labPanel">
       <div class="admin-panel-head admin-panel-head--stacked lab-head">
         <div class="admin-panel-head-row lab-head-row">
           <div class="admin-panel-head-actions">
+            {{if eq .Panel "admin"}}
+            <label class="lab-limpios-toggle" id="labLimpiosWrap" title="Incluir los trabajos que el laboratorio limpió de Control de calidad">
+              <input type="checkbox" id="labLimpios"><span class="lab-toggle-track"><span class="lab-toggle-thumb"></span></span>
+              <span>Ver limpiados <em id="labLimpiosN"></em></span>
+            </label>
+            {{end}}
             <button type="button" class="btn small lab-full-btn" id="labFullBtn" title="Ver solo el tablero en pantalla completa">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
               Pantalla completa
@@ -110,7 +129,11 @@
             <button type="button" data-origen="" class="is-on">Todos</button>
             <button type="button" data-origen="laboratorio">De sucursal</button>
             <button type="button" data-origen="tienda">Ecommerce</button>
-            <button type="button" data-origen="optometria">Optometría</button>
+            <button type="button" data-origen="unison">Unison</button>
+            <button type="button" data-origen="empresa" class="lab-emp-btn" aria-haspopup="true" aria-expanded="false">
+              <span id="labEmpLabel">Empresas</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -211,8 +234,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+{{if eq .Panel "admin"}}
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+{{else}}
 <script src="/static/js/receptionist/sidebar-receptionist.js"></script>
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
+{{end}}
 <script src="/static/js/optometrist/examen-render.js"></script>
 <script src="/static/js/optometrist/examen-modal.js"></script>
 <script src="/static/js/laboratorio/laboratorio.js"></script>

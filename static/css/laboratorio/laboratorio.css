@@ -378,3 +378,65 @@ body.dark .lab-ext-tag{ background:rgba(244,63,94,.14); color:#fda4af; border-co
 /* El botón de la esquina siempre completo; lo que se recorta es "quién · cuándo" */
 .lab-card-foot > span:first-child{ flex:1 1 0; min-width:0; }
 .lab-split{ flex:0 0 auto; max-width:none; }
+
+/* ===========================================================
+   Convenio (Unison / empresas), limpiar Control de calidad y
+   eliminar definitivamente (admin)
+   =========================================================== */
+.lab-emp-btn{ display:inline-flex; align-items:center; gap:5px; }
+.lab-emp-btn svg{ width:12px; height:12px; transition:transform .3s var(--ease); }
+.lab-emp-btn[aria-expanded="true"] svg{ transform:rotate(180deg); }
+.lab-emp-menu{ min-width:190px; }
+
+.lab-conv{ font-size:9.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:3px 7px; border-radius:100px; white-space:nowrap; background:#eef2ff; color:#3730a3; margin-left:4px; }
+.lab-conv.is-unison{ background:#fef3c7; color:#92400e; }
+.lab-conv.is-empresa{ background:#e0f2fe; color:#075985; }
+body.dark .lab-conv.is-unison{ background:rgba(245,158,11,.18); color:#fcd34d; }
+body.dark .lab-conv.is-empresa{ background:rgba(14,165,233,.18); color:#7dd3fc; }
+.lab-card-flags{ display:flex; flex-wrap:wrap; gap:4px; margin:2px 0 4px; }
+.lab-card-flags .lab-conv{ margin-left:0; }
+
+.lab-col-clear{
+  display:flex; align-items:center; justify-content:center; gap:6px; width:100%; margin:0 0 8px;
+  border:1.5px dashed color-mix(in srgb, var(--col-color) 45%, var(--line)); background:color-mix(in srgb, var(--col-color) 6%, var(--white));
+  color:color-mix(in srgb, var(--col-color) 75%, var(--ink)); border-radius:12px; padding:8px 10px; cursor:pointer;
+  font-family:inherit; font-size:12px; font-weight:700;
+  transition:background .2s var(--ease), color .2s var(--ease), transform .15s var(--ease);
+}
+.lab-col-clear svg{ width:14px; height:14px; flex-shrink:0; }
+.lab-col-clear:hover{ background:color-mix(in srgb, var(--col-color) 12%, var(--white)); }
+.lab-col-clear:active{ transform:scale(.95); }
+.lab-col-clear.is-armed{ background:var(--col-color); color:#fff; border-color:var(--col-color); border-style:solid; animation:labArmPulse 1s var(--ease) infinite; }
+@keyframes labArmPulse{ 0%,100%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--col-color) 45%, transparent); } 50%{ box-shadow:0 0 0 5px transparent; } }
+.lab-col.is-clearing .lab-card{ animation:labSweep .38s var(--ease) forwards; animation-delay:calc(var(--i, 0) * 30ms); }
+@keyframes labSweep{ to{ opacity:0; transform:translateX(30px) scale(.96); } }
+.lab-card.is-limpio{ opacity:.62; }
+.lab-limpio-tag{ font-size:9.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:3px 7px; border-radius:100px; background:var(--line); color:var(--muted); }
+
+.lab-limpios-toggle{ display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer; margin-right:6px; }
+.lab-limpios-toggle input{ position:absolute; opacity:0; pointer-events:none; }
+.lab-limpios-toggle input:checked + .lab-toggle-track{ background:var(--accent); }
+.lab-limpios-toggle input:checked + .lab-toggle-track .lab-toggle-thumb{ transform:translateX(15px); }
+.lab-limpios-toggle em{ font-style:normal; }
+
+.lab-conv-box{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 12px; }
+.lab-conv-title{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.lab-conv-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+.lab-conv-chips button{
+  border:1.5px solid var(--line); background:var(--white); color:var(--ink); border-radius:100px; padding:6px 12px; cursor:pointer;
+  font-family:inherit; font-size:12.5px; font-weight:600; transition:all .2s var(--ease);
+}
+.lab-conv-chips button:hover{ border-color:var(--accent-border, #8992FF); }
+.lab-conv-chips button.is-on{ background:var(--accent); border-color:var(--accent); color:#fff; animation:labChipPop .3s cubic-bezier(.22,1.4,.36,1); }
+@keyframes labChipPop{ 0%{ transform:scale(.9); } 100%{ transform:none; } }
+
+.lab-danger{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:16px; padding:12px 14px; border-radius:14px; border:1.5px solid #fecaca; background:#fff5f5; }
+.lab-danger strong{ display:block; font-size:13px; color:#b91c1c; }
+.lab-danger small{ display:block; font-size:12px; color:#7f1d1d; opacity:.8; margin-top:2px; }
+.lab-del-btn{ border-color:#dc2626 !important; color:#dc2626 !important; white-space:nowrap; }
+.lab-del-btn.is-armed{ background:#dc2626 !important; color:#fff !important; }
+body.dark .lab-danger{ background:rgba(220,38,38,.1); border-color:rgba(220,38,38,.35); }
+body.dark .lab-danger strong, body.dark .lab-danger small{ color:#fca5a5; }
+@media (prefers-reduced-motion:reduce){
+  .lab-col-clear.is-armed, .lab-col.is-clearing .lab-card, .lab-conv-chips button.is-on{ animation:none; }
+}

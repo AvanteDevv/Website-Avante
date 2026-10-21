@@ -31,8 +31,21 @@ func LaboratorioPage(vista string) gin.HandlerFunc {
 		c.HTML(http.StatusOK, "laboratorio.html", WithStaff(c, gin.H{
 			"ActivePage": active,
 			"Vista":      vista,
+			"Panel":      "laboratorio",
+			"Empresas":   models.ConvenioEmpresas,
 		}))
 	}
+}
+
+// AdminLaboratorioPage — GET /admin/laboratorio: el mismo tablero de
+// trabajos con el sidebar del admin (ve todo y puede eliminar trabajos).
+func AdminLaboratorioPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "laboratorio.html", WithStaff(c, gin.H{
+		"ActivePage": "admin-laboratorio",
+		"Vista":      "trabajos",
+		"Panel":      "admin",
+		"Empresas":   models.ConvenioEmpresas,
+	}))
 }
 
 func labParamID(c *gin.Context) (int64, bool) {
@@ -70,17 +83,109 @@ func LabListOrders(c *gin.Context) {
 			statuses = append(statuses, s)
 		}
 	}
+	// Los que el laboratorio limpió de su última columna no salen (el
+	// admin los puede ver con ?limpios=1).
+	verLimpios := labRole(c) == RoleAdmin && c.Query("limpios") == "1"
 	pedidos := []models.LabOrder{}
+	limpios := 0
 	for _, o := range list {
 		if hidden[o.Status] {
 			continue
+		}
+		if o.Limpio {
+			limpios++
+			if !verLimpios {
+				continue
+			}
 		}
 		if o.PosSaleID > 0 && o.Hoja == nil && !o.SinHoja {
 			continue
 		}
 		pedidos = append(pedidos, o)
 	}
-	c.JSON(http.StatusOK, gin.H{"pedidos": pedidos, "estados": statuses})
+	c.JSON(http.StatusOK, gin.H{"pedidos": pedidos, "estados": statuses, "empresas": models.ConvenioEmpresas, "limpios": limpios})
+}
+
+// labLastStatus — la última columna que ve el laboratorio (Control de calidad).
+func labLastStatus() string {
+	all, _ := models.GetAllOrderStatuses()
+	hidden := models.RecepcionOnlyStatuses(all)
+	last, lastOrder := "", -1<<31
+	for _, s := range all {
+		if !hidden[s.Key] && s.SortOrder >= lastOrder {
+			last, lastOrder = s.Key, s.SortOrder
+		}
+	}
+	return last
+}
+
+// LabClearColumn — POST /api/laboratorio/limpiar {status}
+// Limpia la columna de Control de calidad: los trabajos no se borran, solo
+// dejan de salir en el tablero.
+func LabClearColumn(c *gin.Context) {
+	var in struct {
+		Status string `json:"status"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil || strings.TrimSpace(in.Status) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Columna inválida."})
+		return
+	}
+	if strings.TrimSpace(in.Status) != labLastStatus() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Solo se puede limpiar la columna de Control de calidad."})
+		return
+	}
+	n, err := models.ClearLabColumn(strings.TrimSpace(in.Status))
+	if err != nil {
+		log.Println("laboratorio.ClearColumn:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo limpiar la columna."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"limpiados": n})
+}
+
+// LabSetConvenio — PUT /api/laboratorio/pedidos/:id/convenio {convenio, empresa}
+func LabSetConvenio(c *gin.Context) {
+	id, ok := labParamID(c)
+	if !ok {
+		return
+	}
+	var in struct {
+		Convenio string `json:"convenio"`
+		Empresa  string `json:"empresa"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	if err := models.SetOrderConvenio(id, in.Convenio, in.Empresa); err != nil {
+		if errors.Is(err, models.ErrOrderNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Ese trabajo ya no existe."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar."})
+		return
+	}
+	conv, emp := models.NormalizeConvenio(in.Convenio, in.Empresa)
+	c.JSON(http.StatusOK, gin.H{"convenio": conv, "empresa": emp})
+}
+
+// LabDeleteOrder — DELETE /api/laboratorio/pedidos/:id (solo admin)
+// Borra el trabajo para siempre (para los de prueba).
+func LabDeleteOrder(c *gin.Context) {
+	id, ok := labParamID(c)
+	if !ok {
+		return
+	}
+	if err := models.DeleteLabOrderHard(id); err != nil {
+		if errors.Is(err, models.ErrOrderNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Ese trabajo ya no existe."})
+			return
+		}
+		log.Println("laboratorio.DeleteOrder:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 // LabSetExterno — PUT /api/laboratorio/pedidos/:id/externo {externo}

@@ -244,7 +244,11 @@
      VISTA: TRABAJOS
      ======================================================= */
   var orders = [], statuses = [];
-  var search = '', origen = '';
+  var search = '', origen = '', empresaSel = '';
+  var IS_ADMIN = page.dataset.panel === 'admin';
+  // Empresas con convenio (vienen en data-empresas="Ford|…").
+  var EMPRESAS = (page.dataset.empresas || '').split('|').filter(Boolean);
+  var verLimpios = false, limpiosN = 0;
   // "Listo para la entrega" y "Entregado" ya no llegan al laboratorio
   // (los pone recepción), así que no hay nada que ocultar.
   var hideDone = false;
@@ -262,6 +266,10 @@
   function origenTxt(o) { return o.origen === 'optometria' ? 'Optometría' : (o.origen === 'laboratorio' ? 'Sucursal' : 'Ecommerce'); }
   // Las órdenes hechas sin venta no tienen clave de rastreo: se nombran por su Nº.
   function codeOf(o) { return o.orderCode || (o.hoja && o.hoja.folio ? 'Orden Nº ' + o.hoja.folio : '#' + o.id); }
+  function convTxt(o) { return o.convenio === 'unison' ? 'Unison' : (o.convenio === 'empresa' ? (o.empresa || 'Empresa') : ''); }
+  function convTag(o) { var t = convTxt(o); return t ? '<span class="lab-conv is-' + esc(o.convenio) + '">' + esc(t) + '</span>' : ''; }
+  // La última columna que ve el laboratorio (Control de calidad): esa se puede limpiar.
+  function lastKey() { var s = sortedStatuses(); return s.length ? s[s.length - 1].key : ''; }
   function shortCode(o) { return o.orderCode || (o.hoja && o.hoja.folio ? 'Nº ' + o.hoja.folio : '#' + o.id); }
   function statusOf(key) { return statuses.filter(function (s) { return s.key === key; })[0] || null; }
   function doneKey() {
@@ -278,10 +286,12 @@
     var q = norm(search.trim());
     var dk = doneKey();
     return orders.filter(function (o) {
-      if (origen && o.origen !== origen) return false;
+      if (origen === 'unison') { if (o.convenio !== 'unison') return false; }
+      else if (origen === 'empresa') { if (o.convenio !== 'empresa' || (empresaSel && o.empresa !== empresaSel)) return false; }
+      else if (origen && o.origen !== origen) return false;
       if (hideDone && o.status === dk) return false;
       if (!q) return true;
-      return norm([codeOf(o), o.customerName, o.productName, o.clave, o.rxOD, o.rxOI, o.labNotes].join(' ')).indexOf(q) !== -1;
+      return norm([codeOf(o), convTxt(o), o.customerName, o.productName, o.clave, o.rxOD, o.rxOI, o.labNotes].join(' ')).indexOf(q) !== -1;
     });
   }
 
@@ -319,10 +329,11 @@
   function cardHTML(o, i) {
     var nx = nextStatus(o.status);
     var rx = rxLine(o);
-    return '<article class="lab-card' + (String(o.id) === String(landedId) ? ' is-landed' : '') + '" draggable="true" data-id="' + o.id + '" tabindex="0" style="--i:' + Math.min(i, 12) + '">' +
+    return '<article class="lab-card' + (String(o.id) === String(landedId) ? ' is-landed' : '') + (o.limpio ? ' is-limpio' : '') + '" draggable="true" data-id="' + o.id + '" tabindex="0" style="--i:' + Math.min(i, 12) + '">' +
       '<div class="lab-card-top"><strong class="lab-code">' + esc(shortCode(o)) + '</strong>' +
         '<span class="lab-card-tags">' + hojaBtn(o) + '<span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span></span></div>' +
       (o.externo ? '<div class="lab-ext-tag" title="Este trabajo está en un laboratorio externo">' + EXT_ICON + 'Laboratorio externo</div>' : '') +
+      ((o.convenio || o.limpio) ? '<div class="lab-card-flags">' + convTag(o) + (o.limpio ? '<span class="lab-limpio-tag">Limpiado</span>' : '') + '</div>' : '') +
       '<div class="lab-card-client">' + esc(o.customerName || 'Cliente sin nombre') + '</div>' +
       '<div class="lab-card-prod">' + productLine(o) + (o.quantity > 1 ? ' <span class="lab-qty">×' + o.quantity + '</span>' : '') + '</div>' +
       (rx ? '<div class="lab-card-rx">' + esc(rx) + '</div>' : '') +
@@ -353,7 +364,10 @@
       var mine = list.filter(function (o) { return o.status === s.key; });
       html += '<section class="lab-col" data-status="' + esc(s.key) + '" style="--col-color:' + colorOf(s.key) + '">' +
         '<header class="lab-col-head"><span class="lab-col-dot"></span><strong>' + esc(s.label) + '</strong><span class="lab-col-n">' + mine.length + '</span></header>' +
-        '<div class="lab-col-body">' + (mine.length ? mine.map(cardHTML).join('') : '<p class="lab-col-empty">Suelta aquí un trabajo</p>') + '</div>' +
+        '<div class="lab-col-body">' +
+          (s.key === lastKey() && mine.some(function (o) { return !o.limpio; }) ? '<button type="button" class="lab-col-clear" data-clear="' + esc(s.key) + '" title="Quitar del tablero los trabajos de esta columna (no se borran)">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-9 9H7v-5z"/><path d="M3 21h18"/></svg><span>Limpiar columna</span></button>' : '') +
+          (mine.length ? mine.map(cardHTML).join('') : '<p class="lab-col-empty">Suelta aquí un trabajo</p>') + '</div>' +
       '</section>';
     });
     $('labBoard').innerHTML = html || '<p class="lab-empty">No hay estados configurados. El admin los crea en Pedidos → ⚙️.</p>';
@@ -364,7 +378,7 @@
     $('labRows').innerHTML = list.map(function (o, i) {
       return '<tr data-id="' + o.id + '" style="--i:' + Math.min(i, 20) + '" class="' + (String(o.id) === String(landedId) ? 'is-landed' : '') + '">' +
         '<td><strong class="lab-code">' + esc(shortCode(o)) + '</strong><div class="lab-muted">' + fecha(o.createdAt) + '</div></td>' +
-        '<td>' + esc(o.customerName || 'Cliente sin nombre') + '<div><span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span>' + hojaBtn(o) + (o.externo ? '<span class="lab-ext-tag is-inline">' + EXT_ICON + 'Externo</span>' : '') + '</div></td>' +
+        '<td>' + esc(o.customerName || 'Cliente sin nombre') + '<div><span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span>' + convTag(o) + hojaBtn(o) + (o.externo ? '<span class="lab-ext-tag is-inline">' + EXT_ICON + 'Externo</span>' : '') + '</div></td>' +
         '<td>' + productLine(o) + (rxLine(o) ? '<div class="lab-muted">' + esc(rxLine(o)) + '</div>' : '') + '</td>' +
         '<td><button type="button" class="lab-status-btn" data-status-menu="' + o.id + '">' + badge(o.status) +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button></td>' +
@@ -387,9 +401,12 @@
   }
 
   function loadOrders(highlight) {
-    return api('/api/laboratorio/pedidos').then(function (d) {
+    return api('/api/laboratorio/pedidos' + (IS_ADMIN && verLimpios ? '?limpios=1' : '')).then(function (d) {
       orders = d.pedidos || [];
       statuses = d.estados || [];
+      if (d.empresas) EMPRESAS = d.empresas;
+      limpiosN = d.limpios || 0;
+      if ($('labLimpiosN')) $('labLimpiosN').textContent = limpiosN ? '(' + limpiosN + ')' : '';
       if (highlight) landedId = highlight;
       render();
       if (detailId) refreshDetail();
@@ -405,7 +422,7 @@
     if (!o || o.status === key) return Promise.resolve();
     var before = o.status;
     var staff = page.dataset.staff || '';
-    o.status = key; o.lastBy = staff; o.lastAt = new Date().toISOString();
+    o.status = key; o.lastBy = staff; o.lastAt = new Date().toISOString(); o.limpio = false;
     landedId = id;
     render();
     if (detailId === String(id)) refreshDetail();
@@ -567,6 +584,11 @@
           '<div class="lab-hoja-actions"><button type="button" class="btn small" id="labHojaPick">Ligar una orden</button></div>') +
         '<div class="lab-hoja-picker" id="labHojaPicker" hidden><input type="search" id="labHojaQ" placeholder="Buscar por paciente o celular…" autocomplete="off"><div class="lab-hoja-list" id="labHojaList"></div></div>' +
       '</div>' +
+      '<div class="lab-conv-box"><span class="lab-conv-title">Convenio</span><div class="lab-conv-chips" id="labConvChips">' +
+        '<button type="button" data-conv="" class="' + (!o.convenio ? 'is-on' : '') + '">Ninguno</button>' +
+        '<button type="button" data-conv="unison" class="' + (o.convenio === 'unison' ? 'is-on' : '') + '">Unison</button>' +
+        EMPRESAS.map(function (e) { return '<button type="button" data-conv="empresa" data-emp="' + esc(e) + '" class="' + (o.convenio === 'empresa' && o.empresa === e ? 'is-on' : '') + '">' + esc(e) + '</button>'; }).join('') +
+      '</div></div>' +
       '<dl class="lab-info">' + info.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('') + '</dl>' +
       '<label class="lab-field lab-notes"><span>Notas del laboratorio</span><textarea id="labNotes" rows="3" maxlength="500" placeholder="Altura, tratamiento, observaciones…">' + esc(notesOld !== null && detailId === String(o.id) && document.activeElement && document.activeElement.id === 'labNotes' ? notesOld : (o.labNotes || '')) + '</textarea></label>' +
       '<div class="lab-detail-actions">' +
@@ -574,12 +596,37 @@
         '<a class="btn small" href="' + esc(trackURL(o.orderCode)) + '" target="_blank" rel="noopener">Ver en Rastreo</a>' : '') +
         '<button type="button" class="btn solid small" id="labNotesSave">Guardar notas</button>' +
       '</div>' +
+      (IS_ADMIN ? '<div class="lab-danger"><div><strong>Eliminar definitivamente</strong><small>Para los trabajos de prueba. Se borra del tablero' + (o.orderCode ? ', de Pedidos y de Rastreo' : '') + ' y no se puede deshacer.</small></div>' +
+        '<button type="button" class="btn small lab-del-btn" id="labDelete">Eliminar</button></div>' : '') +
       '<div class="lab-history"><h4>Historial</h4><ol id="labHistory"><li class="lab-muted">Cargando…</li></ol></div>';
     $('labDetailBody').querySelectorAll('[data-step]').forEach(function (b) {
       b.addEventListener('click', function () { setStatus(o.id, b.dataset.step).then(loadHistory); });
     });
     if ($('labCopyTrack')) $('labCopyTrack').addEventListener('click', function () { copyText(trackURL(o.orderCode), 'Link de rastreo copiado.'); });
     wireHojaBox(o);
+    $('labConvChips').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-conv]');
+      if (!b || b.classList.contains('is-on')) return;
+      var body = { convenio: b.dataset.conv, empresa: b.dataset.emp || '' };
+      api('/api/laboratorio/pedidos/' + o.id + '/convenio', { method: 'PUT', body: body }).then(function (r) {
+        o.convenio = r.convenio; o.empresa = r.empresa; render(); refreshDetail();
+        toast(r.convenio ? codeOf(o) + ' es de ' + convTxt(o) + '.' : 'Se quitó el convenio.');
+      }).catch(function (err) { toast(err.message); });
+    });
+    if ($('labDelete')) $('labDelete').addEventListener('click', function () {
+      var btn = this;
+      if (!btn.classList.contains('is-armed')) {
+        btn.classList.add('is-armed'); btn.textContent = '¿Seguro? Eliminar';
+        clearTimeout(btn._t); btn._t = setTimeout(function () { btn.classList.remove('is-armed'); btn.textContent = 'Eliminar'; }, 4000);
+        return;
+      }
+      btn.disabled = true;
+      api('/api/laboratorio/pedidos/' + o.id, { method: 'DELETE' }).then(function () {
+        orders = orders.filter(function (x) { return x.id !== o.id; });
+        closeModal('labDetailModal'); detailId = null; render();
+        toast(codeOf(o) + ' se eliminó definitivamente.');
+      }).catch(function (err) { btn.disabled = false; toast(err.message); });
+    });
     $('labExtToggle').addEventListener('change', function () {
       var on = this.checked, box = this;
       box.disabled = true;
@@ -713,9 +760,43 @@
   seg.classList.add('has-glow');
   requestAnimationFrame(function () { moveGlow(true); });
   window.addEventListener('resize', function () { moveGlow(true); });
+  var empMenu = null;
+  function closeEmpMenu() { if (empMenu) { empMenu.remove(); empMenu = null; } var eb = seg.querySelector('.lab-emp-btn'); if (eb) eb.setAttribute('aria-expanded', 'false'); }
+  function openEmpMenu(btn) {
+    closeEmpMenu();
+    empMenu = document.createElement('div');
+    empMenu.className = 'lab-menu lab-emp-menu';
+    empMenu.innerHTML = '<div class="lab-menu-label">Empresas</div>' +
+      [''].concat(EMPRESAS).map(function (e, i) {
+        return '<button type="button" data-emp="' + esc(e) + '" class="' + (origen === 'empresa' && empresaSel === e ? 'is-active' : '') + '" style="--i:' + i + '">' + (e ? esc(e) : 'Todas las empresas') + '</button>';
+      }).join('');
+    document.body.appendChild(empMenu);
+    var r = btn.getBoundingClientRect();
+    empMenu.style.left = Math.max(10, Math.min(window.innerWidth - empMenu.offsetWidth - 10, r.right - empMenu.offsetWidth)) + 'px';
+    empMenu.style.top = (r.bottom + 6) + 'px';
+    btn.setAttribute('aria-expanded', 'true');
+    empMenu.addEventListener('click', function (e) {
+      var x = e.target.closest('[data-emp]');
+      if (!x) return;
+      empresaSel = x.dataset.emp;
+      $('labEmpLabel').textContent = empresaSel || 'Empresas';
+      closeEmpMenu();
+      pickOrigen(btn);
+    });
+  }
+  document.addEventListener('click', function (e) {
+    if (empMenu && !empMenu.contains(e.target) && !e.target.closest('.lab-emp-btn')) closeEmpMenu();
+  });
+  window.addEventListener('scroll', closeEmpMenu, true);
   seg.addEventListener('click', function (e) {
     var b = e.target.closest('button[data-origen]');
-    if (!b || b.classList.contains('is-on')) return;
+    if (!b) return;
+    if (b.dataset.origen === 'empresa') { if (empMenu) closeEmpMenu(); else openEmpMenu(b); return; }
+    if (b.classList.contains('is-on')) return;
+    empresaSel = ''; $('labEmpLabel').textContent = 'Empresas';
+    pickOrigen(b);
+  });
+  function pickOrigen(b) {
     origen = b.dataset.origen;
     seg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); });
     moveGlow();
@@ -723,7 +804,31 @@
     var area = view === 'tablero' ? $('labBoard') : $('labList');
     area.classList.remove('is-swap'); void area.offsetWidth; area.classList.add('is-swap');
     render();
+  }
+
+  // Limpiar la columna de Control de calidad (no se borran los trabajos).
+  $('labBoard').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-clear]');
+    if (!b) return;
+    e.stopPropagation();
+    var n = orders.filter(function (o) { return o.status === b.dataset.clear && !o.limpio; }).length;
+    if (!b.classList.contains('is-armed')) {
+      b.classList.add('is-armed');
+      b.querySelector('span').textContent = n === 1 ? '¿Limpiar 1 trabajo? Toca otra vez' : '¿Limpiar ' + n + ' trabajos? Toca otra vez';
+      clearTimeout(b._t); b._t = setTimeout(function () { b.classList.remove('is-armed'); b.querySelector('span').textContent = 'Limpiar columna'; }, 4000);
+      return;
+    }
+    b.disabled = true;
+    var col = b.closest('.lab-col');
+    if (col) col.classList.add('is-clearing');
+    api('/api/laboratorio/limpiar', { method: 'POST', body: { status: b.dataset.clear } }).then(function (r) {
+      setTimeout(function () {
+        loadOrders();
+        toast(r.limpiados === 1 ? 'Se limpió 1 trabajo. No se borró: sigue en el sistema.' : 'Se limpiaron ' + r.limpiados + ' trabajos. No se borraron: siguen en el sistema.');
+      }, 380);
+    }).catch(function (err) { b.disabled = false; if (col) col.classList.remove('is-clearing'); toast(err.message); });
   });
+  if ($('labLimpios')) $('labLimpios').addEventListener('change', function () { verLimpios = this.checked; loadOrders(); });
 
   $('labRefresh').addEventListener('click', function () {
     this.classList.remove('is-spinning'); void this.offsetWidth; this.classList.add('is-spinning');

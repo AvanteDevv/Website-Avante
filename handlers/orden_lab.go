@@ -52,6 +52,9 @@ type createLabOrderSheetInput struct {
 	// Si se hizo desde una venta de recepción: el pedido (trabajo) al que
 	// se liga, para que le llegue al laboratorio en su tablero.
 	PedidoID int64 `json:"pedidoId"`
+	// Convenio del trabajo: "" | "unison" | "empresa" (+ empresa).
+	Convenio string `json:"convenio"`
+	Empresa  string `json:"empresa"`
 }
 
 // CreateLabOrderSheetHandler — POST /api/optometrist/ordenes-lab
@@ -107,6 +110,9 @@ func CreateLabOrderSheetHandler(c *gin.Context) {
 			BroadcastLabPendiente()
 		}
 	}
+	if in.Kind == models.ExamTemplateKindLab {
+		models.SetSheetJobsConvenio(o.ID, in.Convenio, in.Empresa)
+	}
 	c.Set("lab_order_sheet", o.PatientName)
 	c.JSON(http.StatusCreated, o)
 }
@@ -149,6 +155,7 @@ func UpdateLabOrderSheetHandler(c *gin.Context) {
 	// El laboratorio ve la orden actualizada en su tablero.
 	if o.Kind == models.ExamTemplateKindLab {
 		models.SyncDirectLabJob(o.ID, o.PatientName)
+		models.SetSheetJobsConvenio(o.ID, in.Convenio, in.Empresa)
 		BroadcastLabPendiente()
 	}
 	c.Set("lab_order_sheet", o.PatientName)
@@ -262,6 +269,7 @@ func DocNewPage(kind string) gin.HandlerFunc {
 		c.HTML(http.StatusOK, "nuevo-examen.html", WithStaff(c, gin.H{
 			"ActivePage": docActivePage(kind),
 			"Doc":        kind,
+			"Empresas":   models.ConvenioEmpresas,
 		}))
 	}
 }

@@ -11,6 +11,10 @@ import "log"
 //   - orders.lab_externo: el trabajo está en un laboratorio externo.
 //   - orders.lab_directo: el trabajo salió de una orden de laboratorio
 //     hecha sin venta (sin pasar por Punto de venta, sin clave de rastreo).
+//   - orders.lab_limpio: el laboratorio limpió la columna de Control de
+//     calidad (el trabajo no se borra, solo ya no sale en su tablero).
+//   - orders.convenio / convenio_empresa: el trabajo es de UNISON o de una
+//     empresa (Ford, …), para el filtro del tablero.
 //   - Estatus "Corte" antes de "Control de calidad" (una sola vez; si el
 //     admin lo borra después, no se vuelve a crear).
 func EnsureLabHojaColumn() {
@@ -19,6 +23,9 @@ func EnsureLabHojaColumn() {
 		{"lab_sin_hoja", "TINYINT(1) NOT NULL DEFAULT 0"},
 		{"lab_externo", "TINYINT(1) NOT NULL DEFAULT 0"},
 		{"lab_directo", "TINYINT(1) NOT NULL DEFAULT 0"},
+		{"lab_limpio", "TINYINT(1) NOT NULL DEFAULT 0"},
+		{"convenio", "VARCHAR(20) NOT NULL DEFAULT ''"},
+		{"convenio_empresa", "VARCHAR(80) NOT NULL DEFAULT ''"},
 	} {
 		if err := addColumnIfMissing("orders", c.col, c.ddl); err != nil {
 			log.Printf("laboratorio: columna orders.%s: %v", c.col, err)
