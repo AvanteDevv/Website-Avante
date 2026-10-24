@@ -630,6 +630,9 @@ window.CitasFiltro = (function(){
   }
   function openAsistio(id){
     var row = tbody.querySelector('tr[data-id="' + id + '"]');
+    // Chequeo: solo se marca que asistió. No se programa revisión (el
+    // cliente agenda sus chequeos y se duplicarían las revisiones).
+    if (esChequeo(id)) { if (!row || row.dataset.status !== 'asistio') updateStatus(id, 'asistio'); return; }
     if (!row || !asOverlay) { updateStatus(id, 'asistio'); return; }
     var prev = CitaSeg.get(id);
     asId = id;
@@ -1355,7 +1358,7 @@ window.CitasFiltro = (function(){
       var segBox = document.getElementById('calEventSeg');
       if (segBox) {
         var seg = CitaSeg.get(id);
-        segBox.hidden = status !== 'asistio';
+        segBox.hidden = status !== 'asistio' || esChequeo(id);
         segBox.classList.toggle('is-missing', !seg);
         var chequeo = esChequeo(id);
         document.getElementById('calEventSegText').textContent = chequeo
@@ -1365,7 +1368,9 @@ window.CitasFiltro = (function(){
         document.getElementById('calEventSegBtn').onclick = function(){ closeEventModal(); openAsistio(id); };
       }
       var asistioLbl = document.getElementById('calEventAsistio');
-      asistioLbl.lastChild.textContent = status === 'asistio' ? (esChequeo(id) ? ' Cambiar revisión ' : ' Cambiar si compró ') : ' Marcar asistió ';
+      asistioLbl.lastChild.textContent = status === 'asistio' ? ' Cambiar si compró ' : ' Marcar asistió ';
+      // Chequeo que ya asistió: no hay nada que cambiar (no lleva revisión).
+      asistioLbl.hidden = status === 'asistio' && esChequeo(id);
       document.getElementById('calEventNoAsistio').onclick = function(){ updateStatus(id, 'no_asistio'); };
       document.getElementById('calEventCliente').onclick = function(){ closeEventModal(); openClienteModal(id); };
       document.getElementById('calEventEditar').onclick = function(){ closeEventModal(); window.AvanteEditarCita && window.AvanteEditarCita.open(id, 'editar'); };

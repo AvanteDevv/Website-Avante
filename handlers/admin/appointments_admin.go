@@ -169,8 +169,8 @@ type createAppointmentByStaffInput struct {
 	Cuestionario json.RawMessage `json:"cuestionario"`
 	// Etiqueta "¿Cómo llegó?" elegida al crear (sin_cita, chequeo,
 	// telefono, whatsapp). Solo se usa para decidir si se avisa por
-	// WhatsApp: a quien "vino sin cita" no se le manda "tu cita quedó
-	// agendada" porque ya está en la óptica.
+	// WhatsApp: a quien "vino sin cita" o es chequeo no se le manda "tu
+	// cita quedó agendada".
 	Tag string `json:"tag"`
 }
 
@@ -203,7 +203,10 @@ func apptAlreadyStarted(date time.Time, hhmm string) bool {
 //   - la cita se registró con estado de ya atendida o cancelada,
 //   - el día y la hora ya pasaron (se está registrando algo de antes).
 func shouldNotifyBooked(tag, status string, date time.Time, hhmm string) bool {
-	if tag == "sin_cita" {
+	// "Vino sin cita" ya está en la óptica, y el chequeo lo agenda
+	// recepción con el cliente: a ninguno se le manda "tu cita quedó
+	// agendada".
+	if tag == "sin_cita" || tag == "chequeo" {
 		return false
 	}
 	if status != "" && status != "verificada" && status != "pendiente" {
