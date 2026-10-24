@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/sessions"
@@ -24,12 +25,28 @@ import (
 //   - Si la ruta no es de ningún panel en particular (p. ej. el admin
 //     viendo páginas de optometría), se usa la del último inicio de sesión.
 //
-// Dos cuentas del MISMO rol en el mismo navegador siguen sin poder estar
-// a la vez (comparten la cookie de ese rol); para eso, otra ventana de
-// incógnito u otro navegador.
+// Dos cuentas del MISMO rol (p. ej. dos optometristas) también pueden
+// estar a la vez, cada una en su pestaña: cada cuenta tiene su propia
+// cookie ("avante_admin_session_<rol>_<id>") y cada pestaña recuerda con
+// qué cuenta entró (static/js/staff-tab.js, en sessionStorage). La
+// pestaña avisa cuál es en cada petición:
+//
+//   - fetch / XHR: encabezado X-Staff-Account ("rol:id").
+//   - WebSocket: ?acct=rol:id.
+//   - Al abrir páginas: la cookie avante_staff_tab, que la pestaña pone
+//     en cuanto se usa (clic, tecla, foco), justo antes de navegar.
 
 // LastStaffRoleCookie guarda el rol del último inicio de sesión.
 const LastStaffRoleCookie = "avante_staff_last"
+
+// LastStaffAccountCookie guarda la cuenta ("rol:id") del último inicio de sesión.
+const LastStaffAccountCookie = "avante_staff_last_acct"
+
+// StaffTabCookie / StaffAccountHeader: la cuenta de la pestaña que hace la petición.
+const (
+	StaffTabCookie     = "avante_staff_tab"
+	StaffAccountHeader = "X-Staff-Account"
+)
 
 // StaffRoles: en orden de preferencia cuando no hay otra pista.
 var StaffRoles = []string{"admin", "receptionist", "optometrist", "employee", "inventario", "blogger", "laboratorio"}
@@ -45,8 +62,43 @@ var staffRolePrefixes = map[string][]string{
 	"laboratorio":  {"/laboratorio", "/api/laboratorio"},
 }
 
-// StaffCookieName es la cookie de sesión de ese rol.
+// StaffCookieName es la cookie de sesión de ese rol (formato anterior, una
+// por rol; se sigue leyendo mientras no expire).
 func StaffCookieName(role string) string { return AdminSessionName + "_" + role }
+
+// StaffAccountCookieName es la cookie de sesión de una cuenta en particular.
+func StaffAccountCookieName(role string, id int64) string {
+	return AdminSessionName + "_" + role + "_" + strconv.FormatInt(id, 10)
+}
+
+// StaffAccountKey — "rol:id" de una sesión.
+func StaffAccountKey(s *sessions.Session) string {
+	if s == nil {
+		return ""
+	}
+	role, _ := s.Values["staff_role"].(string)
+	id, _ := s.Values["staff_id"].(int64)
+	if role == "" || id == 0 {
+		return ""
+	}
+	return role + ":" + strconv.FormatInt(id, 10)
+}
+
+// requestedAccount — la cuenta que pide la pestaña (encabezado, ?acct= o cookie).
+func requestedAccount(r *http.Request) string {
+	if v := strings.TrimSpace(r.Header.Get(StaffAccountHeader)); v != "" {
+		return v
+	}
+	if v := strings.TrimSpace(r.URL.Query().Get("acct")); v != "" {
+		return v
+	}
+	if ck, err := r.Cookie(StaffTabCookie); err == nil {
+		if v, err := url.QueryUnescape(ck.Value); err == nil {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
+}
 
 // staffContextPath: la página "dueña" de la petición.
 func staffContextPath(r *http.Request) string {
@@ -83,26 +135,40 @@ func StaffSession(r *http.Request) *sessions.Session {
 		s    *sessions.Session
 	}
 	var cands []cand
-	have := map[string]bool{}
-	for _, role := range StaffRoles {
-		if _, err := r.Cookie(StaffCookieName(role)); err != nil {
-			continue
+	have := map[string]bool{} // por cuenta "rol:id"
+	add := func(name string) {
+		s, _ := Store.Get(r, name)
+		if !sessionHasStaff(s) {
+			return
 		}
-		s, _ := Store.Get(r, StaffCookieName(role))
-		if sessionHasStaff(s) {
-			cands = append(cands, cand{role, s})
-			have[role] = true
+		key := StaffAccountKey(s)
+		if have[key] {
+			return
 		}
+		have[key] = true
+		role, _ := s.Values["staff_role"].(string)
+		cands = append(cands, cand{role, s})
 	}
-	// Cookie vieja (de antes de este cambio): sigue sirviendo hasta que
-	// expire o se vuelva a iniciar sesión.
-	if _, err := r.Cookie(AdminSessionName); err == nil {
-		if s, _ := Store.Get(r, AdminSessionName); sessionHasStaff(s) {
-			role, _ := s.Values["staff_role"].(string)
-			if !have[role] {
-				cands = append(cands, cand{role, s})
+	// Una cookie por cuenta (las más nuevas) …
+	for _, ck := range r.Cookies() {
+		if strings.HasPrefix(ck.Name, AdminSessionName+"_") {
+			rest := ck.Name[len(AdminSessionName)+1:]
+			if i := strings.LastIndex(rest, "_"); i > 0 {
+				if _, err := strconv.ParseInt(rest[i+1:], 10, 64); err == nil {
+					add(ck.Name)
+				}
 			}
 		}
+	}
+	// … y las de antes (una por rol, y la única de antes de eso): siguen
+	// sirviendo hasta que expiren o se vuelva a iniciar sesión.
+	for _, role := range StaffRoles {
+		if _, err := r.Cookie(StaffCookieName(role)); err == nil {
+			add(StaffCookieName(role))
+		}
+	}
+	if _, err := r.Cookie(AdminSessionName); err == nil {
+		add(AdminSessionName)
 	}
 
 	if len(cands) == 0 {
@@ -113,31 +179,69 @@ func StaffSession(r *http.Request) *sessions.Session {
 		return cands[0].s
 	}
 
-	// La del panel de la pestaña (prefijo más largo).
-	best, bestLen := -1, 0
-	for i, c := range cands {
+	// Las del panel de la pestaña (prefijo más largo); si ninguna es de
+	// ese panel, todas.
+	bestLen := 0
+	for _, c := range cands {
 		for _, p := range staffRolePrefixes[c.role] {
 			if hasPrefixPath(path, p) && len(p) > bestLen {
-				best, bestLen = i, len(p)
+				bestLen = len(p)
 			}
 		}
 	}
-	if best >= 0 {
-		return cands[best].s
-	}
-	// Si no, la del último inicio de sesión.
-	if ck, err := r.Cookie(LastStaffRoleCookie); err == nil {
+	pool := cands
+	if bestLen > 0 {
+		pool = nil
 		for _, c := range cands {
+			for _, p := range staffRolePrefixes[c.role] {
+				if hasPrefixPath(path, p) && len(p) == bestLen {
+					pool = append(pool, c)
+					break
+				}
+			}
+		}
+	}
+	if len(pool) == 1 {
+		return pool[0].s
+	}
+	// Entre esas, la cuenta de esta pestaña …
+	if want := requestedAccount(r); want != "" {
+		for _, c := range pool {
+			if StaffAccountKey(c.s) == want {
+				return c.s
+			}
+		}
+	}
+	// … si no, la del último inicio de sesión.
+	if ck, err := r.Cookie(LastStaffAccountCookie); err == nil {
+		v, _ := url.QueryUnescape(ck.Value)
+		for _, c := range pool {
+			if StaffAccountKey(c.s) == v {
+				return c.s
+			}
+		}
+	}
+	if ck, err := r.Cookie(LastStaffRoleCookie); err == nil {
+		for _, c := range pool {
 			if c.role == ck.Value {
 				return c.s
 			}
 		}
 	}
-	return cands[0].s
+	return pool[0].s
 }
 
 // HasStaffRole: ¿hay sesión activa de ese rol en este navegador?
 func HasStaffRole(r *http.Request, role string) bool {
+	for _, ck := range r.Cookies() {
+		if strings.HasPrefix(ck.Name, AdminSessionName+"_"+role+"_") {
+			if s, _ := Store.Get(r, ck.Name); sessionHasStaff(s) {
+				if v, _ := s.Values["staff_role"].(string); v == role {
+					return true
+				}
+			}
+		}
+	}
 	if _, err := r.Cookie(StaffCookieName(role)); err == nil {
 		if s, _ := Store.Get(r, StaffCookieName(role)); sessionHasStaff(s) {
 			return true
@@ -149,4 +253,42 @@ func HasStaffRole(r *http.Request, role string) bool {
 		}
 	}
 	return false
+}
+
+// staffCookieNames — todas las cookies de sesión de staff de la petición.
+func staffCookieNames(r *http.Request) []string {
+	out := []string{}
+	for _, ck := range r.Cookies() {
+		if ck.Name == AdminSessionName || strings.HasPrefix(ck.Name, AdminSessionName+"_") {
+			out = append(out, ck.Name)
+		}
+	}
+	return out
+}
+
+// TabStaffSession — la sesión de la cuenta de esta pestaña, sin importar
+// la ruta (para cerrar sesión: que se cierre la de la pestaña y no otra).
+func TabStaffSession(r *http.Request) *sessions.Session {
+	if want := requestedAccount(r); want != "" {
+		for _, name := range staffCookieNames(r) {
+			if s, _ := Store.Get(r, name); sessionHasStaff(s) && StaffAccountKey(s) == want {
+				return s
+			}
+		}
+	}
+	return StaffSession(r)
+}
+
+// ExpireStaffAccount borra todas las cookies que tengan esa cuenta ("rol:id"),
+// incluida la de formato anterior (una por rol).
+func ExpireStaffAccount(w http.ResponseWriter, r *http.Request, key string) {
+	if key == "" {
+		return
+	}
+	for _, name := range staffCookieNames(r) {
+		if s, _ := Store.Get(r, name); sessionHasStaff(s) && StaffAccountKey(s) == key {
+			s.Options.MaxAge = -1
+			_ = s.Save(r, w)
+		}
+	}
 }

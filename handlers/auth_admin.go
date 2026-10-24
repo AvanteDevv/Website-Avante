@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -183,6 +184,7 @@ func finishStaffLogin(c *gin.Context, role string, id int64, name string, email 
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Bienvenido al panel de administración.",
 		"redirect": redirect,
+		"account":  role + ":" + strconv.FormatInt(id, 10),
 	})
 }
 
@@ -193,9 +195,11 @@ func AdminLogout(c *gin.Context) {
 	LogStaffLogout(c) // bitácora: antes de borrar la cookie
 	// Cierra solo la sesión de esta pestaña (la de su rol); si en otra
 	// pestaña hay otra cuenta de otro rol, esa sigue abierta.
-	session := auth.StaffSession(c.Request)
+	session := auth.TabStaffSession(c.Request)
+	key := auth.StaffAccountKey(session)
 	session.Options.MaxAge = -1
 	session.Save(c.Request, c.Writer)
+	auth.ExpireStaffAccount(c.Writer, c.Request, key)
 	c.Redirect(http.StatusFound, "/admin/iniciar-sesion")
 }
 
@@ -272,9 +276,9 @@ func RequireRole(allowed ...string) gin.HandlerFunc {
 }
 
 func startStaffSession(c *gin.Context, role string, id int64, name string, email string) error {
-	// Una cookie por rol (ver auth/staff_session.go): así otra pestaña
-	// con otro rol no se cierra al iniciar esta.
-	session, _ := auth.Store.Get(c.Request, auth.StaffCookieName(role))
+	// Una cookie por cuenta (ver auth/staff_session.go): así otra pestaña
+	// con otra cuenta (aunque sea del mismo rol) no se cierra al iniciar esta.
+	session, _ := auth.Store.Get(c.Request, auth.StaffAccountCookieName(role, id))
 	// Sesión de staff más corta que la de cliente (8h vs. 7 días) —
 	// tiene más privilegios, así que conviene que expire más rápido.
 	session.Options.MaxAge = 8 * 60 * 60
@@ -285,6 +289,14 @@ func startStaffSession(c *gin.Context, role string, id int64, name string, email
 	if err := session.Save(c.Request, c.Writer); err != nil {
 		return err
 	}
+	// La cookie de antes (una por rol) si era de esta misma cuenta, ya no
+	// se usa (si es de otra cuenta del mismo rol, se deja: es otra pestaña).
+	if _, err := c.Request.Cookie(auth.StaffCookieName(role)); err == nil {
+		if old, _ := auth.Store.Get(c.Request, auth.StaffCookieName(role)); auth.StaffAccountKey(old) == role+":"+strconv.FormatInt(id, 10) {
+			old.Options.MaxAge = -1
+			old.Save(c.Request, c.Writer)
+		}
+	}
 	// La cookie vieja (una sola para todos) ya no se usa.
 	if _, err := c.Request.Cookie(auth.AdminSessionName); err == nil {
 		old, _ := auth.Store.Get(c.Request, auth.AdminSessionName)
@@ -292,6 +304,11 @@ func startStaffSession(c *gin.Context, role string, id int64, name string, email
 		old.Save(c.Request, c.Writer)
 	}
 	http.SetCookie(c.Writer, &http.Cookie{Name: auth.LastStaffRoleCookie, Value: role, Path: "/", MaxAge: 8 * 60 * 60, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	acct := url.QueryEscape(role + ":" + strconv.FormatInt(id, 10))
+	http.SetCookie(c.Writer, &http.Cookie{Name: auth.LastStaffAccountCookie, Value: acct, Path: "/", MaxAge: 8 * 60 * 60, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	// La pestaña que inicia sesión ya queda con esta cuenta (staff-tab.js
+	// la lee y la guarda en su sessionStorage).
+	http.SetCookie(c.Writer, &http.Cookie{Name: auth.StaffTabCookie, Value: acct, Path: "/", MaxAge: 8 * 60 * 60, SameSite: http.SameSiteLaxMode})
 	return nil
 }
 

@@ -101,6 +101,21 @@ body.dark .cuenta-sidebar{ transition:width .3s var(--ease), background-color .3
   transition:color .2s var(--ease), background .2s var(--ease);
 }
 .cuenta-nav-link svg{ width:17px; height:17px; flex-shrink:0; }
+/* Globito de pendientes (p. ej. "Orden de laboratorio"): va sobre la
+   esquina del ícono, así no empuja el texto ni se sale del menú. */
+.cuenta-nav-link .cuenta-nav-badge{
+  position:absolute; left:23px; top:4px; margin:0;
+  height:17px; min-width:17px; padding:0 4px; line-height:17px; font-size:9.5px;
+  box-shadow:0 0 0 2px var(--white); pointer-events:none;
+  animation:navBadgeIn .35s cubic-bezier(.22,1.4,.36,1);
+}
+.cuenta-nav-link.active .cuenta-nav-badge{ box-shadow:0 0 0 2px var(--blue-600, #041cff); }
+.cuenta-sidebar.shrink .cuenta-nav-link span.cuenta-nav-badge:not([hidden]){
+  position:absolute; top:3px; right:3px; left:auto; width:auto; height:17px; overflow:visible; clip:auto;
+}
+@keyframes navBadgeIn{ from{ transform:scale(.4); opacity:0; } to{ transform:none; opacity:1; } }
+.cuenta-nav-link > span:not(.cuenta-nav-badge):not(.cuenta-nav-tooltip){ min-width:0; overflow:hidden; text-overflow:ellipsis; }
+@media (prefers-reduced-motion:reduce){ .cuenta-nav-link .cuenta-nav-badge{ animation:none; } }
 .cuenta-nav-divider{ height:1px; background:var(--line); margin:10px 6px; }
 
 .cuenta-nav-group .cuenta-nav-link.is-current{ color:var(--on-accent, #fff); }

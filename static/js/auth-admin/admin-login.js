@@ -41,6 +41,9 @@ if (form) {
         return;
       }
 
+      // Esta pestaña se queda con la cuenta con la que entró (otra pestaña
+      // puede tener otra cuenta, aunque sea del mismo rol). Ver staff-tab.js.
+      try { if (data.account) sessionStorage.setItem('avStaffAcct', data.account); } catch (e) {}
       window.location.href = data.redirect || '/admin/base-de-datos';
     } catch (err) {
       if (errorEl) {

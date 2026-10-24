@@ -129,7 +129,7 @@ func LogStaffLoginFailed(c *gin.Context, role string, id int64, name string) {
 // LogStaffLogout — "Cerró sesión". Hay que llamarlo ANTES de borrar la
 // cookie (lee quién es de la sesión).
 func LogStaffLogout(c *gin.Context) {
-	session := auth.StaffSession(c.Request)
+	session := auth.TabStaffSession(c.Request)
 	role, _ := session.Values["staff_role"].(string)
 	id, _ := session.Values["staff_id"].(int64)
 	name, _ := session.Values["staff_name"].(string)
