@@ -962,6 +962,8 @@ func main() {
 	router.GET("/media/inventario/foto/:fotoId", handlers.ServeInvFoto)
 	// Ticket digital (enlace firmado que se manda por WhatsApp).
 	router.GET("/ticket/:folio/:sig", handlers.PublicTicketPage)
+	// Reporte de un ajuste de inventario (para mandarlo por WhatsApp / correo).
+	router.GET("/inventario/ajuste/:folio/:sig", handlers.PublicAjustePage)
 	router.GET("/api/ticket/:folio/:sig", handlers.PublicTicketData)
 	router.GET("/media/productos/*key", handlers.ServeProductImage)
 	router.GET("/media/logos/*key", handlers.ServeLogoImage)

@@ -602,7 +602,8 @@ func InvGetAjuste(c *gin.Context) {
 		invFail(c, "GetAjuste", err, "No se pudo cargar el ajuste.")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"ajuste": d})
+	// share: liga del reporte para mandarlo por WhatsApp o correo.
+	c.JSON(http.StatusOK, gin.H{"ajuste": d, "share": AjustePublicPath(id)})
 }
 
 // InvAplicarAjuste — POST /api/inventario/ajustes

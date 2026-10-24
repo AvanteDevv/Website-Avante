@@ -66,14 +66,24 @@
           <div class="inv-filter-select" id="bulkDep"></div>
           <div class="inv-filter-select" id="bulkCat"></div>
           <button type="button" class="inv-btn-ghost" id="bulkAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Agregar todos</button>
+          <button type="button" class="inv-btn-ghost" id="hojaOpen" title="Imprime la lista para contar a mano"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Hoja de conteo</button>
         </div>
       </div>
 
-      <p class="inv-caption" id="cntCaption"></p>
+      <div class="inv-sel-bar">
+        <p class="inv-caption" id="cntCaption"></p>
+        <div class="inv-sel-quick" id="cntSelQuick" hidden>
+          <span>Aplicar:</span>
+          <button type="button" data-sel="todos">Todos</button>
+          <button type="button" data-sel="diferencia">Solo con diferencia</button>
+          <button type="button" data-sel="ninguno">Ninguno</button>
+        </div>
+      </div>
       <div class="inv-table-wrap">
         <table class="inv-table is-count">
           <thead>
             <tr>
+              <th class="c-sel"><label class="inv-sel" title="Marcar / desmarcar todos"><input type="checkbox" id="cntSelAll" checked><span class="inv-check-box"></span></label></th>
               <th>Clave / Descripción</th>
               <th class="num c-sis">En sistema</th>
               <th class="num">Contado</th>
@@ -146,6 +156,53 @@
       <div class="staff-form-actions">
         <button type="button" class="btn small" data-close-modal>Revisar</button>
         <button type="button" class="btn solid small" id="confirmOk">Sí, aplicar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: hoja de conteo ================= -->
+<div class="admin-modal-overlay" id="hojaModal">
+  <div class="admin-modal-card inv-confirm-card" role="dialog" aria-modal="true" aria-labelledby="hojaTitle">
+    <div class="admin-modal-head">
+      <h3 id="hojaTitle">Hoja de conteo</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="admin-modal-body inv-hoja-body">
+      <p class="inv-confirm-text">Imprime la lista para contar a mano y después captura lo contado aquí.</p>
+      <div class="inv-hoja-field">
+        <span>Artículos</span>
+        <div class="inv-seg" id="hojaFuente">
+          <button type="button" data-f="depto" class="is-on">Por departamento</button>
+          <button type="button" data-f="conteo">Los del conteo</button>
+        </div>
+      </div>
+      <div class="inv-hoja-row" id="hojaDeptoRow">
+        <div class="inv-filter-select" id="hojaDep"></div>
+        <div class="inv-filter-select" id="hojaCat"></div>
+      </div>
+      <div class="inv-hoja-field">
+        <span>Orden</span>
+        <div class="inv-seg" id="hojaOrden">
+          <button type="button" data-o="localizacion" class="is-on">Localización</button>
+          <button type="button" data-o="clave">Clave</button>
+          <button type="button" data-o="descripcion">Descripción</button>
+        </div>
+      </div>
+      <label class="inv-check is-inline">
+        <input type="checkbox" id="hojaBarras" checked>
+        <span class="inv-check-box"></span>
+        <span><strong>Con código de barras</strong><small>Para escanearlo al capturar.</small></span>
+      </label>
+      <label class="inv-check is-inline">
+        <input type="checkbox" id="hojaExist">
+        <span class="inv-check-box"></span>
+        <span><strong>Mostrar la existencia del sistema</strong><small>Sin ella el conteo es «a ciegas» y sale más confiable.</small></span>
+      </label>
+      <p class="inv-hoja-count" id="hojaCount"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-close-modal>Cancelar</button>
+        <button type="button" class="btn solid small" id="hojaPrint">Imprimir hoja</button>
       </div>
     </div>
   </div>
