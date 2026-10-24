@@ -50,7 +50,12 @@
   window.addEventListener('lab-pendientes', function (e) { render(e.detail || []); });
 
   var ov = document.getElementById('vpTicketOv'), frame = document.getElementById('vpTicketFrame');
-  function closeTicket() { ov.hidden = true; frame.src = 'about:blank'; document.body.style.overflow = ''; }
+  // Cierra con animación (la tarjeta baja y se desvanece).
+  function closeTicket() {
+    if (ov.hidden || ov.classList.contains('is-closing')) return;
+    ov.classList.add('is-closing');
+    setTimeout(function () { ov.hidden = true; ov.classList.remove('is-closing'); frame.src = 'about:blank'; document.body.style.overflow = ''; }, 220);
+  }
   document.getElementById('vpTicketClose').addEventListener('click', closeTicket);
   ov.addEventListener('click', function (e) { if (e.target === ov) closeTicket(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !ov.hidden) closeTicket(); });
@@ -59,7 +64,9 @@
     var t = e.target.closest('[data-ticket]');
     if (t) {
       document.getElementById('vpTicketTitle').textContent = 'Ticket ' + t.dataset.folio;
-      frame.src = t.dataset.ticket;
+      // El ticket con el mismo tema del panel (claro / oscuro).
+      var dark = document.body.classList.contains('dark');
+      frame.src = t.dataset.ticket + (t.dataset.ticket.indexOf('?') === -1 ? '?' : '&') + 'tema=' + (dark ? 'oscuro' : 'claro');
       ov.hidden = false;
       document.body.style.overflow = 'hidden';
       return;

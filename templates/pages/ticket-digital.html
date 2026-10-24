@@ -10,9 +10,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script>
+  // ?tema=claro|oscuro (p. ej. cuando se ve dentro del panel): manda sobre
+  // el tema del sistema, para que combine con el panel.
+  (function(){ try { var t = new URLSearchParams(location.search).get('tema');
+    if (t === 'claro') document.documentElement.setAttribute('data-theme', 'light');
+    else if (t === 'oscuro') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {} })();
+</script>
 <style>
-  :root{ --ink:#10132e; --muted:#5d6380; --accent:#041cff; --bg:#eef0f7; --card:#fff; --line:#dfe2ee; }
-  @media (prefers-color-scheme: dark){ :root{ --ink:#eef0ff; --muted:#a3a8c6; --bg:#0d1022; --card:#171b33; --line:#2a2f4d; } }
+  :root{ --ink:#10132e; --muted:#5d6380; --accent:#041cff; --bg:#eef0f7; --card:#fff; --line:#dfe2ee; --tk-bg:#e3e6ef; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --ink:#eef0ff; --muted:#a3a8c6; --bg:#0d1022; --card:#171b33; --line:#2a2f4d; --tk-bg:#0a0c1a; } }
+  :root[data-theme="dark"]{ --ink:#eef0ff; --muted:#a3a8c6; --bg:#0d1022; --card:#171b33; --line:#2a2f4d; --tk-bg:#0a0c1a; }
+  /* Barra de scroll delgada (igual que en los modales del panel) */
+  html{ scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+  html::-webkit-scrollbar{ width:6px; height:6px; }
+  html::-webkit-scrollbar-track{ background:transparent; }
+  html::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+  html::-webkit-scrollbar-thumb:hover{ background:var(--muted); }
   *{ box-sizing:border-box; }
   body{ margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font-family:'Public Sans', system-ui, sans-serif; }
   .td-wrap{ max-width:520px; margin:0 auto; padding:28px 16px 40px; }
@@ -30,8 +44,7 @@
   .td-btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 18px; border-radius:100px; border:1.5px solid var(--accent);
     background:var(--accent); color:#fff; font:700 13px 'Public Sans', sans-serif; letter-spacing:.3px; text-decoration:none; cursor:pointer; }
   .td-btn.is-ghost{ background:transparent; color:var(--accent); }
-  .td-ticket{ display:flex; justify-content:center; padding:18px 10px; border-radius:18px; background:#e3e6ef; overflow-x:auto; }
-  @media (prefers-color-scheme: dark){ .td-ticket{ background:#0a0c1a; } }
+  .td-ticket{ display:flex; justify-content:center; padding:18px 10px; border-radius:18px; background:var(--tk-bg); overflow-x:auto; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
   .td-ticket .tk{ box-shadow:0 18px 36px -20px rgba(10,14,56,.55); }
   .td-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
   .td-msg{ text-align:center; color:var(--muted); padding:40px 10px; }
