@@ -751,7 +751,13 @@
      se está escribiendo en otro campo, se junta lo que llega rápido y, al
      llegar el Enter, el trabajo pasa al siguiente paso. Si se escanea con
      el cursor en el buscador, también funciona. */
-  var SCAN_RE = /^AVT-?\d{3,}$/i;
+  // Acepta AVT10502, AVT-10502 y también AVT'10502 / avt?10502: si el
+  // escáner está en otro idioma de teclado, el guion sale como otro signo.
+  var SCAN_RE = /^AVT[^A-Z0-9]?(\d{3,})$/i;
+  function scanCode(v) {
+    var m = String(v || '').trim().match(SCAN_RE);
+    return m ? 'AVT' + m[1] : '';
+  }
   var scanBuf = '', scanLast = 0, scanBusy = false;
   function scanChip(state, txt) {
     var chip = $('labScanChip');
@@ -767,6 +773,7 @@
     code = code.toUpperCase();
     scanChip('busy', 'Leyendo ' + code + '…');
     api('/api/laboratorio/escanear', { method: 'POST', body: { code: code } }).then(function (r) {
+      if (r.code) code = r.code;
       scanChip('ok', code + ' → ' + r.label);
       toast(code + (r.cliente ? ' · ' + r.cliente : '') + ': ' + (r.from ? r.from + ' → ' : '') + r.label + '.');
       return loadOrders(r.id);
@@ -784,11 +791,18 @@
     if (now - scanLast > 120) scanBuf = '';   // el escáner manda todo seguido; una persona escribe más lento
     scanLast = now;
     if (e.key === 'Enter') {
+      var fast = scanBuf.length >= 5;
       var v = t && t.id === 'labSearch' ? t.value.trim() : scanBuf;
-      if (SCAN_RE.test(v)) {
+      var code = scanCode(v);
+      if (code) {
         e.preventDefault();
         if (t && t.id === 'labSearch') { t.value = ''; search = ''; render(); }
-        doScan(v);
+        doScan(code);
+      } else if (fast) {
+        // Llegó algo del escáner pero no es una clave de pedido.
+        e.preventDefault();
+        scanChip('err', 'Código no reconocido');
+        toast('Se leyó "' + scanBuf + '", que no es una clave de pedido (AVT…).');
       }
       scanBuf = '';
       return;

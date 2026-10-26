@@ -415,6 +415,17 @@ func LabLinkHoja(c *gin.Context) {
 // trabajo pasa al siguiente paso del tablero. En Control de calidad (el
 // último paso del laboratorio) ya no avanza: «Listo para la entrega» lo
 // pone recepción.
+// scanKey deja solo letras y números en mayúsculas.
+func scanKey(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToUpper(s) {
+		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 func LabScan(c *gin.Context) {
 	var in struct {
 		Code string `json:"code"`
@@ -433,9 +444,11 @@ func LabScan(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar los trabajos."})
 		return
 	}
+	// Se comparan solo letras y números: AVT10502 = AVT-10502.
+	want := scanKey(code)
 	var o *models.LabOrder
 	for i := range list {
-		if strings.EqualFold(list[i].OrderCode, code) {
+		if list[i].OrderCode != "" && scanKey(list[i].OrderCode) == want {
 			o = &list[i]
 			break
 		}
@@ -444,6 +457,7 @@ func LabScan(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "No hay ningún trabajo con la clave " + code + "."})
 		return
 	}
+	code = o.OrderCode
 	if o.PosSaleID > 0 && o.Hoja == nil && !o.SinHoja {
 		c.JSON(http.StatusConflict, gin.H{"error": code + " todavía no tiene orden de laboratorio: el optometrista la tiene que hacer primero."})
 		return

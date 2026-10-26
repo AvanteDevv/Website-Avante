@@ -294,7 +294,7 @@
       out.push('<div class="tk-sep"></div><div class="tk-pedido">' +
         '<div class="tk-c">CLAVE DE RASTREO</div>' +
         '<div class="tk-c tk-pedido-code">' + esc(venta.pedido) + '</div>' +
-        barcodeSVG(venta.pedido, tpl.papel.ancho === 58 ? 58 : 80) +
+        barcodeSVG(String(venta.pedido || '').replace(/[^A-Za-z0-9]/g, ''), tpl.papel.ancho === 58 ? 58 : 80) +
         '<div class="tk-c tk-pedido-hint">CONSULTA TU PEDIDO EN<br>' + esc(tpl.rastreoUrl || 'avanteopticsmx.com/rastreo') + '</div>' +
       '</div>');
     }
