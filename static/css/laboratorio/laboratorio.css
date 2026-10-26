@@ -443,17 +443,26 @@ body.dark .lab-danger strong, body.dark .lab-danger small{ color:#fca5a5; }
 /* Escáner de código de barras (ticket → siguiente paso) */
 .lab-scan-chip{
   display:inline-flex; align-items:center; gap:7px; margin-right:6px; padding:7px 12px; border-radius:100px;
-  font-size:12px; font-weight:700; color:var(--muted); background:var(--accent-soft); white-space:nowrap;
+  font-size:12px; font-weight:700; color:#0f7a3d; background:#e6f6ec; white-space:nowrap;
   transition:background .25s var(--ease), color .25s var(--ease), transform .2s var(--ease);
 }
 .lab-scan-chip svg{ width:15px; height:15px; }
+/* Punto verde: el escáner está escuchando (un lector USB no se puede
+   detectar desde el navegador; se ve que funciona al escanear). */
+.lab-scan-chip::before{
+  content:""; width:8px; height:8px; border-radius:50%; background:#16a34a; flex:none;
+  box-shadow:0 0 0 0 rgba(22,163,74,.55); animation:labScanLive 1.8s ease-out infinite;
+}
+.lab-scan-chip.is-err::before{ background:#b42318; box-shadow:none; animation:none; }
+@keyframes labScanLive{ 0%{ box-shadow:0 0 0 0 rgba(22,163,74,.55); } 70%,100%{ box-shadow:0 0 0 7px rgba(22,163,74,0); } }
 .lab-scan-chip.is-busy{ color:var(--accent); animation:labScanPulse .8s var(--ease) infinite; }
 .lab-scan-chip.is-ok{ color:#0f7a3d; background:#e6f6ec; animation:labScanPop .35s cubic-bezier(.22,1.4,.36,1); }
 .lab-scan-chip.is-err{ color:#b42318; background:#fdecea; animation:labScanShake .4s var(--ease); }
+body.dark .lab-scan-chip{ color:#7fd89b; background:rgba(31,122,61,.18); }
 body.dark .lab-scan-chip.is-ok{ color:#7fd89b; background:rgba(31,122,61,.22); }
 body.dark .lab-scan-chip.is-err{ color:#f19a90; background:rgba(176,58,46,.25); }
 @keyframes labScanPulse{ 50%{ transform:scale(1.04); } }
 @keyframes labScanPop{ 0%{ transform:scale(.9); } 100%{ transform:none; } }
 @keyframes labScanShake{ 25%,75%{ transform:translateX(-4px); } 50%{ transform:translateX(4px); } }
 @media (max-width:720px){ .lab-scan-chip span{ display:none; } }
-@media (prefers-reduced-motion:reduce){ .lab-scan-chip{ animation:none !important; } }
+@media (prefers-reduced-motion:reduce){ .lab-scan-chip, .lab-scan-chip::before{ animation:none !important; } }
