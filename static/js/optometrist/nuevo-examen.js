@@ -245,6 +245,13 @@
       if (dx < bestDist){ bestDist = dx; best = el; }
     });
     if (best) return best.text.trim();
+    // Renglones de un mismo campo (observaciones, observaciones2, …): "Observaciones (renglón 2)".
+    var m = /^(.*?)(\d+)$/.exec(step.fieldKey || '');
+    if (m && m[1]){
+      var base = (template.elements || []).filter(function(el){ return el.fieldKey === m[1]; })[0];
+      var bl = base ? findLabelFor(base).replace(/:\s*$/, '') : m[1].charAt(0).toUpperCase() + m[1].slice(1);
+      return bl + ' (renglón ' + m[2] + ')';
+    }
     if (step.fieldKey) return step.fieldKey.charAt(0).toUpperCase() + step.fieldKey.slice(1);
     return 'Este campo';
   }

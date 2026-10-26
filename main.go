@@ -244,6 +244,8 @@ func main() {
 	db.EnsureClaritoPlusTables()
 	// Laboratorio: orden de laboratorio ligada a cada trabajo
 	db.EnsureLabHojaColumn()
+	// Historia clínica: campo de OBSERVACIONES (3 renglones), una sola vez.
+	db.EnsureHistoriaObservaciones()
 
 	storage.Connect()
 	// Clarito: sube una sola vez los 3 formatos de static/pdf/clarito al
