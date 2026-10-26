@@ -187,6 +187,34 @@
     return total;
   }
 
+  /* ---------- Código de barras (Code 128-B) de la clave de rastreo ----------
+     Se dibuja como SVG dentro del ticket (sirve igual para la vista previa,
+     la impresión del navegador y la ticketera, que recibe el ticket como
+     imagen). El laboratorio lo escanea y el pedido pasa al siguiente paso. */
+  var C128 = ['212222','222122','222221','121223','121322','131222','122213','122312','132212','221213','221312','231212','112232','122132','122231','113222','123122','123221','223211','221132','221231','213212','223112','312131','311222','321122','321221','312212','322112','322211','212123','212321','232121','111323','131123','131321','112313','132113','132311','211313','231113','231311','112133','112331','132131','113123','113321','133121','313121','211331','231131','213113','213311','213131','311123','311321','331121','312113','312311','332111','314111','221411','431111','111224','111422','121124','121421','141122','141221','112214','112412','122114','122411','142112','142211','241211','221114','413111','241112','134111','111242','121142','121241','114212','124112','124211','411212','421112','421211','212141','214121','412121','111143','111341','131141','114113','114311','411113','411311','113141','114131','311141','411131','211412','211214','211232','2331112'];
+  // ancho: 58 u 80 (mm). La ticketera imprime 8 puntos por mm; cada barra
+  // mide un número exacto de puntos (3 en 80 mm, 2 en 58 mm) para que el
+  // escáner la lea bien.
+  function barcodeSVG(text, ancho) {
+    text = String(text || '').replace(/[^\x20-\x7e]/g, '');
+    if (!text) return '';
+    var codes = [104], sum = 104;
+    for (var i = 0; i < text.length; i++) { var c = text.charCodeAt(i) - 32; codes.push(c); sum += c * (i + 1); }
+    codes.push(sum % 103, 106);
+    var x = 10, bars = '';   // 10 módulos de margen a cada lado (zona muda)
+    codes.forEach(function (c) {
+      var pat = C128[c];
+      for (var k = 0; k < pat.length; k++) {
+        var w = +pat[k];
+        if (k % 2 === 0) bars += '<rect x="' + x + '" y="0" width="' + w + '" height="40"/>';
+        x += w;
+      }
+    });
+    var total = x + 10;
+    var mm = total * (ancho === 58 ? 2 : 3) / 8;
+    return '<svg class="tk-barcode" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + total + ' 40" preserveAspectRatio="none" shape-rendering="crispEdges" fill="#000" role="img" aria-label="' + esc(text) + '" style="width:' + mm.toFixed(3) + 'mm">' + bars + '</svg>';
+  }
+
   function fillVars(text, vars) {
     return String(text || '').replace(/\{(\w+)\}/g, function (m, k) {
       return Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : m;
@@ -266,6 +294,7 @@
       out.push('<div class="tk-sep"></div><div class="tk-pedido">' +
         '<div class="tk-c">CLAVE DE RASTREO</div>' +
         '<div class="tk-c tk-pedido-code">' + esc(venta.pedido) + '</div>' +
+        barcodeSVG(venta.pedido, tpl.papel.ancho === 58 ? 58 : 80) +
         '<div class="tk-c tk-pedido-hint">CONSULTA TU PEDIDO EN<br>' + esc(tpl.rastreoUrl || 'avanteopticsmx.com/rastreo') + '</div>' +
       '</div>');
     }
@@ -324,6 +353,7 @@
     '.tk-desc{word-break:break-word;}',
     '.tk-rastreo{word-break:break-word;font-size:.92em;}',
     '.tk-pedido{margin:1mm 0 2mm;}.tk-pedido-code{font-size:1.45em;letter-spacing:.06em;margin:.6mm 0;}.tk-pedido-hint{font-size:.9em;}',
+    '.tk-barcode{display:block;max-width:100%;height:13mm;margin:1.2mm auto 1.6mm;background:#fff;}',
     '.tk-kv{display:grid;grid-template-columns:1fr auto;gap:2mm;padding-left:12%;}',
     '.tk-kv span:first-child{text-align:right;}.tk-kv span:last-child{min-width:7em;text-align:right;}',
     '.tk-total{margin:1mm 0 1.5mm;font-size:1.08em;}',

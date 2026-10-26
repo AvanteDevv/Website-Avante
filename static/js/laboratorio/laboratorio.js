@@ -745,6 +745,56 @@
   }
   sw.addEventListener('click', function (e) { var b = e.target.closest('.view-switch-btn'); if (b && b.dataset.view !== view) setView(b.dataset.view); });
   $('labSearch').addEventListener('input', function () { search = this.value; render(); });
+
+  /* ---------- Escáner de código de barras ----------
+     El escáner "teclea" la clave del ticket (AVT000065) y un Enter. Si no
+     se está escribiendo en otro campo, se junta lo que llega rápido y, al
+     llegar el Enter, el trabajo pasa al siguiente paso. Si se escanea con
+     el cursor en el buscador, también funciona. */
+  var SCAN_RE = /^AVT-?\d{3,}$/i;
+  var scanBuf = '', scanLast = 0, scanBusy = false;
+  function scanChip(state, txt) {
+    var chip = $('labScanChip');
+    if (!chip) return;
+    chip.className = 'lab-scan-chip' + (state ? ' is-' + state : '');
+    $('labScanTxt').textContent = txt || 'Escáner listo';
+    clearTimeout(chip._t);
+    if (state && state !== 'busy') chip._t = setTimeout(function () { scanChip('', ''); }, 2600);
+  }
+  function doScan(code) {
+    if (scanBusy) return;
+    scanBusy = true;
+    code = code.toUpperCase();
+    scanChip('busy', 'Leyendo ' + code + '…');
+    api('/api/laboratorio/escanear', { method: 'POST', body: { code: code } }).then(function (r) {
+      scanChip('ok', code + ' → ' + r.label);
+      toast(code + (r.cliente ? ' · ' + r.cliente : '') + ': ' + (r.from ? r.from + ' → ' : '') + r.label + '.');
+      return loadOrders(r.id);
+    }).catch(function (err) {
+      scanChip('err', 'No se movió');
+      toast(err.message);
+    }).finally(function () { scanBusy = false; });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (VISTA !== 'trabajos' || e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target, tag = (t && t.tagName) || '';
+    var inField = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) && t.id !== 'labSearch';
+    if (inField) return;
+    var now = Date.now();
+    if (now - scanLast > 120) scanBuf = '';   // el escáner manda todo seguido; una persona escribe más lento
+    scanLast = now;
+    if (e.key === 'Enter') {
+      var v = t && t.id === 'labSearch' ? t.value.trim() : scanBuf;
+      if (SCAN_RE.test(v)) {
+        e.preventDefault();
+        if (t && t.id === 'labSearch') { t.value = ''; search = ''; render(); }
+        doScan(v);
+      }
+      scanBuf = '';
+      return;
+    }
+    if (e.key && e.key.length === 1) scanBuf += e.key;
+  }, true);
   // Filtro Todos / De sucursal / Ecommerce: la pastilla azul se desliza
   // al botón elegido y el tablero entra con una transición.
   var seg = $('labOrigen'), segGlow = seg.querySelector('.lab-seg-glow');

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -407,4 +408,80 @@ func LabLinkHoja(c *gin.Context) {
 	default:
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	}
+}
+
+// LabScan — POST /api/laboratorio/escanear {code}
+// El escáner lee el código de barras del ticket (la clave AVT…) y el
+// trabajo pasa al siguiente paso del tablero. En Control de calidad (el
+// último paso del laboratorio) ya no avanza: «Listo para la entrega» lo
+// pone recepción.
+func LabScan(c *gin.Context) {
+	var in struct {
+		Code string `json:"code"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No se leyó ningún código."})
+		return
+	}
+	code := strings.ToUpper(strings.TrimSpace(in.Code))
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No se leyó ningún código."})
+		return
+	}
+	list, err := models.ListLabOrders()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar los trabajos."})
+		return
+	}
+	var o *models.LabOrder
+	for i := range list {
+		if strings.EqualFold(list[i].OrderCode, code) {
+			o = &list[i]
+			break
+		}
+	}
+	if o == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No hay ningún trabajo con la clave " + code + "."})
+		return
+	}
+	if o.PosSaleID > 0 && o.Hoja == nil && !o.SinHoja {
+		c.JSON(http.StatusConflict, gin.H{"error": code + " todavía no tiene orden de laboratorio: el optometrista la tiene que hacer primero."})
+		return
+	}
+	all, _ := models.GetAllOrderStatuses()
+	hidden := models.RecepcionOnlyStatuses(all)
+	var steps []models.OrderStatus
+	for _, s := range all {
+		if !hidden[s.Key] {
+			steps = append(steps, s)
+		}
+	}
+	sort.SliceStable(steps, func(i, j int) bool { return steps[i].SortOrder < steps[j].SortOrder })
+	if hidden[o.Status] {
+		c.JSON(http.StatusConflict, gin.H{"error": code + " ya salió del laboratorio (está con recepción)."})
+		return
+	}
+	cur := -1
+	for i, s := range steps {
+		if s.Key == o.Status {
+			cur = i
+		}
+	}
+	if cur >= 0 && cur == len(steps)-1 {
+		c.JSON(http.StatusConflict, gin.H{"error": code + " ya está en " + steps[cur].Label + ". El siguiente paso lo pone recepción.", "id": o.ID, "status": o.Status})
+		return
+	}
+	next := steps[0]
+	if cur >= 0 {
+		next = steps[cur+1]
+	}
+	if err := models.SetOrderStatusBy(o.ID, next.Key, staffName(c), labRole(c)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cambiar el estatus."})
+		return
+	}
+	prev := ""
+	if cur >= 0 {
+		prev = steps[cur].Label
+	}
+	c.JSON(http.StatusOK, gin.H{"id": o.ID, "code": o.OrderCode, "cliente": o.CustomerName, "from": prev, "status": next.Key, "label": next.Label})
 }

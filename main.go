@@ -513,6 +513,8 @@ func main() {
 		// Admin → Inventario: las mismas 4 secciones que la cuenta de
 		// Inventario (artículos, departamentos, ajustes, movimientos), con
 		// el sidebar del admin. Solo el admin pone el precio de compra.
+		// Admin → Laboratorio: el tablero de trabajos del laboratorio.
+		adminGroup.GET("/laboratorio", onlyAdmin, handlers.AdminLaboratorioPage)
 		adminGroup.GET("/inventario", onlyAdmin, handlers.AdminInventarioArticulosPage)
 		adminGroup.GET("/inventario/articulos", onlyAdmin, handlers.AdminInventarioArticulosPage)
 		adminGroup.GET("/inventario/departamentos", onlyAdmin, handlers.AdminInventarioDepartamentosPage)
@@ -635,6 +637,12 @@ func main() {
 		apiLaboratorio.GET("/hojas/:id", handlers.LabGetHoja)
 		apiLaboratorio.PUT("/pedidos/:id/hoja", handlers.LabLinkHoja)
 		apiLaboratorio.PUT("/pedidos/:id/externo", handlers.LabSetExterno)
+		apiLaboratorio.PUT("/pedidos/:id/convenio", handlers.LabSetConvenio)
+		apiLaboratorio.POST("/limpiar", handlers.LabClearColumn)
+		// Escáner: el código de barras del ticket pasa el trabajo al siguiente paso.
+		apiLaboratorio.POST("/escanear", handlers.LabScan)
+		// Eliminar definitivamente (pruebas): solo el admin.
+		apiLaboratorio.DELETE("/pedidos/:id", handlers.RequireRole(handlers.RoleAdmin), handlers.LabDeleteOrder)
 	}
 
 	apiInventario := router.Group("/api/inventario", handlers.RequireAdminAuth(), inventarioStaff)

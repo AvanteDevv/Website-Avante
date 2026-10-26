@@ -1,3 +1,20 @@
+/* Búsqueda de citas: sin acentos, sin importar mayúsculas ni espacios de
+   más, y por palabras ("ana ter" encuentra "ANA TERESA DURAN"; antes el
+   texto de la fila traía saltos de línea entre nombre y apellido y no
+   coincidía). */
+function citaNorm(s){
+  s = String(s == null ? '' : s).toLowerCase();
+  if (s.normalize) s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return s.replace(/\s+/g, ' ').trim();
+}
+function citaTextMatch(hay, term){
+  var words = citaNorm(term).split(' ').filter(Boolean);
+  if (!words.length) return true;
+  hay = citaNorm(hay);
+  for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) === -1) return false;
+  return true;
+}
+
 /* =========================================================
    RECEPCIÓN — Citas
    Copia exacta de citas.js (admin) — mismos endpoints
@@ -473,7 +490,7 @@ window.CitasFiltro = (function(){
     var term = searchTerm.toLowerCase().trim();
     return allRows.filter(function(row){
       if (!CF.matches(row)) return false;
-      return term === '' || row.textContent.toLowerCase().indexOf(term) !== -1;
+      return term === '' || citaTextMatch(row.textContent + ' ' + (row.dataset.celular || '') + ' ' + (row.dataset.correo || ''), term);
     });
   }
   CF.onChange(function(){ currentPage = 1; renderStats(); renderView(); });
@@ -1142,7 +1159,7 @@ window.CitasFiltro = (function(){
     function remindMatches(r){
       var term = searchTerm.toLowerCase().trim();
       if (!term) return true;
-      return (r.nombre + ' ' + r.celular + ' ' + r.correo).toLowerCase().indexOf(term) !== -1;
+      return citaTextMatch(r.nombre + ' ' + r.celular + ' ' + r.correo, term);
     }
 
     function renderRemindCalendar(){
@@ -1615,10 +1632,7 @@ window.CitasFiltro = (function(){
        se está viendo (agrupado por día). Si ese mes no hay, se busca en
        las demás fechas (las más cercanas primero). */
     function searchMatch(r, term){
-      var t = term.normalize ? term.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : term;
-      var hay = (r.textContent + ' ' + (r.dataset.celular || '') + ' ' + (r.dataset.correo || '')).toLowerCase();
-      if (hay.normalize) hay = hay.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (hay.indexOf(t) !== -1) return true;
+      if (citaTextMatch(r.textContent + ' ' + (r.dataset.celular || '') + ' ' + (r.dataset.correo || ''), term)) return true;
       var dg = term.replace(/\D/g, '');
       return dg.length >= 4 && (r.dataset.celular || '').replace(/\D/g, '').indexOf(dg) !== -1;
     }
