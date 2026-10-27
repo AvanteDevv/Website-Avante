@@ -782,32 +782,47 @@
       toast(err.message);
     }).finally(function () { scanBusy = false; });
   }
+  // Se junta lo que llega rápido (el escáner manda cada tecla a pocos ms).
+  // Se termina con Enter, con Tab o, si el escáner no manda ninguno de los
+  // dos, al dejar de llegar teclas.
+  var scanStart = 0, scanIdle = null;
+  function scanFinish(t, byEnter) {
+    clearTimeout(scanIdle);
+    var buf = scanBuf, dur = scanLast - scanStart;
+    scanBuf = '';
+    var fast = buf.length >= 5 && dur / Math.max(1, buf.length - 1) < 60;
+    var fromSearch = t && t.id === 'labSearch';
+    var code = scanCode(buf) || (fromSearch && byEnter ? scanCode(t.value) : '');
+    if (code && (fast || (fromSearch && byEnter))) {
+      if (fromSearch) { t.value = ''; search = ''; render(); }
+      doScan(code);
+      return true;
+    }
+    if (fast) {
+      scanChip('err', 'Código no reconocido');
+      toast('Se leyó "' + buf + '", que no es una clave de pedido (AVT…).');
+      return true;
+    }
+    if (!scanBusy) scanChip('', '');
+    return false;
+  }
   document.addEventListener('keydown', function (e) {
     if (VISTA !== 'trabajos' || e.ctrlKey || e.metaKey || e.altKey) return;
     var t = e.target, tag = (t && t.tagName) || '';
     var inField = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) && t.id !== 'labSearch';
     if (inField) return;
     var now = Date.now();
-    if (now - scanLast > 120) scanBuf = '';   // el escáner manda todo seguido; una persona escribe más lento
-    scanLast = now;
-    if (e.key === 'Enter') {
-      var fast = scanBuf.length >= 5;
-      var v = t && t.id === 'labSearch' ? t.value.trim() : scanBuf;
-      var code = scanCode(v);
-      if (code) {
-        e.preventDefault();
-        if (t && t.id === 'labSearch') { t.value = ''; search = ''; render(); }
-        doScan(code);
-      } else if (fast) {
-        // Llegó algo del escáner pero no es una clave de pedido.
-        e.preventDefault();
-        scanChip('err', 'Código no reconocido');
-        toast('Se leyó "' + scanBuf + '", que no es una clave de pedido (AVT…).');
-      }
-      scanBuf = '';
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      if ((scanBuf || (t && t.id === 'labSearch')) && scanFinish(t, true)) e.preventDefault();
       return;
     }
-    if (e.key && e.key.length === 1) scanBuf += e.key;
+    if (!e.key || e.key.length !== 1) return;          // Shift, etc.
+    if (now - scanLast > 150) { scanBuf = ''; scanStart = now; }
+    scanLast = now;
+    scanBuf += e.key;
+    if (scanBuf.length === 4 && !scanBusy && (now - scanStart) < 240) scanChip('busy', 'Leyendo…');
+    clearTimeout(scanIdle);
+    scanIdle = setTimeout(function () { if (scanBuf) scanFinish(document.activeElement, false); }, 250);
   }, true);
   // Filtro Todos / De sucursal / Ecommerce: la pastilla azul se desliza
   // al botón elegido y el tablero entra con una transición.
