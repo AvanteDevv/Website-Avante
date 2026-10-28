@@ -792,6 +792,7 @@ window.CitasFiltro = (function(){
     fillClienteField('clienteDetalleCelular', row.dataset.celular);
     fillClienteField('clienteDetalleCorreo', row.dataset.correo);
     fillClienteField('clienteDetalleNacimiento', row.dataset.fechaNacimiento);
+    renderClienteCompro(id, row);
 
     var questWrap = document.getElementById('clienteDetalleCuestionario');
     var questEmpty = document.getElementById('clienteDetalleCuestionarioEmpty');
@@ -835,6 +836,76 @@ window.CitasFiltro = (function(){
 
     clienteModalOverlay.classList.add('open');
     document.body.style.overflow = 'hidden';
+  }
+  /* ¿Compró? — de la cita abierta y de sus otras visitas (mismo celular
+     o, si no hay celular, mismo nombre). */
+  var COMPRO_MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function comproInfo(id, status){
+    var seg = CitaSeg.get(id);
+    if (status !== 'asistio') {
+      var st = { no_asistio: 'No asistió', cancelada: 'Cita cancelada', verificada: 'Todavía no asiste', pendiente: 'Todavía no asiste' };
+      return { cls: 'is-na', text: st[status] || 'Todavía no asiste' };
+    }
+    if (esChequeo(id)) {
+      return { cls: 'is-chequeo', text: 'Chequeo' + (seg && seg.compro && seg.meses ? ' · revisión en ' + (CitaSeg.MESES_LABEL[seg.meses] || '1 año') : '') };
+    }
+    if (!seg) return { cls: 'is-missing', text: 'Asistió · no se registró si compró' };
+    return seg.compro
+      ? { cls: 'is-yes', text: 'Sí compró · revisión en ' + (CitaSeg.MESES_LABEL[seg.meses] || '1 año') }
+      : { cls: 'is-no', text: 'No compró' };
+  }
+  function comproFecha(iso){
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? (+m[3]) + ' ' + COMPRO_MESES[+m[2] - 1] + ' ' + m[1] : '—';
+  }
+  function renderClienteCompro(id, row){
+    var box = document.getElementById('clienteDetalleCompro');
+    if (!box) return;
+    var info = comproInfo(id, row.dataset.status);
+    box.innerHTML = '';
+    var chip = document.createElement('span');
+    chip.className = 'cliente-compro-chip ' + info.cls;
+    chip.textContent = info.text;
+    box.appendChild(chip);
+    if (info.cls === 'is-missing' || info.cls === 'is-yes' || info.cls === 'is-no') {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cliente-compro-btn';
+      btn.textContent = info.cls === 'is-missing' ? 'Registrar' : 'Cambiar';
+      btn.onclick = function(){ closeClienteModal(); openAsistio(id); };
+      box.appendChild(btn);
+    }
+    // Otras visitas del mismo paciente.
+    var cel = (row.dataset.celular || '').replace(/\D/g, '').slice(-10);
+    var nom = (row.dataset.nombre || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    var otras = Array.prototype.filter.call(tbody.querySelectorAll('tr[data-id]'), function(r){
+      if (r === row) return false;
+      var c = (r.dataset.celular || '').replace(/\D/g, '').slice(-10);
+      if (cel) return c === cel;
+      return nom && (r.dataset.nombre || '').replace(/\s+/g, ' ').trim().toLowerCase() === nom;
+    }).sort(function(a, b){ return (b.dataset.date + b.dataset.time).localeCompare(a.dataset.date + a.dataset.time); });
+    var vRow = document.getElementById('clienteDetalleVisitasRow');
+    var vBox = document.getElementById('clienteDetalleVisitas');
+    if (!vRow || !vBox) return;
+    vRow.hidden = !otras.length;
+    vBox.innerHTML = '';
+    otras.slice(0, 8).forEach(function(r){
+      var i = comproInfo(r.dataset.id, r.dataset.status);
+      var it = document.createElement('div');
+      it.className = 'cliente-visita';
+      var f = document.createElement('span');
+      f.textContent = comproFecha(r.dataset.date);
+      var c = document.createElement('em');
+      c.className = 'cliente-compro-chip ' + i.cls;
+      c.textContent = i.text;
+      it.appendChild(f); it.appendChild(c);
+      vBox.appendChild(it);
+    });
+    if (otras.length > 8) {
+      var more = document.createElement('small');
+      more.textContent = 'y ' + (otras.length - 8) + ' más';
+      vBox.appendChild(more);
+    }
   }
   function closeClienteModal(){
     if (!clienteModalOverlay) return;

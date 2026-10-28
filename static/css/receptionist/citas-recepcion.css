@@ -892,6 +892,29 @@ body.dark .cal-action-noasistio:hover{ border-color:#666; background:rgba(255,25
 .cliente-quest-item{ display:flex; flex-direction:column; gap:3px; }
 .cliente-quest-item span{ font-size:12.5px; font-weight:500; color:var(--muted); text-transform:none; letter-spacing:0; }
 .cliente-quest-item strong{ font-size:14px; font-weight:600; color:var(--ink); }
+/* ¿Compró? en el modal del cliente */
+.cliente-compro{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.cliente-compro-chip{
+  display:inline-flex; align-items:center; padding:5px 12px; border-radius:100px; font-size:12.5px; font-weight:700; font-style:normal;
+  animation:dayItemIn .3s var(--ease);
+}
+.cliente-compro-chip.is-yes{ background:#e3f6ea; color:#1f7a4d; }
+.cliente-compro-chip.is-no{ background:#fde8e6; color:#b42318; }
+.cliente-compro-chip.is-missing{ background:#fff4dc; color:#8a6a12; }
+.cliente-compro-chip.is-chequeo{ background:var(--accent-soft); color:var(--accent); }
+.cliente-compro-chip.is-na{ background:var(--accent-soft); color:var(--muted); }
+body.dark .cliente-compro-chip.is-yes{ background:rgba(31,157,85,.18); color:#6ee7a6; }
+body.dark .cliente-compro-chip.is-no{ background:rgba(180,35,24,.24); color:#f5a39b; }
+body.dark .cliente-compro-chip.is-missing{ background:rgba(241,210,143,.14); color:#f3d795; }
+.cliente-compro-btn{
+  border:0; background:none; padding:2px 0; cursor:pointer; font-family:var(--sans); font-size:12.5px; font-weight:700;
+  color:var(--accent); text-decoration:underline; text-underline-offset:3px;
+}
+.cliente-detalle-row:has(> .cliente-visitas) > span{ margin-bottom:6px; }
+.cliente-visitas{ display:flex; flex-direction:column; gap:7px; padding-left:12px; border-left:2px solid var(--line); }
+.cliente-visita{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px; color:var(--ink); }
+.cliente-visita .cliente-compro-chip{ font-size:11.5px; padding:3px 10px; }
+.cliente-visitas small{ font-size:12px; color:var(--muted); }
 /* ===========================================================
    Switch de 3 vistas: Día / Calendario / Tabla
    (los 3 botones del mismo ancho para que la píldora se deslice

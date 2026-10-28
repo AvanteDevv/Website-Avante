@@ -659,6 +659,20 @@ body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
   padding:10px 12px; border-radius:12px; background:rgba(231,76,60,.08);
 }
 .cal-event-reason strong{ color:var(--ink); font-weight:700; }
+/* Si asistió: si compró y cuándo le toca su revisión */
+.cal-event-seg{
+  display:flex; align-items:center; gap:10px; margin-top:12px; padding:9px 12px; border-radius:12px;
+  background:#f1fbf5; color:#1f7a4d; font-size:12.5px; font-weight:600; animation:calSegIn .3s ease;
+}
+.cal-event-seg[hidden]{ display:none !important; }
+.cal-event-seg.is-no{ background:#fde8e6; color:#b42318; }
+.cal-event-seg.is-missing{ background:#fff4dc; color:#8a6a12; }
+.cal-event-seg.is-chequeo{ background:var(--accent-soft); color:#041cff; }
+body.dark .cal-event-seg{ background:rgba(31,157,85,.14); color:#6ee7a6; }
+body.dark .cal-event-seg.is-no{ background:rgba(180,35,24,.24); color:#f5a39b; }
+body.dark .cal-event-seg.is-missing{ background:rgba(241,210,143,.14); color:#f3d795; }
+body.dark .cal-event-seg.is-chequeo{ background:var(--accent-soft); color:#c7ccff; }
+@keyframes calSegIn{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
 
 .cal-event-actions{ display:flex; flex-direction:column; gap:8px; margin-top:22px; }
 .cal-action{

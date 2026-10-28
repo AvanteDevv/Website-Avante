@@ -598,6 +598,21 @@ window.CitasFiltro = (function(){
       renderCalendar();
     });
 
+    /* ---------- ¿compró? (lo registra Recepción al marcar "asistió") ---------- */
+    var segById = {};
+    var SEG_MESES = { 3: '3 meses', 6: '6 meses', 12: '1 año' };
+    fetch('/api/receptionist/citas/seguimiento', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function(r){ return r.ok ? r.json() : { items: {} }; })
+      .then(function(d){ segById = (d && d.items) || {}; })
+      .catch(function(){});
+    function segText(id, row){
+      var seg = segById[String(id)];
+      var meses = seg && seg.compro && seg.meses ? (SEG_MESES[seg.meses] || '1 año') : '';
+      if (row.dataset.tag === 'chequeo') return { cls: 'is-chequeo', text: 'Chequeo' + (meses ? ' · revisión en ' + meses : '') };
+      if (!seg) return { cls: 'is-missing', text: 'Asistió · Recepción no ha registrado si compró.' };
+      return seg.compro ? { cls: '', text: 'Sí compró · revisión en ' + meses } : { cls: 'is-no', text: 'No compró' };
+    }
+
     /* ---------- modal de detalle al hacer click en un evento ---------- */
     var eventModal = document.getElementById('calEventModalOverlay');
     var eventModalClose = document.getElementById('calEventModalClose');
@@ -627,6 +642,16 @@ window.CitasFiltro = (function(){
           reasonEl.hidden = false;
         } else {
           reasonEl.hidden = true;
+        }
+      }
+
+      var segBox = document.getElementById('calEventSeg');
+      if (segBox) {
+        segBox.hidden = status !== 'asistio';
+        if (status === 'asistio') {
+          var st = segText(id, row);
+          segBox.className = 'cal-event-seg' + (st.cls ? ' ' + st.cls : '');
+          document.getElementById('calEventSegText').textContent = st.text;
         }
       }
 

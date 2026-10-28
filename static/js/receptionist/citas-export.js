@@ -110,6 +110,18 @@
   var tipo = 'dia';
   var moveExp = glowFor($('ceExpTipo'));
 
+  // ¿Compró? de cada cita que asistió: si / no / sin (no se registró) /
+  // chequeo (vino a revisión, no cuenta como venta). "" = no asistió.
+  function compraDe(id, status, tag) {
+    if (status !== 'asistio') return { k: '' };
+    var seg = window.CitaSeg ? window.CitaSeg.get(id) : null;
+    var meses = seg && seg.compro && seg.meses ? (window.CitaSeg.MESES_LABEL[seg.meses] || '1 año') : '';
+    if (tag === 'chequeo') return { k: 'chequeo', meses: meses };
+    if (!seg) return { k: 'sin' };
+    return seg.compro ? { k: 'si', meses: meses } : { k: 'no' };
+  }
+  var COMPRA_TXT = { si: 'Sí compró', no: 'No compró', sin: 'Sin registrar', chequeo: 'Chequeo' };
+
   function rows() {
     return Array.prototype.map.call(document.querySelectorAll('#citasTableBody tr[data-id]'), function (r) {
       var q = null;
@@ -118,7 +130,8 @@
       return {
         id: r.dataset.id, date: r.dataset.date || '', hour: hm ? +hm[1] : null, time: r.dataset.time || '',
         status: r.dataset.status || 'pendiente', tag: r.dataset.tag || '', nombre: (r.dataset.nombre || '').replace(/\s+/g, ' ').trim(),
-        como: q && q.como_se_entero ? String(q.como_se_entero) : '', procedencia: q && q.procedencia ? String(q.procedencia) : ''
+        como: q && q.como_se_entero ? String(q.como_se_entero) : '', procedencia: q && q.procedencia ? String(q.procedencia) : '',
+        compra: compraDe(r.dataset.id, r.dataset.status || 'pendiente', r.dataset.tag || '')
       };
     });
   }
@@ -196,6 +209,12 @@
     var s = { total: list.length, asistio: 0, no_asistio: 0, cancelada: 0, verificada: 0, pendiente: 0 };
     list.forEach(function (r) { if (s[r.status] != null) s[r.status]++; });
     s.atendidas = s.asistio + s.no_asistio;
+    s.compro = 0; s.nocompro = 0; s.sinreg = 0; s.chequeos = 0;
+    list.forEach(function (r) {
+      var k = r.compra && r.compra.k;
+      if (k === 'si') s.compro++; else if (k === 'no') s.nocompro++; else if (k === 'sin') s.sinreg++; else if (k === 'chequeo') s.chequeos++;
+    });
+    s.conv = (s.compro + s.nocompro) ? s.compro / (s.compro + s.nocompro) * 100 : null;
     s.tasa = s.atendidas ? s.asistio / s.atendidas * 100 : null;
     return s;
   }
@@ -204,7 +223,7 @@
     var mode = days <= 1 ? 'hora' : days <= 62 ? 'dia' : 'mes';
     var map = {}, order = [];
     function key(r) { if (mode === 'hora') return String(r.hour); var d = parseISO(r.date); return mode === 'dia' ? r.date : d.getFullYear() + '-' + pad(d.getMonth() + 1); }
-    function add(k, label) { map[k] = { k: k, label: label, total: 0, asistio: 0, no_asistio: 0, cancelada: 0 }; order.push(k); }
+    function add(k, label) { map[k] = { k: k, label: label, total: 0, asistio: 0, no_asistio: 0, cancelada: 0, compro: 0 }; order.push(k); }
     if (mode === 'hora') {
       var hs = list.map(function (r) { return r.hour; }).filter(function (h) { return h != null; });
       var h1 = Math.min.apply(null, [9].concat(hs)), h2 = Math.max.apply(null, [19].concat(hs));
@@ -219,6 +238,7 @@
       if (!b) return;
       b.total++;
       if (b[r.status] != null) b[r.status]++;
+      if (r.compra && r.compra.k === 'si') b.compro++;
     });
     return { mode: mode, rows: order.map(function (k) { return map[k]; }) };
   }
@@ -316,7 +336,7 @@
     '.cr-brand b{display:block;font-size:15px;color:#0b2aa8;}.cr-brand small{display:block;font-size:11px;color:#52514e;}',
     '.cr-title{text-align:right;}.cr-title h1{margin:0;font-family:Fraunces,Georgia,serif;font-size:21px;font-weight:600;color:#0b0b0b;}',
     '.cr-title p{margin:2px 0 0;font-size:12px;color:#52514e;}',
-    '.cr-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 6px;}',
+    '.cr-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:18px 0 6px;}',
     '.cr-kpi{border:1px solid #e6e6e3;border-radius:10px;padding:10px 12px;}',
     '.cr-kpi small{display:block;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#52514e;}',
     '.cr-kpi b{display:block;margin-top:3px;font-size:17px;font-variant-numeric:tabular-nums;color:#0b0b0b;}',
@@ -339,6 +359,10 @@
     '.cr td{text-align:right;padding:5px 8px;border-bottom:1px solid #eeeeec;font-variant-numeric:tabular-nums;}',
     '.cr tfoot td{font-weight:700;border-top:1px solid #b9b8b2;border-bottom:none;}',
     '.cr-empty{padding:14px;border:1px dashed #d9d9d6;border-radius:10px;color:#52514e;font-size:11px;text-align:center;}',
+    '.cr-chip{display:inline-block;padding:2px 8px;border-radius:100px;font-size:9.5px;font-weight:700;}',
+    '.cr-chip.is-si{background:#e3f6ea;color:#1f7a4d;}.cr-chip.is-no{background:#fde8e6;color:#b42318;}',
+    '.cr-chip.is-sin{background:#fff4dc;color:#8a6a12;}.cr-chip.is-chequeo{background:#eef1ff;color:#0b2aa8;}',
+    '.cr td.cr-l, .cr th.cr-l{text-align:left;}',
     '.cr-foot{display:flex;justify-content:space-between;margin-top:18px;padding-top:8px;border-top:1px solid #e6e6e3;font-size:10px;color:#8a8984;}'
   ].join('');
 
@@ -347,6 +371,21 @@
     var p = (now - before) / before * 100;
     if (Math.round(p) === 0) return 'igual que el periodo anterior';
     return '<span class="' + (p >= 0 ? 'cr-up' : 'cr-down') + '">' + (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p).toFixed(0) + '%</span> vs. periodo anterior';
+  }
+
+  // Lista de pacientes que asistieron, con si compraron.
+  function pacientesHTML(list) {
+    var asis = list.filter(function (r) { return r.status === 'asistio'; })
+      .sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); });
+    if (!asis.length) return '';
+    var d = function (x) { var p = parseISO(x); return p ? p.getDate() + ' ' + MESES[p.getMonth()] : '—'; };
+    return '<div class="cr-sec"><h2>Pacientes que asistieron</h2><p class="cr-note">Si compraron y cuándo les toca su próxima revisión.</p>' +
+      '<table><thead><tr><th class="cr-l">Fecha</th><th class="cr-l">Hora</th><th class="cr-l">Paciente</th><th class="cr-l">¿Compró?</th><th class="cr-l">Próxima revisión</th></tr></thead><tbody>' +
+      asis.map(function (r) {
+        var k = r.compra.k;
+        return '<tr><td class="cr-l">' + d(r.date) + '</td><td class="cr-l">' + esc(r.time) + '</td><td class="cr-l">' + esc(r.nombre || '—') + '</td>' +
+          '<td class="cr-l"><span class="cr-chip is-' + k + '">' + COMPRA_TXT[k] + '</span></td><td class="cr-l">' + esc(r.compra.meses ? 'En ' + r.compra.meses : '—') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
   }
 
   function reportHTML(rg, all) {
@@ -388,6 +427,8 @@
         kpi('Canceladas', String(s.cancelada), pct(s.cancelada)) +
         kpi('Por atender', String(s.verificada + s.pendiente), s.pendiente ? s.pendiente + ' sin verificar' : 'todas verificadas') +
         kpi('Hora más pedida', topHora != null ? horaTxt(+topHora) : '—', topHora != null ? horas[topHora] + (horas[topHora] === 1 ? ' cita' : ' citas') : '') +
+        kpi('Compraron', String(s.compro), s.asistio ? 'de ' + s.asistio + ' que asistieron' : '', 'is-main') +
+        kpi('Conversión', s.conv == null ? '—' : Math.round(s.conv) + '%', s.sinreg ? s.sinreg + ' sin registrar' : (s.compro + s.nocompro ? 'de los que se registró' : 'aún no se registra')) +
       '</div>' +
       '<div class="cr-sec"><h2>Citas por ' + unidad + '</h2><p class="cr-note">Todas las citas agendadas, de cualquier estado.</p>' + barChart(bk.rows) + '</div>' +
       '<div class="cr-sec"><h2>Asistencia por ' + unidad + '</h2><p class="cr-note">Cuántos asistieron, cuántos no llegaron y cuántas se cancelaron.</p>' + lineChart(bk.rows) + '</div>' +
@@ -397,13 +438,16 @@
       '</div>' +
       '<div class="cr-sec"><h2>¿Cómo nos conocieron?</h2><p class="cr-note">Del cuestionario inicial' + (conCuest ? ' (' + conCuest + ' de ' + s.total + ' lo contestaron)' : '') + '.</p>' +
         (porComo.length ? hbars(porComo, conCuest) : '<div class="cr-empty">Nadie contestó el cuestionario en este periodo.</div>') + '</div>' +
+      '<div class="cr-sec"><h2>¿Compraron?</h2><p class="cr-note">De los que asistieron. Los chequeos no cuentan como venta.</p>' +
+        (s.asistio ? hbars([['Sí compraron', s.compro], ['No compraron', s.nocompro], ['Sin registrar', s.sinreg], ['Chequeos', s.chequeos]], s.asistio) : '<div class="cr-empty">Nadie asistió en este periodo.</div>') + '</div>' +
+      pacientesHTML(list) +
       '<div class="cr-sec"><h2>Detalle por ' + unidad + '</h2><p class="cr-note">Solo aparecen ' + (bk.mode === 'hora' ? 'las horas' : bk.mode === 'dia' ? 'los días' : 'los meses') + ' con citas.</p>' +
-        '<table><thead><tr><th>' + cap(unidad) + '</th><th>Citas</th><th>Asistieron</th><th>No asistieron</th><th>Canceladas</th><th>Asistencia</th></tr></thead><tbody>' +
+        '<table><thead><tr><th>' + cap(unidad) + '</th><th>Citas</th><th>Asistieron</th><th>No asistieron</th><th>Canceladas</th><th>Compraron</th><th>Asistencia</th></tr></thead><tbody>' +
         (bk.rows.filter(function (b) { return b.total; }).map(function (b) {
           var at = b.asistio + b.no_asistio;
-          return '<tr><td>' + esc(b.label) + '</td><td>' + b.total + '</td><td>' + b.asistio + '</td><td>' + b.no_asistio + '</td><td>' + b.cancelada + '</td><td>' + (at ? Math.round(b.asistio * 100 / at) + '%' : '—') + '</td></tr>';
-        }).join('') || '<tr><td colspan="6">Sin citas en este periodo.</td></tr>') +
-        '</tbody><tfoot><tr><td>Total</td><td>' + s.total + '</td><td>' + s.asistio + '</td><td>' + s.no_asistio + '</td><td>' + s.cancelada + '</td><td>' + (s.tasa == null ? '—' : Math.round(s.tasa) + '%') + '</td></tr></tfoot></table></div>' +
+          return '<tr><td>' + esc(b.label) + '</td><td>' + b.total + '</td><td>' + b.asistio + '</td><td>' + b.no_asistio + '</td><td>' + b.cancelada + '</td><td>' + b.compro + '</td><td>' + (at ? Math.round(b.asistio * 100 / at) + '%' : '—') + '</td></tr>';
+        }).join('') || '<tr><td colspan="7">Sin citas en este periodo.</td></tr>') +
+        '</tbody><tfoot><tr><td>Total</td><td>' + s.total + '</td><td>' + s.asistio + '</td><td>' + s.no_asistio + '</td><td>' + s.cancelada + '</td><td>' + s.compro + '</td><td>' + (s.tasa == null ? '—' : Math.round(s.tasa) + '%') + '</td></tr></tfoot></table></div>' +
       '<div class="cr-foot"><span>Del ' + fechaLarga(rg.desde) + ' al ' + fechaLarga(rg.hasta) + '</span><span>Generado por ' + esc(generado.trim()) + ' · ' + fechaLarga(iso(new Date())) + ' ' + new Date().toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) + '</span></div>' +
     '</div>';
   }
