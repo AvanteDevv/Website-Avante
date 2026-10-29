@@ -100,6 +100,29 @@ window.CitaTags = (function(){
      PUT /api/receptionist/citas/:id/seguimiento  { compro, meses }
          (además marca la cita como "asistio" si no lo estaba)
    ========================================================= */
+/* =========================================================
+   QUIÉN HIZO LA CITA — appointments.origen (data-origen en la fila)
+     "web"       → el cliente la hizo él solo desde la página.
+     "recepcion" → la agendó recepción desde el panel.
+   Solo cambia cómo se ve el estado "verificada" (por atender):
+   "Por la web" o "Por recepción". La lógica sigue usando el estado.
+   ========================================================= */
+window.CitaOrigen = window.CitaOrigen || (function(){
+  var LABELS = { pendiente: 'Pendiente', verificada: 'Por la web', recepcion: 'Por recepción', cancelada: 'Cancelada', asistio: 'Asistió', no_asistio: 'No asistió' };
+  var TITLES = {
+    pendiente: 'Falta confirmar la cita',
+    verificada: 'El cliente hizo la cita él solo desde la página web',
+    recepcion: 'La agendó recepción desde el panel'
+  };
+  // Clave para mostrar: "recepcion" si es una verificada hecha por recepción.
+  function key(status, origen){ return status === 'verificada' && origen === 'recepcion' ? 'recepcion' : status; }
+  function ofRow(row){ return key(row.dataset.status, row.dataset.origen); }
+  // Clases del badge: la verificada de recepción lleva las dos.
+  function badgeClass(k){ return 'admin-badge ' + (k === 'recepcion' ? 'verificada recepcion' : k); }
+  return { LABELS: LABELS, TITLES: TITLES, key: key, ofRow: ofRow, badgeClass: badgeClass,
+    label: function(k){ return LABELS[k] || k; }, title: function(k){ return TITLES[k] || ''; } };
+})();
+
 window.CitaSeg = (function(){
   var byId = {};
   var MESES_LABEL = { 3: '3 meses', 6: '6 meses', 12: '1 año' };
@@ -1034,6 +1057,7 @@ window.CitasFiltro = (function(){
       return {
         id: row.dataset.id,
         status: row.dataset.status,
+        disp: CitaOrigen.ofRow(row),
         date: row.dataset.date,   // "YYYY-MM-DD"
         time: row.dataset.time || '',
         nombre: row.dataset.nombre ? row.dataset.nombre.trim() : '',
@@ -1101,7 +1125,7 @@ window.CitasFiltro = (function(){
         var shown = dayEvents.slice(0, 3);
         shown.forEach(function(ev){
           html += '<button type="button" class="cal-event-chip" data-event-id="' + ev.id + '">' +
-                  '<i class="cal-dot ' + ev.status + '"></i><span class="chip-label">' + (ev.time || '') + '</span>' + (ev.tag ? CitaTags.icon(ev.tag, 'in-chip') : '') + '</button>';
+                  '<i class="cal-dot ' + (ev.disp || ev.status) + '"></i><span class="chip-label">' + (ev.time || '') + '</span>' + (ev.tag ? CitaTags.icon(ev.tag, 'in-chip') : '') + '</button>';
         });
         if (dayEvents.length > 3) {
           html += '<button type="button" class="cal-day-more" data-more-date="' + cellISO + '">+' + (dayEvents.length - 3) + ' más</button>';
@@ -1421,8 +1445,10 @@ window.CitasFiltro = (function(){
       document.getElementById('calEventTel').textContent = tel || '—';
       document.getElementById('calEventTelRow').hidden = !tel;
       var statusEl = document.getElementById('calEventStatus');
-      statusEl.textContent = ({ no_asistio: 'no asistió', asistio: 'asistió' })[status] || status;
-      statusEl.className = 'admin-badge ' + status;
+      var stKey = CitaOrigen.ofRow(row);
+      statusEl.textContent = CitaOrigen.label(stKey);
+      statusEl.className = CitaOrigen.badgeClass(stKey);
+      statusEl.title = CitaOrigen.title(stKey);
 
       var reasonEl = document.getElementById('calEventReason');
       var reason = row.dataset.cancelReason ? row.dataset.cancelReason.trim() : '';
@@ -1510,7 +1536,7 @@ window.CitasFiltro = (function(){
       dayModalTitle.textContent = parts[2] + ' de ' + MESES[parts[1] - 1] + ' de ' + parts[0];
       dayList.innerHTML = dayEvents.map(function(ev){
         return '<button type="button" class="day-events-item" data-event-id="' + ev.id + '">' +
-               '<i class="cal-dot ' + ev.status + '"></i>' +
+               '<i class="cal-dot ' + (ev.disp || ev.status) + '"></i>' +
                '<span class="day-events-time">' + (ev.time || '') + '</span>' +
                '<span class="day-events-name">' + (ev.nombre || '') + '</span>' +
                (ev.tag ? CitaTags.icon(ev.tag) : '') +
@@ -1543,7 +1569,7 @@ window.CitasFiltro = (function(){
        aquí dando clic en un día del calendario del mes.
        ======================================================= */
     var DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    var STATUS_LABELS = { pendiente: 'Pendiente', verificada: 'Verificada', cancelada: 'Cancelada', asistio: 'Asistió', no_asistio: 'No asistió' };
+    var STATUS_LABELS = CitaOrigen.LABELS;
     var dvView = document.getElementById('citasDayView');
     var dvLabel = document.getElementById('dayViewLabel');
     var dvToday = document.getElementById('dayViewTodayTag');
@@ -1610,11 +1636,12 @@ window.CitasFiltro = (function(){
       // Resumen por estado
       dvSummary.innerHTML = '';
       var counts = {};
-      rows.forEach(function(r){ counts[r.dataset.status] = (counts[r.dataset.status] || 0) + 1; });
+      rows.forEach(function(r){ var k = CitaOrigen.ofRow(r); counts[k] = (counts[k] || 0) + 1; });
       Object.keys(STATUS_LABELS).forEach(function(st){
         if (!counts[st]) return;
         var chip = document.createElement('span');
         chip.className = 'day-view-chip';
+        chip.title = CitaOrigen.title(st);
         var dot = document.createElement('i');
         dot.className = 'cal-dot ' + st;
         chip.appendChild(dot);
@@ -1685,8 +1712,9 @@ window.CitasFiltro = (function(){
         }
         if (row.dataset.tag) right.insertAdjacentHTML('beforeend', CitaTags.pill(row.dataset.tag));
         var badge = document.createElement('span');
-        badge.className = 'admin-badge ' + st;
-        badge.textContent = STATUS_LABELS[st] || st;
+        badge.className = CitaOrigen.badgeClass(CitaOrigen.ofRow(row));
+        badge.textContent = CitaOrigen.label(CitaOrigen.ofRow(row));
+        badge.title = CitaOrigen.title(CitaOrigen.ofRow(row));
         right.appendChild(badge);
 
         item.appendChild(timeEl);
@@ -1790,8 +1818,9 @@ window.CitasFiltro = (function(){
       }
       if (row.dataset.tag) right.insertAdjacentHTML('beforeend', CitaTags.pill(row.dataset.tag));
       var badge = document.createElement('span');
-      badge.className = 'admin-badge ' + st;
-      badge.textContent = STATUS_LABELS[st] || st;
+      badge.className = CitaOrigen.badgeClass(CitaOrigen.ofRow(row));
+      badge.textContent = CitaOrigen.label(CitaOrigen.ofRow(row));
+      badge.title = CitaOrigen.title(CitaOrigen.ofRow(row));
       right.appendChild(badge);
       item.appendChild(timeEl);
       item.appendChild(bar);
@@ -2712,7 +2741,7 @@ window.CitasFiltro = (function(){
       var note = document.getElementById('crearCitaCurrentNote');
       var reactiva = editOrig.status === 'cancelada' || editOrig.status === 'no_asistio';
       note.textContent = mode === 'reagendar'
-        ? 'Elige el nuevo día y hora. Se le avisa al cliente por WhatsApp' + (reactiva ? ' y la cita vuelve a quedar como Verificada.' : '.')
+        ? 'Elige el nuevo día y hora. Se le avisa al cliente por WhatsApp' + (reactiva ? ' y la cita vuelve a quedar por atender.' : '.')
         : 'Si cambias el día o la hora, la cita se reagenda y se le avisa al cliente por WhatsApp.';
       note.hidden = false;
     });

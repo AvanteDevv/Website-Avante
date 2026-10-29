@@ -68,6 +68,9 @@ type Appointment struct {
 	// volver a buscarla.
 	UserID    int64     `json:"userId,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
+	// Origen: quién hizo la cita — "web" (el cliente solo, desde la
+	// página) o "recepcion" (el personal desde el panel).
+	Origen string `json:"origen"`
 }
 
 // MarshalJSON serializa Date como "YYYY-MM-DD" (sin hora ni zona) — el
@@ -93,6 +96,12 @@ func (a Appointment) MarshalJSON() ([]byte, error) {
 // given id.
 var ErrAppointmentNotFound = errors.New("cita no encontrada")
 
+// Quién hizo la cita (appointments.origen).
+const (
+	OrigenWeb       = "web"
+	OrigenRecepcion = "recepcion"
+)
+
 // rowScanner es lo mínimo que necesita scanAppointmentRow — lo
 // implementa *sql.Rows, así que sirve tal cual para rows.Scan(...).
 type rowScanner interface {
@@ -111,8 +120,13 @@ func scanAppointmentRow(row rowScanner, a *Appointment) error {
 	var fechaNacimiento sql.NullString
 	var cuestionario sql.NullString
 	var userID sql.NullInt64
-	if err := row.Scan(&a.ID, &a.Date, &a.Time, &a.Nombre, &a.Apellido, &a.Celular, &a.Correo, &fechaNacimiento, &cuestionario, &a.Status, &reason, &userID, &a.CreatedAt); err != nil {
+	var origen sql.NullString
+	if err := row.Scan(&a.ID, &a.Date, &a.Time, &a.Nombre, &a.Apellido, &a.Celular, &a.Correo, &fechaNacimiento, &cuestionario, &a.Status, &reason, &userID, &a.CreatedAt, &origen); err != nil {
 		return err
+	}
+	a.Origen = "web"
+	if origen.Valid && origen.String == OrigenRecepcion {
+		a.Origen = OrigenRecepcion
 	}
 	if reason.Valid {
 		a.CancelReason = reason.String
@@ -168,7 +182,7 @@ func CreateAppointment(date time.Time, apptTime, nombre, apellido, celular, corr
 		ID: id, Date: date, Time: apptTime,
 		Nombre: nombre, Apellido: apellido, Celular: celular,
 		Correo: correo, FechaNacimiento: fechaNacimiento, Cuestionario: cuestionarioJSON,
-		Status: "verificada",
+		Status: "verificada", Origen: OrigenWeb,
 	}
 	if userID > 0 {
 		appt.UserID = userID
@@ -206,7 +220,7 @@ func CreateAppointmentByStaff(date time.Time, apptTime, nombre, apellido, celula
 	}
 
 	result, err := db.DB.Exec(
-		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO appointments (appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, origen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'recepcion')",
 		date.Format("2006-01-02"), apptTime, nombre, apellido, celular, correo, fechaNacimientoArg, cuestionarioArg, status,
 	)
 	if err != nil {
@@ -220,7 +234,7 @@ func CreateAppointmentByStaff(date time.Time, apptTime, nombre, apellido, celula
 		ID: id, Date: date, Time: apptTime,
 		Nombre: nombre, Apellido: apellido, Celular: celular,
 		Correo: correo, FechaNacimiento: fechaNacimiento, Cuestionario: cuestionarioJSON,
-		Status: status,
+		Status: status, Origen: OrigenRecepcion,
 	}, nil
 }
 
@@ -288,7 +302,7 @@ func ResetAppointmentReminders(id int64) error {
 // GetAppointmentsByUser).
 func GetAppointmentByID(id int64) (*Appointment, error) {
 	row := db.DB.QueryRow(
-		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, cancel_reason, user_id, created_at FROM appointments WHERE id = ?",
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, cancel_reason, user_id, created_at, origen FROM appointments WHERE id = ?",
 		id,
 	)
 	var a Appointment
@@ -306,7 +320,7 @@ func GetAppointmentByID(id int64) (*Appointment, error) {
 // primero — usado por el panel "Mis citas".
 func GetAppointmentsByUser(userID int64) ([]Appointment, error) {
 	rows, err := db.DB.Query(
-		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, cancel_reason, user_id, created_at FROM appointments WHERE user_id = ? ORDER BY appt_date DESC, appt_time DESC",
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, cancel_reason, user_id, created_at, origen FROM appointments WHERE user_id = ? ORDER BY appt_date DESC, appt_time DESC",
 		userID,
 	)
 	if err != nil {
@@ -351,7 +365,7 @@ func CancelAppointmentByUser(id, userID int64, reason string) error {
 // first — used by the admin Citas panel.
 func GetAllAppointments() ([]Appointment, error) {
 	rows, err := db.DB.Query(
-		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, cancel_reason, user_id, created_at FROM appointments ORDER BY created_at DESC",
+		"SELECT id, appt_date, appt_time, nombre, apellido, celular, correo, fecha_nacimiento, cuestionario, status, cancel_reason, user_id, created_at, origen FROM appointments ORDER BY created_at DESC",
 	)
 	if err != nil {
 		return nil, err

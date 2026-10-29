@@ -35,7 +35,7 @@ import (
 func getAppointmentsInWindow(from, to time.Time, reminderColumn string) ([]Appointment, error) {
 	query := `
 		SELECT a.id, a.appt_date, a.appt_time, a.nombre, a.apellido, a.celular, a.correo, a.fecha_nacimiento,
-		       a.cuestionario, a.status, a.cancel_reason, a.user_id, a.created_at
+		       a.cuestionario, a.status, a.cancel_reason, a.user_id, a.created_at, a.origen
 		FROM appointments a
 		WHERE a.status = 'verificada'
 		  AND a.` + reminderColumn + ` IS NULL

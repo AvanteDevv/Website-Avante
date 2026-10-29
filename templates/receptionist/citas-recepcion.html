@@ -102,7 +102,7 @@
         <div class="stat-card-glow"></div>
         <div class="admin-stat-card">
           <div class="num" id="citasStatVerificadas">0</div>
-          <div class="label">Verificadas</div>
+          <div class="label" title="Citas confirmadas que todavía no llegan (por la web y por recepción)">Por atender</div>
         </div>
       </div>
       <div class="stat-card-wrap">
@@ -191,7 +191,7 @@
           </thead>
           <tbody id="citasTableBody">
             {{range .Citas}}
-            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-nombre-solo="{{.Nombre}}" data-apellido="{{.Apellido}}" data-celular="{{.Celular}}" data-correo="{{.Correo}}" data-fecha-nacimiento="{{.FechaNacimiento}}" data-cuestionario="{{.Cuestionario}}" data-cancel-reason="{{.CancelReason}}">
+            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-nombre-solo="{{.Nombre}}" data-apellido="{{.Apellido}}" data-celular="{{.Celular}}" data-correo="{{.Correo}}" data-fecha-nacimiento="{{.FechaNacimiento}}" data-cuestionario="{{.Cuestionario}}" data-cancel-reason="{{.CancelReason}}" data-origen="{{.Origen}}">
               <td>{{.ID}}</td>
               <td class="cita-cliente">{{with .PrimerNombre}}{{.}}{{else}}—{{end}}</td>
               <td class="cita-cliente">{{with .SegundoNombre}}{{.}}{{else}}—{{end}}</td>
@@ -202,7 +202,7 @@
               <td>{{if .FechaNacimiento}}{{.FechaNacimiento}}{{else}}—{{end}}</td>
               <td class="cita-dia">{{fechaEs .Date}}</td>
               <td>{{.Time}}</td>
-              <td><span class="admin-badge {{.Status}}"{{if .CancelReason}} title="Motivo: {{.CancelReason}}"{{end}}>{{.Status}}</span></td>
+              <td>{{if eq .Status "verificada"}}{{if eq .Origen "recepcion"}}<span class="admin-badge verificada recepcion" title="La agendó recepción desde el panel">Por recepción</span>{{else}}<span class="admin-badge verificada" title="El cliente hizo la cita él solo desde la página web">Por la web</span>{{end}}{{else}}<span class="admin-badge {{.Status}}"{{if .CancelReason}} title="Motivo: {{.CancelReason}}"{{end}}>{{.Status}}</span>{{end}}</td>
               <td>{{fechaEs .CreatedAt}}</td>
               <td>
                 <div class="row-menu" data-menu-id="{{.ID}}">
@@ -318,7 +318,8 @@
         <div class="cal-grid" id="calGrid"></div>
         <div class="cal-legend">
           <span><i class="cal-dot pendiente"></i> Pendiente</span>
-          <span><i class="cal-dot verificada"></i> Verificada</span>
+          <span title="El cliente hizo la cita él solo desde la página web"><i class="cal-dot verificada"></i> Por la web</span>
+          <span title="La agendó recepción desde el panel"><i class="cal-dot recepcion"></i> Por recepción</span>
           <span><i class="cal-dot cancelada"></i> Cancelada</span>
           <span><i class="cal-dot asistio"></i> Asistió</span>
           <span><i class="cal-dot no_asistio"></i> No asistió</span>

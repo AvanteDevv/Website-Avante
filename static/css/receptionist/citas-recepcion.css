@@ -1824,3 +1824,10 @@ body.dark .cev-row--who{ background:rgba(137,146,255,.1); }
   border:0 !important; padding:0 !important; box-shadow:none !important; background:transparent !important;
   height:auto !important; min-height:0 !important; border-radius:0 !important; font-size:14px; font-weight:600;
 }
+
+/* Cita agendada por recepción (estado "verificada" hecha desde el panel) */
+.admin-badge.verificada.recepcion{ background:#efe7fd; color:#6d28d9; }
+body.dark .admin-badge.verificada.recepcion{ background:rgba(139,92,246,.2); color:#c4b5fd; }
+.cal-dot.recepcion{ background:#7c3aed; }
+/* "Por la web" / "Por recepción": se escriben tal cual (sin mayúscula en cada palabra) */
+.admin-badge.verificada{ text-transform:none; }

@@ -76,7 +76,7 @@ function renderCitas(){
 
   listEl.innerHTML = appointments.map(cita => {
     const dateObj = parseApptDate(cita);
-    const statusLabel = { pendiente: 'Pendiente', verificada: 'Verificada', cancelada: 'Cancelada', asistio: 'Asistió', no_asistio: 'No asistió' }[cita.status] || cita.status;
+    const statusLabel = { pendiente: 'Pendiente', verificada: 'Confirmada', cancelada: 'Cancelada', asistio: 'Asistió', no_asistio: 'No asistió' }[cita.status] || cita.status;
     const cancelBtn = isCancelable(cita, dateObj)
       ? `<button type="button" class="btn small danger" data-cancel-id="${cita.id}">Cancelar</button>`
       : '';

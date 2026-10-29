@@ -117,7 +117,7 @@
     if (row.dataset.status) bits.push(statusEs(row.dataset.status));
     return bits.join(' · ');
   }
-  var STATUS = { pendiente: 'Pendiente', verificada: 'Verificada', cancelada: 'Cancelada', asistio: 'Asistió', no_asistio: 'No asistió' };
+  var STATUS = { pendiente: 'Pendiente', verificada: 'Por atender', cancelada: 'Cancelada', asistio: 'Asistió', no_asistio: 'No asistió' };
   function statusEs(s) { return STATUS[s] || s; }
 
   function openModalOf(el) {

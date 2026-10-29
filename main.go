@@ -217,6 +217,8 @@ func main() {
 	db.EnsureLaboratorioTables()
 	// Etiquetas de cita (cómo llegó: sin cita, chequeo, teléfono, WhatsApp).
 	db.EnsureAppointmentTagsTable()
+	// Quién hizo la cita (el cliente desde la página o recepción).
+	db.EnsureCitaOrigen()
 	// Seguimiento al asistir: si compró y cada cuánto le toca su revisión.
 	db.EnsureAppointmentFollowupTable()
 	// Punto de venta: clientes, ventas, créditos (lo que quedan a deber) y abonos.

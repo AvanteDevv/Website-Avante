@@ -222,7 +222,7 @@ func ActivityTracker() gin.HandlerFunc {
 
 var activityCitaStatus = map[string]string{
 	"pendiente":  "Pendiente",
-	"verificada": "Verificada",
+	"verificada": "Por atender",
 	"cancelada":  "Cancelada",
 	"asistio":    "Asistió",
 	"no_asistio": "No asistió",

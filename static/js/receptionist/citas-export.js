@@ -131,7 +131,8 @@
         id: r.dataset.id, date: r.dataset.date || '', hour: hm ? +hm[1] : null, time: r.dataset.time || '',
         status: r.dataset.status || 'pendiente', tag: r.dataset.tag || '', nombre: (r.dataset.nombre || '').replace(/\s+/g, ' ').trim(),
         como: q && q.como_se_entero ? String(q.como_se_entero) : '', procedencia: q && q.procedencia ? String(q.procedencia) : '',
-        compra: compraDe(r.dataset.id, r.dataset.status || 'pendiente', r.dataset.tag || '')
+        compra: compraDe(r.dataset.id, r.dataset.status || 'pendiente', r.dataset.tag || ''),
+        origen: r.dataset.origen === 'recepcion' ? 'recepcion' : 'web'
       };
     });
   }
@@ -200,7 +201,7 @@
   ['ceExpDia', 'ceExpSemana', 'ceExpMes'].forEach(function (id) { $(id).addEventListener('change', syncExp); });
 
   /* ---------- números del reporte ---------- */
-  var ESTADOS = [['asistio', 'Asistieron'], ['no_asistio', 'No asistieron'], ['cancelada', 'Canceladas'], ['verificada', 'Verificadas (por atender)'], ['pendiente', 'Pendientes de verificar']];
+  var ESTADOS = [['asistio', 'Asistieron'], ['no_asistio', 'No asistieron'], ['cancelada', 'Canceladas'], ['verificada', 'Por atender'], ['pendiente', 'Pendientes de confirmar']];
   var TIPOS = [['web', 'Sin etiqueta (página web)'], ['sin_cita', 'Vino sin cita'], ['chequeo', 'Chequeo'], ['telefono', 'Por teléfono'], ['whatsapp', 'Por WhatsApp']];
   var COMO = { facebook: 'Facebook', instagram: 'Instagram', television: 'Televisión', tiktok: 'TikTok', sitio_web: 'Sitio web', google_maps: 'Google Maps', familiares: 'Familiares', amigos: 'Amigos', recomendado: 'Me recomendaron', casualidad: 'Pasé por casualidad', recurrente: 'Cliente recurrente', por_empresa: 'Por empresa' };
 
@@ -425,7 +426,7 @@
         kpi('Mejor ' + unidad, best ? esc(best.label) : '—', best ? best.total + (best.total === 1 ? ' cita' : ' citas') : '') +
         kpi('No asistieron', String(s.no_asistio), pct(s.no_asistio)) +
         kpi('Canceladas', String(s.cancelada), pct(s.cancelada)) +
-        kpi('Por atender', String(s.verificada + s.pendiente), s.pendiente ? s.pendiente + ' sin verificar' : 'todas verificadas') +
+        kpi('Por atender', String(s.verificada + s.pendiente), s.pendiente ? s.pendiente + ' sin confirmar' : 'todas confirmadas') +
         kpi('Hora más pedida', topHora != null ? horaTxt(+topHora) : '—', topHora != null ? horas[topHora] + (horas[topHora] === 1 ? ' cita' : ' citas') : '') +
         kpi('Compraron', String(s.compro), s.asistio ? 'de ' + s.asistio + ' que asistieron' : '', 'is-main') +
         kpi('Conversión', s.conv == null ? '—' : Math.round(s.conv) + '%', s.sinreg ? s.sinreg + ' sin registrar' : (s.compro + s.nocompro ? 'de los que se registró' : 'aún no se registra')) +
@@ -436,6 +437,8 @@
         '<div><h2>Por estado</h2><p class="cr-note">Cómo quedó cada cita del periodo.</p>' + hbars(porEstado, s.total) + '</div>' +
         '<div><h2>Cómo llegaron</h2><p class="cr-note">La etiqueta de la cita.</p>' + hbars(porTipo, s.total) + '</div>' +
       '</div>' +
+      '<div class="cr-sec"><h2>¿Quién hizo la cita?</h2><p class="cr-note">Por la web = el cliente la hizo él solo desde la página. Por recepción = la agendó recepción desde el panel.</p>' +
+        hbars([['Por la web (el cliente solo)', list.filter(function (r) { return r.origen === 'web'; }).length], ['Por recepción', list.filter(function (r) { return r.origen === 'recepcion'; }).length]], s.total) + '</div>' +
       '<div class="cr-sec"><h2>¿Cómo nos conocieron?</h2><p class="cr-note">Del cuestionario inicial' + (conCuest ? ' (' + conCuest + ' de ' + s.total + ' lo contestaron)' : '') + '.</p>' +
         (porComo.length ? hbars(porComo, conCuest) : '<div class="cr-empty">Nadie contestó el cuestionario en este periodo.</div>') + '</div>' +
       '<div class="cr-sec"><h2>¿Compraron?</h2><p class="cr-note">De los que asistieron. Los chequeos no cuentan como venta.</p>' +
