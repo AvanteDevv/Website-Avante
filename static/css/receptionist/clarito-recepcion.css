@@ -538,3 +538,11 @@ textarea.clr-sh-in{ resize:none; padding:2px 3px; line-height:1.25; overflow:hid
    aviso de "esta carpeta" (se va a subir a la carpeta marcada) */
 .clr-drop.is-over-folder .clr-drop-hint{ opacity:0 !important; }
 @media (prefers-reduced-motion:reduce){ .clr-item.is-folder.clr-drop-target .clr-file-ico{ animation:none; } }
+
+/* Pestaña Clarito: formulario y vista previa del documento — barra de scroll de Avante (delgada, redondeada, del color de las líneas) */
+.clr-fill-form, .clr-fill-preview, .clr-fill-body, .clr-pick-list{ scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.clr-fill-form::-webkit-scrollbar, .clr-fill-preview::-webkit-scrollbar, .clr-fill-body::-webkit-scrollbar, .clr-pick-list::-webkit-scrollbar{ width:6px; height:6px; }
+.clr-fill-form::-webkit-scrollbar-track, .clr-fill-preview::-webkit-scrollbar-track, .clr-fill-body::-webkit-scrollbar-track, .clr-pick-list::-webkit-scrollbar-track{ background:transparent; }
+.clr-fill-form::-webkit-scrollbar-thumb, .clr-fill-preview::-webkit-scrollbar-thumb, .clr-fill-body::-webkit-scrollbar-thumb, .clr-pick-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+.clr-fill-form::-webkit-scrollbar-thumb:hover, .clr-fill-preview::-webkit-scrollbar-thumb:hover, .clr-fill-body::-webkit-scrollbar-thumb:hover, .clr-pick-list::-webkit-scrollbar-thumb:hover{ background:var(--blue-300, #8992FF); }
+.clr-fill-form::-webkit-scrollbar-corner, .clr-fill-preview::-webkit-scrollbar-corner, .clr-fill-body::-webkit-scrollbar-corner, .clr-pick-list::-webkit-scrollbar-corner{ background:transparent; }

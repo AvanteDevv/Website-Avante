@@ -706,6 +706,24 @@
   }
   function fieldById(id) { return fill.def.fields.filter(function (x) { return x.id === id; })[0]; }
   function firmaField(key) { return fill.def.fields.filter(function (x) { return x.type === 'firma' && x.pdf === key; })[0]; }
+  // Campo de dinero de la plantilla por su nombre en el PDF (o null).
+  function moneyFieldByPdf(name) {
+    return fill.def.fields.filter(function (x) { return x.type === 'money' && x.pdf === name; })[0] || null;
+  }
+  // "1234.5" → "$ 1,234.50" (o "1,234.50" si la hoja ya trae el signo).
+  function moneyFor(f, v) {
+    var t = moneyText(v);
+    return t && f.noSign ? t.replace(/^\$\s*/, '') : t;
+  }
+  // Valores de "Sobre la hoja" con el dinero ya con formato y signo.
+  function sheetValues() {
+    var out = {};
+    Object.keys(fill.sheet).forEach(function (k) {
+      var f = moneyFieldByPdf(k);
+      out[k] = f && fill.sheet[k] ? moneyFor(f, fill.sheet[k]) : fill.sheet[k];
+    });
+    return out;
+  }
   function firmaKeys() { return fill.def.fields.filter(function (x) { return x.type === 'firma' && typeof x.pdf === 'string'; }).map(function (x) { return x.pdf; }); }
   function firmaLabel(key) { var f = firmaField(key); return f ? f.label : 'Firma'; }
   function cssq(s) { return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'); }
@@ -941,7 +959,7 @@
   }
   function buildPdf() {
     var def = fill.def;
-    var vals = fill.mode === 'sheet' ? fill.sheet : formToPdfValues();
+    var vals = fill.mode === 'sheet' ? sheetValues() : formToPdfValues();
     var sizes = {};
     def.fields.forEach(function (f) { if (f.size && f.type === 'date') { sizes[f.pdf.d] = sizes[f.pdf.m] = sizes[f.pdf.y] = f.size; } });
     var sigs = fill.sigs;
@@ -1186,6 +1204,14 @@
       el.value = val == null ? '' : String(val);
       if (w.max) el.maxLength = w.max;
       el.className = 'clr-sh-in' + (isFirma ? ' is-firma' : '');
+      // Dinero: siempre con su "$" (se acomoda al salir del campo).
+      var mf = moneyFieldByPdf(w.name);
+      if (mf && !w.multi) {
+        el.classList.add('is-money');
+        el.inputMode = 'decimal';
+        el.placeholder = mf.noSign ? '0.00' : '$ 0.00';
+        if (el.value) el.value = moneyFor(mf, el.value);
+      }
       el.style.fontSize = Math.max(9, w.multi ? Math.min(font.px, 15) : font.px) + 'px';
       el.style.textAlign = ['left', 'center', 'right'][w.align] || 'left';
     } else if (w.kind === 'check') {
@@ -1268,7 +1294,7 @@
   /* ---------- imagen ligera del formato (para el celular del cliente) ---------- */
   function composeDraft() {
     var t = fill.tpl, L = t.layout;
-    var vals = fill.mode === 'sheet' ? fill.sheet : formToPdfValues(), sizes = fieldSizes(), sigs = fill.sigs;
+    var vals = fill.mode === 'sheet' ? sheetValues() : formToPdfValues(), sizes = fieldSizes(), sigs = fill.sigs;
     var keys = Object.keys(sigs).filter(function (k) { return sigs[k]; });
     return Promise.all([tplPageImages(t).catch(function () { return []; }), Promise.all(keys.map(function (k) { return loadImg(sigs[k]).catch(function () { return null; }); }))]).then(function (res) {
       var imgs = res[0], sigImgs = {};
@@ -1347,7 +1373,25 @@
     if (!el || !fill || fill.mode !== 'sheet') return;
     var name = el.getAttribute('data-pdf-name');
     var v = el.type === 'checkbox' ? el.checked : el.value;
+    var mf = el.classList.contains('is-money') ? moneyFieldByPdf(name) : null;
+    if (mf) {
+      // Solo números (el "$" y las comas los pone solo); al salir, con formato.
+      v = String(v).replace(/[^\d.,$\s]/g, '');
+      if (e.type === 'change') v = moneyFor(mf, v);
+      if (el.value !== v) el.value = v;
+    }
     fill.sheet[name] = v;
+    // "Saldo total" se reparte 50% / 50% también sobre la hoja.
+    if (mf && mf.split) {
+      var n = parseFloat(String(v).replace(/[^\d.]/g, ''));
+      mf.split.forEach(function (k) {
+        var sf = fieldById(k);
+        if (!sf) return;
+        var half = isNaN(n) ? '' : moneyFor(sf, (Math.round(n * 50) / 100).toFixed(2));
+        fill.sheet[sf.pdf] = half;
+        sheetEls(sf.pdf).forEach(function (o) { o.value = half; });
+      });
+    }
     sheetEls(name).forEach(function (o) {
       if (o === el) return;
       if (o.type === 'checkbox') o.checked = !!v; else if (o.tagName !== 'BUTTON') o.value = v;
