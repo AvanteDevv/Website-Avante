@@ -234,3 +234,11 @@ body.dark .vt-cancel-box{ background:rgba(231,76,60,.08); border-color:rgba(231,
 .vt-export-range{ margin:0; padding:10px 12px; border-radius:12px; background:var(--accent-soft); font-size:13px; }
 body.dark .vt-export-pick input{ color-scheme:dark; background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.14); }
 .vt-ped-status .av-select{ width:100%; min-width:180px; }
+
+/* Ventas (y Clarito+, que usa la misma tabla) — barra de scroll de Avante (delgada, redondeada, del color de las líneas) */
+.vt-table-wrap, .vt-ticket-wrap, .vt-d-table-wrap{ scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.vt-table-wrap::-webkit-scrollbar, .vt-ticket-wrap::-webkit-scrollbar, .vt-d-table-wrap::-webkit-scrollbar{ width:6px; height:6px; }
+.vt-table-wrap::-webkit-scrollbar-track, .vt-ticket-wrap::-webkit-scrollbar-track, .vt-d-table-wrap::-webkit-scrollbar-track{ background:transparent; }
+.vt-table-wrap::-webkit-scrollbar-thumb, .vt-ticket-wrap::-webkit-scrollbar-thumb, .vt-d-table-wrap::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+.vt-table-wrap::-webkit-scrollbar-thumb:hover, .vt-ticket-wrap::-webkit-scrollbar-thumb:hover, .vt-d-table-wrap::-webkit-scrollbar-thumb:hover{ background:var(--blue-300, #8992FF); }
+.vt-table-wrap::-webkit-scrollbar-corner, .vt-ticket-wrap::-webkit-scrollbar-corner, .vt-d-table-wrap::-webkit-scrollbar-corner{ background:transparent; }

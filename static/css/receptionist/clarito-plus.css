@@ -307,3 +307,11 @@ body.dark .cp-danger{ color:#ff8b7d !important; border-color:rgba(231,76,60,.45)
   .cp-sec, .cp-stats.is-swap .cp-stat, .cp-table-wrap.is-swap, .cp-empty-art, .cp-vig.is-porvencer i, .cp-table tbody tr.is-flash td{ animation:none; }
 }
 body.dark .cp-folio{ background:rgba(90,120,255,.18); color:#b8c6ff; }
+
+/* Clarito+ — barra de scroll de Avante (delgada, redondeada, del color de las líneas) */
+.cp-table-wrap, .cp-drawer-body, .cp-tabs{ scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.cp-table-wrap::-webkit-scrollbar, .cp-drawer-body::-webkit-scrollbar, .cp-tabs::-webkit-scrollbar{ width:6px; height:6px; }
+.cp-table-wrap::-webkit-scrollbar-track, .cp-drawer-body::-webkit-scrollbar-track, .cp-tabs::-webkit-scrollbar-track{ background:transparent; }
+.cp-table-wrap::-webkit-scrollbar-thumb, .cp-drawer-body::-webkit-scrollbar-thumb, .cp-tabs::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+.cp-table-wrap::-webkit-scrollbar-thumb:hover, .cp-drawer-body::-webkit-scrollbar-thumb:hover, .cp-tabs::-webkit-scrollbar-thumb:hover{ background:var(--blue-300, #8992FF); }
+.cp-table-wrap::-webkit-scrollbar-corner, .cp-drawer-body::-webkit-scrollbar-corner, .cp-tabs::-webkit-scrollbar-corner{ background:transparent; }
