@@ -569,7 +569,7 @@ window.CitasFiltro = (function(){
   function closeAllMenus(exceptId){
     Array.prototype.slice.call(tbody.querySelectorAll('.row-menu')).forEach(function(menu){
       if (menu.dataset.menuId !== exceptId) {
-        menu.classList.remove('is-open');
+        menu.classList.remove('is-open', 'is-up');
         var btn = menu.querySelector('.row-menu-btn');
         if (btn) btn.setAttribute('aria-expanded', 'false');
       }
@@ -984,8 +984,18 @@ window.CitasFiltro = (function(){
       var menu = toggleBtn.closest('.row-menu');
       var willOpen = !menu.classList.contains('is-open');
       closeAllMenus(willOpen ? menu.dataset.menuId : null);
+      menu.classList.remove('is-up');
       menu.classList.toggle('is-open', willOpen);
       toggleBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      // Si el menú se sale por abajo de la tabla, se abre hacia arriba.
+      if (willOpen) {
+        var dd = menu.querySelector('.row-menu-dropdown');
+        var wrap = menu.closest('.admin-table-wrap');
+        if (dd && wrap) {
+          var limit = Math.min(wrap.getBoundingClientRect().bottom, window.innerHeight);
+          if (dd.getBoundingClientRect().bottom > limit - 4 && menu.getBoundingClientRect().top - dd.offsetHeight > wrap.getBoundingClientRect().top) menu.classList.add('is-up');
+        }
+      }
       return;
     }
 

@@ -402,11 +402,17 @@ body.citas-focus-mode .cuenta-shell{ padding-top:20px; max-width:none; }
   background:var(--white); border:1px solid var(--line); border-radius:var(--radius-sm);
   box-shadow:var(--shadow-lg);
   padding:6px;
-  opacity:0; transform:translateY(-6px) scale(.96); transform-origin:top right;
-  pointer-events:none;
-  transition:opacity .2s var(--ease), transform .2s var(--ease);
+  transform-origin:top right;
+  /* Cerrado no ocupa lugar: si solo estuviera transparente, el menú de
+     los últimos renglones estiraba la tabla y quedaba espacio muerto al
+     hacer scroll. */
+  display:none;
 }
-.row-menu.is-open .row-menu-dropdown{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+.row-menu.is-open .row-menu-dropdown{ display:block; animation:rowMenuIn .2s var(--ease) both; }
+/* Si abajo no cabe (últimos renglones), se abre hacia arriba. */
+.row-menu.is-up .row-menu-dropdown{ top:auto; bottom:calc(100% + 8px); transform-origin:bottom right; animation-name:rowMenuInUp; }
+@keyframes rowMenuIn{ from{ opacity:0; transform:translateY(-6px) scale(.96); } to{ opacity:1; transform:none; } }
+@keyframes rowMenuInUp{ from{ opacity:0; transform:translateY(6px) scale(.96); } to{ opacity:1; transform:none; } }
 
 .row-menu-item{
   display:flex; align-items:center; gap:9px; width:100%;
