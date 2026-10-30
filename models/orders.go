@@ -39,6 +39,10 @@ type Order struct {
 	UserID       *int64    `json:"userId,omitempty"`
 	Status       string    `json:"status"`
 	CreatedAt    time.Time `json:"createdAt"`
+	// Origen (solo en el listado del admin): "sucursal" si salió del
+	// punto de venta o del inventario de la sucursal, "ecommerce" si se
+	// compró en la tienda en línea.
+	Origen string `json:"origen,omitempty"`
 }
 
 // ErrOrderNotFound is returned when no order matches the given id.
@@ -114,7 +118,30 @@ func GetAllOrders() ([]Order, error) {
 	}
 	defer rows.Close()
 
-	return scanOrders(rows)
+	list, err := scanOrders(rows)
+	if err != nil {
+		return nil, err
+	}
+	// De sucursal: los que salieron del punto de venta (pos_sale_id) o del
+	// inventario de la sucursal (inventory_id). Los demás, de la tienda en línea.
+	suc := map[int64]bool{}
+	if r2, err := db.DB.Query("SELECT id FROM orders WHERE lab_directo = 0 AND (COALESCE(pos_sale_id, 0) > 0 OR COALESCE(inventory_id, 0) > 0)"); err == nil {
+		for r2.Next() {
+			var id int64
+			if r2.Scan(&id) == nil {
+				suc[id] = true
+			}
+		}
+		r2.Close()
+	}
+	for i := range list {
+		if suc[list[i].ID] {
+			list[i].Origen = "sucursal"
+		} else {
+			list[i].Origen = "ecommerce"
+		}
+	}
+	return list, nil
 }
 
 // GetOrdersByUserID returns every order linked to a given account,

@@ -9,6 +9,7 @@ let orders = [];
 let statuses = [];
 let searchTerm = '';
 let activeEstado = 'todos';
+let activeOrigen = 'todos'; // todos | sucursal | ecommerce
 let currentPage = 1;
 const PAGE_SIZE = parseInt(localStorage.getItem('avanteAdminPageSize'), 10) || 8;
 
@@ -26,9 +27,10 @@ function getFilteredOrders(){
   const term = searchTerm.toLowerCase().trim();
   return orders.filter(o => {
     const matchesEstado = activeEstado === 'todos' || o.status === activeEstado;
-    const haystack = `${o.orderCode} ${o.customerName || ''} ${o.productName || ''}`.toLowerCase();
+    const matchesOrigen = activeOrigen === 'todos' || o.origen === activeOrigen;
+    const haystack = `${o.orderCode} ${o.customerName || ''} ${o.productName || ''} ${o.origen || ''}`.toLowerCase();
     const matchesSearch = term === '' || haystack.indexOf(term) !== -1;
-    return matchesEstado && matchesSearch;
+    return matchesEstado && matchesOrigen && matchesSearch;
   });
 }
 
@@ -76,6 +78,23 @@ function renderEstadoFilters(){
     .join('');
 }
 
+// Sucursal (punto de venta / inventario) o Ecommerce (tienda en línea).
+function origenBadge(origen){
+  return origen === 'sucursal'
+    ? '<span class="origen-badge is-sucursal" title="Venta en la sucursal (punto de venta)">Sucursal</span>'
+    : '<span class="origen-badge is-ecommerce" title="Compra en la tienda en línea">Ecommerce</span>';
+}
+
+document.addEventListener('click', (e) => {
+  const op = e.target.closest('#origenFilters .filter-pill');
+  if(op){
+    activeOrigen = op.dataset.origen;
+    currentPage = 1;
+    document.querySelectorAll('#origenFilters .filter-pill').forEach(b => b.classList.toggle('active', b === op));
+    renderTable();
+  }
+});
+
 document.addEventListener('click', (e) => {
   const pill = e.target.closest('#estadoFilters .filter-pill');
   if(pill){
@@ -106,7 +125,7 @@ function renderTable(){
   const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
   if(!pageItems.length){
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--grey);">No hay pedidos que coincidan.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--grey);">No hay pedidos que coincidan.</td></tr>`;
   } else {
     tbody.innerHTML = pageItems.map(o => {
       const st = statusByKey(o.status);
@@ -124,6 +143,7 @@ function renderTable(){
         <tr>
           <td>${o.orderCode}</td>
           <td>${o.customerName || 'Cliente sin nombre'}</td>
+          <td>${origenBadge(o.origen)}</td>
           <td>${money(o.total)}</td>
           <td><span class="estado-badge" style="--badge-color:${color}">${label}</span></td>
           <td>${fecha(o.createdAt)}</td>

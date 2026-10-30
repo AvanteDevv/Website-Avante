@@ -59,6 +59,11 @@
         <div class="filter-pills" id="estadoFilters">
           <button type="button" class="filter-pill active" data-estado="todos">Todos</button>
         </div>
+        <div class="filter-pills origen-filters" id="origenFilters" aria-label="Origen del pedido">
+          <button type="button" class="filter-pill active" data-origen="todos">Todos los orígenes</button>
+          <button type="button" class="filter-pill" data-origen="sucursal">Sucursal</button>
+          <button type="button" class="filter-pill" data-origen="ecommerce">Ecommerce</button>
+        </div>
       </div>
 
       <div class="table-wrap">
@@ -67,6 +72,7 @@
             <tr>
               <th>Pedido</th>
               <th>Cliente</th>
+              <th>Origen</th>
               <th>Total</th>
               <th>Estado</th>
               <th>Fecha</th>

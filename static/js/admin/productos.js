@@ -384,6 +384,14 @@ var productPhotos = (function(){
   });
 
   return {
+    // Agrega fotos ya descargadas (p. ej. las del artículo del inventario).
+    addFiles: function(files){
+      newFiles = newFiles.concat(files || []);
+      var dt = new DataTransfer();
+      newFiles.forEach(function(f){ dt.items.add(f); });
+      input.files = dt.files;
+      render();
+    },
     reset: function(){
       newFiles = [];
       showingExisting = false;
@@ -508,6 +516,7 @@ var logoModePicker = (function(){
     setProductIcon('round');
     promoEndsField.reset();
     titleEl.textContent = 'Agregar producto';
+    window.productInvPick && window.productInvPick.reset(true);
     logoInput.setAttribute('required', 'required');
     submitBtn.textContent = 'Guardar producto';
     overlay.classList.add('open');
@@ -521,6 +530,7 @@ var logoModePicker = (function(){
     window.resetProductLogo();
     logoModePicker.reset();
     titleEl.textContent = 'Editar producto';
+    window.productInvPick && window.productInvPick.reset(false);
     logoInput.removeAttribute('required'); // al editar, el logo es opcional
     submitBtn.textContent = 'Guardar cambios';
 
@@ -897,4 +907,161 @@ var promoEndsField = setupDateTimeField('prodPromoEnds');
       sortBy(key, type, dir);
     });
   });
+})();
+
+/* ---------- Tomar del inventario ----------
+   Busca un artículo del inventario (sin servicios) y llena el formulario:
+     · Título    ← descripción (en mayúsculas y minúsculas)
+     · Modelo    ← el número del modelo en la descripción (o la clave)
+     · Precio    ← precio de venta (precio 1, con IVA)
+     · Fotos     ← las fotos del artículo
+     · Marca y Descripción ← sugeridas a partir de la descripción
+       (ej. "ARMAZON FOFO 39320 METAL AZUL" → marca "Fofo",
+       "Armazón de metal, color azul.") — se marcan para revisarlas.
+   Falta llenar a mano: Año, Forma de lente, Etiqueta, Logo de la marca
+   y, si aplica, precio anterior / fin de la promoción. */
+window.productInvPick = (function(){
+  var wrap = document.getElementById('prodInvPick');
+  var q = document.getElementById('prodInvQ');
+  var box = document.getElementById('prodInvResults');
+  var sum = document.getElementById('prodInvSummary');
+  if (!wrap || !q || !box) return null;
+  var items = null, loading = null;
+  var mxn = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+  var MATERIAL = { PASTA: 'pasta', METAL: 'metal', ACETATO: 'acetato', TR90: 'TR90', TITANIO: 'titanio', METALICO: 'metal', METÁLICO: 'metal', PLASTICO: 'plástico', PLÁSTICO: 'plástico' };
+  var COLOR = { NEGRO: 'negro', NEGRA: 'negro', AZUL: 'azul', ROJO: 'rojo', ROJA: 'rojo', CAFE: 'café', CAFÉ: 'café', DORADO: 'dorado', DORADA: 'dorado', PLATEADO: 'plateado', PLATEADA: 'plateado', GRIS: 'gris', VERDE: 'verde', ROSA: 'rosa', MORADO: 'morado', MORADA: 'morado', BLANCO: 'blanco', BLANCA: 'blanco', CAREY: 'carey', TRANSPARENTE: 'transparente', VINO: 'vino', NUDE: 'nude', AMARILLO: 'amarillo', NARANJA: 'naranja' };
+  var TIPO = /^(ARMAZON|ARMAZÓN|ARMAZONES|LENTE|LENTES|GAFAS|ANTEOJOS|SOLAR|SOL|OFTALMICO|OFTÁLMICO)$/;
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+  function cap(w){
+    if (/\d/.test(w) || /^[A-Z]{1,3}$/.test(w) && w.length <= 2) return w;
+    w = w.toLowerCase();
+    if (w === 'armazon') return 'Armazón';
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }
+  function titleCase(s){ return String(s || '').trim().split(/\s+/).map(cap).join(' '); }
+  // Marca: las palabras entre "ARMAZON" y el primer número.
+  function guess(desc){
+    var w = String(desc || '').toUpperCase().trim().split(/\s+/);
+    var i = 0;
+    while (i < w.length && TIPO.test(w[i])) i++;
+    var marca = [];
+    for (; i < w.length && !/\d/.test(w[i]) && !MATERIAL[w[i]] && !COLOR[w[i]]; i++) marca.push(w[i]);
+    var modelo = '';
+    w.some(function(x){ if (/\d/.test(x)) { modelo = x; return true; } return false; });
+    var mat = '', col = '';
+    w.forEach(function(x){ if (MATERIAL[x] && !mat) mat = MATERIAL[x]; if (COLOR[x] && !col) col = COLOR[x]; });
+    var tipo = /SOL|SOLAR/.test(w.join(' ')) ? 'Lentes de sol' : 'Armazón';
+    var descr = '';
+    if (mat || col) descr = tipo + (mat ? ' de ' + mat : '') + (col ? (mat ? ', color ' : ' color ') + col : '') + '.';
+    var forma = /AVIADOR/.test(w.join(' ')) ? 'sun' : /REDOND/.test(w.join(' ')) ? 'round' : /CUADRAD/.test(w.join(' ')) ? 'square' : '';
+    return { marca: titleCase(marca.join(' ')), modelo: modelo, descr: descr, forma: forma };
+  }
+
+  function load(){
+    if (items) return Promise.resolve(items);
+    if (loading) return loading;
+    loading = fetch('/api/inventario/articulos', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function(r){ return r.json().then(function(d){ if (!r.ok) throw new Error(d.error || 'No se pudo cargar el inventario.'); return d; }); })
+      .then(function(d){ items = (d.items || []).filter(function(a){ return !a.servicio; }); return items; })
+      .catch(function(err){ loading = null; throw err; });
+    return loading;
+  }
+  function norm(s){ s = String(s || '').toLowerCase(); return s.normalize ? s.normalize('NFD').replace(/[̀-ͯ]/g, '') : s; }
+  function search(){
+    var words = norm(q.value).split(/\s+/).filter(Boolean);
+    if (!words.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = '<div class="prod-inv-msg">Buscando…</div>';
+    load().then(function(list){
+      var found = list.filter(function(a){
+        var hay = norm([a.clave, a.clave_alterna, a.descripcion, a.categoria, a.departamento].join(' '));
+        return words.every(function(w){ return hay.indexOf(w) !== -1; });
+      }).slice(0, 30);
+      box.innerHTML = found.length ? found.map(function(a, i){
+        return '<button type="button" class="prod-inv-item" data-id="' + a.id + '" style="--i:' + i + '">' +
+          '<span class="prod-inv-thumb">' + (a.foto ? '<img src="' + esc(a.foto) + '" alt="">' : '') + '</span>' +
+          '<span class="prod-inv-txt"><small>' + esc(a.clave) + (a.departamento ? ' · ' + esc(a.departamento) : '') + '</small><b>' + esc(a.descripcion) + '</b></span>' +
+          '<span class="prod-inv-price">' + mxn.format(a.precio_1 || 0) + '<small>' + (a.existencia > 0 ? a.existencia + ' en existencia' : 'Agotado') + '</small></span></button>';
+      }).join('') : '<div class="prod-inv-msg">No hay armazones con esa búsqueda.</div>';
+    }).catch(function(err){ box.innerHTML = '<div class="prod-inv-msg is-err">' + esc(err.message) + '</div>'; });
+  }
+  var t;
+  q.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(search, 180); });
+  q.addEventListener('focus', function(){ if (q.value.trim()) search(); });
+  q.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); var f = box.querySelector('.prod-inv-item'); if (f) f.click(); } });
+  document.addEventListener('click', function(e){ if (!e.target.closest('#prodInvPick')) box.hidden = true; });
+
+  function setField(id, v, suggested){
+    var el = document.getElementById(id);
+    if (!el || !v) return false;
+    el.value = v;
+    el.classList.remove('is-from-inv', 'is-suggested');
+    void el.offsetWidth;
+    el.classList.add(suggested ? 'is-suggested' : 'is-from-inv');
+    el.addEventListener('input', function clear(){ el.classList.remove('is-from-inv', 'is-suggested'); el.removeEventListener('input', clear); });
+    return true;
+  }
+  function pick(a){
+    box.hidden = true;
+    q.value = a.descripcion;
+    var g = guess(a.descripcion);
+    var lleno = [], revisa = [], falta = [];
+    if (setField('prodTitulo', titleCase(a.descripcion))) lleno.push('Título');
+    if (setField('prodModelo', g.modelo || a.clave)) lleno.push('Modelo');
+    if (setField('prodPrecio', (a.precio_1 || 0).toFixed(2))) lleno.push('Precio');
+    if (setField('prodMarca', g.marca, true)) revisa.push('Marca'); else falta.push('Marca');
+    var desc = document.getElementById('prodDescripcion');
+    if (desc && !desc.value.trim() && setField('prodDescripcion', g.descr, true)) revisa.push('Descripción');
+    if (g.forma && window.setProductIcon) { window.setProductIcon(g.forma); revisa.push('Forma de lente'); } else falta.push('Forma de lente');
+    falta.push('Año', 'Logo de la marca');
+    var opc = ['Etiqueta', 'Precio anterior y fin de la promoción'];
+    function paint(fotos){
+      sum.hidden = false;
+      sum.innerHTML = '<div class="prod-inv-sum-head"><b>' + esc(a.clave) + '</b> · ' + esc(a.descripcion) + '</div>' +
+        '<div class="prod-inv-row is-ok"><span>Se llenó</span>' + lleno.concat(fotos ? ['Fotos (' + fotos + ')'] : []).map(function(x){ return '<i>' + x + '</i>'; }).join('') + '</div>' +
+        (revisa.length ? '<div class="prod-inv-row is-check"><span>Revisa (sugerido)</span>' + revisa.map(function(x){ return '<i>' + x + '</i>'; }).join('') + '</div>' : '') +
+        '<div class="prod-inv-row is-todo"><span>Falta llenar</span>' + falta.map(function(x){ return '<i>' + x + '</i>'; }).join('') + '</div>' +
+        '<div class="prod-inv-row is-opt"><span>Opcional</span>' + opc.map(function(x){ return '<i>' + x + '</i>'; }).join('') + '</div>';
+    }
+    paint(0);
+    // Fotos del artículo → se agregan como fotos del producto.
+    fetch('/api/inventario/articulos/' + a.id + '/fotos', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function(r){ return r.ok ? r.json() : { fotos: [] }; })
+      .then(function(d){
+        var fotos = (d.fotos || []).slice(0, 8);
+        return Promise.all(fotos.map(function(f, i){
+          return fetch(f.url, { credentials: 'same-origin' }).then(function(r){ return r.ok ? r.blob() : null; }).then(function(b){
+            if (!b) return null;
+            var ext = (b.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+            return new File([b], (a.clave || 'foto') + '-' + (i + 1) + '.' + ext, { type: b.type || 'image/jpeg' });
+          }).catch(function(){ return null; });
+        }));
+      })
+      .then(function(files){
+        files = (files || []).filter(Boolean);
+        if (files.length && window.productPhotos) window.productPhotos.addFiles(files);
+        if (!files.length) falta.unshift('Fotos');
+        paint(files.length);
+      })
+      .catch(function(){ falta.unshift('Fotos'); paint(0); });
+  }
+  box.addEventListener('click', function(e){
+    var b = e.target.closest('.prod-inv-item');
+    if (!b || !items) return;
+    var a = items.filter(function(x){ return String(x.id) === b.dataset.id; })[0];
+    if (a) pick(a);
+  });
+
+  return {
+    // create = true: se ve el buscador; al editar se esconde.
+    reset: function(create){
+      wrap.hidden = !create;
+      q.value = '';
+      box.hidden = true;
+      sum.hidden = true;
+      sum.innerHTML = '';
+      document.querySelectorAll('#newProductForm .is-from-inv, #newProductForm .is-suggested').forEach(function(el){ el.classList.remove('is-from-inv', 'is-suggested'); });
+    }
+  };
 })();
