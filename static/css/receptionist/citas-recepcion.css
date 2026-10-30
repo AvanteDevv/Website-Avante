@@ -1837,3 +1837,28 @@ body.dark .admin-badge.verificada.recepcion{ background:rgba(139,92,246,.2); col
 .cal-dot.recepcion{ background:#7c3aed; }
 /* "Por la web" / "Por recepción": se escriben tal cual (sin mayúscula en cada palabra) */
 .admin-badge.verificada{ text-transform:none; }
+/* ===========================================================
+   AV-DATE (av-date.js): calendario animado para cualquier
+   <input type="date"> del panel — mismo look que "Crear cita".
+   =========================================================== */
+.av-date-native{ display:none !important; }
+.av-date .cb-datepicker-trigger{ cursor:pointer; }
+.av-date.is-empty .cb-datepicker-value{ color:var(--muted); font-weight:500; }
+.av-date.is-disabled{ opacity:.55; pointer-events:none; }
+.av-date .cb-datepicker-trigger.is-picked{ animation:avDatePop .35s cubic-bezier(.22,1.4,.36,1); }
+.av-date .av-date-label{ font-size:12.5px; font-weight:700; color:var(--ink); text-transform:capitalize; }
+.av-date .cb-datepicker-menu{ z-index:400; }
+.av-date.is-open .cb-datepicker-day{ animation:avDateDay .28s var(--ease) backwards; animation-delay:calc(var(--i, 0) * 4ms); }
+.av-date .cb-datepicker-grid.is-slide-l{ animation:avDateSlideL .28s var(--ease); }
+.av-date .cb-datepicker-grid.is-slide-r{ animation:avDateSlideR .28s var(--ease); }
+.av-date .cb-datepicker-day.is-inrange{ background:var(--blue-50); color:var(--blue-700); border-radius:6px; }
+.av-date .cb-datepicker-day.is-selected{ animation:none; }
+@keyframes avDatePop{ 0%{ transform:scale(.97); } 60%{ transform:scale(1.02); } 100%{ transform:none; } }
+@keyframes avDateDay{ from{ opacity:0; transform:scale(.8); } to{ opacity:1; transform:none; } }
+@keyframes avDateSlideL{ from{ opacity:0; transform:translateX(14px); } to{ opacity:1; transform:none; } }
+@keyframes avDateSlideR{ from{ opacity:0; transform:translateX(-14px); } to{ opacity:1; transform:none; } }
+/* En los modales de exportar, a todo lo ancho */
+.vt-export-pick .av-date, .ce-export-pick .av-date{ width:100%; }
+@media (prefers-reduced-motion:reduce){
+  .av-date .cb-datepicker-day, .av-date .cb-datepicker-grid, .av-date .cb-datepicker-trigger{ animation:none !important; }
+}

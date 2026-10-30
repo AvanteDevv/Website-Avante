@@ -173,6 +173,13 @@
 <script src="/static/js/optometrist/av-select.js"></script>
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
 <script src="/static/js/receptionist/ticket-render.js"></script>
+<script src="/static/js/receptionist/av-date.js"></script>
+<script>
+  // Calendarios animados
+  AvDate.pair(document.getElementById('vtDesde'), document.getElementById('vtHasta'));
+  AvDate.enhance(document.getElementById('vtExpDia'));
+  AvDate.enhance(document.getElementById('vtExpSemana'));
+</script>
 <script src="/static/js/receptionist/ventas-recepcion.js"></script>
 </body>
 </html>
