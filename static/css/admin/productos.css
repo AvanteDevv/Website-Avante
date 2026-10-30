@@ -401,3 +401,55 @@ body.dark .admin-user-form .is-from-inv{ background:rgba(31,157,85,.12) !importa
 body.dark .admin-user-form .is-suggested{ background:rgba(241,210,143,.1) !important; }
 @keyframes prodInvIn{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
 @keyframes prodInvFill{ 0%{ box-shadow:0 0 0 0 rgba(31,157,85,.35); } 100%{ box-shadow:0 0 0 8px rgba(31,157,85,0); } }
+
+/* ---------- Tipo de precio: normal / promoción ---------- */
+.prod-price-mode{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.prod-price-mode-label{ font-size:12.5px; font-weight:700; color:var(--ink); }
+.prod-price-seg{
+  position:relative; display:grid; grid-template-columns:1fr 1fr; padding:4px; min-width:250px;
+  border-radius:12px; background:var(--blue-50, #f4f5fb); border:1px solid var(--line);
+}
+.prod-price-seg button{
+  position:relative; z-index:1; padding:8px 14px; border-radius:9px;
+  font-size:12px; font-weight:700; color:var(--grey); white-space:nowrap;
+  transition:color .22s var(--ease);
+}
+.prod-price-seg button:hover{ color:var(--ink); }
+.prod-price-seg button.active{ color:var(--blue-600); }
+.prod-price-seg.is-promo button.active{ color:#c2410c; }
+.prod-price-seg-thumb{
+  position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 4px); border-radius:9px;
+  background:var(--white); box-shadow:0 1px 4px rgba(10,14,56,.12);
+  transition:transform .3s cubic-bezier(.34,1.4,.64,1);
+}
+.prod-price-seg.is-promo .prod-price-seg-thumb{ transform:translateX(100%); }
+@media (max-width:420px){ .prod-price-seg{ min-width:0; width:100%; } }
+
+.prod-price-row{ transition:grid-template-columns .3s var(--ease); }
+.prod-price-row.is-normal{ grid-template-columns:0fr 1fr; gap:0; }
+.prod-price-row .prod-old-price-field{ min-width:0; overflow:hidden; transition:opacity .25s var(--ease); }
+.prod-price-row.is-normal .prod-old-price-field{ opacity:0; visibility:hidden; height:0; }
+@media (max-width:420px){
+  .prod-price-row.is-normal{ grid-template-columns:1fr; }
+  .prod-price-row.is-normal .prod-old-price-field{ display:none; }
+}
+
+.prod-promo-fields{
+  display:grid; grid-template-rows:0fr; opacity:0; margin-top:-14px;
+  transition:grid-template-rows .3s var(--ease), opacity .25s var(--ease), margin-top .3s var(--ease);
+}
+.prod-promo-fields-inner{ min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+.prod-promo-fields.is-open{ grid-template-rows:1fr; opacity:1; margin-top:0; }
+.prod-promo-fields.is-shown .prod-promo-fields-inner{ overflow:visible; }
+.prod-promo-fields:not(.is-open){ pointer-events:none; }
+.prod-promo-fields.no-anim, .prod-promo-fields.no-anim *{ transition:none !important; }
+.prod-promo-fields .prod-promo-fields-inner > label{
+  padding:12px 14px; border-radius:14px; border:1.5px dashed rgba(234,88,12,.35);
+  background:rgba(255,237,213,.35);
+}
+
+body.dark .prod-price-seg{ background:rgba(255,255,255,.04); }
+body.dark .prod-price-seg-thumb{ background:rgba(255,255,255,.1); box-shadow:none; }
+body.dark .prod-price-seg button.active{ color:#fff; }
+body.dark .prod-price-seg.is-promo button.active{ color:#fdba74; }
+body.dark .prod-promo-fields .prod-promo-fields-inner > label{ background:rgba(234,88,12,.08); border-color:rgba(253,186,116,.3); }

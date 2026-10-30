@@ -506,6 +506,55 @@ var logoModePicker = (function(){
   var logoInput = document.getElementById('prodLogoInput');
   if (!openBtn || !overlay || !form) return;
 
+  /* ---------- Tipo de precio: normal / promoción ----------
+     Con "Precio normal" solo se pide el precio. Con "Promoción" aparecen
+     el precio anterior (obligatorio, mayor al de promoción) y la fecha
+     de fin. Al guardar en modo normal se mandan vacíos para que el
+     producto deje de estar en promoción. */
+  var priceSeg = document.getElementById('prodPriceMode');
+  var priceRow = document.getElementById('prodPriceRow');
+  var promoBox = document.getElementById('prodPromoFields');
+  var oldPriceInput = document.getElementById('prodPrecioAnterior');
+  var priceLabel = document.getElementById('prodPrecioLabel');
+  var priceMode = 'normal';
+  var promoShowTimer = null;
+
+  function setPriceMode(mode, instant){
+    priceMode = mode === 'promo' ? 'promo' : 'normal';
+    var promo = priceMode === 'promo';
+    if (priceSeg) {
+      priceSeg.classList.toggle('is-promo', promo);
+      priceSeg.querySelectorAll('button[data-mode]').forEach(function(b){
+        var on = b.dataset.mode === priceMode;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+    }
+    if (priceRow) priceRow.classList.toggle('is-normal', !promo);
+    if (priceLabel) priceLabel.textContent = promo ? 'Precio con promoción' : 'Precio';
+    if (oldPriceInput) {
+      if (promo) oldPriceInput.setAttribute('required', 'required'); else oldPriceInput.removeAttribute('required');
+    }
+    if (promoBox) {
+      clearTimeout(promoShowTimer);
+      promoBox.classList.remove('is-shown');
+      promoBox.classList.toggle('is-open', promo);
+      if (instant) promoBox.classList.add('no-anim');
+      // overflow visible ya abierto, para que el calendario y la hora no se recorten
+      if (promo) promoShowTimer = setTimeout(function(){ promoBox.classList.add('is-shown'); }, instant ? 0 : 320);
+      if (instant) { void promoBox.offsetWidth; promoBox.classList.remove('no-anim'); }
+    }
+    if (!promo && window.closeAllProductPickers) window.closeAllProductPickers();
+  }
+  window.setProductPriceMode = setPriceMode;
+
+  priceSeg && priceSeg.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-mode]');
+    if (!b || b.dataset.mode === priceMode) return;
+    setPriceMode(b.dataset.mode);
+    if (priceMode === 'promo' && oldPriceInput && !oldPriceInput.value) oldPriceInput.focus();
+  });
+
   function openCreateModal(){
     errorEl.textContent = '';
     form.reset();
@@ -515,6 +564,7 @@ var logoModePicker = (function(){
     productPhotos.reset();
     setProductIcon('round');
     promoEndsField.reset();
+    setPriceMode('normal', true);
     titleEl.textContent = 'Agregar producto';
     window.productInvPick && window.productInvPick.reset(true);
     logoInput.setAttribute('required', 'required');
@@ -541,6 +591,7 @@ var logoModePicker = (function(){
     document.getElementById('prodPrecio').value = card.dataset.precio || '';
     document.getElementById('prodPrecioAnterior').value = (card.dataset.precioAnterior && card.dataset.precioAnterior !== '0') ? card.dataset.precioAnterior : '';
     promoEndsField.setFromValue(card.dataset.promoEnds || '');
+    setPriceMode(document.getElementById('prodPrecioAnterior').value ? 'promo' : 'normal', true);
     document.getElementById('prodBadge').value = card.dataset.badge || '';
     document.getElementById('prodDescripcion').value = card.dataset.descripcion || '';
     setProductIcon(card.dataset.icon || 'round');
@@ -595,14 +646,22 @@ var logoModePicker = (function(){
       return;
     }
 
+    var isPromo = priceMode === 'promo';
+    if (isPromo) {
+      var oldVal = parseFloat(oldPriceInput.value);
+      var newVal = parseFloat(document.getElementById('prodPrecio').value);
+      if (!(oldVal > 0)) { errorEl.textContent = 'Pon el precio anterior de la promoción.'; oldPriceInput.focus(); return; }
+      if (!(oldVal > newVal)) { errorEl.textContent = 'El precio anterior debe ser mayor al precio con promoción.'; oldPriceInput.focus(); return; }
+    }
+
     var formData = new FormData();
     formData.append('title', document.getElementById('prodTitulo').value.trim());
     formData.append('brand', document.getElementById('prodMarca').value.trim());
     formData.append('year', document.getElementById('prodAnio').value.trim());
     formData.append('model', document.getElementById('prodModelo').value.trim());
     formData.append('price', document.getElementById('prodPrecio').value.trim());
-    formData.append('old_price', document.getElementById('prodPrecioAnterior').value.trim());
-    formData.append('promo_ends_at', document.getElementById('prodPromoEndsAt').value);
+    formData.append('old_price', isPromo ? oldPriceInput.value.trim() : '');
+    formData.append('promo_ends_at', isPromo ? document.getElementById('prodPromoEndsAt').value : '');
     formData.append('icon', document.getElementById('prodIcon').value);
     formData.append('badge', document.getElementById('prodBadge').value.trim());
     formData.append('description', document.getElementById('prodDescripcion').value.trim());
@@ -1015,7 +1074,7 @@ window.productInvPick = (function(){
     if (desc && !desc.value.trim() && setField('prodDescripcion', g.descr, true)) revisa.push('Descripción');
     if (g.forma && window.setProductIcon) { window.setProductIcon(g.forma); revisa.push('Forma de lente'); } else falta.push('Forma de lente');
     falta.push('Año', 'Logo de la marca');
-    var opc = ['Etiqueta', 'Precio anterior y fin de la promoción'];
+    var opc = ['Etiqueta', 'Promoción (precio anterior y fin)'];
     function paint(fotos){
       sum.hidden = false;
       sum.innerHTML = '<div class="prod-inv-sum-head"><b>' + esc(a.clave) + '</b> · ' + esc(a.descripcion) + '</div>' +
