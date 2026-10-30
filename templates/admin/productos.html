@@ -217,16 +217,27 @@
           </label>
         </div>
 
-        <div class="product-field-row">
-          <label>Precio
-            <input type="number" id="prodPrecio" name="price" required min="0" step="0.01" placeholder="Ej. 699.00">
-          </label>
-          <label>Precio anterior <span class="admin-user-form-optional">(opcional)</span>
+        <div class="prod-price-mode">
+          <span class="prod-price-mode-label">Tipo de precio</span>
+          <div class="prod-price-seg" id="prodPriceMode" role="radiogroup" aria-label="Tipo de precio">
+            <span class="prod-price-seg-thumb" aria-hidden="true"></span>
+            <button type="button" data-mode="normal" class="active" role="radio" aria-checked="true">Precio normal</button>
+            <button type="button" data-mode="promo" role="radio" aria-checked="false">Promoción</button>
+          </div>
+        </div>
+
+        <div class="product-field-row prod-price-row is-normal" id="prodPriceRow">
+          <label class="prod-old-price-field">Precio anterior
             <input type="number" id="prodPrecioAnterior" name="old_price" min="0" step="0.01" placeholder="Ej. 850.00">
+          </label>
+          <label><span id="prodPrecioLabel">Precio</span>
+            <input type="number" id="prodPrecio" name="price" required min="0" step="0.01" placeholder="Ej. 699.00">
           </label>
         </div>
 
-        <label>Fin de la promoción <span class="admin-user-form-optional">(opcional — solo si tiene precio anterior)</span>
+        <div class="prod-promo-fields" id="prodPromoFields">
+        <div class="prod-promo-fields-inner">
+        <label>Fin de la promoción <span class="admin-user-form-optional">(opcional — sin fecha, la promoción no vence)</span>
           <div class="promo-end-widgets">
             <div class="ad-datepicker" id="prodPromoEndsDateWrap">
               <button type="button" class="ad-datepicker-trigger" id="prodPromoEndsDateBtn">
@@ -259,6 +270,8 @@
           </div>
           <input type="hidden" id="prodPromoEndsAt" name="promo_ends_at">
         </label>
+        </div>
+        </div>
 
         <div class="product-field-row">
           <label>Forma de lente
