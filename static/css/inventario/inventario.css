@@ -779,3 +779,12 @@ body.dark .inv-qty.is-down{ color:#ff8b7d; }
 }
 .inv-por-tools .inv-seg button{ white-space:nowrap; }
 .inv-por-ex .btn:disabled{ opacity:.45; cursor:default; box-shadow:none; }
+
+/* Barra de scroll de Avante (delgada, redondeada, del color de las líneas):
+   tabla de artículos, listas, menús, detalle y modales de Inventario. */
+.inv-table-wrap, .inv-dep-list, .inv-rs-list, .inv-pick-results, .inv-select-menu, .inv-detail, .inv-page .admin-modal-body, .admin-modal-overlay .admin-modal-body{ scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.inv-table-wrap::-webkit-scrollbar, .inv-dep-list::-webkit-scrollbar, .inv-rs-list::-webkit-scrollbar, .inv-pick-results::-webkit-scrollbar, .inv-select-menu::-webkit-scrollbar, .inv-detail::-webkit-scrollbar, .inv-page .admin-modal-body::-webkit-scrollbar, .admin-modal-overlay .admin-modal-body::-webkit-scrollbar{ width:6px; height:6px; }
+.inv-table-wrap::-webkit-scrollbar-track, .inv-dep-list::-webkit-scrollbar-track, .inv-rs-list::-webkit-scrollbar-track, .inv-pick-results::-webkit-scrollbar-track, .inv-select-menu::-webkit-scrollbar-track, .inv-detail::-webkit-scrollbar-track, .inv-page .admin-modal-body::-webkit-scrollbar-track, .admin-modal-overlay .admin-modal-body::-webkit-scrollbar-track{ background:transparent; }
+.inv-table-wrap::-webkit-scrollbar-thumb, .inv-dep-list::-webkit-scrollbar-thumb, .inv-rs-list::-webkit-scrollbar-thumb, .inv-pick-results::-webkit-scrollbar-thumb, .inv-select-menu::-webkit-scrollbar-thumb, .inv-detail::-webkit-scrollbar-thumb, .inv-page .admin-modal-body::-webkit-scrollbar-thumb, .admin-modal-overlay .admin-modal-body::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
+.inv-table-wrap::-webkit-scrollbar-thumb:hover, .inv-dep-list::-webkit-scrollbar-thumb:hover, .inv-rs-list::-webkit-scrollbar-thumb:hover, .inv-pick-results::-webkit-scrollbar-thumb:hover, .inv-select-menu::-webkit-scrollbar-thumb:hover, .inv-detail::-webkit-scrollbar-thumb:hover, .inv-page .admin-modal-body::-webkit-scrollbar-thumb:hover, .admin-modal-overlay .admin-modal-body::-webkit-scrollbar-thumb:hover{ background:var(--blue-300, #8992FF); }
+.inv-table-wrap::-webkit-scrollbar-corner, .inv-dep-list::-webkit-scrollbar-corner, .inv-rs-list::-webkit-scrollbar-corner, .inv-pick-results::-webkit-scrollbar-corner, .inv-select-menu::-webkit-scrollbar-corner, .inv-detail::-webkit-scrollbar-corner, .inv-page .admin-modal-body::-webkit-scrollbar-corner, .admin-modal-overlay .admin-modal-body::-webkit-scrollbar-corner{ background:transparent; }
