@@ -605,7 +605,7 @@ type InvMovTotales struct {
 // ListInvMovimientos — el kárdex con filtros. Las líneas con cantidad 0
 // (artículos contados sin diferencia) no se muestran aquí.
 func ListInvMovimientos(f InvMovFilter, limit int) ([]InvMovimiento, InvMovTotales, error) {
-	if limit <= 0 || limit > 2000 {
+	if limit <= 0 || limit > 10000 {
 		limit = 1000
 	}
 	where := []string{"m.cantidad <> 0"}

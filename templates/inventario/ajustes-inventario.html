@@ -45,7 +45,8 @@
     </div>
 
     <div class="inv-seg inv-mode-switch" id="ajMode" role="tablist">
-      <button type="button" data-mode="nuevo" class="is-on" role="tab"><i data-feather="clipboard"></i>Nuevo conteo</button>
+      <button type="button" data-mode="escaner" role="tab"><i data-feather="maximize"></i>Conteo con escáner</button>
+      <button type="button" data-mode="nuevo" class="is-on" role="tab"><i data-feather="clipboard"></i>Captura manual</button>
       <button type="button" data-mode="consultar" role="tab"><i data-feather="search"></i>Consultar ajustes</button>
     </div>
 
@@ -101,6 +102,121 @@
         <div class="inv-count-note"><input type="text" id="cntComentario" maxlength="250" placeholder="Comentario (ej. Conteo de fin de mes)"></div>
         <button type="button" class="inv-btn-ghost" id="cntClear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Vaciar</button>
         <button type="button" class="btn solid small" id="cntApply" disabled>Aplicar ajuste</button>
+      </div>
+    </section>
+
+    <!-- ===== Conteo con escáner (conteo-escaner.js) ===== -->
+    <section class="admin-panel inv-count-panel scn-pane" id="paneEscaner" hidden>
+      <!-- 1) Comenzar -->
+      <div class="scn-start" id="scnStart">
+        <div class="scn-hero">
+          <span class="scn-hero-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/></svg></span>
+          <div>
+            <h2>Conteo físico con escáner</h2>
+            <p>Escanea la etiqueta de cada pieza que tengas en la óptica. Al terminar se compara con lo que dice el sistema: qué falta, qué sobra y qué coincide. Nada cambia hasta que tú apliques el ajuste.</p>
+          </div>
+        </div>
+        <div class="scn-start-form">
+          <div class="inv-hoja-field">
+            <span>¿Qué vas a contar?</span>
+            <div class="inv-seg" id="scnAlcance">
+              <button type="button" data-a="todo" class="is-on">Todo el inventario</button>
+              <button type="button" data-a="depto">Un departamento</button>
+            </div>
+          </div>
+          <div class="inv-hoja-row" id="scnDeptoRow" hidden>
+            <div class="inv-filter-select" id="scnDep"></div>
+            <div class="inv-filter-select" id="scnCat"></div>
+          </div>
+          <p class="scn-start-info" id="scnStartInfo">Cargando artículos…</p>
+          <div class="inv-count-note"><input type="text" id="scnComentario" maxlength="250" placeholder="Comentario (ej. Conteo de fin de mes)"></div>
+          <label class="inv-check is-inline">
+            <input type="checkbox" id="scnCiego" checked>
+            <span class="inv-check-box"></span>
+            <span><strong>Conteo a ciegas</strong><small>Mientras escaneas no se ve cuántas dice el sistema; así el conteo sale más confiable.</small></span>
+          </label>
+          <button type="button" class="btn solid scn-begin" id="scnBegin" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg>Comenzar conteo</button>
+        </div>
+      </div>
+
+      <!-- 2) Escaneando -->
+      <div class="scn-run" id="scnRun" hidden>
+        <div class="scn-top">
+          <button type="button" class="scn-status" id="scnStatus"><i></i><span>Escáner listo</span></button>
+          <p class="scn-alcance" id="scnAlcanceTxt"></p>
+          <div class="scn-actions">
+            <button type="button" class="inv-btn-ghost" id="scnUndo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Deshacer último</button>
+            <button type="button" class="btn solid small" id="scnFinish" disabled>Terminar y comparar</button>
+          </div>
+        </div>
+        <label class="scn-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6v12M7 6v12M11 6v12M14 6v12M17 6v12M20 6v12"/></svg>
+          <input type="text" id="scnInput" placeholder="Escanea la etiqueta (o escribe la clave y Enter)…" autocomplete="off" spellcheck="false" autocapitalize="characters">
+        </label>
+        <div class="scn-last" id="scnLast" hidden></div>
+        <div class="scn-progress" id="scnProgress">
+          <div class="scn-bar"><span id="scnBar"></span></div>
+          <p id="scnProgTxt"></p>
+        </div>
+        <div class="inv-table-wrap">
+          <table class="inv-table scn-table">
+            <thead>
+              <tr>
+                <th>Clave / Descripción</th>
+                <th class="num scn-col-sis">En sistema</th>
+                <th class="num">Contadas</th>
+                <th class="num"></th>
+              </tr>
+            </thead>
+            <tbody id="scnBody"></tbody>
+          </table>
+          <p class="inv-empty" id="scnEmpty">Todavía no se escanea nada. Escanea la primera etiqueta.</p>
+        </div>
+        <div class="scn-unknown" id="scnUnknown" hidden></div>
+        <div class="scn-foot">
+          <button type="button" class="inv-btn-ghost is-danger" id="scnDiscard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Descartar conteo</button>
+        </div>
+      </div>
+
+      <!-- 3) Comparación con el sistema -->
+      <div class="scn-cmp" id="scnCmp" hidden>
+        <div class="scn-cmp-head">
+          <div>
+            <h2>Comparación con el sistema</h2>
+            <p id="scnCmpSub"></p>
+          </div>
+          <div class="scn-actions">
+            <button type="button" class="inv-btn-ghost" id="scnBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Seguir escaneando</button>
+            <button type="button" class="inv-btn-ghost" id="scnPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h2"/></svg>PDF</button>
+          </div>
+        </div>
+        <div class="inv-stats scn-cmp-stats" id="scnCmpStats"></div>
+        <div class="inv-chips" id="scnCmpFiltro" role="group" aria-label="Mostrar">
+          <button type="button" data-f="dif" class="is-on">Con diferencia</button>
+          <button type="button" data-f="falta">Faltantes</button>
+          <button type="button" data-f="sobra">Sobrantes</button>
+          <button type="button" data-f="ok">Coinciden</button>
+          <button type="button" data-f="todo">Todos</button>
+        </div>
+        <div class="inv-table-wrap" style="margin-top:12px">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>Clave / Descripción</th>
+                <th class="num">En sistema</th>
+                <th class="num">Contadas</th>
+                <th class="num">Diferencia</th>
+              </tr>
+            </thead>
+            <tbody id="scnCmpBody"></tbody>
+          </table>
+          <p class="inv-empty" id="scnCmpEmpty" hidden></p>
+        </div>
+        <div class="scn-unknown" id="scnCmpUnknown" hidden></div>
+        <div class="scn-foot">
+          <button type="button" class="inv-btn-ghost is-danger" id="scnDiscard2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Descartar conteo</button>
+          <button type="button" class="btn solid small" id="scnToAjuste">Pasar al ajuste</button>
+        </div>
       </div>
     </section>
 
@@ -229,5 +345,6 @@
 {{end}}
 <script src="/static/js/inventario/inventario-comun.js"></script>
 <script src="/static/js/inventario/ajustes.js"></script>
+<script src="/static/js/inventario/conteo-escaner.js"></script>
 </body>
 </html>

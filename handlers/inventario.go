@@ -678,7 +678,12 @@ func InvListMovimientos(c *gin.Context) {
 		}
 		f.Desde, f.Hasta = d, h
 	}
-	items, tot, err := models.ListInvMovimientos(f, 1000)
+	// El reporte (PDF / Excel) pide todo el periodo: hasta 10,000 renglones.
+	limit := 1000
+	if c.Query("reporte") == "1" {
+		limit = 10000
+	}
+	items, tot, err := models.ListInvMovimientos(f, limit)
 	if err != nil {
 		invFail(c, "ListMovimientos", err, "No se pudieron cargar los movimientos.")
 		return

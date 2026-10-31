@@ -27,7 +27,10 @@
     Array.prototype.forEach.call($('ajMode').querySelectorAll('button'), function (b) { b.classList.toggle('is-on', b.getAttribute('data-mode') === m); });
     $('paneNuevo').hidden = m !== 'nuevo';
     $('paneConsultar').hidden = m !== 'consultar';
+    if ($('paneEscaner')) $('paneEscaner').hidden = m !== 'escaner';
     if (m === 'consultar') loadAjustes();
+    if (m === 'escaner' && window.InvEscaner) window.InvEscaner.show();
+    try { localStorage.setItem('avanteInvAjMode', m === 'consultar' ? 'nuevo' : m); } catch (e) {}
   }
   $('ajMode').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-mode]');
@@ -770,12 +773,28 @@
     printWindow('Hoja de conteo', html, w);
   }
 
+  // Para el conteo con escáner (conteo-escaner.js): usa el mismo catálogo
+  // y, al terminar, pasa lo contado a la captura de aquí para aplicarlo.
+  window.InvAjustes = {
+    catalog: function () { return { items: items, byId: byId, deps: deps }; },
+    reload: loadCatalog,
+    hasLines: function () { return lines.length > 0; },
+    setLines: function (list, comentario) {
+      lines = list.map(function (l) { return { id: l.id, contado: l.contado }; }).filter(function (l) { return byId[l.id]; });
+      $('cntComentario').value = comentario || '';
+      save(); renderLines(); setMode('nuevo');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    setMode: function (m) { setMode(m); }
+  };
+
   // ?folio=N abre ese ajuste (desde Movimientos)
   restore();
   loadCatalog().then(function () {
     try {
       var f = new URLSearchParams(location.search).get('folio');
       if (f) { setMode('consultar'); openDetail(Number(f)); }
+      else if (localStorage.getItem('avanteInvAjMode') === 'escaner') setMode('escaner');
     } catch (e) {}
   });
 })();

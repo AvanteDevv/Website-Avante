@@ -154,6 +154,139 @@
     if (b) chooseItem(Number(b.getAttribute('data-item')));
   });
 
+  /* =======================================================
+     REPORTE (PDF / Excel) con los mismos filtros de la pantalla.
+     Pide todo el periodo (hasta 10,000 movimientos), no solo los
+     1,000 que se muestran.
+     ======================================================= */
+  function filtrosTxt(p, d) {
+    var a = d.articulo;
+    return [
+      ['Periodo', !p[0] ? 'Todas las fechas' : p[0] === p[1] ? I.fecha(p[0]) : I.fecha(p[0]) + ' al ' + I.fecha(p[1])],
+      ['Tipo', f.tipo ? (TIPOS[f.tipo] || f.tipo) : 'Todos'],
+      ['Artículo', f.item && a ? a.clave + ' · ' + a.descripcion : 'Todos'],
+      ['Búsqueda', f.q || '—']
+    ];
+  }
+  function porTipo(items) {
+    var out = {};
+    items.forEach(function (m) {
+      var t = out[m.tipo] || (out[m.tipo] = { n: 0, in: 0, out: 0 });
+      t.n++;
+      if (m.cantidad > 0) t.in += m.cantidad; else t.out -= m.cantidad;
+    });
+    return Object.keys(TIPOS).filter(function (k) { return out[k]; }).map(function (k) {
+      var t = out[k];
+      return TIPOS[k] + ': ' + t.n + (t.in ? ' (+' + t.in + ')' : '') + (t.out ? ' (-' + t.out + ')' : '');
+    }).join(' · ');
+  }
+  function signedPdf(n) { return n > 0 ? '+' + n : n < 0 ? '-' + Math.abs(n) : '0'; }
+  function refTxt(m) { return m.venta_id ? 'Ticket ' + m.venta_id : m.ajuste_id ? 'Ajuste #' + m.ajuste_id : ''; }
+  function comentarioTxt(m) { return m.comentario && m.comentario !== 'Ticket ' + m.venta_id ? m.comentario : ''; }
+  function fileStamp(p) { return p[0] ? (p[0] === p[1] ? p[0] : p[0] + '_a_' + p[1]) : 'todo'; }
+
+  function fetchReporte() {
+    var p = I.periodo(f.per, dpDesde.get(), dpHasta.get());
+    var qs = ['reporte=1'];
+    if (f.item) qs.push('item=' + f.item);
+    if (f.tipo) qs.push('tipo=' + encodeURIComponent(f.tipo));
+    if (f.q) qs.push('q=' + encodeURIComponent(f.q));
+    if (p[0]) qs.push('desde=' + p[0] + '&hasta=' + p[1]);
+    return I.api('/api/inventario/movimientos?' + qs.join('&')).then(function (d) { return { d: d, p: p }; });
+  }
+  function busy(btn, on, txt) {
+    btn.disabled = on;
+    btn.lastChild.textContent = on ? 'Generando…' : txt;
+  }
+
+  $('mvPdf').addEventListener('click', function () {
+    var btn = this;
+    busy(btn, true);
+    Promise.all([fetchReporte(), I.pdfLibs()]).then(function (r) {
+      var d = r[0].d, p = r[0].p, items = d.items || [], t = d.totales || {};
+      if (!items.length) { I.toast('No hay movimientos con estos filtros.'); return; }
+      var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter', orientation: 'landscape' });
+      var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(16, 19, 46);
+      doc.text('Reporte de movimientos de inventario', 36, 46);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(93, 99, 128);
+      doc.text('Avante Optics · generado el ' + I.fechaHora(I.ahoraLocal()), W - 36, 46, { align: 'right' });
+      var y = 70;
+      filtrosTxt(p, d).forEach(function (m) {
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(16, 19, 46); doc.text(m[0] + ':', 36, y);
+        doc.setFont('helvetica', 'normal'); doc.text(String(m[1]), 110, y, { maxWidth: W - 160 });
+        y += 14;
+      });
+      // Totales en recuadros
+      y += 6;
+      var boxes = [['Movimientos', I.num(t.movimientos || items.length)], ['Entraron', '+' + I.num(t.entradas || 0)], ['Salieron', '-' + I.num(t.salidas || 0)]];
+      var bw = 150;
+      boxes.forEach(function (b, i) {
+        var x = 36 + i * (bw + 10);
+        doc.setDrawColor(223, 226, 238); doc.setFillColor(245, 247, 255);
+        doc.roundedRect(x, y, bw, 40, 6, 6, 'FD');
+        doc.setFontSize(8.5); doc.setTextColor(93, 99, 128); doc.setFont('helvetica', 'normal');
+        doc.text(b[0].toUpperCase(), x + 10, y + 14);
+        doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+        doc.setTextColor.apply(doc, i === 1 ? [15, 138, 75] : i === 2 ? [198, 40, 40] : [16, 19, 46]);
+        doc.text(b[1], x + 10, y + 32);
+      });
+      y += 52;
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(93, 99, 128);
+      doc.text('Por tipo: ' + porTipo(items), 36, y, { maxWidth: W - 72 });
+      if (items.length >= 10000) { y += 12; doc.setTextColor(198, 40, 40); doc.text('Se incluyen los 10,000 movimientos más recientes del periodo.', 36, y); }
+      doc.autoTable({
+        startY: y + 12,
+        head: [['Fecha', 'Clave', 'Descripción', 'Movimiento', 'Cantidad', 'Antes', 'Después', 'Usuario', 'Comentario']],
+        body: items.map(function (m) {
+          var ref = refTxt(m);
+          return [I.fechaHora(m.fecha), m.clave, m.descripcion, (TIPOS[m.tipo] || m.tipo) + (ref ? '\n' + ref : ''),
+            signedPdf(m.cantidad), String(m.antes), String(m.despues), m.usuario || '—', comentarioTxt(m) || '—'];
+        }),
+        margin: { left: 36, right: 36 },
+        styles: { fontSize: 8, cellPadding: 4, textColor: [16, 19, 46], overflow: 'linebreak' },
+        headStyles: { fillColor: [4, 28, 255], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [245, 247, 255] },
+        columnStyles: { 0: { cellWidth: 92 }, 1: { cellWidth: 70 }, 2: { cellWidth: 150 }, 3: { cellWidth: 66 }, 4: { halign: 'right', cellWidth: 50 }, 5: { halign: 'right', cellWidth: 42 }, 6: { halign: 'right', cellWidth: 46 }, 7: { cellWidth: 70 } },
+        didParseCell: function (data) {
+          if (data.section === 'head' && data.column.index >= 4 && data.column.index <= 6) data.cell.styles.halign = 'right';
+          if (data.section === 'body' && data.column.index === 4) {
+            var v = String(data.cell.raw || '');
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.textColor = v.charAt(0) === '+' ? [15, 138, 75] : [198, 40, 40];
+          }
+        },
+        didDrawPage: function () {
+          doc.setFontSize(8); doc.setTextColor(150);
+          doc.text('Página ' + doc.internal.getNumberOfPages(), W - 36, H - 18, { align: 'right' });
+        }
+      });
+      doc.save('movimientos-' + fileStamp(p) + '.pdf');
+    }).catch(function (e) { I.toast(e.message, 'error'); })
+      .finally(function () { busy(btn, false, 'Reporte PDF'); });
+  });
+
+  $('mvXlsx').addEventListener('click', function () {
+    var btn = this;
+    busy(btn, true);
+    Promise.all([fetchReporte(), I.lib('xlsx')]).then(function (r) {
+      var d = r[0].d, p = r[0].p, items = d.items || [], t = d.totales || {};
+      if (!items.length) { I.toast('No hay movimientos con estos filtros.'); return; }
+      var rows = [['Reporte de movimientos de inventario · Avante Optics']].concat(filtrosTxt(p, d)).concat([
+        ['Movimientos', t.movimientos || items.length], ['Entraron', t.entradas || 0], ['Salieron', t.salidas || 0], [],
+        ['Fecha', 'Clave', 'Descripción', 'Movimiento', 'Referencia', 'Cantidad', 'Antes', 'Después', 'Usuario', 'Comentario']
+      ]).concat(items.map(function (m) {
+        return [I.fechaHora(m.fecha), m.clave, m.descripcion, TIPOS[m.tipo] || m.tipo, refTxt(m), m.cantidad, m.antes, m.despues, m.usuario || '', comentarioTxt(m)];
+      }));
+      var ws = window.XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [22, 16, 44, 12, 14, 10, 10, 10, 18, 40].map(function (w) { return { wch: w }; });
+      var wb = window.XLSX.utils.book_new();
+      window.XLSX.utils.book_append_sheet(wb, ws, 'Movimientos');
+      window.XLSX.writeFile(wb, 'movimientos-' + fileStamp(p) + '.xlsx');
+    }).catch(function (e) { I.toast(e.message, 'error'); })
+      .finally(function () { busy(btn, false, 'Excel'); });
+  });
+
   syncPer();
   I.api('/api/inventario/articulos').then(function (d) { arts = d.items || []; }).catch(function () {});
   load();

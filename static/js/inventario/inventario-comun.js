@@ -264,7 +264,29 @@ window.Inv = (function () {
     return api('/api/inventario/rastreo/' + encodeURIComponent(String(num).trim().toUpperCase()));
   }
 
+  // Librerías para exportar (PDF / Excel), solo cuando se usan.
+  var LIBS = {
+    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    autotable: 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js'
+  };
+  var libP = {};
+  function lib(name) {
+    if (name === 'jspdf' && window.jspdf && window.jspdf.jsPDF) return Promise.resolve();
+    if (name === 'xlsx' && window.XLSX) return Promise.resolve();
+    if (!libP[name]) libP[name] = new Promise(function (ok, fail) {
+      var sc = document.createElement('script');
+      sc.src = LIBS[name]; sc.onload = ok;
+      sc.onerror = function () { delete libP[name]; fail(new Error('No se pudo cargar la herramienta para exportar. Revisa tu internet.')); };
+      document.head.appendChild(sc);
+    });
+    return libP[name];
+  }
+  function pdfLibs() { return lib('jspdf').then(function () { return lib('autotable'); }); }
+  function ahoraLocal() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19); }
+
   return {
+    lib: lib, pdfLibs: pdfLibs, ahoraLocal: ahoraLocal,
     isRastreo: isRastreo, lookupRastreo: lookupRastreo,
     base: base, canCost: canCost,
     select: select,
