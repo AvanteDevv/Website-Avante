@@ -233,6 +233,20 @@ func cuestionarioFromRaw(raw json.RawMessage) (string, error) {
 	return txt, nil
 }
 
+// cuestionarioIsUnison: ¿en el cuestionario se eligió que viene de la Unison?
+func cuestionarioIsUnison(txt string) bool {
+	if txt == "" {
+		return false
+	}
+	var q struct {
+		Procedencia string `json:"procedencia"`
+	}
+	if err := json.Unmarshal([]byte(txt), &q); err != nil {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(q.Procedencia), "unison")
+}
+
 // CreateAppointmentByStaff crea una cita desde el botón "+ Crear cita"
 // del panel de recepción/admin — a diferencia de CreateAppointment
 // (handlers/appointments.go, flujo público de agendar.js), NO pide
@@ -287,9 +301,14 @@ func CreateAppointmentByStaff(c *gin.Context) {
 		return
 	}
 
-	if shouldNotifyBooked(strings.TrimSpace(input.Tag), input.Status, date, input.Time) {
-		whatsapp.NotifyBooked(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
-	} else {
+	notifyBooked := shouldNotifyBooked(strings.TrimSpace(input.Tag), input.Status, date, input.Time)
+	// Requisitos de la Unison: a toda cita que todavía no pasa (aunque sea
+	// chequeo), si en "¿Viene de parte de…?" se eligió la Unison.
+	unison := cuestionarioIsUnison(cuestionario) && shouldNotifyBooked("", input.Status, date, input.Time)
+	if notifyBooked || unison {
+		whatsapp.NotifyBookedWithRequirements(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time), notifyBooked, unison)
+	}
+	if !notifyBooked {
 		log.Printf("admin.CreateAppointmentByStaff: cita #%d sin aviso de WhatsApp (etiqueta %q, estado %q, %s %s)", appt.ID, input.Tag, input.Status, input.Date, input.Time)
 	}
 

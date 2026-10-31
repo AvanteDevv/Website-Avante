@@ -10,6 +10,7 @@
 //	WHATSAPP_TEMPLATE_CITA_CANCELADA  — plantilla aprobada para avisar que la cita se canceló
 //	WHATSAPP_TEMPLATE_CITA_NO_ASISTIO — plantilla aprobada para avisar que no asistió + invitar a reagendar
 //	WHATSAPP_TEMPLATE_CITA_REAGENDADA — plantilla aprobada para avisar el nuevo día/hora cuando el cliente reagenda su cita
+//	WHATSAPP_TEMPLATE_REQUISITOS_UNISON — plantilla aprobada con los requisitos del trámite de lentes UNISON (se manda después de "cita agendada" si el cliente viene de la Unison; parámetros: {{1}} nombre, {{2}} fecha, {{3}} hora — los mismos que "cita agendada")
 //	WHATSAPP_TEMPLATE_LANG            — mismo código de idioma que ya usas para los recordatorios (default "es_MX")
 //
 // Si dejas alguna plantilla vacía en el entorno, ese aviso en
@@ -20,6 +21,7 @@ package whatsapp
 import (
 	"log"
 	"os"
+	"time"
 )
 
 func notifyTemplateLang() string {
@@ -35,6 +37,38 @@ func notifyTemplateLang() string {
 // recepción/admin (admin.CreateAppointmentByStaff).
 func NotifyBooked(celular, nombre, fecha, hora string) {
 	sendAsync(os.Getenv("WHATSAPP_TEMPLATE_CITA_AGENDADA"), celular, []string{nombre, fecha, hora})
+}
+
+// NotifyBookedWithRequirements manda, en orden, "tu cita quedó agendada"
+// (si booked) y luego los requisitos del trámite de lentes UNISON (si
+// unison). Van en la misma goroutine para que lleguen en ese orden.
+func NotifyBookedWithRequirements(celular, nombre, fecha, hora string, booked, unison bool) {
+	bookedTpl := os.Getenv("WHATSAPP_TEMPLATE_CITA_AGENDADA")
+	unisonTpl := os.Getenv("WHATSAPP_TEMPLATE_REQUISITOS_UNISON")
+	if !booked {
+		bookedTpl = ""
+	}
+	if !unison {
+		unisonTpl = ""
+	}
+	if bookedTpl == "" && unisonTpl == "" {
+		return
+	}
+	go func() {
+		if bookedTpl != "" {
+			if err := SendTemplateMessage(celular, bookedTpl, notifyTemplateLang(), []string{nombre, fecha, hora}); err != nil {
+				log.Println("[whatsapp] no se pudo enviar notificación de evento:", err)
+			}
+			if unisonTpl != "" {
+				time.Sleep(2 * time.Second)
+			}
+		}
+		if unisonTpl != "" {
+			if err := SendTemplateMessage(celular, unisonTpl, notifyTemplateLang(), []string{nombre, fecha, hora}); err != nil {
+				log.Println("[whatsapp] no se pudieron enviar los requisitos de la Unison:", err)
+			}
+		}
+	}()
 }
 
 // NotifyCancelled avisa que la cita se canceló, sin importar si la

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -161,6 +162,11 @@ type appointmentQuestionnaire struct {
 	UsaGotitas     string   `json:"usa_gotitas"`
 	Problemas      []string `json:"problemas"`
 	Enfermedades   []string `json:"enfermedades"`
+	// "¿Cómo se enteró?" y "¿Viene de parte de una empresa o de la
+	// Unison?" (procedencia: "" | "unison" | "empresa" + empresa).
+	ComoSeEntero string `json:"como_se_entero,omitempty"`
+	Procedencia  string `json:"procedencia,omitempty"`
+	Empresa      string `json:"empresa,omitempty"`
 }
 
 type createAppointmentInput struct {
@@ -290,7 +296,10 @@ func CreateAppointment(c *gin.Context) {
 		return
 	}
 
-	whatsapp.NotifyBooked(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time))
+	// Si viene de la Unison, después del "tu cita quedó agendada" se le
+	// mandan los requisitos del trámite de lentes.
+	unison := strings.EqualFold(strings.TrimSpace(input.Cuestionario.Procedencia), "unison")
+	whatsapp.NotifyBookedWithRequirements(input.Celular, input.Nombre, formatFechaEs(date), formatHour12(input.Time), true, unison)
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Cita agendada correctamente."})
 }
