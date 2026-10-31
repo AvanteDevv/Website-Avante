@@ -201,7 +201,8 @@
   ['ceExpDia', 'ceExpSemana', 'ceExpMes'].forEach(function (id) { $(id).addEventListener('change', syncExp); });
 
   /* ---------- números del reporte ---------- */
-  var ESTADOS = [['asistio', 'Asistieron'], ['no_asistio', 'No asistieron'], ['cancelada', 'Canceladas'], ['verificada', 'Por atender'], ['pendiente', 'Pendientes de confirmar']];
+  // "pendiente" no se usa en el panel: si llegara a haber, cuenta como por atender.
+  var ESTADOS = [['asistio', 'Asistieron'], ['no_asistio', 'No asistieron'], ['cancelada', 'Canceladas'], ['verificada', 'Por atender']];
   var TIPOS = [['web', 'Sin etiqueta (página web)'], ['sin_cita', 'Vino sin cita'], ['chequeo', 'Chequeo'], ['telefono', 'Por teléfono'], ['whatsapp', 'Por WhatsApp']];
   var COMO = { facebook: 'Facebook', instagram: 'Instagram', television: 'Televisión', tiktok: 'TikTok', sitio_web: 'Sitio web', google_maps: 'Google Maps', familiares: 'Familiares', amigos: 'Amigos', recomendado: 'Me recomendaron', casualidad: 'Pasé por casualidad', recurrente: 'Cliente recurrente', por_empresa: 'Por empresa' };
 
@@ -410,7 +411,7 @@
     list.forEach(function (r) { if (r.como) comoCount[r.como] = (comoCount[r.como] || 0) + 1; });
     var conCuest = Object.keys(comoCount).reduce(function (a, k) { return a + comoCount[k]; }, 0);
     var porComo = Object.keys(comoCount).map(function (k) { return [COMO[k] || cap(k.replace(/_/g, ' ')), comoCount[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
-    var porEstado = ESTADOS.map(function (e) { return [e[1], s[e[0]]]; });
+    var porEstado = ESTADOS.map(function (e) { return [e[1], e[0] === 'verificada' ? s.verificada + s.pendiente : s[e[0]]]; });
 
     var kpi = function (label, val, sub, cls) { return '<div class="cr-kpi' + (cls ? ' ' + cls : '') + '"><small>' + label + '</small><b>' + val + '</b>' + (sub ? '<em>' + sub + '</em>' : '') + '</div>'; };
     var pct = function (n) { return s.total ? Math.round(n * 100 / s.total) + '% del total' : ''; };
@@ -426,7 +427,7 @@
         kpi('Mejor ' + unidad, best ? esc(best.label) : '—', best ? best.total + (best.total === 1 ? ' cita' : ' citas') : '') +
         kpi('No asistieron', String(s.no_asistio), pct(s.no_asistio)) +
         kpi('Canceladas', String(s.cancelada), pct(s.cancelada)) +
-        kpi('Por atender', String(s.verificada + s.pendiente), s.pendiente ? s.pendiente + ' sin confirmar' : 'todas confirmadas') +
+        kpi('Por atender', String(s.verificada + s.pendiente), pct(s.verificada + s.pendiente)) +
         kpi('Hora más pedida', topHora != null ? horaTxt(+topHora) : '—', topHora != null ? horas[topHora] + (horas[topHora] === 1 ? ' cita' : ' citas') : '') +
         kpi('Compraron', String(s.compro), s.asistio ? 'de ' + s.asistio + ' que asistieron' : '', 'is-main') +
         kpi('Conversión', s.conv == null ? '—' : Math.round(s.conv) + '%', s.sinreg ? s.sinreg + ' sin registrar' : (s.compro + s.nocompro ? 'de los que se registró' : 'aún no se registra')) +

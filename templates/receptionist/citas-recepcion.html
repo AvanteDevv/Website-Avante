@@ -202,7 +202,7 @@
               <td>{{if .FechaNacimiento}}{{.FechaNacimiento}}{{else}}—{{end}}</td>
               <td class="cita-dia">{{fechaEs .Date}}</td>
               <td>{{.Time}}</td>
-              <td>{{if eq .Status "verificada"}}{{if eq .Origen "recepcion"}}<span class="admin-badge verificada recepcion" title="La agendó recepción desde el panel">Por recepción</span>{{else}}<span class="admin-badge verificada" title="El cliente hizo la cita él solo desde la página web">Por la web</span>{{end}}{{else}}<span class="admin-badge {{.Status}}"{{if .CancelReason}} title="Motivo: {{.CancelReason}}"{{end}}>{{.Status}}</span>{{end}}</td>
+              <td>{{if eq .Status "verificada"}}{{if eq .Origen "recepcion"}}<span class="admin-badge verificada recepcion" title="La agendó recepción desde el panel">Por recepción</span>{{else}}<span class="admin-badge verificada" title="El cliente hizo la cita él solo desde la página web">Por la web</span>{{end}}{{else}}{{if eq .Origen "recepcion"}}<span class="admin-badge verificada recepcion cita-origen-badge" title="La agendó recepción desde el panel">Por recepción</span>{{else}}<span class="admin-badge verificada cita-origen-badge" title="El cliente hizo la cita él solo desde la página web">Por la web</span>{{end}}<span class="admin-badge {{.Status}}"{{if .CancelReason}} title="Motivo: {{.CancelReason}}"{{end}}>{{.Status}}</span>{{end}}</td>
               <td>{{fechaEs .CreatedAt}}</td>
               <td>
                 <div class="row-menu" data-menu-id="{{.ID}}">
@@ -317,7 +317,6 @@
         </div>
         <div class="cal-grid" id="calGrid"></div>
         <div class="cal-legend">
-          <span><i class="cal-dot pendiente"></i> Pendiente</span>
           <span title="El cliente hizo la cita él solo desde la página web"><i class="cal-dot verificada"></i> Por la web</span>
           <span title="La agendó recepción desde el panel"><i class="cal-dot recepcion"></i> Por recepción</span>
           <span><i class="cal-dot cancelada"></i> Cancelada</span>

@@ -31,8 +31,9 @@
    QUIÉN HIZO LA CITA — appointments.origen (data-origen en la fila)
      "web"       → el cliente la hizo él solo desde la página.
      "recepcion" → la agendó recepción desde el panel.
-   Solo cambia cómo se ve el estado "verificada" (por atender):
-   "Por la web" o "Por recepción". La lógica sigue usando el estado.
+   En "verificada" (por atender) el estado se ve como "Por la web" o
+   "Por recepción"; en los demás estados la etiqueta de origen se
+   muestra junto al estado. La lógica sigue usando el estado.
    ========================================================= */
 window.CitaOrigen = window.CitaOrigen || (function(){
   var LABELS = { pendiente: 'Pendiente', verificada: 'Por la web', recepcion: 'Por recepción', cancelada: 'Cancelada', asistio: 'Asistió', no_asistio: 'No asistió' };
@@ -46,7 +47,31 @@ window.CitaOrigen = window.CitaOrigen || (function(){
   function ofRow(row){ return key(row.dataset.status, row.dataset.origen); }
   // Clases del badge: la verificada de recepción lleva las dos.
   function badgeClass(k){ return 'admin-badge ' + (k === 'recepcion' ? 'verificada recepcion' : k); }
+  // El origen se queda visible aunque la cita cambie de estado (asistió,
+  // no asistió, cancelada…). En "verificada" el propio estado ya lo dice.
+  function originKey(row){ return row.dataset.origen === 'recepcion' ? 'recepcion' : 'verificada'; }
+  function showOrigin(row){ return row.dataset.status !== 'verificada'; }
+  function originHTML(row){
+    if (!showOrigin(row)) return '';
+    var k = originKey(row);
+    return '<span class="' + badgeClass(k) + ' cita-origen-badge" title="' + TITLES[k] + '">' + LABELS[k] + '</span>';
+  }
+  function paintOrigin(statusEl, row){
+    if (!statusEl || !statusEl.parentNode) return;
+    var el = document.getElementById('calEventOrigen');
+    if (!el) {
+      el = document.createElement('span');
+      el.id = 'calEventOrigen';
+      statusEl.parentNode.insertBefore(el, statusEl);
+    }
+    var k = originKey(row);
+    el.className = badgeClass(k) + ' cita-origen-badge';
+    el.textContent = LABELS[k];
+    el.title = TITLES[k];
+    el.hidden = !showOrigin(row);
+  }
   return { LABELS: LABELS, TITLES: TITLES, key: key, ofRow: ofRow, badgeClass: badgeClass,
+    originKey: originKey, originHTML: originHTML, paintOrigin: paintOrigin,
     label: function(k){ return LABELS[k] || k; }, title: function(k){ return TITLES[k] || ''; } };
 })();
 
@@ -665,6 +690,7 @@ window.CitasFiltro = (function(){
       statusEl.textContent = CitaOrigen.label(stKey);
       statusEl.className = CitaOrigen.badgeClass(stKey);
       statusEl.title = CitaOrigen.title(stKey);
+      CitaOrigen.paintOrigin(statusEl, row);
 
       var reasonEl = document.getElementById('calEventReason');
       var reason = row.dataset.cancelReason ? row.dataset.cancelReason.trim() : '';
@@ -763,8 +789,23 @@ window.CitasFiltro = (function(){
       // Resumen por estado
       dvSummary.innerHTML = '';
       var counts = {};
-      rows.forEach(function(r){ var k = CitaOrigen.ofRow(r); counts[k] = (counts[k] || 0) + 1; });
+      // Primero quién hizo la cita (todas las del día), luego el estado.
+      var origCounts = {};
+      rows.forEach(function(r){ var o = CitaOrigen.originKey(r); origCounts[o] = (origCounts[o] || 0) + 1; });
+      ['verificada', 'recepcion'].forEach(function(o){
+        if (!origCounts[o]) return;
+        var chip = document.createElement('span');
+        chip.className = 'day-view-chip';
+        chip.title = CitaOrigen.title(o);
+        var dot = document.createElement('i');
+        dot.className = 'cal-dot ' + o;
+        chip.appendChild(dot);
+        chip.appendChild(document.createTextNode(origCounts[o] + ' ' + STATUS_LABELS[o].toLowerCase()));
+        dvSummary.appendChild(chip);
+      });
+      rows.forEach(function(r){ var k = r.dataset.status; counts[k] = (counts[k] || 0) + 1; });
       Object.keys(STATUS_LABELS).forEach(function(st){
+        if (st === 'verificada' || st === 'recepcion' || st === 'pendiente') return;
         if (!counts[st]) return;
         var chip = document.createElement('span');
         chip.className = 'day-view-chip';
@@ -828,6 +869,7 @@ window.CitasFiltro = (function(){
           next.textContent = 'Siguiente';
           right.appendChild(next);
         }
+        right.insertAdjacentHTML('beforeend', CitaOrigen.originHTML(row));
         var badge = document.createElement('span');
         badge.className = CitaOrigen.badgeClass(CitaOrigen.ofRow(row));
         badge.textContent = CitaOrigen.label(CitaOrigen.ofRow(row));

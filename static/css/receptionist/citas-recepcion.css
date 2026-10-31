@@ -1862,3 +1862,7 @@ body.dark .admin-badge.verificada.recepcion{ background:rgba(139,92,246,.2); col
 @media (prefers-reduced-motion:reduce){
   .av-date .cb-datepicker-day, .av-date .cb-datepicker-grid, .av-date .cb-datepicker-trigger{ animation:none !important; }
 }
+
+/* Origen de la cita junto al estado (tabla y detalle) */
+td > .cita-origen-badge, #calEventOrigen{ margin-right:6px; }
+.cita-origen-badge{ text-transform:none; }
