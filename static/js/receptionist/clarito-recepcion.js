@@ -152,6 +152,10 @@
   }
   function openModal(id) { $(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).classList.remove('open'); if (!document.querySelector('.admin-modal-overlay.open')) document.body.style.overflow = ''; }
+  // Lo último que respondió el bucket se guarda en el navegador: la página
+  // lo muestra al instante y luego se actualiza en segundo plano.
+  function cacheGet(k) { try { var v = store('clrCache:' + k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function cacheSet(k, v) { try { store('clrCache:' + k, JSON.stringify(v)); } catch (e) { /* lleno o bloqueado */ } }
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
 
   var ICON = {
@@ -199,9 +203,15 @@
   }
 
   function loadStatus() {
+    var cached = cacheGet('status');
+    if (status.ready === null && cached && cached.ready) {
+      status = cached; status.settings = cached.settings || {};
+      renderStatus();
+    }
     return api('/api/clarito/status').then(function (d) {
       status = d;
       status.settings = d.settings || {};
+      if (d.ready) cacheSet('status', d);
       renderStatus();
       if (status.ready) { loadRecent(); if (fill) syncDest(); }
       else renderRecent([]);
@@ -264,10 +274,22 @@
   }
 
   var tplReady = Promise.resolve();
+  var tplListReady = Promise.resolve(), tplListDone;
   function loadTemplates() {
     if (status.ready === false) { renderTemplates(); return Promise.resolve(); }
     $('clrForms').classList.add('is-loading');
+    tplListReady = new Promise(function (res) { tplListDone = res; });
+    // Mientras responde el bucket, se usa la lista de la última vez (los PDF
+    // de las plantillas ya quedan en la caché del navegador).
+    var cachedTpl = cacheGet('templates');
+    if (!templates.length && cachedTpl && cachedTpl.length) {
+      templates = cachedTpl.map(function (it) { return { key: it.key, name: it.name, size: it.size, modified: it.modified, def: null }; });
+      renderTemplates();
+      tplListDone();
+      analyzeAll();
+    }
     return (tplReady = api('/api/clarito/templates').then(function (d) {
+      cacheSet('templates', (d.items || []).map(function (it) { return { key: it.key, name: it.name, size: it.size, modified: it.modified }; }));
       var prev = {};
       templates.forEach(function (t) { prev[tplId(t)] = t; });
       templates = (d.items || []).map(function (it) {
@@ -275,8 +297,10 @@
         return old || { key: it.key, name: it.name, size: it.size, modified: it.modified, def: null };
       });
       renderTemplates();
+      tplListDone();
       return analyzeAll();
     }).catch(function (err) {
+      if (tplListDone) tplListDone();
       $('clrForms').innerHTML = '<p class="clr-empty">' + esc(err.message) + '</p>';
     }).finally(function () { $('clrForms').classList.remove('is-loading'); }));
   }
@@ -1882,10 +1906,19 @@
       return d && d.v ? d : null;
     } catch (e) { return null; }
   }
+  // Solo hacen falta los campos de cada plantilla (no esperar a dibujar sus hojas).
+  function ensureDef(t) {
+    if (t.def || t.error) return Promise.resolve();
+    if (t._defP) return t._defP;
+    t._defP = getTplBytes(t).then(function (bytes) {
+      return PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+    }).then(function (doc) {
+      if (!t.def) { t.def = buildDef(t, doc); t.layout = tplLayout(doc); t.pages = t.layout.geo.length; }
+    }).catch(function (err) { console.warn('Clarito: plantilla', t.name, err); });
+    return t._defP;
+  }
   function templatesReady() {
-    return tplReady.then(function () {
-      return Promise.all(templates.filter(function (t) { return !t.def && !t.error; }).map(analyzeTemplate));
-    });
+    return tplListReady.then(function () { return Promise.all(templates.map(ensureDef)); });
   }
   function savedFolderOf(key) {
     return String(key || '').replace(/^clarito\/guardados\//, '').split('/').slice(0, -1).join('/');
@@ -1924,9 +1957,13 @@
       return Promise.all(jobs).then(function (r) { try { pdf.destroy(); } catch (e) { /* */ } return r; });
     });
   }
-  function itemInRect(it, rc) {
-    var x = it.transform[4] + (it.width || 0) / 2, y = it.transform[5];
-    return x >= rc.x - 2 && x <= rc.x + rc.width + 2 && y >= rc.y - 3 && y <= rc.y + rc.height + 2;
+  // Qué tan bien cae un texto dentro del recuadro de un campo (menor = mejor; -1 = no cae).
+  function itemFit(it, rc) {
+    var h = it.height || Math.abs(it.transform[3]) || 8;
+    var x = it.transform[4] + (it.width || 0) / 2, yc = it.transform[5] + h * 0.35;
+    if (x < rc.x - 2 || x > rc.x + rc.width + 2) return -1;
+    if (yc < rc.y - 2 || yc > rc.y + rc.height + 2) return -1;
+    return Math.abs(yc - (rc.y + rc.height / 2));
   }
   function joinItems(items) {
     items.sort(function (a, b) { return Math.abs(b.transform[5] - a.transform[5]) > 2 ? b.transform[5] - a.transform[5] : a.transform[4] - b.transform[4]; });
@@ -1951,22 +1988,34 @@
       var tdoc = r[0], saved = r[1], blank = r[2], pages = tdoc.getPages(), out = {};
       var fields = [];
       try { fields = tdoc.getForm().getFields(); } catch (e) { fields = []; }
+      // Recuadros de los campos de texto, por hoja.
+      var boxes = [];
       fields.forEach(function (f) {
         if (!(f instanceof PDFLib.PDFTextField)) return;
-        var name = f.getName();
         f.acroField.getWidgets().forEach(function (w) {
-          if (out[name]) return;
-          var rc = w.getRectangle(), pi = 0, P = w.P();
+          var pi = 0, P = w.P();
           if (P) pages.forEach(function (p, i) { if (p.ref === P) pi = i; });
-          var base = (blank[pi] || []).filter(function (it) { return itemInRect(it, rc); });
-          var mine = (saved[pi] || []).filter(function (it) {
-            return itemInRect(it, rc) && !base.some(function (b) {
-              return b.str === it.str && Math.abs(b.transform[4] - it.transform[4]) < 2 && Math.abs(b.transform[5] - it.transform[5]) < 2;
-            });
-          });
-          var txt = joinItems(mine);
-          if (txt) out[name] = f.isMultiline() ? txt : txt.replace(/\n/g, ' ');
+          boxes.push({ name: f.getName(), multi: f.isMultiline(), page: pi, rc: w.getRectangle(), items: [] });
         });
+      });
+      // Cada texto nuevo (que no viene en la plantilla en blanco) va al campo donde mejor cae.
+      saved.forEach(function (items, pi) {
+        var base = blank[pi] || [];
+        items.forEach(function (it) {
+          if (base.some(function (b) { return b.str === it.str && Math.abs(b.transform[4] - it.transform[4]) < 2 && Math.abs(b.transform[5] - it.transform[5]) < 2; })) return;
+          var best = null, bestFit = Infinity;
+          boxes.forEach(function (bx) {
+            if (bx.page !== pi) return;
+            var fit = itemFit(it, bx.rc);
+            if (fit >= 0 && fit < bestFit) { bestFit = fit; best = bx; }
+          });
+          if (best) best.items.push(it);
+        });
+      });
+      boxes.forEach(function (bx) {
+        if (out[bx.name] || !bx.items.length) return;
+        var txt = joinItems(bx.items);
+        if (txt) out[bx.name] = bx.multi ? txt : txt.replace(/\n/g, ' ');
       });
       return out;
     }).catch(function (err) { console.warn('Clarito: no se pudo leer la hoja', err); return {}; });
@@ -2129,20 +2178,50 @@
     }
     var my = ++folderReq;
     $('clrViewDrive').classList.add('is-loading');
+    var cachedF = cacheGet('folder:' + path);
+    if (cachedF && (path !== curFolder || !$('clrItems').children.length)) {
+      curFolder = cachedF.path || '';
+      folderData = cachedF;
+      $('clrCrumbs').innerHTML = crumbsHTML(cachedF.crumbs || crumbsOf(path), 'data-go');
+      renderFolder();
+    } else if (!$('clrItems').children.length) {
+      $('clrCrumbs').innerHTML = crumbsHTML(crumbsOf(path), 'data-go');
+      $('clrItemsEmpty').hidden = false;
+      $('clrItemsEmpty').innerHTML = '<span class="clr-loading-dot"></span> Cargando la carpeta…';
+    }
+    // Si el bucket tarda demasiado, se avisa y se puede reintentar.
+    var slow = setTimeout(function () {
+      if (my !== folderReq || $('clrItems').children.length) return;
+      $('clrItemsEmpty').hidden = false;
+      $('clrItemsEmpty').innerHTML = 'El almacenamiento está tardando en responder. <a href="#" data-folder-retry>Reintentar</a>';
+    }, 20000);
     api('/api/clarito/folders?path=' + encodeURIComponent(path)).then(function (d) {
+      clearTimeout(slow);
+      cacheSet('folder:' + (d.path || ''), d);
       if (my !== folderReq) return;
       curFolder = d.path || '';
       folderData = d;
       $('clrCrumbs').innerHTML = crumbsHTML(d.crumbs || [], 'data-go');
       renderFolder();
     }).catch(function (err) {
+      clearTimeout(slow);
       if (my !== folderReq) return;
       if (err.code === 'no_folder' && path) { toast(err.message); loadFolder(path.split('/').slice(0, -1).join('/')); return; }
       $('clrItems').innerHTML = '';
       $('clrItemsEmpty').hidden = false;
-      $('clrItemsEmpty').textContent = err.message;
+      $('clrItemsEmpty').innerHTML = esc(err.message || 'No se pudo abrir la carpeta.') + ' <a href="#" data-folder-retry>Reintentar</a>';
     }).finally(function () { if (my === folderReq) $('clrViewDrive').classList.remove('is-loading'); });
   }
+  function crumbsOf(path) {
+    var out = [{ path: '', name: ROOT_NAME }], acc = [];
+    (path ? path.split('/') : []).forEach(function (p) { acc.push(p); out.push({ path: acc.join('/'), name: p }); });
+    return out;
+  }
+  $('clrItemsEmpty').addEventListener('click', function (e) {
+    if (!e.target.closest('[data-folder-retry]')) return;
+    e.preventDefault();
+    loadFolder(curFolder);
+  });
   function renderFolder() {
     var d = folderData, i = 0;
     var html = (d.folders || []).map(function (f) {
@@ -2668,5 +2747,7 @@
   syncLayoutButtons();
   renderTemplates();
   $('clrRecent').innerHTML = '<p class="clr-empty">Cargando…</p>';
-  loadStatus().then(function () { return loadTemplates(); });
+  // Las dos cosas a la vez: la lista de plantillas no espera al resumen del bucket.
+  loadStatus();
+  loadTemplates();
 })();

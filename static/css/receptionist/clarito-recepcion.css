@@ -560,3 +560,7 @@ body.dark .clr-signdoc-note{ background:rgba(255,193,7,.12); color:#ffcf5c; }
 /* Fechas del formato con el calendario del panel (av-date.js) */
 .clr-field .av-date{ width:100%; }
 .clr-field .av-date .cb-datepicker-trigger{ width:100%; }
+/* Carpeta cargando */
+.clr-loading-dot{ display:inline-block; width:12px; height:12px; margin-right:6px; vertical-align:-1px; border-radius:50%; border:2px solid var(--line); border-top-color:var(--accent); animation:clrSpin .8s linear infinite; }
+@keyframes clrSpin{ to{ transform:rotate(360deg); } }
+#clrItemsEmpty a{ color:var(--accent); font-weight:700; }
