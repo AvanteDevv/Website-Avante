@@ -74,6 +74,14 @@ func UpdateClaritoDocumentKey(oldKey, newKey, fileName, folderPath string) error
 	return err
 }
 
+// UpdateClaritoDocumentContent actualiza el registro cuando se edita o se
+// firma un formato ya guardado (el archivo se reemplaza en su lugar).
+func UpdateClaritoDocumentContent(key, formKey, client string, size int64) error {
+	_, err := db.DB.Exec(`UPDATE clarito_documents SET form_key = IF(? <> '', ?, form_key), client_name = IF(? <> '', ?, client_name), size = ? WHERE object_key = ?`,
+		formKey, formKey, client, client, size, key)
+	return err
+}
+
 // MoveClaritoDocumentsPrefix actualiza el registro cuando se renombra una
 // carpeta: todo lo que empezaba con oldPrefix ahora empieza con newPrefix.
 func MoveClaritoDocumentsPrefix(oldPrefix, newPrefix, oldPath, newPath string) error {

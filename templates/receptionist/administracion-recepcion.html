@@ -225,6 +225,30 @@
   </div>
 </div>
 
+<!-- ================= Clarito: firmar un formato ya guardado ================= -->
+<div class="admin-modal-overlay" id="clrSignDocModal">
+  <div class="admin-modal-card clr-signdoc-card" role="dialog" aria-modal="true" aria-labelledby="clrSignDocTitle">
+    <div class="admin-modal-head">
+      <div>
+        <h3 id="clrSignDocTitle">Firmar formato</h3>
+        <small class="clr-fill-sub" id="clrSignDocSub"></small>
+      </div>
+      <button type="button" class="admin-modal-close" id="clrSignDocClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="clr-signdoc-tip">Elige cómo firmar cada espacio: dibujarla aquí, subir una imagen de la firma o mandarle el link para que firme con su celular.</p>
+      <p class="clr-signdoc-note" id="clrSignDocNote" hidden>Este formato se guardó antes: la firma se agrega encima de la hoja tal como está.</p>
+      <div class="clr-signdoc-list" id="clrSignDocList"></div>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="clrSignDocCancel">Cancelar</button>
+        <button type="button" class="btn solid small" id="clrSignDocSave" disabled>Guardar firmas</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ================= Clarito: firma ================= -->
 <div class="admin-modal-overlay" id="clrSignModal">
   <div class="admin-modal-card clr-sign-card" role="dialog" aria-modal="true" aria-labelledby="clrSignTitle">
@@ -502,6 +526,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="/static/js/receptionist/av-date.js"></script>
 <script src="/static/js/receptionist/clarito-recepcion.js"></script>
 <script src="/static/js/receptionist/documentacion-recepcion.js"></script>
 </body>

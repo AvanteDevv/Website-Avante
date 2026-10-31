@@ -117,7 +117,9 @@
   function stripPdf(n) { return String(n || '').replace(/\.pdf$/i, ''); }
   function cleanName(s) { return String(s || '').replace(/[\\/:*?"<>|\x00-\x1f]+/g, ' ').replace(/\s+/g, ' ').replace(/^[.\s]+|[.\s]+$/g, ''); }
   function pathLabel(p) { return [ROOT_NAME].concat(p ? p.split('/') : []).join(' / '); }
-  function fileURL(key, download) { return '/api/clarito/file?key=' + encodeURIComponent(key) + (download ? '&download=1' : ''); }
+  // Los que se acaban de editar o firmar llevan versión, para no ver el archivo viejo en caché.
+  var savedVer = {};
+  function fileURL(key, download) { return '/api/clarito/file?key=' + encodeURIComponent(key) + (download ? '&download=1' : '') + (savedVer[key] ? '&r=' + savedVer[key] : ''); }
   // El PDF usa Helvetica estándar (WinAnsi): quita lo que no se puede escribir.
   function pdfSafe(s) {
     return String(s == null ? '' : s)
@@ -165,6 +167,7 @@
     move: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M10 13h6M13 10l3 3-3 3"/></svg>',
     image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L6 21"/></svg>',
     phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
+    sign: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16c2.5-3.5 4.5-8 6.5-8 1.6 0-.8 7.5 1.2 7.5 1.4 0 2.3-3.5 3.8-3.5 1 0 .6 2.6 2 2.6.9 0 1.9-.8 3-1.8"/><path d="M3 20h18"/></svg>',
     open: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg>'
   };
 
@@ -260,10 +263,11 @@
     return '/api/clarito/templates/preview?key=' + encodeURIComponent(t.key) + '&v=' + encodeURIComponent(t.modified) + '&page=' + page;
   }
 
+  var tplReady = Promise.resolve();
   function loadTemplates() {
     if (status.ready === false) { renderTemplates(); return Promise.resolve(); }
     $('clrForms').classList.add('is-loading');
-    return api('/api/clarito/templates').then(function (d) {
+    return (tplReady = api('/api/clarito/templates').then(function (d) {
       var prev = {};
       templates.forEach(function (t) { prev[tplId(t)] = t; });
       templates = (d.items || []).map(function (it) {
@@ -274,7 +278,7 @@
       return analyzeAll();
     }).catch(function (err) {
       $('clrForms').innerHTML = '<p class="clr-empty">' + esc(err.message) + '</p>';
-    }).finally(function () { $('clrForms').classList.remove('is-loading'); });
+    }).finally(function () { $('clrForms').classList.remove('is-loading'); }));
   }
 
   function tplMeta(t) {
@@ -677,8 +681,9 @@
       '</div>';
     }).join('');
   }
+  var recentDocs = [];
   function loadRecent() {
-    api('/api/clarito/documents').then(function (d) { renderRecent(d.items || []); }).catch(function () { renderRecent([]); });
+    api('/api/clarito/documents').then(function (d) { recentDocs = d.items || []; renderRecent(recentDocs); }).catch(function () { renderRecent([]); });
   }
   $('clrRecent').addEventListener('click', function (e) {
     var g = e.target.closest('[data-go-folder]');
@@ -751,7 +756,7 @@
     var label = '<span>' + esc(f.label) + (f.required ? ' <b class="clr-req">*</b>' : '') + '</span>';
     var input;
     if (f.type === 'date' || f.type === 'datetext') {
-      input = '<input type="date" data-field="' + f.id + '" value="' + esc(v) + '">';
+      input = '<input type="date" data-av-date data-field="' + f.id + '" value="' + esc(v) + '">';
     } else if (f.type === 'money') {
       input = '<span class="clr-money"><b>$</b><input type="text" inputmode="decimal" data-field="' + f.id + '" value="' + esc(v) + '" placeholder="0.00"></span>';
     } else if (f.type === 'tel') {
@@ -777,13 +782,17 @@
     var fields = fill.def.fields;
     $('clrFillForm').innerHTML = '<div class="clr-fields">' + fields.map(fieldHTML).join('') + '</div>' +
       (fill.def.preset ? '' : '<p class="clr-auto-note">Los campos salen del PDF «' + esc(fill.tpl.name) + '». Si un nombre no se entiende, cambia a <b>Sobre la hoja</b> para ver dónde cae cada uno.</p>');
+    // Fechas con el calendario animado del panel (av-date.js).
+    if (window.AvDate) AvDate.enhanceAll($('clrFillForm'));
   }
   function renderSigRow(key) {
-    var row = $('clrFillForm').querySelector('.clr-sig-row[data-sig-key="' + cssq(key) + '"]');
+    var box = fill && fill.signOnly ? $('clrSignDocList') : $('clrFillForm');
+    var row = box.querySelector('.clr-sig-row[data-sig-key="' + cssq(key) + '"]');
     if (row) row.outerHTML = sigRowHTML(key);
   }
 
-  function openFill(t) {
+  // saved (opcional): un formato ya guardado que se abre para editarlo.
+  function openFill(t, saved) {
     var def = t.def;
     if (!def || !def.fields.length) return;
     fill = { tpl: t, def: def, mode: 'form', values: {}, follow: {}, sheet: {}, sheetFollow: {}, sigs: {}, remote: {}, chosenFolder: null, nameTouched: false };
@@ -791,12 +800,16 @@
       fill.values[f.id] = defaultValue(f);
       if (f.follow) fill.follow[f.id] = true;
     });
+    if (saved) restoreSaved(saved);
     var last = store('clrLastFolder');
-    if (last !== null && last !== undefined && last !== '__auto__') fill.chosenFolder = { path: last };
-    $('clrFillTitle').textContent = def.name;
-    $('clrFillSub').textContent = def.desc || ('Plantilla: ' + t.name);
+    if (!saved && last !== null && last !== undefined && last !== '__auto__') fill.chosenFolder = { path: last };
+    $('clrFillTitle').textContent = saved ? 'Editar · ' + def.name : def.name;
+    $('clrFillSub').textContent = saved ? 'Editando «' + saved.name + '»' : (def.desc || ('Plantilla: ' + t.name));
     renderFillForm();
-    syncFileName();
+    if (saved) { fill.nameTouched = true; $('clrFileName').value = stripPdf(saved.name); }
+    else syncFileName();
+    $('clrDestChange').hidden = !!saved;
+    $('clrSave').textContent = saved ? 'Guardar cambios' : 'Guardar';
     syncDest();
     syncModeUI();
     $('clrPreviewPages').innerHTML = '';
@@ -862,13 +875,14 @@
     if (next) { next.focus(); if (next.select && next.type !== 'date' && next.type !== 'checkbox') try { next.select(); } catch (err) { /* */ } }
     else $('clrFileName').focus();
   });
-  $('clrFillForm').addEventListener('click', function (e) {
+  function onSigClick(e) {
     var b;
     if ((b = e.target.closest('[data-sign]'))) { e.preventDefault(); openSign(b.getAttribute('data-sign')); return; }
     if ((b = e.target.closest('[data-sig-upload]'))) { e.preventDefault(); pickSigImage(b.getAttribute('data-sig-upload')); return; }
     if ((b = e.target.closest('[data-sig-remote]'))) { e.preventDefault(); startRemote(b.getAttribute('data-sig-remote')); return; }
     if ((b = e.target.closest('[data-unsign]'))) { e.preventDefault(); setSig(b.getAttribute('data-unsign'), null); }
-  });
+  }
+  $('clrFillForm').addEventListener('click', onSigClick);
 
   /* ---------- valores para el PDF ---------- */
   // Del formulario → { nombreDelCampoEnElPDF: valor }
@@ -988,7 +1002,7 @@
             pg.drawImage(img, { x: b.x, y: b.y, width: b.w, height: b.h });
           });
         }));
-      }).then(function () { return doc.save(); });
+      }).then(function () { stampData(doc); return doc.save(); });
     });
   }
   // Dónde va la imagen de la firma: centrada, encima de la línea del campo.
@@ -1485,6 +1499,10 @@
   function syncDest() {
     if (!fill) return;
     var el = $('clrDestPath');
+    if (fill.edit) {
+      el.innerHTML = ICON.folder + esc(pathLabel(fill.edit.folder)) + ' <em>(donde ya está)</em>';
+      return;
+    }
     if (fill.chosenFolder) {
       el.innerHTML = ICON.folder + esc(pathLabel(fill.chosenFolder.path)) + ' <em>(elegida)</em>';
       return;
@@ -1557,12 +1575,21 @@
         fd.append('form_name', fill.def.name);
         fd.append('client', clientOf());
         fd.append('file_name', cleanName($('clrFileName').value) || fileNameFor());
-        if (fill.chosenFolder) fd.append('folder', fill.chosenFolder.path);
-        return api('/api/clarito/documents', { method: 'POST', form: fd });
+        if (savedFill.edit) { fd.append('replace_key', savedFill.edit.key); savedVer[savedFill.edit.key] = Date.now(); }
+        else if (fill.chosenFolder) fd.append('folder', fill.chosenFolder.path);
+        return api('/api/clarito/documents', { method: 'POST', form: fd }).then(function (d) {
+          // Al editar, si cambió el nombre se renombra el mismo archivo.
+          var newName = cleanName($('clrFileName').value);
+          if (!savedFill.edit || !newName || newName === stripPdf(savedFill.edit.name)) return d;
+          return api('/api/clarito/file', { method: 'PUT', body: { key: savedFill.edit.key, name: newName } }).then(function (r) {
+            if (r.key) savedVer[r.key] = savedVer[savedFill.edit.key];
+            d.document = d.document || {}; d.document.file_name = r.name; return d;
+          }).catch(function (err) { toast(err.message); return d; });
+        });
       }).then(function (d) {
         if (fill === savedFill) closeFill();
         var doc = d.document || {};
-        toast('Guardado: <b>' + esc(doc.file_name || '') + '</b> en ' + esc(d.folder_label || ROOT_NAME) +
+        toast((savedFill.edit ? 'Cambios guardados: <b>' : 'Guardado: <b>') + esc(doc.file_name || '') + '</b> en ' + esc(d.folder_label || ROOT_NAME) +
           ' · <a href="#" data-toast-folder="' + esc(d.folder || '') + '">Ver carpeta</a>', true, 6500);
         loadRecent(); loadStatus();
         if (currentView === 'drive') loadFolder(curFolder);
@@ -1588,8 +1615,12 @@
       });
     }
     closeMenu();
+    if (window.AvDate) AvDate.closeAll();
     closeModal('clrRemoteModal');
     closeModal('clrFillModal');
+    closeModal('clrSignDocModal');
+    $('clrDestChange').hidden = false;
+    $('clrSave').textContent = 'Guardar';
     fill = null;
     sheetSeq++;
     $('clrSheetPages').innerHTML = '';
@@ -1611,10 +1642,12 @@
   function setSig(key, png) {
     if (!fill) return;
     if (png) fill.sigs[key] = png; else delete fill.sigs[key];
+    fill.sigsChanged = true;
     refreshSigUI(key);
   }
   function refreshSigUI(key) {
     if (!fill) return;
+    if (fill.signOnly) { renderSigRow(key); syncSignDocSave(); return; }
     if (fill.mode === 'sheet') { placeSheetSigs(); updateSheetSignButtons(); }
     else { renderSigRow(key); schedulePreview(); }
   }
@@ -1821,6 +1854,257 @@
   });
 
   /* =======================================================
+     EDITAR / FIRMAR UN FORMATO YA GUARDADO
+     Al guardar, el PDF lleva adentro (en sus propiedades) con qué se
+     llenó: plantilla, campos y firmas. Así se reabre tal cual.
+     Los que se guardaron antes de esto no lo traen: se leen los textos
+     de la hoja en el lugar de cada campo de la plantilla (las firmas de
+     esos no se recuperan; se vuelven a poner).
+     ======================================================= */
+  var DATA_KEY = 'ClaritoData';
+  function stampData(doc) {
+    if (!fill || fill.base) return;
+    try {
+      var data = {
+        v: 1, tplKey: fill.tpl.key, tpl: fill.tpl.name, form: fill.def.key, mode: fill.mode,
+        values: fill.values, follow: fill.follow, sheet: fill.mode === 'sheet' ? fill.sheet : null, sigs: fill.sigs
+      };
+      var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+      doc.getInfoDict().set(PDFLib.PDFName.of(DATA_KEY), PDFLib.PDFString.of(b64));
+    } catch (e) { console.warn('Clarito: no se guardaron los datos para editar', e); }
+  }
+  function readData(doc) {
+    try {
+      var v = doc.getInfoDict().lookup(PDFLib.PDFName.of(DATA_KEY));
+      if (!v) return null;
+      var raw = v.asString ? v.asString() : v.decodeText();
+      var d = JSON.parse(decodeURIComponent(escape(atob(raw))));
+      return d && d.v ? d : null;
+    } catch (e) { return null; }
+  }
+  function templatesReady() {
+    return tplReady.then(function () {
+      return Promise.all(templates.filter(function (t) { return !t.def && !t.error; }).map(analyzeTemplate));
+    });
+  }
+  function savedFolderOf(key) {
+    return String(key || '').replace(/^clarito\/guardados\//, '').split('/').slice(0, -1).join('/');
+  }
+  // ¿De qué plantilla salió? Por los datos guardados, por el registro o por el nombre.
+  function tplForSaved(data, name, key) {
+    var ok = function (t) { return t && t.def && t.def.fields.length; };
+    var t = null;
+    if (data) {
+      t = tplByKey(data.tplKey);
+      if (!ok(t)) t = templates.filter(function (x) { return ok(x) && x.def.key === data.form; })[0];
+      if (!ok(t)) t = templates.filter(function (x) { return ok(x) && x.name === data.tpl; })[0];
+    }
+    if (!ok(t)) {
+      var rec = recentDocs.filter(function (d) { return d.key === key; })[0];
+      if (rec && rec.form_key) t = templates.filter(function (x) { return ok(x) && x.def.key === rec.form_key; })[0];
+    }
+    if (!ok(t)) {
+      var n = norm(stripPdf(name));
+      t = templates.filter(function (x) {
+        return ok(x) && [x.def.short, x.def.name].some(function (s) { return s && n.indexOf(norm(s)) === 0; });
+      })[0];
+    }
+    return ok(t) ? t : null;
+  }
+
+  // --- formatos guardados antes: leer el texto de la hoja ---
+  function pdfTextItems(bytes) {
+    return pdfjsLib.getDocument({ data: new Uint8Array(bytes.slice(0)) }).promise.then(function (pdf) {
+      var jobs = [];
+      for (var i = 1; i <= pdf.numPages; i++) {
+        jobs.push(pdf.getPage(i).then(function (pg) { return pg.getTextContent(); }).then(function (tc) {
+          return tc.items.filter(function (it) { return it.str && it.str.trim(); });
+        }));
+      }
+      return Promise.all(jobs).then(function (r) { try { pdf.destroy(); } catch (e) { /* */ } return r; });
+    });
+  }
+  function itemInRect(it, rc) {
+    var x = it.transform[4] + (it.width || 0) / 2, y = it.transform[5];
+    return x >= rc.x - 2 && x <= rc.x + rc.width + 2 && y >= rc.y - 3 && y <= rc.y + rc.height + 2;
+  }
+  function joinItems(items) {
+    items.sort(function (a, b) { return Math.abs(b.transform[5] - a.transform[5]) > 2 ? b.transform[5] - a.transform[5] : a.transform[4] - b.transform[4]; });
+    var out = '', prev = null;
+    items.forEach(function (it) {
+      if (prev) {
+        if (Math.abs(prev.transform[5] - it.transform[5]) > 2) out += '\n';
+        else if (it.transform[4] - (prev.transform[4] + (prev.width || 0)) > 1) out += ' ';
+      }
+      out += it.str; prev = it;
+    });
+    return out.replace(/[ \t]+/g, ' ').trim();
+  }
+  function readSheetFromPdf(savedBytes, t) {
+    if (!window.pdfjsLib) return Promise.resolve({});
+    return getTplBytes(t).then(function (tb) {
+      return Promise.all([
+        PDFLib.PDFDocument.load(tb, { ignoreEncryption: true, updateMetadata: false }),
+        pdfTextItems(savedBytes), pdfTextItems(tb)
+      ]);
+    }).then(function (r) {
+      var tdoc = r[0], saved = r[1], blank = r[2], pages = tdoc.getPages(), out = {};
+      var fields = [];
+      try { fields = tdoc.getForm().getFields(); } catch (e) { fields = []; }
+      fields.forEach(function (f) {
+        if (!(f instanceof PDFLib.PDFTextField)) return;
+        var name = f.getName();
+        f.acroField.getWidgets().forEach(function (w) {
+          if (out[name]) return;
+          var rc = w.getRectangle(), pi = 0, P = w.P();
+          if (P) pages.forEach(function (p, i) { if (p.ref === P) pi = i; });
+          var base = (blank[pi] || []).filter(function (it) { return itemInRect(it, rc); });
+          var mine = (saved[pi] || []).filter(function (it) {
+            return itemInRect(it, rc) && !base.some(function (b) {
+              return b.str === it.str && Math.abs(b.transform[4] - it.transform[4]) < 2 && Math.abs(b.transform[5] - it.transform[5]) < 2;
+            });
+          });
+          var txt = joinItems(mine);
+          if (txt) out[name] = f.isMultiline() ? txt : txt.replace(/\n/g, ' ');
+        });
+      });
+      return out;
+    }).catch(function (err) { console.warn('Clarito: no se pudo leer la hoja', err); return {}; });
+  }
+
+  // Pone en "fill" lo que traía el formato guardado.
+  function restoreSaved(saved) {
+    var d = saved.data;
+    fill.edit = { key: saved.key, name: saved.name, folder: saved.folder };
+    if (d) {
+      Object.keys(d.values || {}).forEach(function (k) { if (fieldById(k)) fill.values[k] = d.values[k]; });
+      fill.follow = {};
+      Object.keys(d.follow || {}).forEach(function (k) { fill.follow[k] = !!d.follow[k]; });
+      if (d.mode === 'sheet' && d.sheet) { fill.sheet = d.sheet; fill.sheetFollow = {}; sheetToForm(); fill.sheet = {}; }
+      fill.sigs = d.sigs || {};
+      return;
+    }
+    // Sin datos: se parte de vacío y se llena con lo que se leyó de la hoja.
+    fill.follow = {};
+    fill.def.fields.forEach(function (f) { fill.values[f.id] = ''; });
+    if (saved.sheet) { fill.sheet = saved.sheet; fill.sheetFollow = {}; sheetToForm(); fill.sheet = {}; }
+  }
+
+  function openSaved(key, name, purpose) {
+    if (!window.PDFLib) { toast('No se pudo cargar el lector de PDF. Recarga la página.'); return; }
+    if (fill) closeFill();
+    toast(purpose === 'edit' ? 'Abriendo el formato…' : 'Preparando para firmar…', false, 30000);
+    var bytes;
+    Promise.all([
+      fetch(fileURL(key), { credentials: 'same-origin', cache: 'no-store' }).then(function (r) {
+        if (!r.ok) throw new Error('No se pudo abrir el archivo.');
+        return r.arrayBuffer();
+      }),
+      templatesReady(),
+      recentDocs.length ? null : api('/api/clarito/documents').then(function (d) { recentDocs = d.items || []; }).catch(function () { /* */ })
+    ]).then(function (res) {
+      bytes = res[0];
+      return PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+    }).then(function (doc) {
+      var data = readData(doc);
+      var t = tplForSaved(data, name, key);
+      if (!t) throw new Error('No se encontró la plantilla de este formato. Revisa que siga en Plantillas.');
+      if (data) return { t: t, data: data };
+      return readSheetFromPdf(bytes, t).then(function (sheet) { return { t: t, sheet: sheet }; });
+    }).then(function (o) {
+      if (toastEl) toastEl.classList.remove('is-on');
+      var saved = { key: key, name: name, folder: savedFolderOf(key), data: o.data || null, sheet: o.sheet || null, base: o.data ? null : bytes };
+      if (purpose === 'edit') {
+        openFill(o.t, saved);
+        if (!o.data) toast('Este formato se guardó antes de poder editarse: se leyeron los datos de la hoja. Revísalos y vuelve a poner las firmas.', false, 9000);
+      } else openSignDoc(o.t, saved);
+    }).catch(function (err) { toast(err.message); });
+  }
+
+  // --- Firmar directo (sin abrir todo el formato) ---
+  function firmaFields() { return fill.def.fields.filter(function (f) { return f.type === 'firma' && typeof f.pdf === 'string'; }); }
+  function openSignDoc(t, saved) {
+    if (!t.def.fields.some(function (f) { return f.type === 'firma' && typeof f.pdf === 'string'; })) {
+      toast('Este formato no tiene espacios para firma.'); return;
+    }
+    fill = { tpl: t, def: t.def, mode: 'form', values: {}, follow: {}, sheet: {}, sheetFollow: {}, sigs: {}, remote: {}, chosenFolder: null, nameTouched: true, signOnly: true, base: saved.base };
+    t.def.fields.forEach(function (f) { fill.values[f.id] = defaultValue(f); });
+    restoreSaved(saved);
+    fill.sigsChanged = false;
+    $('clrSignDocSub').textContent = saved.name;
+    $('clrSignDocNote').hidden = !saved.base;
+    $('clrSignDocList').innerHTML = firmaFields().map(function (f) {
+      var who = String(fill.values[f.id] || '').trim();
+      return '<div class="clr-signdoc-item">' +
+        '<div class="clr-signdoc-head"><b>' + esc(f.label) + '</b>' + (who ? '<small>' + esc(who) + '</small>' : '') + '</div>' +
+        sigRowHTML(f.pdf) +
+      '</div>';
+    }).join('');
+    syncSignDocSave();
+    openModal('clrSignDocModal');
+  }
+  function syncSignDocSave() {
+    if (!fill || !fill.signOnly) return;
+    $('clrSignDocSave').disabled = !fill.sigsChanged;
+  }
+  // Formato guardado antes (sin datos): la firma se pone encima de la hoja tal cual está.
+  function buildFromBase() {
+    var sigs = fill.sigs, base = fill.base;
+    return Promise.all([
+      PDFLib.PDFDocument.load(base, { ignoreEncryption: true, updateMetadata: false }),
+      getTplBytes(fill.tpl).then(function (b) { return PDFLib.PDFDocument.load(b, { ignoreEncryption: true, updateMetadata: false }); })
+    ]).then(function (r) {
+      var doc = r[0], tdoc = r[1], tform = tdoc.getForm(), tpages = tdoc.getPages(), pages = doc.getPages();
+      return Promise.all(Object.keys(sigs).filter(function (k) { return sigs[k]; }).map(function (key) {
+        var w;
+        try { w = tform.getField(key).acroField.getWidgets()[0]; } catch (e) { return null; }
+        if (!w) return null;
+        var pi = 0, P = w.P();
+        if (P) tpages.forEach(function (p, i) { if (p.ref === P) pi = i; });
+        var pg = pages[Math.min(pi, pages.length - 1)];
+        return doc.embedPng(sigs[key]).then(function (img) {
+          var b = sigBox(w.getRectangle(), img.width, img.height);
+          pg.drawImage(img, { x: b.x, y: b.y, width: b.w, height: b.h });
+        });
+      })).then(function () { return doc.save(); });
+    });
+  }
+  $('clrSignDocList').addEventListener('click', onSigClick);
+  function closeSignDoc() {
+    if (!fill || !fill.signOnly) { closeModal('clrSignDocModal'); return; }
+    if (!fill.sigsChanged) { closeFill(); return; }
+    ask({ title: 'Descartar firmas', text: 'Las firmas nuevas no se han guardado. ¿Cerrar sin guardar?', ok: 'Cerrar sin guardar', danger: true }).then(function (yes) { if (yes) closeFill(); });
+  }
+  $('clrSignDocClose').addEventListener('click', closeSignDoc);
+  $('clrSignDocCancel').addEventListener('click', closeSignDoc);
+  $('clrSignDocSave').addEventListener('click', function () {
+    if (!fill || !fill.signOnly) return;
+    var btn = this, f0 = fill;
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    (f0.base ? buildFromBase() : buildPdf()).then(function (b) {
+      return Promise.all([b, f0.base ? null : composeDraft().catch(function () { return null; })]);
+    }).then(function (out) {
+      var fd = new FormData();
+      fd.append('file', new Blob([out[0]], { type: 'application/pdf' }), 'formato.pdf');
+      if (out[1]) fd.append('preview', out[1], 'vista.jpg');
+      fd.append('replace_key', f0.edit.key);
+      savedVer[f0.edit.key] = Date.now();
+      fd.append('form_key', f0.def.key);
+      fd.append('form_name', f0.def.name);
+      fd.append('client', clientOf());
+      return api('/api/clarito/documents', { method: 'POST', form: fd });
+    }).then(function () {
+      if (fill === f0) { fill.sigsChanged = false; closeFill(); }
+      toast('Firmas guardadas en <b>' + esc(f0.edit.name) + '</b>.', true, 5000);
+      loadRecent();
+      if (currentView === 'drive') loadFolder(curFolder);
+    }).catch(function (err) {
+      toast(err.message);
+    }).finally(function () { btn.textContent = 'Guardar firmas'; syncSignDocSave(); });
+  });
+
+  /* =======================================================
      CARPETAS (formatos llenos)
      ======================================================= */
   var curFolder = '';
@@ -2000,6 +2284,8 @@
   function fileMenu(btn, key, name) {
     openMenu(btn, [
       { icon: ICON.eye, label: 'Vista previa', run: function () { openViewer(name, key); } },
+      { icon: ICON.pen, label: 'Editar', run: function () { openSaved(key, name, 'edit'); } },
+      { icon: ICON.sign, label: 'Firmar', run: function () { openSaved(key, name, 'sign'); } },
       { icon: ICON.down, label: 'Descargar', run: function () { downloadKey(key); } },
       { icon: ICON.rename, label: 'Renombrar', run: function () {
         askName({ title: 'Renombrar archivo', label: 'Nombre del archivo', value: stripPdf(name), ext: '.pdf' }).then(function (v) {

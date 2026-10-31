@@ -1083,6 +1083,13 @@ func ClaritoSaveDocument(c *gin.Context) {
 		formName = "PDF subido"
 	}
 
+	// Editar o firmar un formato ya guardado: se reemplaza en su lugar
+	// (mismo nombre y carpeta).
+	if rk := strings.TrimSpace(c.PostForm("replace_key")); rk != "" {
+		claritoReplaceDocument(c, rk, content, formKey, client)
+		return
+	}
+
 	settings := loadClaritoSettings()
 	var folder string
 	if chosen, manual := c.GetPostForm("folder"); manual {
@@ -1145,6 +1152,61 @@ func ClaritoSaveDocument(c *gin.Context) {
 	c.Set("clarito_name", finalName)
 	c.Set("clarito_folder", dest)
 	c.JSON(http.StatusOK, gin.H{"ok": true, "document": doc, "folder": folder, "folder_label": dest})
+}
+
+// claritoReplaceDocument sobrescribe un formato lleno que ya existe (al
+// editarlo o firmarlo). La vista rápida se cambia por la nueva; si no
+// llega una, se borra la vieja para que no se vea el formato anterior.
+func claritoReplaceDocument(c *gin.Context, key string, content []byte, formKey, client string) {
+	if !claritoValidKey(key, claritoSavedPrefix) || claritoBaseName(key) == claritoFolderMark {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Archivo inválido."})
+		return
+	}
+	ctx, cancel := claritoCtx(c)
+	defer cancel()
+	if info, err := storage.StatObject(ctx, key); err != nil {
+		claritoBucketErr(c, "ReplaceDocument", err)
+		return
+	} else if info == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese archivo ya no existe."})
+		return
+	}
+	if err := storage.UploadObject(ctx, key, bytes.NewReader(content), int64(len(content)), "application/pdf"); err != nil {
+		claritoBucketErr(c, "ReplaceDocument", err)
+		return
+	}
+	newPreview := false
+	if fh, err := c.FormFile("preview"); err == nil && fh.Size > 100 && fh.Size <= 8<<20 {
+		if f, err := fh.Open(); err == nil {
+			img, err := io.ReadAll(f)
+			f.Close()
+			if err == nil && bytes.HasPrefix(img, []byte{0xFF, 0xD8, 0xFF}) {
+				if err := storage.UploadObject(ctx, claritoSavedPreviewKey(key), bytes.NewReader(img), int64(len(img)), "image/jpeg"); err == nil {
+					newPreview = true
+				} else {
+					log.Printf("clarito.ReplaceDocument: vista rápida: %v", err)
+				}
+			}
+		}
+	}
+	if !newPreview {
+		_ = storage.DeleteObject(ctx, claritoSavedPreviewKey(key))
+	}
+	if r := []rune(client); len(r) > 190 {
+		client = string(r[:190])
+	}
+	if err := models.UpdateClaritoDocumentContent(key, formKey, client, int64(len(content))); err != nil {
+		log.Printf("clarito.ReplaceDocument: registro: %v", err)
+	}
+	folder := claritoPathOfKey(key)
+	name := claritoBaseName(key)
+	dest := claritoRootName
+	if folder != "" {
+		dest = claritoRootName + " / " + strings.ReplaceAll(folder, "/", " / ")
+	}
+	c.Set("clarito_name", name+" (editado)")
+	c.Set("clarito_folder", dest)
+	c.JSON(http.StatusOK, gin.H{"ok": true, "document": gin.H{"key": key, "file_name": name, "folder_path": folder}, "folder": folder, "folder_label": dest})
 }
 
 // ClaritoDocuments — GET /api/clarito/documents (los últimos guardados)
