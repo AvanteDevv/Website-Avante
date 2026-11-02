@@ -551,6 +551,43 @@
   fotoInput.addEventListener('change', function () {
     var files = Array.prototype.slice.call(fotoInput.files || []);
     fotoInput.value = '';
+    addFotoFiles(files);
+  });
+
+  // Arrastrar y soltar fotos en la pestaña Fotos.
+  var fotosPane = fotosEl.closest('[data-pane="fotos"]') || fotosEl, dragDepth = 0;
+  function hasFiles(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') !== -1; }
+  fotosPane.addEventListener('dragenter', function (e) {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); dragDepth++;
+    fotosPane.classList.add('is-drop');
+  });
+  fotosPane.addEventListener('dragover', function (e) {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = fotosBusy || fotosCount() >= MAX_FOTOS ? 'none' : 'copy';
+  });
+  fotosPane.addEventListener('dragleave', function (e) {
+    if (!hasFiles(e)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) fotosPane.classList.remove('is-drop');
+  });
+  fotosPane.addEventListener('drop', function (e) {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth = 0; fotosPane.classList.remove('is-drop');
+    if (fotosBusy) return;
+    if (fotosCount() >= MAX_FOTOS) { I.toast('Ya tiene ' + MAX_FOTOS + ' fotos (el máximo). Quita una para agregar otra.', 'error'); return; }
+    var files = Array.prototype.filter.call(e.dataTransfer.files || [], function (f) { return /^image\//.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name); });
+    if (!files.length) { I.toast('Suelta fotos (JPG, PNG o WEBP).', 'error'); return; }
+    addFotoFiles(files);
+  });
+  // Que una foto soltada fuera de la zona no abra la imagen en el navegador.
+  ['dragover', 'drop'].forEach(function (ev) {
+    window.addEventListener(ev, function (e) { if (hasFiles(e) && !e.target.closest('[data-pane="fotos"]')) e.preventDefault(); });
+  });
+
+  function addFotoFiles(files) {
     if (!files.length) return;
     var room = MAX_FOTOS - fotosCount();
     if (files.length > room) {
@@ -575,7 +612,7 @@
     }).finally(function () {
       fotosBusy = false; renderFotos();
     });
-  });
+  }
 
   function fillForm(a, mode) {
     artForm.reset();

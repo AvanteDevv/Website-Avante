@@ -908,3 +908,24 @@ body.dark .scn-fuera.is-down{ color:#ff8b7d; }
 }
 .scn-start-form .inv-count-note{ flex:none; width:100%; }
 .scn-start-form .inv-seg button{ white-space:nowrap; }
+/* ---------- .inv-seg: fondo que se desliza al activo (inventario-comun.js) ---------- */
+.inv-seg.has-glow{ position:relative; }
+.inv-seg-glow{
+  position:absolute; top:0; left:0; z-index:0; width:0; height:0; border-radius:100px; pointer-events:none;
+  background:var(--accent); box-shadow:0 6px 16px -4px rgba(4,28,255,.4); opacity:0;
+  transition:transform .35s cubic-bezier(.22,1.2,.36,1), width .35s var(--ease), height .35s var(--ease), opacity .2s var(--ease);
+}
+.inv-seg.has-glow > button, .inv-seg.has-glow > a{ position:relative; z-index:1; }
+.inv-seg.has-glow > .is-on{ background:transparent !important; box-shadow:none !important; color:#fff; }
+@media (prefers-reduced-motion:reduce){ .inv-seg-glow{ transition:none; } }
+
+/* ---------- Fotos del artículo: arrastrar y soltar ---------- */
+.inv-tabpane[data-pane="fotos"]{ position:relative; border-radius:16px; transition:background .2s var(--ease); }
+.inv-tabpane[data-pane="fotos"].is-drop{ background:var(--accent-soft); }
+.inv-tabpane[data-pane="fotos"].is-drop::after{
+  content:'Suelta las fotos aquí'; position:absolute; inset:-6px; z-index:5; display:flex; align-items:center; justify-content:center;
+  border:2px dashed var(--accent); border-radius:16px; background:rgba(4,28,255,.06);
+  font-family:var(--sans); font-size:15px; font-weight:800; color:var(--accent); pointer-events:none;
+  animation:dayItemIn .2s var(--ease);
+}
+body.dark .inv-tabpane[data-pane="fotos"].is-drop::after{ background:rgba(137,146,255,.12); }

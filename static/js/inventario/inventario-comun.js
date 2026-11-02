@@ -264,6 +264,41 @@ window.Inv = (function () {
     return api('/api/inventario/rastreo/' + encodeURIComponent(String(num).trim().toUpperCase()));
   }
 
+  /* ---------- botones segmentados (.inv-seg): el fondo azul se desliza
+     al botón activo, igual que las pestañas del artículo y "Día /
+     Calendario / Tabla" de Citas. Funciona con cualquier código que solo
+     cambie la clase is-on de los botones (o de los <a>). ---------- */
+  function segGlow(seg) {
+    if (!seg || seg._glow) return;
+    var glow = document.createElement('span');
+    glow.className = 'inv-seg-glow';
+    glow.setAttribute('aria-hidden', 'true');
+    seg.insertBefore(glow, seg.firstChild);
+    seg._glow = glow;
+    seg.classList.add('has-glow');
+    var first = true;
+    function place() {
+      var on = seg.querySelector(':scope > .is-on');
+      if (!on || !on.offsetWidth) { glow.style.opacity = '0'; return; }
+      if (first) glow.style.transition = 'none';
+      glow.style.opacity = '1';
+      glow.style.width = on.offsetWidth + 'px';
+      glow.style.height = on.offsetHeight + 'px';
+      glow.style.transform = 'translate(' + on.offsetLeft + 'px,' + on.offsetTop + 'px)';
+      if (first) { void glow.offsetWidth; glow.style.transition = ''; first = false; }
+    }
+    seg._place = place;
+    new MutationObserver(place).observe(seg, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    if (window.ResizeObserver) new ResizeObserver(place).observe(seg);
+    window.addEventListener('resize', place);
+    place();
+  }
+  function segGlowAll(root) {
+    (root || document).querySelectorAll('.inv-seg').forEach(segGlow);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { segGlowAll(); });
+  else setTimeout(segGlowAll, 0);
+
   // Librerías para exportar (PDF / Excel), solo cuando se usan.
   var LIBS = {
     xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
@@ -286,7 +321,7 @@ window.Inv = (function () {
   function ahoraLocal() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19); }
 
   return {
-    lib: lib, pdfLibs: pdfLibs, ahoraLocal: ahoraLocal,
+    lib: lib, pdfLibs: pdfLibs, ahoraLocal: ahoraLocal, segGlow: segGlow, segGlowAll: segGlowAll,
     isRastreo: isRastreo, lookupRastreo: lookupRastreo,
     base: base, canCost: canCost,
     select: select,
