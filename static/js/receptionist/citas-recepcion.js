@@ -142,6 +142,8 @@ window.CitaOrigen = window.CitaOrigen || (function(){
     el.textContent = LABELS[k];
     el.title = TITLES[k];
     el.hidden = !showOrigin(row);
+    // [hidden] no basta: .admin-badge trae su propio display.
+    el.style.display = showOrigin(row) ? '' : 'none';
   }
   return { LABELS: LABELS, TITLES: TITLES, key: key, ofRow: ofRow, badgeClass: badgeClass,
     originKey: originKey, originHTML: originHTML, paintOrigin: paintOrigin,
