@@ -72,9 +72,12 @@ if(product.badge){
    parece a este producto (a partir de su "icon") para que abra ya
    preseleccionado, en vez de arrancar siempre en Clásico/Negro. */
 const TRYON_ESTILO_POR_ICON = { round: 'redondo', square: 'clasico', sun: 'aviador' };
-const tryonEstilo = TRYON_ESTILO_POR_ICON[product.icon] || 'clasico';
-const tryonMica = product.icon === 'sun' ? 'sol' : 'oftalmico';
+// Si el producto está vinculado con su artículo del inventario, de ahí
+// salen el tipo de armazón, la mica y el color (tryonEstilo/Mica/Color).
+const tryonEstilo = product.tryonEstilo || TRYON_ESTILO_POR_ICON[product.icon] || 'clasico';
+const tryonMica = product.tryonMica || (product.icon === 'sun' ? 'sol' : 'oftalmico');
 const tryonParams = new URLSearchParams({ estilo: tryonEstilo, mica: tryonMica, nombre: product.name });
+if (product.tryonColor) tryonParams.set('color', product.tryonColor);
 document.getElementById('pdTryOn').href = `/probador-virtual?${tryonParams.toString()}`;
 
 /* miniaturas + navegación con animación */

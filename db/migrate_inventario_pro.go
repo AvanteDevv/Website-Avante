@@ -45,6 +45,8 @@ func EnsureInventarioProTables() {
 		{"tipo_armazon", "VARCHAR(60) NOT NULL DEFAULT ''"},
 		{"color_principal", "VARCHAR(40) NOT NULL DEFAULT ''"},
 		{"colores_extra", "VARCHAR(120) NOT NULL DEFAULT ''"},
+		// "oftalmico" | "sol" | "" (sin definir)
+		{"mica_tipo", "VARCHAR(12) NOT NULL DEFAULT ''"},
 	}
 	for _, c := range cols {
 		if err := addColumnIfMissing("inventory_items", c.name, c.ddl); err != nil {

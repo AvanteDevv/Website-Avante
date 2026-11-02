@@ -130,6 +130,24 @@
     const btnMica = document.querySelector(`#micas [data-mica="${micaParam}"]`);
     if(btnMica) activarGrupo(document.getElementById("micas"), btnMica);
   }
+  // Color del armazón (hex, del inventario): si es uno de los botones se
+  // marca; si no, se agrega como uno más y queda elegido.
+  const colorParam = (paramsProbador.get("color") || "").toLowerCase();
+  if(/^#[0-9a-f]{6}$/.test(colorParam)){
+    const cont = document.getElementById("colores");
+    let btnColor = Array.from(cont.querySelectorAll(".color")).filter(b=> (b.dataset.color || "").toLowerCase() === colorParam)[0];
+    if(!btnColor){
+      btnColor = document.createElement("button");
+      btnColor.className = "color";
+      btnColor.dataset.color = colorParam;
+      btnColor.style.background = colorParam;
+      btnColor.setAttribute("aria-label", "Color del producto");
+      btnColor.setAttribute("aria-pressed", "false");
+      cont.insertBefore(btnColor, cont.firstChild);
+    }
+    app.color = colorParam;
+    activarGrupo(cont, btnColor);
+  }
   const chipProducto = document.getElementById("tryon-producto");
   if(nombreParam && chipProducto){
     chipProducto.textContent = `Probando: ${nombreParam}`;

@@ -964,3 +964,20 @@ body.dark .inv-tabpane[data-pane="fotos"].is-drop::after{ background:rgba(137,14
 body.dark .inv-sw, body.dark .inv-color-new, body.dark .inv-color-new input{ background:transparent; }
 body.dark .inv-sw-big{ border-color:#1a1c30; }
 @media (max-width:640px){ .inv-arm{ grid-template-columns:1fr; } }
+/* Mica (oftálmico / sol) y animaciones de los colores */
+.inv-arm-col{ display:flex; flex-direction:column; gap:12px; min-width:0; }
+.inv-mica-seg{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); }
+.inv-mica-seg button{ padding:8px 4px; font-size:11.5px; white-space:nowrap; }
+.inv-color-new:not([hidden]){ animation:invColNewIn .28s cubic-bezier(.22,1.2,.36,1); transform-origin:top center; }
+.inv-color-new.is-closing{ animation:invColNewOut .2s var(--ease) forwards; }
+@keyframes invColNewIn{ from{ opacity:0; transform:translateY(-8px) scale(.97); } to{ opacity:1; transform:none; } }
+@keyframes invColNewOut{ to{ opacity:0; transform:translateY(-6px) scale(.97); } }
+.inv-sw.is-new{ animation:invSwIn .55s cubic-bezier(.22,1.5,.36,1); }
+.inv-sw.is-new i{ animation:invSwGlow 1.1s var(--ease); }
+@keyframes invSwIn{ 0%{ opacity:0; transform:scale(.5) translateY(6px); } 70%{ transform:scale(1.08); } 100%{ opacity:1; transform:none; } }
+@keyframes invSwGlow{ 0%{ box-shadow:0 0 0 0 rgba(4,28,255,.55); } 100%{ box-shadow:0 0 0 10px rgba(4,28,255,0); } }
+.inv-color-sum.is-swap .inv-sw-big{ animation:invSumIn .35s cubic-bezier(.22,1.4,.36,1); }
+.inv-color-sum.is-swap strong, .inv-color-sum.is-swap small{ animation:invSumTxt .3s var(--ease); }
+@keyframes invSumIn{ from{ transform:scale(.6) rotate(-40deg); opacity:.4; } to{ transform:none; opacity:1; } }
+@keyframes invSumTxt{ from{ opacity:0; transform:translateX(-4px); } to{ opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce){ .inv-sw.is-new, .inv-sw.is-new i, .inv-color-new, .inv-color-sum *{ animation:none !important; } }

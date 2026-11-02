@@ -74,7 +74,7 @@
         <div class="product-card product-item" data-product-id="{{.ID}}"
              data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
              data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
-             data-promo-ends="{{.PromoEndsAtValue}}"
+             data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}"
              data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
              data-descripcion="{{.Description}}"
              data-logo-url="{{.LogoURL}}"
@@ -134,7 +134,7 @@
             <tr class="product-row product-item" data-product-id="{{.ID}}"
                 data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
                 data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
-                data-promo-ends="{{.PromoEndsAtValue}}"
+                data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}"
                 data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
                 data-fotos="{{len .Images}}"
                 data-descripcion="{{.Description}}"
@@ -191,7 +191,8 @@
       <form class="admin-user-form" id="newProductForm">
         {{/* Tomar del inventario: llena título, modelo, precio, fotos y sugiere marca y descripción (productos.js). */}}
         <div class="prod-inv-pick" id="prodInvPick">
-          <span class="prod-inv-label">Tomar del inventario <em>(opcional)</em></span>
+          <span class="prod-inv-label" id="prodInvLabel">Tomar del inventario <em>(opcional)</em></span>
+          <div class="prod-inv-link" id="prodInvLink" hidden></div>
           <div class="prod-inv-search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <input type="search" id="prodInvQ" placeholder="Busca el armazón por clave o descripción…" autocomplete="off">

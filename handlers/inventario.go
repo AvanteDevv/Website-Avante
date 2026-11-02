@@ -170,6 +170,7 @@ type invArticuloBody struct {
 	TipoArmazon    string   `json:"tipo_armazon"`
 	ColorPrincipal string   `json:"color_principal"`
 	ColoresExtra   []string `json:"colores_extra"`
+	MicaTipo       string   `json:"mica_tipo"`
 }
 
 func invMoneyOK(vs ...float64) bool {
@@ -265,6 +266,8 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 		return bad("La combinación lleva máximo 2 colores además del principal.")
 	case len(extras) > 0 && b.ColorPrincipal == "":
 		return bad("Elige primero el color principal.")
+	case b.MicaTipo != "" && b.MicaTipo != "oftalmico" && b.MicaTipo != "sol":
+		return bad("Elige si es oftálmico o de sol.")
 	}
 	for _, x := range extras {
 		if len([]rune(x)) > 30 {
@@ -279,7 +282,7 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 		PrecioCompra: b.PrecioCompra, Precio1: b.Precio1, Precio2: b.Precio2, Precio3: b.Precio3, Precio4: b.Precio4,
 		Mayoreo2: b.Mayoreo2, Mayoreo3: b.Mayoreo3, Mayoreo4: b.Mayoreo4,
 		Existencia: b.Existencia, Minimo: b.Minimo, Maximo: b.Maximo, Localizacion: b.Localizacion,
-		TipoArmazon: b.TipoArmazon, ColorPrincipal: b.ColorPrincipal, ColoresExtra: extras,
+		TipoArmazon: b.TipoArmazon, ColorPrincipal: b.ColorPrincipal, ColoresExtra: extras, MicaTipo: b.MicaTipo,
 	}, true
 }
 

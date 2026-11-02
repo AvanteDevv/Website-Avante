@@ -33,6 +33,7 @@ type Product struct {
 	LogoURL     string
 	Images      []string // URLs de las fotos del producto, en orden
 	CreatedAt   time.Time
+	InvItemID   int64 // artículo del inventario vinculado (0 = ninguno)
 }
 
 // ImagesJSON regresa las URLs de las fotos como JSON (para meterlas en un
@@ -177,7 +178,62 @@ func GetAllProducts() ([]Product, error) {
 		}
 	}
 
+	// Vínculo con el inventario (columna aparte: si no existe, no truena).
+	if linkRows, err := db.DB.Query(`SELECT id, inv_item_id FROM products WHERE inv_item_id IS NOT NULL`); err == nil {
+		defer linkRows.Close()
+		for linkRows.Next() {
+			var pid, iid int64
+			if linkRows.Scan(&pid, &iid) == nil {
+				if p, ok := byID[pid]; ok {
+					p.InvItemID = iid
+				}
+			}
+		}
+	}
+
 	return products, nil
+}
+
+// SetProductInvItem vincula (o desvincula con 0) el producto con un
+// artículo del inventario.
+func SetProductInvItem(productID, invItemID int64) error {
+	var v interface{}
+	if invItemID > 0 {
+		v = invItemID
+	}
+	_, err := db.DB.Exec(`UPDATE products SET inv_item_id = ? WHERE id = ?`, v, productID)
+	return err
+}
+
+// ProductTryon: lo que el probador virtual necesita de un producto,
+// tomado de su artículo del inventario.
+type ProductTryon struct {
+	Estilo   string
+	Mica     string
+	Color    string // nombre del color principal
+	ColorHex string
+}
+
+// GetProductsTryon regresa, por id de producto, los datos del probador.
+func GetProductsTryon() map[int64]ProductTryon {
+	out := map[int64]ProductTryon{}
+	rows, err := db.DB.Query(`
+		SELECT p.id, i.tipo_armazon, i.mica_tipo, i.color_principal, COALESCE(c.hex, '')
+		FROM products p
+		JOIN inventory_items i ON i.id = p.inv_item_id
+		LEFT JOIN inv_colores c ON c.nombre = i.color_principal`)
+	if err != nil {
+		return out
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		var t ProductTryon
+		if rows.Scan(&id, &t.Estilo, &t.Mica, &t.Color, &t.ColorHex) == nil {
+			out[id] = t
+		}
+	}
+	return out
 }
 
 // CreateProduct guarda un producto nuevo (con su logo y sus fotos) y

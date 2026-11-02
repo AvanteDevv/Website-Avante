@@ -299,6 +299,7 @@
         '<div class="inv-d-row"><span>Categoría</span><strong>' + esc(a.categoria || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Localización</span><strong>' + esc(a.localizacion || '—') + '</strong></div>' +
         (a.tipo_armazon ? '<div class="inv-d-row"><span>Tipo de armazón</span><strong>' + esc(tipoNombre(a.tipo_armazon)) + '</strong></div>' : '') +
+        (a.mica_tipo ? '<div class="inv-d-row"><span>Mica</span><strong>' + esc(MICA_TXT[a.mica_tipo] || a.mica_tipo) + '</strong></div>' : '') +
         (a.color_principal ? '<div class="inv-d-row"><span>Color</span><strong class="inv-d-color"><i style="' + swatchStyle([a.color_principal].concat(a.colores_extra || [])) + '"></i>' + esc(colorTxt(a.color_principal, a.colores_extra || [])) + '</strong></div>' : '') +
         (a.servicio ? '' : '<div class="inv-d-row"><span>Clave de rastreo</span><strong>' + (a.sin_rastreo ? 'No se le crea' : 'Se crea al venderlo') + '</strong></div>') +
         (I.canCost ? '<div class="inv-d-row"><span>Precio de compra</span><strong>' + mxn.format(a.precio_compra) + '</strong></div>' : '') +
@@ -341,7 +342,20 @@
   var aUV = I.select($('aUVenta'), { options: unitOpts, value: 'PZA' });
 
   /* ---------- Armazón: tipo (estilos del probador virtual) y color ---------- */
-  var tiposArm = [], colores = [], formTipo = '', colPrin = '', colExtra = [];
+  var tiposArm = [], colores = [], formTipo = '', colPrin = '', colExtra = [], formMica = '', newColor = '';
+  var MICA_TXT = { oftalmico: 'Oftálmico', sol: 'De sol' };
+  function setMica(v) {
+    formMica = v || '';
+    Array.prototype.forEach.call($('aMica').querySelectorAll('button[data-mica]'), function (b) {
+      var on = b.getAttribute('data-mica') === formMica;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  $('aMica').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-mica]');
+    if (b) setMica(b.getAttribute('data-mica'));
+  });
   var aTipo = I.select($('aTipoArm'), { placeholder: 'Sin tipo', onChange: function (v) { formTipo = v; } });
   function tipoNombre(slug) { var t = tiposArm.filter(function (x) { return x.slug === slug; })[0]; return t ? t.nombre : (slug ? slug + ' (ya no está en el probador)' : ''); }
   function buildTipos() {
@@ -376,10 +390,14 @@
     $('aPalette').innerHTML = list.map(function (c) {
       var isP = colPrin && c.nombre.toLowerCase() === colPrin.toLowerCase();
       var xi = colExtra.map(function (x) { return x.toLowerCase(); }).indexOf(c.nombre.toLowerCase());
-      return '<button type="button" class="inv-sw' + (isP ? ' is-main' : xi >= 0 ? ' is-extra' : '') + '" data-color="' + esc(c.nombre) + '" title="' + esc(c.nombre) + '">' +
+      var nuevo = newColor && c.nombre.toLowerCase() === newColor.toLowerCase();
+      return '<button type="button" class="inv-sw' + (isP ? ' is-main' : xi >= 0 ? ' is-extra' : '') + (nuevo ? ' is-new' : '') + '" data-color="' + esc(c.nombre) + '" title="' + esc(c.nombre) + '">' +
         '<i style="background:' + esc(c.hex) + '"></i><span>' + esc(c.nombre) + '</span>' +
         (isP ? '<b>1</b>' : xi >= 0 ? '<b>' + (xi + 2) + '</b>' : '') + '</button>';
     }).join('') + '<button type="button" class="inv-sw is-add" data-color-new title="Agregar un color"><i>+</i><span>Nuevo</span></button>';
+    newColor = '';
+    var sumEl = $('aColorSum');
+    sumEl.classList.remove('is-swap'); void sumEl.offsetWidth; sumEl.classList.add('is-swap');
     $('aColorSum').innerHTML = colPrin
       ? '<span class="inv-sw-big" style="' + swatchStyle(all) + '"></span><span><strong>' + esc(colorTxt(colPrin, colExtra)) + '</strong><small>' + (colExtra.length ? 'Combinado' : 'Un solo color') + ' · toca un color para quitarlo</small></span>'
       : '<span class="inv-sw-big is-empty"></span><span><strong>Sin color</strong><small>Toca el color principal; si es combinado, toca hasta 2 más.</small></span>';
@@ -397,7 +415,14 @@
     else { I.toast('Máximo 2 colores además del principal. Quita uno para cambiarlo.', 'error'); return; }
     renderPalette();
   });
-  $('aColorCancel').addEventListener('click', function () { $('aColorNew').hidden = true; $('aColorName').value = ''; });
+  $('aColorCancel').addEventListener('click', function () { closeColorNew(); });
+  // El cuadro de "color nuevo" se abre y se cierra con animación.
+  function closeColorNew() {
+    var box = $('aColorNew');
+    if (box.hidden) return;
+    box.classList.add('is-closing');
+    setTimeout(function () { box.hidden = true; box.classList.remove('is-closing'); $('aColorName').value = ''; }, 200);
+  }
   $('aColorName').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('aColorAdd').click(); } });
   $('aColorAdd').addEventListener('click', function () {
     var name = $('aColorName').value.trim(), btn = this;
@@ -405,8 +430,9 @@
     btn.disabled = true;
     I.api('/api/inventario/colores', { method: 'POST', body: { nombre: name, hex: $('aColorHex').value } }).then(function (d) {
       colores.push(d.item);
+      newColor = d.item.nombre;
       if (!colPrin) colPrin = d.item.nombre; else if (colExtra.length < 2) colExtra.push(d.item.nombre);
-      $('aColorNew').hidden = true; $('aColorName').value = '';
+      closeColorNew();
       renderPalette();
       I.toast('Color «' + d.item.nombre + '» agregado a la lista.');
     }).catch(function (err) { I.toast(err.message, 'error'); })
@@ -723,6 +749,7 @@
     formTipo = a ? (a.tipo_armazon || '') : '';
     colPrin = a ? (a.color_principal || '') : '';
     colExtra = a && a.colores_extra ? a.colores_extra.slice(0, 2) : [];
+    setMica(a ? (a.mica_tipo || '') : '');
     $('aColorNew').hidden = true;
     buildTipos(); renderPalette();
     syncServicio();
@@ -761,7 +788,8 @@
       localizacion: $('aLocal').value.trim(),
       tipo_armazon: formTipo,
       color_principal: colPrin,
-      colores_extra: colExtra.slice()
+      colores_extra: colExtra.slice(),
+      mica_tipo: formMica
     };
     [1, 2, 3, 4].forEach(function (n) {
       var row = priceRow(n);

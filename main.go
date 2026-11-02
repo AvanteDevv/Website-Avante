@@ -65,6 +65,10 @@ type storeProduct struct {
 	Desc     string   `json:"desc,omitempty"`
 	Images   []string `json:"images"`
 	LogoURL  string   `json:"logoUrl,omitempty"`
+	// Probador virtual (del artículo del inventario vinculado).
+	TryonEstilo string `json:"tryonEstilo,omitempty"`
+	TryonMica   string `json:"tryonMica,omitempty"`
+	TryonColor  string `json:"tryonColor,omitempty"` // hex del color principal
 }
 
 // productNewBadgeWindow es cuánto tiempo después de agregado un producto
@@ -83,6 +87,7 @@ func buildStoreProductsJSON() template.JS {
 		return template.JS("[]")
 	}
 
+	tryon := models.GetProductsTryon()
 	out := make([]storeProduct, 0, len(products))
 	for _, p := range products {
 		sp := storeProduct{
@@ -94,6 +99,9 @@ func buildStoreProductsJSON() template.JS {
 			Desc:    p.Description,
 			Images:  p.Images,
 			LogoURL: p.LogoURL,
+		}
+		if t, ok := tryon[p.ID]; ok {
+			sp.TryonEstilo, sp.TryonMica, sp.TryonColor = t.Estilo, t.Mica, t.ColorHex
 		}
 		if p.OldPrice > 0 {
 			sp.OldPrice = fmt.Sprintf("$%.2f", p.OldPrice)
@@ -207,6 +215,8 @@ func main() {
 	db.EnsureProbadorTables()
 	// Paleta de colores de armazones (Inventario → Artículo).
 	db.EnsureInvColoresTable()
+	// Productos de la tienda vinculados con su artículo del inventario.
+	db.EnsureProductInvLink()
 	// Panel de Inventario: columnas nuevas de artículos, departamentos,
 	// categorías, ajustes y kárdex (movimientos).
 	db.EnsureInventarioProTables()

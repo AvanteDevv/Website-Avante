@@ -2,6 +2,7 @@ package admin
 
 import (
 	"fmt"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -295,6 +296,7 @@ func CreateProduct(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el producto."})
 		return
 	}
+	saveProductInvLink(c, id)
 
 	imageURLs := make([]string, len(imageKeys))
 	for i, k := range imageKeys {
@@ -368,6 +370,7 @@ func UpdateProduct(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar el producto."})
 		return
 	}
+	saveProductInvLink(c, id)
 
 	if newLogoKey != "" && oldLogoKey != "" {
 		storage.DeleteObject(c.Request.Context(), "logos/"+oldLogoKey)
@@ -417,4 +420,22 @@ func DeleteProduct(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// saveProductInvLink guarda el vínculo con el inventario si el form lo
+// manda (inv_item_id: id del artículo, o vacío / 0 para quitarlo).
+func saveProductInvLink(c *gin.Context, productID int64) {
+	v, ok := c.GetPostForm("inv_item_id")
+	if !ok {
+		return
+	}
+	invID, _ := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+	if invID > 0 {
+		if _, err := models.GetInvArticulo(invID); err != nil {
+			invID = 0
+		}
+	}
+	if err := models.SetProductInvItem(productID, invID); err != nil {
+		log.Printf("productos: no se guardó el vínculo con el inventario (#%d): %v", productID, err)
+	}
 }

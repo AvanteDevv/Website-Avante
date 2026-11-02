@@ -170,9 +170,19 @@
             </div>
           </div>
           <div class="inv-arm" id="aArmazon">
-            <div class="staff-field">
-              <span>Tipo de armazón <em>(opcional)</em></span>
-              <div id="aTipoArm"></div>
+            <div class="inv-arm-col">
+              <div class="staff-field">
+                <span>Tipo de armazón <em>(opcional)</em></span>
+                <div id="aTipoArm"></div>
+              </div>
+              <div class="staff-field">
+                <span>Mica</span>
+                <div class="inv-seg inv-mica-seg" id="aMica" role="radiogroup" aria-label="Tipo de mica">
+                  <button type="button" data-mica="oftalmico">Oftálmico</button>
+                  <button type="button" data-mica="sol">De sol</button>
+                  <button type="button" data-mica="" class="is-on">Sin definir</button>
+                </div>
+              </div>
             </div>
             <div class="staff-field inv-color-field">
               <span>Color <em>(principal y, si es combinado, hasta 2 más)</em></span>

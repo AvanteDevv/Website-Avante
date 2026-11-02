@@ -580,7 +580,7 @@ var logoModePicker = (function(){
     window.resetProductLogo();
     logoModePicker.reset();
     titleEl.textContent = 'Editar producto';
-    window.productInvPick && window.productInvPick.reset(false);
+    window.productInvPick && window.productInvPick.reset(false, Number(card.dataset.invItem) || 0);
     logoInput.removeAttribute('required'); // al editar, el logo es opcional
     submitBtn.textContent = 'Guardar cambios';
 
@@ -665,6 +665,8 @@ var logoModePicker = (function(){
     formData.append('icon', document.getElementById('prodIcon').value);
     formData.append('badge', document.getElementById('prodBadge').value.trim());
     formData.append('description', document.getElementById('prodDescripcion').value.trim());
+    // Vínculo con el artículo del inventario (probador virtual).
+    if (window.productInvPick) formData.append('inv_item_id', String(window.productInvPick.linked() || ''));
     if (logoInput.files[0]) formData.append('logo', logoInput.files[0]);
     var existingLogoKey = document.getElementById('prodExistingLogoKey').value;
     if (existingLogoKey) formData.append('existing_logo_key', existingLogoKey);
@@ -986,6 +988,46 @@ window.productInvPick = (function(){
   var sum = document.getElementById('prodInvSummary');
   if (!wrap || !q || !box) return null;
   var items = null, loading = null;
+  var linkedId = 0, mode = 'create';
+  var linkBox = document.getElementById('prodInvLink'), label = document.getElementById('prodInvLabel');
+  var ESTILO_TXT = { clasico: 'Clásico', redondo: 'Redondo', aviador: 'Aviador', cateye: 'Cat-eye' };
+  function tryonTxt(a){
+    var t = [];
+    if (a.tipo_armazon) t.push(ESTILO_TXT[a.tipo_armazon] || a.tipo_armazon);
+    if (a.color_principal) t.push(a.color_principal + ((a.colores_extra || []).length ? ' con ' + a.colores_extra.join(' y ') : ''));
+    if (a.mica_tipo) t.push(a.mica_tipo === 'sol' ? 'De sol' : 'Oftálmico');
+    return t;
+  }
+  function faltaTryon(a){
+    var f = [];
+    if (!a.tipo_armazon) f.push('tipo de armazón');
+    if (!a.color_principal) f.push('color');
+    if (!a.mica_tipo) f.push('oftálmico o de sol');
+    return f;
+  }
+  // Forma de lente de la tienda a partir del inventario.
+  function iconFrom(a){
+    if (a.mica_tipo === 'sol') return 'sun';
+    if (a.tipo_armazon === 'redondo') return 'round';
+    if (a.tipo_armazon) return 'square';
+    return '';
+  }
+  function paintLink(){
+    if (!linkBox) return;
+    var a = linkedId && items ? items.filter(function(x){ return x.id === linkedId; })[0] : null;
+    linkBox.hidden = !linkedId;
+    if (!linkedId) { linkBox.innerHTML = ''; return; }
+    var info = a ? tryonTxt(a) : [], falta = a ? faltaTryon(a) : [];
+    linkBox.innerHTML = '<span class="prod-inv-link-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span>' +
+      '<span class="prod-inv-link-txt"><b>Vinculado: ' + esc(a ? a.clave + ' · ' + a.descripcion : 'artículo #' + linkedId) + '</b>' +
+      '<small>' + (info.length ? 'Probador: ' + esc(info.join(' · ')) : 'Sin datos para el probador') + (falta.length ? ' · <em>Falta en inventario: ' + esc(falta.join(', ')) + '</em>' : '') + '</small></span>' +
+      '<button type="button" class="prod-inv-unlink" data-unlink>Quitar</button>';
+    linkBox.classList.remove('is-in'); void linkBox.offsetWidth; linkBox.classList.add('is-in');
+  }
+  if (linkBox) linkBox.addEventListener('click', function(e){
+    if (!e.target.closest('[data-unlink]')) return;
+    linkedId = 0; paintLink();
+  });
   var mxn = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
   var MATERIAL = { PASTA: 'pasta', METAL: 'metal', ACETATO: 'acetato', TR90: 'TR90', TITANIO: 'titanio', METALICO: 'metal', METÁLICO: 'metal', PLASTICO: 'plástico', PLÁSTICO: 'plástico' };
   var COLOR = { NEGRO: 'negro', NEGRA: 'negro', AZUL: 'azul', ROJO: 'rojo', ROJA: 'rojo', CAFE: 'café', CAFÉ: 'café', DORADO: 'dorado', DORADA: 'dorado', PLATEADO: 'plateado', PLATEADA: 'plateado', GRIS: 'gris', VERDE: 'verde', ROSA: 'rosa', MORADO: 'morado', MORADA: 'morado', BLANCO: 'blanco', BLANCA: 'blanco', CAREY: 'carey', TRANSPARENTE: 'transparente', VINO: 'vino', NUDE: 'nude', AMARILLO: 'amarillo', NARANJA: 'naranja' };
@@ -1063,7 +1105,10 @@ window.productInvPick = (function(){
   }
   function pick(a){
     box.hidden = true;
+    linkedId = a.id;
+    if (mode === 'edit') { q.value = ''; paintLink(); return; }
     q.value = a.descripcion;
+    paintLink();
     var g = guess(a.descripcion);
     var lleno = [], revisa = [], falta = [];
     if (setField('prodTitulo', titleCase(a.descripcion))) lleno.push('Título');
@@ -1072,7 +1117,9 @@ window.productInvPick = (function(){
     if (setField('prodMarca', g.marca, true)) revisa.push('Marca'); else falta.push('Marca');
     var desc = document.getElementById('prodDescripcion');
     if (desc && !desc.value.trim() && setField('prodDescripcion', g.descr, true)) revisa.push('Descripción');
-    if (g.forma && window.setProductIcon) { window.setProductIcon(g.forma); revisa.push('Forma de lente'); } else falta.push('Forma de lente');
+    var ico = iconFrom(a);
+    if (ico && window.setProductIcon) { window.setProductIcon(ico); lleno.push('Forma de lente'); }
+    else if (g.forma && window.setProductIcon) { window.setProductIcon(g.forma); revisa.push('Forma de lente'); } else falta.push('Forma de lente');
     falta.push('Año', 'Logo de la marca');
     var opc = ['Etiqueta', 'Promoción (precio anterior y fin)'];
     function paint(fotos){
@@ -1081,7 +1128,10 @@ window.productInvPick = (function(){
         '<div class="prod-inv-row is-ok"><span>Se llenó</span>' + lleno.concat(fotos ? ['Fotos (' + fotos + ')'] : []).map(function(x){ return '<i>' + x + '</i>'; }).join('') + '</div>' +
         (revisa.length ? '<div class="prod-inv-row is-check"><span>Revisa (sugerido)</span>' + revisa.map(function(x){ return '<i>' + x + '</i>'; }).join('') + '</div>' : '') +
         '<div class="prod-inv-row is-todo"><span>Falta llenar</span>' + falta.map(function(x){ return '<i>' + x + '</i>'; }).join('') + '</div>' +
-        '<div class="prod-inv-row is-opt"><span>Opcional</span>' + opc.map(function(x){ return '<i>' + x + '</i>'; }).join('') + '</div>';
+        '<div class="prod-inv-row is-opt"><span>Opcional</span>' + opc.map(function(x){ return '<i>' + x + '</i>'; }).join('') + '</div>' +
+        '<div class="prod-inv-row ' + (faltaTryon(a).length ? 'is-check' : 'is-ok') + '"><span>Probador virtual</span>' +
+          (tryonTxt(a).length ? tryonTxt(a).map(function(x){ return '<i>' + esc(x) + '</i>'; }).join('') : '') +
+          (faltaTryon(a).length ? '<i>Falta en inventario: ' + esc(faltaTryon(a).join(', ')) + '</i>' : '') + '</div>';
     }
     paint(0);
     // Fotos del artículo → se agregan como fotos del producto.
@@ -1113,9 +1163,18 @@ window.productInvPick = (function(){
   });
 
   return {
-    // create = true: se ve el buscador; al editar se esconde.
-    reset: function(create){
-      wrap.hidden = !create;
+    linked: function(){ return linkedId; },
+    // create = true: buscador para llenar el formulario. Al editar
+    // (create = false) el buscador solo sirve para vincular / cambiar el
+    // artículo del inventario, sin tocar lo que ya tiene el producto.
+    reset: function(create, invId){
+      mode = create ? 'create' : 'edit';
+      linkedId = invId || 0;
+      wrap.hidden = false;
+      if (label) label.innerHTML = create ? 'Tomar del inventario <em>(opcional)</em>' : 'Vínculo con el inventario <em>(para el probador virtual)</em>';
+      q.placeholder = create ? 'Busca el armazón por clave o descripción…' : (linkedId ? 'Cambiar por otro artículo…' : 'Busca el artículo para vincularlo…');
+      if (linkedId && !items) load().then(paintLink).catch(function(){});
+      paintLink();
       q.value = '';
       box.hidden = true;
       sum.hidden = true;
