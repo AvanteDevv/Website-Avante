@@ -283,3 +283,24 @@ body.dark .try-prev{ background:conic-gradient(#1c1f33 25%, #14162a 0 50%, #1c1f
 body.dark .try-prev .try-draw .trazo{ stroke:#e6e8ff; }
 body.dark .try-msg{ background:rgba(31,157,85,.14); color:#6ee7a6; }
 body.dark .try-msg.is-error{ background:rgba(217,45,32,.14); color:#ff8b7d; }
+/* Ordenar arrastrando + descargar imagen */
+.try-card[data-id]{ position:relative; cursor:grab; }
+.try-card[data-id]:active{ cursor:grabbing; }
+.try-grip{
+  position:absolute; top:8px; right:8px; z-index:2; width:26px; height:26px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center; color:var(--grey);
+  background:rgba(255,255,255,.85); border:1px solid var(--line); opacity:.75; transition:opacity .15s var(--ease), color .15s var(--ease);
+}
+.try-grip svg{ width:14px; height:14px; }
+.try-card:hover .try-grip{ opacity:1; color:var(--blue-600); }
+.try-card.is-dragging{ opacity:.35; border-style:dashed; border-color:var(--blue-600); box-shadow:none; }
+.try-grid.is-sorting .try-card:not(.is-dragging){ animation:none; }
+.try-grid.is-sorting .try-card:not(.is-dragging):hover{ border-color:var(--blue-600); }
+.try-acts .try-dl{
+  display:inline-flex; align-items:center; justify-content:center; height:32px; min-width:32px; padding:0 9px;
+  border-radius:9px; border:1.5px solid var(--line); background:var(--white); color:var(--ink); text-decoration:none;
+  transition:border-color .15s var(--ease), color .15s var(--ease), background .15s var(--ease);
+}
+.try-acts .try-dl svg{ width:14px; height:14px; }
+.try-acts .try-dl:hover{ border-color:var(--blue-600); color:var(--blue-700); background:var(--blue-50); }
+body.dark .try-grip{ background:rgba(20,22,42,.85); }

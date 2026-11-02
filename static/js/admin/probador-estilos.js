@@ -27,9 +27,9 @@
     img: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>',
     pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>',
-    left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
-    right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
     undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>',
+    grip: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
+    down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg>',
     up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></svg>'
   };
 
@@ -64,7 +64,8 @@
   }
   function render() {
     var html = items.map(function (e, i) {
-      return '<article class="try-card" data-id="' + e.id + '" style="--i:' + i + '">' +
+      return '<article class="try-card" data-id="' + e.id + '" draggable="true" style="--i:' + i + '">' +
+        '<span class="try-grip" title="Arrastra para cambiar el orden" aria-hidden="true">' + IC.grip + '</span>' +
         '<div class="try-prev" data-drop="' + e.id + '" title="Arrastra aquí otra imagen para cambiarla">' + previewHTML(e) +
           '<span class="try-tag ' + (e.imagen ? 'is-img' : 'is-draw') + '">' + (e.imagen ? 'Imagen' : 'Dibujado') + '</span></div>' +
         '<div class="try-body">' +
@@ -73,8 +74,7 @@
             '<button type="button" data-act="img" title="' + (e.imagen ? 'Cambiar imagen' : 'Subir imagen') + '">' + IC.up + '<span>' + (e.imagen ? 'Cambiar' : 'Subir') + '</span></button>' +
             '<button type="button" data-act="rename" title="Cambiar nombre">' + IC.pen + '</button>' +
             (e.base && e.imagen ? '<button type="button" data-act="noimg" title="Quitar la imagen (vuelve al dibujo)">' + IC.undo + '</button>' : '') +
-            '<button type="button" data-act="left" title="Mover antes"' + (i === 0 ? ' disabled' : '') + '>' + IC.left + '</button>' +
-            '<button type="button" data-act="right" title="Mover después"' + (i === items.length - 1 ? ' disabled' : '') + '>' + IC.right + '</button>' +
+            (e.imagen ? '<a class="try-dl" href="' + esc(e.imagen) + '" download="' + esc(dlName(e)) + '" title="Descargar la imagen">' + IC.down + '</a>' : '') +
             '<button type="button" data-act="del" class="is-danger" title="Quitar este estilo"' + (items.length <= 1 ? ' disabled' : '') + '>' + IC.trash + '</button>' +
           '</div>' +
         '</div>' +
@@ -95,6 +95,11 @@
     grid.innerHTML = html || '<p class="try-empty">No hay estilos.</p>';
     var inp = document.getElementById('tryNewName');
     if (inp) inp.addEventListener('input', function () { adding.nombre = inp.value; });
+  }
+
+  function dlName(e) {
+    var ext = (/\.(png|webp)$/i.exec(e.imagen || '') || [, 'png'])[1].toLowerCase();
+    return 'probador-' + (e.slug || 'estilo') + '.' + ext;
   }
 
   function load() {
@@ -160,15 +165,6 @@
         .catch(function (err) { busy(card, false); say(err.message, true); });
       return;
     }
-    if (act === 'left' || act === 'right') {
-      var i = items.indexOf(it), j = act === 'left' ? i - 1 : i + 1;
-      if (j < 0 || j >= items.length) return;
-      items.splice(i, 1); items.splice(j, 0, it);
-      render();
-      api('/api/admin/probador/estilos-orden', { method: 'PUT', body: { ids: items.map(function (x) { return x.id; }) } })
-        .then(function () { say('Orden guardado.'); })
-        .catch(function (err) { say(err.message, true); load(); });
-    }
   });
 
   // Cambiar el nombre ahí mismo: Enter guarda, Esc cancela.
@@ -215,6 +211,63 @@
     var inp = document.getElementById('tryNewName');
     if (inp) { inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); inp.focus(); }
   });
+
+  /* ---------- arrastrar las tarjetas para cambiar el orden ---------- */
+  var dragCard = null, startOrder = '';
+  function orderKey() { return Array.prototype.map.call(grid.querySelectorAll('.try-card[data-id]'), function (c) { return c.getAttribute('data-id'); }).join(','); }
+  grid.addEventListener('dragstart', function (e) {
+    var card = e.target.closest && e.target.closest('.try-card[data-id]');
+    // No arrastrar desde un campo de texto ni desde un botón.
+    if (!card || e.target.closest('input, button, a')) return;
+    dragCard = card; startOrder = orderKey();
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', card.getAttribute('data-id')); } catch (err) { /* */ }
+    setTimeout(function () { card.classList.add('is-dragging'); }, 0);
+    grid.classList.add('is-sorting');
+  });
+  grid.addEventListener('dragover', function (e) {
+    if (!dragCard) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var over = e.target.closest && e.target.closest('.try-card[data-id]');
+    if (!over || over === dragCard) return;
+    var r = over.getBoundingClientRect();
+    var after = e.clientX > r.left + r.width / 2;
+    var ref = after ? over.nextSibling : over;
+    if (ref !== dragCard && ref !== dragCard.nextSibling) {
+      // Animación: las tarjetas se deslizan a su nuevo lugar (FLIP).
+      var cards = Array.prototype.slice.call(grid.querySelectorAll('.try-card[data-id]'));
+      var before = cards.map(function (c) { return c.getBoundingClientRect(); });
+      grid.insertBefore(dragCard, ref);
+      cards.forEach(function (c, k) {
+        if (c === dragCard) return;
+        var a = before[k], b = c.getBoundingClientRect();
+        var dx = a.left - b.left, dy = a.top - b.top;
+        if (!dx && !dy) return;
+        c.style.transition = 'none';
+        c.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+        void c.offsetWidth;
+        c.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)';
+        c.style.transform = '';
+      });
+    }
+  });
+  function endSort() {
+    if (!dragCard) return;
+    dragCard.classList.remove('is-dragging');
+    grid.classList.remove('is-sorting');
+    dragCard = null;
+    var now = orderKey();
+    if (now === startOrder) return;
+    var ids = now.split(',').map(Number);
+    items.sort(function (a, b) { return ids.indexOf(a.id) - ids.indexOf(b.id); });
+    render();
+    api('/api/admin/probador/estilos-orden', { method: 'PUT', body: { ids: ids } })
+      .then(function () { say('Orden guardado. Así aparecen en el probador.'); })
+      .catch(function (err) { say(err.message, true); load(); });
+  }
+  grid.addEventListener('drop', function (e) { if (dragCard) { e.preventDefault(); endSort(); } });
+  grid.addEventListener('dragend', endSort);
 
   /* ---------- arrastrar y soltar la imagen sobre una tarjeta ---------- */
   function dropZone(e) { return e.target.closest && e.target.closest('[data-drop]'); }
