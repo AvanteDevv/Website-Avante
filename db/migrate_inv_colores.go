@@ -30,4 +30,24 @@ func EnsureInvColoresTable() {
 		}
 	}
 	log.Println("inventario: tabla inv_colores lista")
+
+	// Materiales de armazón (misma idea que la paleta de colores).
+	if _, err := DB.Exec(`CREATE TABLE IF NOT EXISTS inv_materiales (
+		id     BIGINT      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+		nombre VARCHAR(30) NOT NULL,
+		orden  INT         NOT NULL DEFAULT 0,
+		UNIQUE KEY uq_inv_material (nombre)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`); err != nil {
+		log.Printf("inventario: no se pudo crear la tabla inv_materiales: %v", err)
+		return
+	}
+	if err := DB.QueryRow(`SELECT COUNT(*) FROM inv_materiales`).Scan(&n); err == nil && n == 0 {
+		if _, err := DB.Exec(`INSERT INTO inv_materiales (nombre, orden) VALUES
+			('Metal', 1), ('Acetato', 2), ('Pasta', 3), ('TR90', 4), ('Titanio', 5),
+			('Acero inoxidable', 6), ('Aluminio', 7), ('Plástico', 8), ('Policarbonato', 9),
+			('Madera', 10), ('Fibra de carbono', 11)`); err != nil {
+			log.Printf("inventario: no se pudieron crear los materiales: %v", err)
+		}
+	}
+	log.Println("inventario: tabla inv_materiales lista")
 }

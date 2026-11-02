@@ -297,6 +297,7 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 	saveProductInvLink(c, id)
+	saveProductArmazon(c, id)
 
 	imageURLs := make([]string, len(imageKeys))
 	for i, k := range imageKeys {
@@ -371,6 +372,7 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 	saveProductInvLink(c, id)
+	saveProductArmazon(c, id)
 
 	if newLogoKey != "" && oldLogoKey != "" {
 		storage.DeleteObject(c.Request.Context(), "logos/"+oldLogoKey)
@@ -437,5 +439,26 @@ func saveProductInvLink(c *gin.Context, productID int64) {
 	}
 	if err := models.SetProductInvItem(productID, invID); err != nil {
 		log.Printf("productos: no se guardó el vínculo con el inventario (#%d): %v", productID, err)
+	}
+}
+
+// saveProductArmazon guarda el tipo de armazón (estilo del probador) y los
+// materiales, si el form los manda.
+func saveProductArmazon(c *gin.Context, productID int64) {
+	tipo, okT := c.GetPostForm("tipo_armazon")
+	matsRaw, okM := c.GetPostForm("materiales")
+	if !okT && !okM {
+		return
+	}
+	tipo = strings.TrimSpace(tipo)
+	if tipo != "" && !models.TryonSlugExists(tipo) {
+		tipo = ""
+	}
+	mats, ok := models.CleanMateriales(strings.Split(matsRaw, ","))
+	if !ok && len(mats) > 4 {
+		mats = mats[:4]
+	}
+	if err := models.SetProductArmazon(productID, tipo, mats); err != nil {
+		log.Printf("productos: no se guardó el tipo/material (#%d): %v", productID, err)
 	}
 }

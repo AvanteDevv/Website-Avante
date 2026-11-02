@@ -71,3 +71,70 @@ func TryonSlugExists(slug string) bool {
 	}
 	return n > 0
 }
+
+// InvMaterial: un material de armazón de la lista.
+type InvMaterial struct {
+	ID     int64  `json:"id"`
+	Nombre string `json:"nombre"`
+}
+
+var ErrInvMaterialTaken = errors.New("ese material ya existe")
+
+func ListInvMateriales() ([]InvMaterial, error) {
+	rows, err := db.DB.Query(`SELECT id, nombre FROM inv_materiales ORDER BY orden, nombre`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []InvMaterial{}
+	for rows.Next() {
+		var m InvMaterial
+		if err := rows.Scan(&m.ID, &m.Nombre); err != nil {
+			return nil, err
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+func CreateInvMaterial(nombre string) (*InvMaterial, error) {
+	var n int
+	if err := db.DB.QueryRow(`SELECT COUNT(*) FROM inv_materiales WHERE LOWER(nombre) = LOWER(?)`, nombre).Scan(&n); err != nil {
+		return nil, err
+	}
+	if n > 0 {
+		return nil, ErrInvMaterialTaken
+	}
+	var orden int
+	_ = db.DB.QueryRow(`SELECT COALESCE(MAX(orden), 0) + 1 FROM inv_materiales`).Scan(&orden)
+	res, err := db.DB.Exec(`INSERT INTO inv_materiales (nombre, orden) VALUES (?, ?)`, nombre, orden)
+	if err != nil {
+		return nil, err
+	}
+	id, _ := res.LastInsertId()
+	return &InvMaterial{ID: id, Nombre: nombre}, nil
+}
+
+// CleanMateriales deja la lista sin vacíos ni repetidos (máximo 4).
+func CleanMateriales(in []string) ([]string, bool) {
+	out := []string{}
+	for _, m := range in {
+		m = strings.Join(strings.Fields(strings.ReplaceAll(m, ",", " ")), " ")
+		if m == "" {
+			continue
+		}
+		if len([]rune(m)) > 30 {
+			return nil, false
+		}
+		dup := false
+		for _, x := range out {
+			if strings.EqualFold(x, m) {
+				dup = true
+			}
+		}
+		if !dup {
+			out = append(out, m)
+		}
+	}
+	return out, len(out) <= 4
+}

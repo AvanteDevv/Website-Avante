@@ -171,6 +171,7 @@ type invArticuloBody struct {
 	ColorPrincipal string   `json:"color_principal"`
 	ColoresExtra   []string `json:"colores_extra"`
 	MicaTipo       string   `json:"mica_tipo"`
+	Materiales     []string `json:"materiales"`
 }
 
 func invMoneyOK(vs ...float64) bool {
@@ -269,6 +270,10 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 	case b.MicaTipo != "" && b.MicaTipo != "oftalmico" && b.MicaTipo != "sol":
 		return bad("Elige si es oftálmico o de sol.")
 	}
+	mats, okMats := models.CleanMateriales(b.Materiales)
+	if !okMats {
+		return bad("Elige máximo 4 materiales (y nombres cortos).")
+	}
 	for _, x := range extras {
 		if len([]rune(x)) > 30 {
 			return bad("El nombre del color es muy largo.")
@@ -282,7 +287,7 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 		PrecioCompra: b.PrecioCompra, Precio1: b.Precio1, Precio2: b.Precio2, Precio3: b.Precio3, Precio4: b.Precio4,
 		Mayoreo2: b.Mayoreo2, Mayoreo3: b.Mayoreo3, Mayoreo4: b.Mayoreo4,
 		Existencia: b.Existencia, Minimo: b.Minimo, Maximo: b.Maximo, Localizacion: b.Localizacion,
-		TipoArmazon: b.TipoArmazon, ColorPrincipal: b.ColorPrincipal, ColoresExtra: extras, MicaTipo: b.MicaTipo,
+		TipoArmazon: b.TipoArmazon, ColorPrincipal: b.ColorPrincipal, ColoresExtra: extras, MicaTipo: b.MicaTipo, Materiales: mats,
 	}, true
 }
 
@@ -852,4 +857,43 @@ func InvCreateColor(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "item": col})
+}
+
+// InvListMateriales — GET /api/inventario/materiales
+func InvListMateriales(c *gin.Context) {
+	items, err := models.ListInvMateriales()
+	if err != nil {
+		invFail(c, "ListMateriales", err, "No se pudieron cargar los materiales.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+// InvCreateMaterial — POST /api/inventario/materiales {nombre}
+func InvCreateMaterial(c *gin.Context) {
+	var b struct {
+		Nombre string `json:"nombre"`
+	}
+	if err := c.ShouldBindJSON(&b); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	nombre := strings.Join(strings.Fields(strings.ReplaceAll(b.Nombre, ",", " ")), " ")
+	if nombre == "" || len([]rune(nombre)) > 30 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe el nombre del material (máximo 30 letras)."})
+		return
+	}
+	if r := []rune(nombre); len(r) > 0 {
+		nombre = strings.ToUpper(string(r[0])) + string(r[1:])
+	}
+	m, err := models.CreateInvMaterial(nombre)
+	if errors.Is(err, models.ErrInvMaterialTaken) {
+		c.JSON(http.StatusConflict, gin.H{"error": "El material «" + nombre + "» ya está en la lista."})
+		return
+	}
+	if err != nil {
+		invFail(c, "CreateMaterial", err, "No se pudo agregar el material.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "item": m})
 }

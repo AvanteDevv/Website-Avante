@@ -66,9 +66,10 @@ type storeProduct struct {
 	Images   []string `json:"images"`
 	LogoURL  string   `json:"logoUrl,omitempty"`
 	// Probador virtual (del artículo del inventario vinculado).
-	TryonEstilo string `json:"tryonEstilo,omitempty"`
-	TryonMica   string `json:"tryonMica,omitempty"`
-	TryonColor  string `json:"tryonColor,omitempty"` // hex del color principal
+	TryonEstilo string   `json:"tryonEstilo,omitempty"`
+	TryonMica   string   `json:"tryonMica,omitempty"`
+	TryonColor  string   `json:"tryonColor,omitempty"` // hex del color principal
+	Materiales  []string `json:"materiales,omitempty"`
 }
 
 // productNewBadgeWindow es cuánto tiempo después de agregado un producto
@@ -100,8 +101,17 @@ func buildStoreProductsJSON() template.JS {
 			Images:  p.Images,
 			LogoURL: p.LogoURL,
 		}
+		sp.TryonEstilo = p.TipoArmazon
+		sp.Materiales = p.Materiales
 		if t, ok := tryon[p.ID]; ok {
-			sp.TryonEstilo, sp.TryonMica, sp.TryonColor = t.Estilo, t.Mica, t.ColorHex
+			// Lo del inventario manda (si el artículo lo tiene capturado).
+			if t.Estilo != "" {
+				sp.TryonEstilo = t.Estilo
+			}
+			sp.TryonMica, sp.TryonColor = t.Mica, t.ColorHex
+			if len(t.Materiales) > 0 {
+				sp.Materiales = t.Materiales
+			}
 		}
 		if p.OldPrice > 0 {
 			sp.OldPrice = fmt.Sprintf("$%.2f", p.OldPrice)
@@ -688,6 +698,8 @@ func main() {
 		apiInventario.GET("/tipos-armazon", handlers.InvTiposArmazon)
 		apiInventario.GET("/colores", handlers.InvListColores)
 		apiInventario.POST("/colores", handlers.InvCreateColor)
+		apiInventario.GET("/materiales", handlers.InvListMateriales)
+		apiInventario.POST("/materiales", handlers.InvCreateMaterial)
 	}
 
 	apiReceptionist := router.Group("/api/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))

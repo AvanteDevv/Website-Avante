@@ -47,6 +47,8 @@ func EnsureInventarioProTables() {
 		{"colores_extra", "VARCHAR(120) NOT NULL DEFAULT ''"},
 		// "oftalmico" | "sol" | "" (sin definir)
 		{"mica_tipo", "VARCHAR(12) NOT NULL DEFAULT ''"},
+		// Materiales del armazón, separados por coma (Metal,Acetato…).
+		{"materiales", "VARCHAR(160) NOT NULL DEFAULT ''"},
 	}
 	for _, c := range cols {
 		if err := addColumnIfMissing("inventory_items", c.name, c.ddl); err != nil {

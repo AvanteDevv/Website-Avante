@@ -141,7 +141,7 @@
       if (f.cat && String(a.categoria_id) !== f.cat) return false;
       if (f.estado && estadoOf(a) !== f.estado) return false;
       if (words.length) {
-        var hay = I.norm(a.clave + ' ' + a.clave_alterna + ' ' + a.descripcion + ' ' + a.localizacion + ' ' + (a.color_principal || '') + ' ' + (a.colores_extra || []).join(' ') + ' ' + tipoNombre(a.tipo_armazon || ''));
+        var hay = I.norm(a.clave + ' ' + a.clave_alterna + ' ' + a.descripcion + ' ' + a.localizacion + ' ' + (a.color_principal || '') + ' ' + (a.colores_extra || []).join(' ') + ' ' + tipoNombre(a.tipo_armazon || '') + ' ' + (a.materiales || []).join(' '));
         for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) === -1) return false;
       }
       return true;
@@ -299,6 +299,7 @@
         '<div class="inv-d-row"><span>Categoría</span><strong>' + esc(a.categoria || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Localización</span><strong>' + esc(a.localizacion || '—') + '</strong></div>' +
         (a.tipo_armazon ? '<div class="inv-d-row"><span>Tipo de armazón</span><strong>' + esc(tipoNombre(a.tipo_armazon)) + '</strong></div>' : '') +
+        (a.materiales && a.materiales.length ? '<div class="inv-d-row"><span>Material</span><strong>' + esc(matsTxt(a.materiales)) + '</strong></div>' : '') +
         (a.mica_tipo ? '<div class="inv-d-row"><span>Mica</span><strong>' + esc(MICA_TXT[a.mica_tipo] || a.mica_tipo) + '</strong></div>' : '') +
         (a.color_principal ? '<div class="inv-d-row"><span>Color</span><strong class="inv-d-color"><i style="' + swatchStyle([a.color_principal].concat(a.colores_extra || [])) + '"></i>' + esc(colorTxt(a.color_principal, a.colores_extra || [])) + '</strong></div>' : '') +
         (a.servicio ? '' : '<div class="inv-d-row"><span>Clave de rastreo</span><strong>' + (a.sin_rastreo ? 'No se le crea' : 'Se crea al venderlo') + '</strong></div>') +
@@ -343,6 +344,51 @@
 
   /* ---------- Armazón: tipo (estilos del probador virtual) y color ---------- */
   var tiposArm = [], colores = [], formTipo = '', colPrin = '', colExtra = [], formMica = '', newColor = '';
+  var materiales = [], formMats = [], newMat = '';
+  function matsTxt(list) { return list.length > 1 ? list.slice(0, -1).join(', ') + ' y ' + list[list.length - 1] : (list[0] || ''); }
+  function renderMats() {
+    var list = materiales.map(function (m) { return m.nombre; });
+    formMats.forEach(function (n) { if (!list.some(function (x) { return x.toLowerCase() === n.toLowerCase(); })) list.push(n); });
+    $('aMats').innerHTML = list.map(function (n) {
+      var i = formMats.map(function (x) { return x.toLowerCase(); }).indexOf(n.toLowerCase());
+      var nuevo = newMat && n.toLowerCase() === newMat.toLowerCase();
+      return '<button type="button" class="inv-sw inv-mat' + (i >= 0 ? ' is-main' : '') + (nuevo ? ' is-new' : '') + '" data-mat="' + esc(n) + '">' +
+        '<i>' + (i >= 0 ? '✓' : '') + '</i><span>' + esc(n) + '</span></button>';
+    }).join('') + '<button type="button" class="inv-sw is-add" data-mat-new title="Agregar un material"><i>+</i><span>Nuevo</span></button>';
+    newMat = '';
+  }
+  $('aMats').addEventListener('click', function (e) {
+    if (e.target.closest('[data-mat-new]')) { $('aMatNew').hidden = false; $('aMatName').focus(); return; }
+    var b = e.target.closest('[data-mat]');
+    if (!b) return;
+    var n = b.getAttribute('data-mat'), i = formMats.map(function (x) { return x.toLowerCase(); }).indexOf(n.toLowerCase());
+    if (i >= 0) formMats.splice(i, 1);
+    else if (formMats.length < 4) formMats.push(n);
+    else { I.toast('Máximo 4 materiales.', 'error'); return; }
+    renderMats();
+  });
+  function closeMatNew() {
+    var box = $('aMatNew');
+    if (box.hidden) return;
+    box.classList.add('is-closing');
+    setTimeout(function () { box.hidden = true; box.classList.remove('is-closing'); $('aMatName').value = ''; }, 200);
+  }
+  $('aMatCancel').addEventListener('click', closeMatNew);
+  $('aMatName').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('aMatAdd').click(); } });
+  $('aMatAdd').addEventListener('click', function () {
+    var name = $('aMatName').value.trim(), btn = this;
+    if (!name) { $('aMatName').focus(); return; }
+    btn.disabled = true;
+    I.api('/api/inventario/materiales', { method: 'POST', body: { nombre: name } }).then(function (d) {
+      materiales.push(d.item);
+      newMat = d.item.nombre;
+      if (formMats.length < 4) formMats.push(d.item.nombre);
+      closeMatNew();
+      renderMats();
+      I.toast('Material «' + d.item.nombre + '» agregado a la lista.');
+    }).catch(function (err) { I.toast(err.message, 'error'); })
+      .finally(function () { btn.disabled = false; });
+  });
   var MICA_TXT = { oftalmico: 'Oftálmico', sol: 'De sol' };
   function setMica(v) {
     formMica = v || '';
@@ -367,8 +413,9 @@
   function loadArmazonData() {
     return Promise.all([
       I.api('/api/inventario/tipos-armazon').then(function (d) { tiposArm = d.items || []; }).catch(function () {}),
-      I.api('/api/inventario/colores').then(function (d) { colores = d.items || []; }).catch(function () {})
-    ]).then(function () { buildTipos(); renderPalette(); if (current()) renderDetail(); });
+      I.api('/api/inventario/colores').then(function (d) { colores = d.items || []; }).catch(function () {}),
+      I.api('/api/inventario/materiales').then(function (d) { materiales = d.items || []; }).catch(function () {})
+    ]).then(function () { buildTipos(); renderPalette(); renderMats(); if (current()) renderDetail(); });
   }
   function hexOf(name) { var c = colores.filter(function (x) { return x.nombre.toLowerCase() === String(name).toLowerCase(); })[0]; return c ? c.hex : '#9aa0bb'; }
   // Muestra redonda: un color o la combinación en rebanadas.
@@ -750,6 +797,9 @@
     colPrin = a ? (a.color_principal || '') : '';
     colExtra = a && a.colores_extra ? a.colores_extra.slice(0, 2) : [];
     setMica(a ? (a.mica_tipo || '') : '');
+    formMats = a && a.materiales ? a.materiales.slice(0, 4) : [];
+    $('aMatNew').hidden = true;
+    renderMats();
     $('aColorNew').hidden = true;
     buildTipos(); renderPalette();
     syncServicio();
@@ -789,7 +839,8 @@
       tipo_armazon: formTipo,
       color_principal: colPrin,
       colores_extra: colExtra.slice(),
-      mica_tipo: formMica
+      mica_tipo: formMica,
+      materiales: formMats.slice()
     };
     [1, 2, 3, 4].forEach(function (n) {
       var row = priceRow(n);

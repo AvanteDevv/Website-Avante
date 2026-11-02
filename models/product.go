@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"avante-optics/db"
@@ -33,8 +34,13 @@ type Product struct {
 	LogoURL     string
 	Images      []string // URLs de las fotos del producto, en orden
 	CreatedAt   time.Time
-	InvItemID   int64 // artículo del inventario vinculado (0 = ninguno)
+	InvItemID   int64    // artículo del inventario vinculado (0 = ninguno)
+	TipoArmazon string   // slug del estilo del probador (Redondo, Aviador…)
+	Materiales  []string // materiales del armazón
 }
+
+// MaterialesCSV: para el data-* del panel de admin.
+func (p Product) MaterialesCSV() string { return strings.Join(p.Materiales, ",") }
 
 // ImagesJSON regresa las URLs de las fotos como JSON (para meterlas en un
 // data-* attribute del template admin, ej. data-images='{{.ImagesJSON}}',
@@ -178,14 +184,21 @@ func GetAllProducts() ([]Product, error) {
 		}
 	}
 
-	// Vínculo con el inventario (columna aparte: si no existe, no truena).
-	if linkRows, err := db.DB.Query(`SELECT id, inv_item_id FROM products WHERE inv_item_id IS NOT NULL`); err == nil {
+	// Vínculo con el inventario, tipo de armazón y materiales (columnas
+	// aparte: si todavía no existen, no truena).
+	if linkRows, err := db.DB.Query(`SELECT id, COALESCE(inv_item_id, 0), tipo_armazon, materiales FROM products`); err == nil {
 		defer linkRows.Close()
 		for linkRows.Next() {
 			var pid, iid int64
-			if linkRows.Scan(&pid, &iid) == nil {
+			var tipo, mats string
+			if linkRows.Scan(&pid, &iid, &tipo, &mats) == nil {
 				if p, ok := byID[pid]; ok {
-					p.InvItemID = iid
+					p.InvItemID, p.TipoArmazon = iid, tipo
+					for _, m := range strings.Split(mats, ",") {
+						if m = strings.TrimSpace(m); m != "" {
+							p.Materiales = append(p.Materiales, m)
+						}
+					}
 				}
 			}
 		}
@@ -205,20 +218,27 @@ func SetProductInvItem(productID, invItemID int64) error {
 	return err
 }
 
+// SetProductArmazon guarda el tipo de armazón y los materiales del producto.
+func SetProductArmazon(productID int64, tipo string, materiales []string) error {
+	_, err := db.DB.Exec(`UPDATE products SET tipo_armazon = ?, materiales = ? WHERE id = ?`, tipo, strings.Join(materiales, ","), productID)
+	return err
+}
+
 // ProductTryon: lo que el probador virtual necesita de un producto,
 // tomado de su artículo del inventario.
 type ProductTryon struct {
-	Estilo   string
-	Mica     string
-	Color    string // nombre del color principal
-	ColorHex string
+	Estilo     string
+	Mica       string
+	Color      string // nombre del color principal
+	ColorHex   string
+	Materiales []string
 }
 
 // GetProductsTryon regresa, por id de producto, los datos del probador.
 func GetProductsTryon() map[int64]ProductTryon {
 	out := map[int64]ProductTryon{}
 	rows, err := db.DB.Query(`
-		SELECT p.id, i.tipo_armazon, i.mica_tipo, i.color_principal, COALESCE(c.hex, '')
+		SELECT p.id, i.tipo_armazon, i.mica_tipo, i.color_principal, COALESCE(c.hex, ''), i.materiales
 		FROM products p
 		JOIN inventory_items i ON i.id = p.inv_item_id
 		LEFT JOIN inv_colores c ON c.nombre = i.color_principal`)
@@ -229,7 +249,9 @@ func GetProductsTryon() map[int64]ProductTryon {
 	for rows.Next() {
 		var id int64
 		var t ProductTryon
-		if rows.Scan(&id, &t.Estilo, &t.Mica, &t.Color, &t.ColorHex) == nil {
+		var mats string
+		if rows.Scan(&id, &t.Estilo, &t.Mica, &t.Color, &t.ColorHex, &mats) == nil {
+			t.Materiales = splitColores(mats)
 			out[id] = t
 		}
 	}

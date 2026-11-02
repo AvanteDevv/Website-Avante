@@ -65,7 +65,45 @@
   if (saved === 'table') setView('table');
 })();
 
-/* ---------- Dropdown: forma de lente ---------- */
+/* ---------- Dropdown: tipo de armazón (estilos del probador virtual) ----------
+   Las opciones salen de Elementor → Ecommerce → Probador. El "icon" de la
+   tienda (round / square / sun) se saca del tipo: Redondo → round,
+   Aviador → sun, los demás → square. */
+var ICON_POR_TIPO = { redondo: 'round', aviador: 'sun' };
+var TIPO_POR_ICON = { round: 'redondo', sun: 'aviador', square: 'clasico' };
+function setProductTipo(slug){
+  var menu = document.getElementById('prodIconMenu');
+  var label = document.getElementById('prodIconLabel');
+  var tipo = document.getElementById('prodTipoArm');
+  var icon = document.getElementById('prodIcon');
+  if (!menu || !tipo) return;
+  tipo.value = slug || '';
+  icon.value = ICON_POR_TIPO[slug] || 'square';
+  var found = false;
+  menu.querySelectorAll('.admin-role-option').forEach(function(opt){
+    var on = opt.dataset.tipo === slug;
+    opt.classList.toggle('active', on);
+    if (on) { label.textContent = opt.textContent; found = true; }
+  });
+  if (!found) label.textContent = slug ? slug : 'Elige el tipo';
+}
+window.setProductTipo = setProductTipo;
+(function(){
+  var menu = document.getElementById('prodIconMenu');
+  if (!menu) return;
+  fetch('/api/probador/estilos', { headers: { Accept: 'application/json' } })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      var list = (d && d.items) || [];
+      if (!list.length) return;
+      var cur = document.getElementById('prodTipoArm').value;
+      menu.innerHTML = list.map(function(e){
+        return '<button type="button" class="admin-role-option" data-tipo="' + e.slug + '" data-value="' + (ICON_POR_TIPO[e.slug] || 'square') + '">' + String(e.nombre).replace(/</g, '&lt;') + '</button>';
+      }).join('');
+      if (cur) setProductTipo(cur);
+    }).catch(function(){});
+})();
+
 var setProductIcon = (function(){
   var wrap = document.getElementById('prodIconWrap');
   if (!wrap) return function(){};
@@ -81,16 +119,20 @@ var setProductIcon = (function(){
     e.stopPropagation();
     wrap.classList.contains('is-open') ? close() : open();
   });
-  menu.querySelectorAll('.admin-role-option').forEach(function(opt){
-    opt.addEventListener('click', function(){
-      setIcon(opt.dataset.value);
-      close();
-    });
+  // Las opciones se cambian al cargar los estilos: se escucha en el menú.
+  menu.addEventListener('click', function(e){
+    var opt = e.target.closest('.admin-role-option');
+    if (!opt) return;
+    if (opt.dataset.tipo) setProductTipo(opt.dataset.tipo); else setIcon(opt.dataset.value);
+    close();
   });
   document.addEventListener('click', function(e){ if (!wrap.contains(e.target)) close(); });
 
+  // Compatibilidad: cuando solo se conoce el icono (productos de antes).
   function setIcon(value){
+    if (TIPO_POR_ICON[value] && menu.querySelector('[data-tipo]')) { setProductTipo(TIPO_POR_ICON[value]); return; }
     hiddenInput.value = value;
+    var t = document.getElementById('prodTipoArm'); if (t) t.value = TIPO_POR_ICON[value] || '';
     menu.querySelectorAll('.admin-role-option').forEach(function(opt){
       opt.classList.toggle('active', opt.dataset.value === value);
       if (opt.dataset.value === value) label.textContent = opt.textContent;
@@ -98,6 +140,38 @@ var setProductIcon = (function(){
   }
 
   return setIcon;
+})();
+
+/* ---------- Material del armazón (lista del inventario) ---------- */
+window.productMats = (function(){
+  var box = document.getElementById('prodMats');
+  if (!box) return null;
+  var list = [], sel = [];
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+  function render(flash){
+    var all = list.slice();
+    sel.forEach(function(n){ if (!all.some(function(x){ return x.toLowerCase() === n.toLowerCase(); })) all.push(n); });
+    box.innerHTML = all.length ? all.map(function(n){
+      var on = sel.some(function(x){ return x.toLowerCase() === n.toLowerCase(); });
+      return '<button type="button" class="prod-mat' + (on ? ' is-on' : '') + (flash && on ? ' is-flash' : '') + '" data-mat="' + esc(n) + '"><i>' + (on ? '✓' : '') + '</i>' + esc(n) + '</button>';
+    }).join('') : '<span class="prod-mats-empty">Cargando materiales…</span>';
+  }
+  box.addEventListener('click', function(e){
+    var b = e.target.closest('[data-mat]');
+    if (!b) return;
+    var n = b.dataset.mat, i = sel.map(function(x){ return x.toLowerCase(); }).indexOf(n.toLowerCase());
+    if (i >= 0) sel.splice(i, 1); else if (sel.length < 4) sel.push(n);
+    render();
+  });
+  fetch('/api/inventario/materiales', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    .then(function(r){ return r.ok ? r.json() : { items: [] }; })
+    .then(function(d){ list = (d.items || []).map(function(m){ return m.nombre; }); render(); })
+    .catch(function(){ render(); });
+  render();
+  return {
+    get: function(){ return sel.slice(); },
+    set: function(arr, flash){ sel = (arr || []).filter(Boolean).slice(0, 4); render(flash); }
+  };
 })();
 
 /* ---------- Menú de acciones (3 puntos) por tarjeta/fila ---------- */
@@ -562,7 +636,8 @@ var logoModePicker = (function(){
     window.resetProductLogo();
     logoModePicker.reset();
     productPhotos.reset();
-    setProductIcon('round');
+    setProductTipo('');
+    window.productMats && window.productMats.set([]);
     promoEndsField.reset();
     setPriceMode('normal', true);
     titleEl.textContent = 'Agregar producto';
@@ -594,7 +669,8 @@ var logoModePicker = (function(){
     setPriceMode(document.getElementById('prodPrecioAnterior').value ? 'promo' : 'normal', true);
     document.getElementById('prodBadge').value = card.dataset.badge || '';
     document.getElementById('prodDescripcion').value = card.dataset.descripcion || '';
-    setProductIcon(card.dataset.icon || 'round');
+    if (card.dataset.tipoArm) setProductTipo(card.dataset.tipoArm); else setProductIcon(card.dataset.icon || 'round');
+    window.productMats && window.productMats.set((card.dataset.materiales || '').split(',').filter(Boolean));
 
     if (card.dataset.logoUrl) window.setProductLogoPreview(card.dataset.logoUrl);
 
@@ -667,6 +743,8 @@ var logoModePicker = (function(){
     formData.append('description', document.getElementById('prodDescripcion').value.trim());
     // Vínculo con el artículo del inventario (probador virtual).
     if (window.productInvPick) formData.append('inv_item_id', String(window.productInvPick.linked() || ''));
+    formData.append('tipo_armazon', document.getElementById('prodTipoArm').value);
+    formData.append('materiales', window.productMats ? window.productMats.get().join(',') : '');
     if (logoInput.files[0]) formData.append('logo', logoInput.files[0]);
     var existingLogoKey = document.getElementById('prodExistingLogoKey').value;
     if (existingLogoKey) formData.append('existing_logo_key', existingLogoKey);
@@ -1106,6 +1184,10 @@ window.productInvPick = (function(){
   function pick(a){
     box.hidden = true;
     linkedId = a.id;
+    // Tipo de armazón y material vienen del inventario (también al editar).
+    if (a.tipo_armazon) setProductTipo(a.tipo_armazon);
+    if (a.mica_tipo === 'sol') document.getElementById('prodIcon').value = 'sun';
+    if (a.materiales && a.materiales.length && window.productMats) window.productMats.set(a.materiales, true);
     if (mode === 'edit') { q.value = ''; paintLink(); return; }
     q.value = a.descripcion;
     paintLink();
@@ -1117,9 +1199,9 @@ window.productInvPick = (function(){
     if (setField('prodMarca', g.marca, true)) revisa.push('Marca'); else falta.push('Marca');
     var desc = document.getElementById('prodDescripcion');
     if (desc && !desc.value.trim() && setField('prodDescripcion', g.descr, true)) revisa.push('Descripción');
-    var ico = iconFrom(a);
-    if (ico && window.setProductIcon) { window.setProductIcon(ico); lleno.push('Forma de lente'); }
-    else if (g.forma && window.setProductIcon) { window.setProductIcon(g.forma); revisa.push('Forma de lente'); } else falta.push('Forma de lente');
+    if (a.tipo_armazon) lleno.push('Tipo de armazón');
+    else if (g.forma && window.setProductIcon) { window.setProductIcon(g.forma); revisa.push('Tipo de armazón'); } else falta.push('Tipo de armazón');
+    if (a.materiales && a.materiales.length) lleno.push('Material'); else falta.push('Material');
     falta.push('Año', 'Logo de la marca');
     var opc = ['Etiqueta', 'Promoción (precio anterior y fin)'];
     function paint(fotos){

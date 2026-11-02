@@ -57,6 +57,14 @@ if(product.logoUrl){
 document.getElementById('pdTitle').textContent = product.name;
 document.getElementById('pdNewPrice').textContent = product.price;
 document.getElementById('pdDesc').textContent = product.desc || '';
+// Material del armazón (del producto o de su artículo del inventario).
+if (product.materiales && product.materiales.length) {
+  const m = product.materiales;
+  const txt = m.length > 1 ? m.slice(0, -1).join(', ') + ' y ' + m[m.length - 1] : m[0];
+  const el = document.getElementById('pdMaterial');
+  el.innerHTML = '<span>Material</span>' + txt.replace(/[<>&]/g, '');
+  el.hidden = false;
+}
 if(product.oldPrice){
   const old = document.getElementById('pdOldPrice');
   old.textContent = product.oldPrice;

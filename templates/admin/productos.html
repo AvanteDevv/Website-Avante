@@ -74,7 +74,7 @@
         <div class="product-card product-item" data-product-id="{{.ID}}"
              data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
              data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
-             data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}"
+             data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}" data-tipo-arm="{{.TipoArmazon}}" data-materiales="{{.MaterialesCSV}}"
              data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
              data-descripcion="{{.Description}}"
              data-logo-url="{{.LogoURL}}"
@@ -134,7 +134,7 @@
             <tr class="product-row product-item" data-product-id="{{.ID}}"
                 data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
                 data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
-                data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}"
+                data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}" data-tipo-arm="{{.TipoArmazon}}" data-materiales="{{.MaterialesCSV}}"
                 data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
                 data-fotos="{{len .Images}}"
                 data-descripcion="{{.Description}}"
@@ -275,7 +275,7 @@
         </div>
 
         <div class="product-field-row">
-          <label>Forma de lente
+          <label>Tipo de armazón
             <div class="admin-role-select" id="prodIconWrap">
               <button type="button" class="admin-role-select-btn" id="prodIconBtn" aria-haspopup="true" aria-expanded="false">
                 <span id="prodIconLabel">Redonda</span>
@@ -288,10 +288,16 @@
               </div>
             </div>
             <input type="hidden" id="prodIcon" name="icon" value="round">
+            <input type="hidden" id="prodTipoArm" value="">
           </label>
           <label>Etiqueta <span class="admin-user-form-optional">(opcional)</span>
             <input type="text" id="prodBadge" name="badge" placeholder="Ej. Nuevo, Bestseller">
           </label>
+        </div>
+
+        <div class="prod-mats-field">
+          <span class="prod-mats-label">Material <span class="admin-user-form-optional">(uno o varios; se llena desde el inventario)</span></span>
+          <div class="prod-mats" id="prodMats" role="group" aria-label="Materiales"></div>
         </div>
 
         <label>Descripción <span class="admin-user-form-optional">(opcional)</span>
