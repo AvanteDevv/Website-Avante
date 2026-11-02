@@ -8,48 +8,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/partials/navbar.css">
+<link rel="stylesheet" href="/static/css/partials/footer.css">
 <link rel="stylesheet" href="/static/css/ecommerce/probador-virtual.css">
 </head>
 <body>
 
-<div class="header-outer">
-<header>
-  <div class="nav-side nav-left">
-    <a href="index.html">Inicio</a>
-    <a href="eccomerce.html">Tienda</a>
-  </div>
-
-  <a href="index.html" class="mark">
-    <svg class="mark-icon" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>
-    <span class="mark-word">Avante<span>.</span></span>
-  </a>
-
-  <div class="nav-side nav-right">
-    <nav>
-      <a href="index.html#appointment">Agendar</a>
-      <a href="index.html#tracking">Rastreo</a>
-      <a href="blog.html">Blog</a>
-    </nav>
-    <div class="head-actions">
-      <button class="head-icon-btn cart" id="cartBtn" aria-label="Carrito">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-      </button>
-      <a href="index.html#tracking" class="head-icon-btn" aria-label="Rastrear pedido">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-      </a>
-      <button class="hamburger" id="menuBtn" aria-label="Menú"><span></span><span></span><span></span></button>
-    </div>
-  </div>
-
-  <nav id="mainNav">
-    <a href="index.html">Inicio</a>
-    <a href="eccomerce.html">Tienda</a>
-    <a href="index.html#appointment">Agendar</a>
-    <a href="index.html#tracking">Rastreo</a>
-    <a href="blog.html">Blog</a>
-  </nav>
-</header>
-</div>
+{{template "navbar" .}}
 
 <section class="intro">
   <span class="eyebrow">
@@ -136,14 +101,18 @@
         <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM9 3 7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9z"/></svg>
         Tomar foto
       </button>
-      <p class="nota-panel">¿Ya encontraste el indicado? <a href="index.html#appointment">Agenda tu cita</a> y te ayudamos con tu graduación.</p>
+      <p class="nota-panel">¿Ya encontraste el indicado? <a href="/agendar">Agenda tu cita</a> y te ayudamos con tu graduación.</p>
     </div>
 
   </aside>
 </main>
 
+{{template "footer" .}}
+
 <!-- MediaPipe FaceMesh -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 <script src="/static/js/ecommerce/probador-virtual.js"></script>
+<script src="/static/js/partials/footer.js"></script>
+<script src="/static/js/partials/navbar.js"></script>
 </body>
 </html>

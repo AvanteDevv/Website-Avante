@@ -992,10 +992,26 @@ func main() {
 		}))
 	})
 	router.GET("/eccomerce/:producto", func(c *gin.Context) {
+		// Link viejo del botón "Pruébate estos lentes" (.html relativo).
+		if p := c.Param("producto"); p == "probador-virtual.html" || p == "probador-virtual" {
+			to := "/probador-virtual"
+			if c.Request.URL.RawQuery != "" {
+				to += "?" + c.Request.URL.RawQuery
+			}
+			c.Redirect(http.StatusFound, to)
+			return
+		}
 		c.HTML(http.StatusOK, "detalle-producto.html", handlers.WithUser(c, gin.H{
 			"ActivePage":   "tienda",
 			"Producto":     c.Param("producto"),
 			"ProductsJSON": buildStoreProductsJSON(),
+		}))
+	})
+
+	// Probador virtual (templates/ecommerce/probador-virtual.html).
+	router.GET("/probador-virtual", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "probador-virtual.html", handlers.WithUser(c, gin.H{
+			"ActivePage": "tienda",
 		}))
 	})
 

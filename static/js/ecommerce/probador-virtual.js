@@ -1,17 +1,3 @@
-/* Menú móvil (mismo patrón que el resto del sitio) */
-  const menuBtn = document.getElementById('menuBtn');
-  const navEl = document.getElementById('mainNav');
-  menuBtn.addEventListener('click', () => {
-    menuBtn.classList.toggle('active');
-    navEl.classList.toggle('nav-open');
-  });
-  document.querySelectorAll('#mainNav a').forEach(link => {
-    link.addEventListener('click', () => {
-      navEl.classList.remove('nav-open');
-      menuBtn.classList.remove('active');
-    });
-  });
-
 /* ============================================================
    PROBADOR VIRTUAL · Lógica
    - Cámara con getUserMedia (requiere HTTPS o localhost)

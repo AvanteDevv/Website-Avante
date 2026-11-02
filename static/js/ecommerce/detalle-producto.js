@@ -75,7 +75,7 @@ const TRYON_ESTILO_POR_ICON = { round: 'redondo', square: 'clasico', sun: 'aviad
 const tryonEstilo = TRYON_ESTILO_POR_ICON[product.icon] || 'clasico';
 const tryonMica = product.icon === 'sun' ? 'sol' : 'oftalmico';
 const tryonParams = new URLSearchParams({ estilo: tryonEstilo, mica: tryonMica, nombre: product.name });
-document.getElementById('pdTryOn').href = `probador-virtual.html?${tryonParams.toString()}`;
+document.getElementById('pdTryOn').href = `/probador-virtual?${tryonParams.toString()}`;
 
 /* miniaturas + navegación con animación */
 const thumbsEl = document.getElementById('pdThumbs');
