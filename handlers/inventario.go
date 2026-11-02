@@ -166,6 +166,10 @@ type invArticuloBody struct {
 	Minimo         int     `json:"minimo"`
 	Maximo         int     `json:"maximo"`
 	Localizacion   string  `json:"localizacion"`
+	// Armazones
+	TipoArmazon    string   `json:"tipo_armazon"`
+	ColorPrincipal string   `json:"color_principal"`
+	ColoresExtra   []string `json:"colores_extra"`
 }
 
 func invMoneyOK(vs ...float64) bool {
@@ -231,6 +235,42 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 	case len([]rune(b.Localizacion)) > 60:
 		return bad("La localización es muy larga (máximo 60 caracteres).")
 	}
+	// Armazón: tipo (de los estilos del probador) y colores.
+	b.TipoArmazon = strings.TrimSpace(b.TipoArmazon)
+	if b.TipoArmazon != "" && !models.TryonSlugExists(b.TipoArmazon) {
+		return bad("Ese tipo de armazón ya no existe; elige otro.")
+	}
+	cleanColor := func(s string) string { return strings.Join(strings.Fields(strings.ReplaceAll(s, ",", " ")), " ") }
+	b.ColorPrincipal = cleanColor(b.ColorPrincipal)
+	extras := []string{}
+	for _, c := range b.ColoresExtra {
+		c = cleanColor(c)
+		if c == "" || strings.EqualFold(c, b.ColorPrincipal) {
+			continue
+		}
+		dup := false
+		for _, x := range extras {
+			if strings.EqualFold(x, c) {
+				dup = true
+			}
+		}
+		if !dup {
+			extras = append(extras, c)
+		}
+	}
+	switch {
+	case len([]rune(b.ColorPrincipal)) > 30:
+		return bad("El nombre del color es muy largo.")
+	case len(extras) > 2:
+		return bad("La combinación lleva máximo 2 colores además del principal.")
+	case len(extras) > 0 && b.ColorPrincipal == "":
+		return bad("Elige primero el color principal.")
+	}
+	for _, x := range extras {
+		if len([]rune(x)) > 30 {
+			return bad("El nombre del color es muy largo.")
+		}
+	}
 	return models.InvArticulo{
 		Clave: b.Clave, ClaveAlterna: b.ClaveAlterna, Descripcion: b.Descripcion,
 		DepartamentoID: b.DepartamentoID, CategoriaID: b.CategoriaID,
@@ -239,6 +279,7 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 		PrecioCompra: b.PrecioCompra, Precio1: b.Precio1, Precio2: b.Precio2, Precio3: b.Precio3, Precio4: b.Precio4,
 		Mayoreo2: b.Mayoreo2, Mayoreo3: b.Mayoreo3, Mayoreo4: b.Mayoreo4,
 		Existencia: b.Existencia, Minimo: b.Minimo, Maximo: b.Maximo, Localizacion: b.Localizacion,
+		TipoArmazon: b.TipoArmazon, ColorPrincipal: b.ColorPrincipal, ColoresExtra: extras,
 	}, true
 }
 
@@ -749,4 +790,63 @@ func InvGetRastreo(c *gin.Context) {
 	}
 	invHideCost(c, a)
 	c.JSON(http.StatusOK, gin.H{"pieza": p, "articulo": a})
+}
+
+/* ---------------- armazones: tipos y colores ---------------- */
+
+// InvTiposArmazon — GET /api/inventario/tipos-armazon: los estilos del
+// probador virtual (Elementor → Ecommerce), para el campo "Tipo de armazón".
+func InvTiposArmazon(c *gin.Context) {
+	items, err := models.ListTryonEstilos()
+	if err != nil {
+		invFail(c, "TiposArmazon", err, "No se pudieron cargar los tipos de armazón.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+// InvListColores — GET /api/inventario/colores (paleta).
+func InvListColores(c *gin.Context) {
+	items, err := models.ListInvColores()
+	if err != nil {
+		invFail(c, "ListColores", err, "No se pudieron cargar los colores.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+var invHexRe = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+// InvCreateColor — POST /api/inventario/colores {nombre, hex}
+func InvCreateColor(c *gin.Context) {
+	var b struct {
+		Nombre string `json:"nombre"`
+		Hex    string `json:"hex"`
+	}
+	if err := c.ShouldBindJSON(&b); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	nombre := strings.Join(strings.Fields(strings.ReplaceAll(b.Nombre, ",", " ")), " ")
+	if nombre == "" || len([]rune(nombre)) > 30 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe el nombre del color (máximo 30 letras)."})
+		return
+	}
+	if r := []rune(nombre); len(r) > 0 {
+		nombre = strings.ToUpper(string(r[0])) + string(r[1:])
+	}
+	hex := strings.ToLower(strings.TrimSpace(b.Hex))
+	if !invHexRe.MatchString(hex) {
+		hex = "#888888"
+	}
+	col, err := models.CreateInvColor(nombre, hex)
+	if errors.Is(err, models.ErrInvColorTaken) {
+		c.JSON(http.StatusConflict, gin.H{"error": "El color «" + nombre + "» ya está en la lista."})
+		return
+	}
+	if err != nil {
+		invFail(c, "CreateColor", err, "No se pudo agregar el color.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "item": col})
 }

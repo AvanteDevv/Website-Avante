@@ -141,7 +141,7 @@
       if (f.cat && String(a.categoria_id) !== f.cat) return false;
       if (f.estado && estadoOf(a) !== f.estado) return false;
       if (words.length) {
-        var hay = I.norm(a.clave + ' ' + a.clave_alterna + ' ' + a.descripcion + ' ' + a.localizacion);
+        var hay = I.norm(a.clave + ' ' + a.clave_alterna + ' ' + a.descripcion + ' ' + a.localizacion + ' ' + (a.color_principal || '') + ' ' + (a.colores_extra || []).join(' ') + ' ' + tipoNombre(a.tipo_armazon || ''));
         for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) === -1) return false;
       }
       return true;
@@ -298,6 +298,8 @@
         '<div class="inv-d-row"><span>Departamento</span><strong>' + esc(a.departamento || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Categoría</span><strong>' + esc(a.categoria || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Localización</span><strong>' + esc(a.localizacion || '—') + '</strong></div>' +
+        (a.tipo_armazon ? '<div class="inv-d-row"><span>Tipo de armazón</span><strong>' + esc(tipoNombre(a.tipo_armazon)) + '</strong></div>' : '') +
+        (a.color_principal ? '<div class="inv-d-row"><span>Color</span><strong class="inv-d-color"><i style="' + swatchStyle([a.color_principal].concat(a.colores_extra || [])) + '"></i>' + esc(colorTxt(a.color_principal, a.colores_extra || [])) + '</strong></div>' : '') +
         (a.servicio ? '' : '<div class="inv-d-row"><span>Clave de rastreo</span><strong>' + (a.sin_rastreo ? 'No se le crea' : 'Se crea al venderlo') + '</strong></div>') +
         (I.canCost ? '<div class="inv-d-row"><span>Precio de compra</span><strong>' + mxn.format(a.precio_compra) + '</strong></div>' : '') +
         otros +
@@ -337,6 +339,79 @@
   var unitOpts = UNIDADES.map(function (u) { return { value: u, label: u }; });
   var aUC = I.select($('aUCompra'), { options: unitOpts, value: 'PZA' });
   var aUV = I.select($('aUVenta'), { options: unitOpts, value: 'PZA' });
+
+  /* ---------- Armazón: tipo (estilos del probador virtual) y color ---------- */
+  var tiposArm = [], colores = [], formTipo = '', colPrin = '', colExtra = [];
+  var aTipo = I.select($('aTipoArm'), { placeholder: 'Sin tipo', onChange: function (v) { formTipo = v; } });
+  function tipoNombre(slug) { var t = tiposArm.filter(function (x) { return x.slug === slug; })[0]; return t ? t.nombre : (slug ? slug + ' (ya no está en el probador)' : ''); }
+  function buildTipos() {
+    var opts = [{ value: '', label: 'Sin tipo' }].concat(tiposArm.map(function (t) { return { value: t.slug, label: t.nombre }; }));
+    if (formTipo && !tiposArm.some(function (t) { return t.slug === formTipo; })) opts.push({ value: formTipo, label: tipoNombre(formTipo) });
+    aTipo.setOptions(opts);
+    aTipo.set(formTipo, true);
+  }
+  function loadArmazonData() {
+    return Promise.all([
+      I.api('/api/inventario/tipos-armazon').then(function (d) { tiposArm = d.items || []; }).catch(function () {}),
+      I.api('/api/inventario/colores').then(function (d) { colores = d.items || []; }).catch(function () {})
+    ]).then(function () { buildTipos(); renderPalette(); if (current()) renderDetail(); });
+  }
+  function hexOf(name) { var c = colores.filter(function (x) { return x.nombre.toLowerCase() === String(name).toLowerCase(); })[0]; return c ? c.hex : '#9aa0bb'; }
+  // Muestra redonda: un color o la combinación en rebanadas.
+  function swatchStyle(list) {
+    if (!list.length) return '';
+    if (list.length === 1) return 'background:' + hexOf(list[0]);
+    var step = 100 / list.length;
+    return 'background:conic-gradient(' + list.map(function (n, i) { return hexOf(n) + ' ' + (i * step) + '% ' + ((i + 1) * step) + '%'; }).join(',') + ')';
+  }
+  function colorTxt(p, ex) {
+    if (!p) return '';
+    return p + (ex.length ? ' con ' + (ex.length === 2 ? ex[0] + ' y ' + ex[1] : ex[0]) : '');
+  }
+  function renderPalette() {
+    var all = [colPrin].concat(colExtra).filter(Boolean);
+    // Colores guardados que ya no están en la paleta también se muestran.
+    var list = colores.slice();
+    all.forEach(function (n) { if (!list.some(function (c) { return c.nombre.toLowerCase() === n.toLowerCase(); })) list.push({ nombre: n, hex: '#9aa0bb' }); });
+    $('aPalette').innerHTML = list.map(function (c) {
+      var isP = colPrin && c.nombre.toLowerCase() === colPrin.toLowerCase();
+      var xi = colExtra.map(function (x) { return x.toLowerCase(); }).indexOf(c.nombre.toLowerCase());
+      return '<button type="button" class="inv-sw' + (isP ? ' is-main' : xi >= 0 ? ' is-extra' : '') + '" data-color="' + esc(c.nombre) + '" title="' + esc(c.nombre) + '">' +
+        '<i style="background:' + esc(c.hex) + '"></i><span>' + esc(c.nombre) + '</span>' +
+        (isP ? '<b>1</b>' : xi >= 0 ? '<b>' + (xi + 2) + '</b>' : '') + '</button>';
+    }).join('') + '<button type="button" class="inv-sw is-add" data-color-new title="Agregar un color"><i>+</i><span>Nuevo</span></button>';
+    $('aColorSum').innerHTML = colPrin
+      ? '<span class="inv-sw-big" style="' + swatchStyle(all) + '"></span><span><strong>' + esc(colorTxt(colPrin, colExtra)) + '</strong><small>' + (colExtra.length ? 'Combinado' : 'Un solo color') + ' · toca un color para quitarlo</small></span>'
+      : '<span class="inv-sw-big is-empty"></span><span><strong>Sin color</strong><small>Toca el color principal; si es combinado, toca hasta 2 más.</small></span>';
+  }
+  $('aPalette').addEventListener('click', function (e) {
+    if (e.target.closest('[data-color-new]')) { $('aColorNew').hidden = false; $('aColorName').focus(); return; }
+    var b = e.target.closest('[data-color]');
+    if (!b) return;
+    var n = b.getAttribute('data-color'), low = n.toLowerCase();
+    var xi = colExtra.map(function (x) { return x.toLowerCase(); }).indexOf(low);
+    if (colPrin && colPrin.toLowerCase() === low) { colPrin = colExtra.shift() || ''; }
+    else if (xi >= 0) { colExtra.splice(xi, 1); }
+    else if (!colPrin) { colPrin = n; }
+    else if (colExtra.length < 2) { colExtra.push(n); }
+    else { I.toast('Máximo 2 colores además del principal. Quita uno para cambiarlo.', 'error'); return; }
+    renderPalette();
+  });
+  $('aColorCancel').addEventListener('click', function () { $('aColorNew').hidden = true; $('aColorName').value = ''; });
+  $('aColorName').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('aColorAdd').click(); } });
+  $('aColorAdd').addEventListener('click', function () {
+    var name = $('aColorName').value.trim(), btn = this;
+    if (!name) { $('aColorName').focus(); return; }
+    btn.disabled = true;
+    I.api('/api/inventario/colores', { method: 'POST', body: { nombre: name, hex: $('aColorHex').value } }).then(function (d) {
+      colores.push(d.item);
+      if (!colPrin) colPrin = d.item.nombre; else if (colExtra.length < 2) colExtra.push(d.item.nombre);
+      $('aColorNew').hidden = true; $('aColorName').value = '';
+      renderPalette();
+      I.toast('Color «' + d.item.nombre + '» agregado a la lista.');
+    }).catch(function (err) { I.toast(err.message, 'error'); })
+      .finally(function () { btn.disabled = false; });
+  });
 
   function buildFormDeps() {
     aDep.setOptions([{ value: '', label: 'Sin departamento' }].concat(deps.map(function (d) { return { value: String(d.id), label: d.nombre }; })));
@@ -645,6 +720,11 @@
     $('aMinimo').value = a && a.minimo ? a.minimo : '';
     $('aMaximo').value = a && a.maximo ? a.maximo : '';
     $('aLocal').value = a ? a.localizacion : '';
+    formTipo = a ? (a.tipo_armazon || '') : '';
+    colPrin = a ? (a.color_principal || '') : '';
+    colExtra = a && a.colores_extra ? a.colores_extra.slice(0, 2) : [];
+    $('aColorNew').hidden = true;
+    buildTipos(); renderPalette();
     syncServicio();
     resetFotos(a, mode);
   }
@@ -652,6 +732,7 @@
   function openEdit(a) { if (!a) return; editing = a; $('artTitle').textContent = 'Editar artículo'; fillForm(a, 'edit'); openArt(); }
   function openClone(a) { if (!a) return; editing = null; $('artTitle').textContent = 'Clonar «' + a.descripcion + '»'; fillForm(a, 'clone'); openArt(); }
   function openArt() {
+    loadArmazonData();
     I.openModal(artModal);
     setTab('general');
     setTimeout(function () { (editing ? $('aDesc') : $('aClave')).focus(); }, 80);
@@ -677,7 +758,10 @@
       existencia: editing ? 0 : intVal('aExistencia'),
       minimo: intVal('aMinimo'),
       maximo: intVal('aMaximo'),
-      localizacion: $('aLocal').value.trim()
+      localizacion: $('aLocal').value.trim(),
+      tipo_armazon: formTipo,
+      color_principal: colPrin,
+      colores_extra: colExtra.slice()
     };
     [1, 2, 3, 4].forEach(function (n) {
       var row = priceRow(n);
@@ -1210,4 +1294,5 @@
     if (sp.get('cat')) f.cat = sp.get('cat');
   } catch (e) {}
   load(false);
+  loadArmazonData();
 })();

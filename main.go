@@ -205,6 +205,8 @@ func main() {
 	db.EnsureInventoryTable()
 	// Probador virtual: estilos de armazón con su imagen (Elementor → Ecommerce).
 	db.EnsureProbadorTables()
+	// Paleta de colores de armazones (Inventario → Artículo).
+	db.EnsureInvColoresTable()
 	// Panel de Inventario: columnas nuevas de artículos, departamentos,
 	// categorías, ajustes y kárdex (movimientos).
 	db.EnsureInventarioProTables()
@@ -673,6 +675,9 @@ func main() {
 		apiInventario.GET("/movimientos", handlers.InvListMovimientos)
 		apiInventario.GET("/articulos/:id/rastreo", handlers.InvListRastreo)
 		apiInventario.GET("/rastreo/:numero", handlers.InvGetRastreo)
+		apiInventario.GET("/tipos-armazon", handlers.InvTiposArmazon)
+		apiInventario.GET("/colores", handlers.InvListColores)
+		apiInventario.POST("/colores", handlers.InvCreateColor)
 	}
 
 	apiReceptionist := router.Group("/api/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))

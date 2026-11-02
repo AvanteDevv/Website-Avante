@@ -169,6 +169,23 @@
               <div id="aCategoria"></div>
             </div>
           </div>
+          <div class="inv-arm" id="aArmazon">
+            <div class="staff-field">
+              <span>Tipo de armazón <em>(opcional)</em></span>
+              <div id="aTipoArm"></div>
+            </div>
+            <div class="staff-field inv-color-field">
+              <span>Color <em>(principal y, si es combinado, hasta 2 más)</em></span>
+              <div class="inv-color-sum" id="aColorSum"></div>
+              <div class="inv-palette" id="aPalette" role="group" aria-label="Colores"></div>
+              <div class="inv-color-new" id="aColorNew" hidden>
+                <input type="color" id="aColorHex" value="#888888" aria-label="Tono del color">
+                <input type="text" id="aColorName" maxlength="30" placeholder="Nombre (ej. Verde menta)">
+                <button type="button" class="inv-btn-ghost" id="aColorCancel">Cancelar</button>
+                <button type="button" class="btn solid small" id="aColorAdd">Agregar</button>
+              </div>
+            </div>
+          </div>
           <div class="staff-form-row inv-row-3">
             <div class="staff-field">
               <span>Unidad de compra</span>

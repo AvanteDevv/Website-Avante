@@ -41,6 +41,10 @@ func EnsureInventarioProTables() {
 		{"inv_minimo", "INT NOT NULL DEFAULT 0"},
 		{"inv_maximo", "INT NOT NULL DEFAULT 0"},
 		{"localizacion", "VARCHAR(60) NOT NULL DEFAULT ''"},
+		// Armazones: tipo (slug de los estilos del probador virtual) y color.
+		{"tipo_armazon", "VARCHAR(60) NOT NULL DEFAULT ''"},
+		{"color_principal", "VARCHAR(40) NOT NULL DEFAULT ''"},
+		{"colores_extra", "VARCHAR(120) NOT NULL DEFAULT ''"},
 	}
 	for _, c := range cols {
 		if err := addColumnIfMissing("inventory_items", c.name, c.ddl); err != nil {
