@@ -549,9 +549,12 @@ func ClaritoDeleteTemplate(c *gin.Context) {
 
 /* ---------- Vista rápida de los formatos llenos ---------- */
 
+// "-r2": las vistas rápidas guardadas antes se armaban sobre una imagen de
+// la plantilla que podía traer valores viejos encimados; con la nueva key
+// se ignoran y el visor dibuja el PDF real hasta que se vuelva a guardar.
 func claritoSavedPreviewKey(key string) string {
 	h := sha1.Sum([]byte(key))
-	return fmt.Sprintf("%s%x.jpg", claritoSavedPreviewPrefix, h[:12])
+	return fmt.Sprintf("%s%x-r2.jpg", claritoSavedPreviewPrefix, h[:12])
 }
 
 // claritoMoveSavedPreview mueve la imagen ligera junto con su PDF.

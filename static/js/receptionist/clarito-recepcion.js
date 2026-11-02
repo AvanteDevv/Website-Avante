@@ -269,8 +269,12 @@
   // La URL lleva la fecha de la plantilla: el navegador la guarda en caché
   // y solo la vuelve a bajar si la reemplazan.
   function tplURL(t) { return fileURL(t.key) + '&v=' + encodeURIComponent(t.modified); }
+  // PREVIEW_REV: sube este número para que todas las imágenes de las
+  // plantillas se vuelvan a dibujar (rev 2: ya sin los valores que traiga
+  // guardados el PDF en sus campos).
+  var PREVIEW_REV = '2';
   function previewURL(t, page) {
-    return '/api/clarito/templates/preview?key=' + encodeURIComponent(t.key) + '&v=' + encodeURIComponent(t.modified) + '&page=' + page;
+    return '/api/clarito/templates/preview?key=' + encodeURIComponent(t.key) + '&v=' + encodeURIComponent(t.modified + '~r' + PREVIEW_REV) + '&page=' + page;
   }
 
   var tplReady = Promise.resolve();
@@ -432,7 +436,10 @@
             c.width = Math.round(vp.width); c.height = Math.round(vp.height);
             var cx = c.getContext('2d');
             cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
-            return pg.render({ canvasContext: cx, viewport: vp }).promise.then(function () {
+            // Sin los campos del formulario: si la plantilla trae valores
+            // guardados en sus campos, no deben salir en la hoja de fondo.
+            var am = pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode.DISABLE : 0;
+            return pg.render({ canvasContext: cx, viewport: vp, annotationMode: am }).promise.then(function () {
               return new Promise(function (res) { c.toBlob(res, 'image/jpeg', 0.84); });
             }).then(function (blob) {
               if (!blob) { out.push(null); return; }
