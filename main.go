@@ -203,6 +203,8 @@ func main() {
 	db.EnsureTicketTemplateTable()
 	// Crea la tabla del inventario si todavía no existe.
 	db.EnsureInventoryTable()
+	// Probador virtual: estilos de armazón con su imagen (Elementor → Ecommerce).
+	db.EnsureProbadorTables()
 	// Panel de Inventario: columnas nuevas de artículos, departamentos,
 	// categorías, ajustes y kárdex (movimientos).
 	db.EnsureInventarioProTables()
@@ -900,6 +902,11 @@ func main() {
 		apiAdmin.GET("/carrusel-marcas", onlyAdmin, adminHandlers.GetCarouselLogos)
 		apiAdmin.POST("/carrusel-marcas", onlyAdmin, adminHandlers.SaveCarouselLogos)
 		apiAdmin.GET("/elementor", onlyAdmin, adminHandlers.GetElementorSettings)
+		apiAdmin.GET("/probador/estilos", onlyAdmin, adminHandlers.ListTryonEstilos)
+		apiAdmin.POST("/probador/estilos", onlyAdmin, adminHandlers.CreateTryonEstilo)
+		apiAdmin.PUT("/probador/estilos/:id", onlyAdmin, adminHandlers.UpdateTryonEstilo)
+		apiAdmin.DELETE("/probador/estilos/:id", onlyAdmin, adminHandlers.DeleteTryonEstilo)
+		apiAdmin.PUT("/probador/estilos-orden", onlyAdmin, adminHandlers.ReorderTryonEstilos)
 		apiAdmin.POST("/elementor", onlyAdmin, adminHandlers.SaveElementorSettings)
 		apiAdmin.POST("/productos", onlyAdmin, adminHandlers.CreateProduct)
 		apiAdmin.PUT("/productos/:id", onlyAdmin, adminHandlers.UpdateProduct)
@@ -980,6 +987,8 @@ func main() {
 	router.GET("/media/productos/*key", handlers.ServeProductImage)
 	router.GET("/media/logos/*key", handlers.ServeLogoImage)
 	router.GET("/media/carrusel/*key", handlers.ServeCarouselImage)
+	router.GET("/media/probador/*key", handlers.ServeTryonImage)
+	router.GET("/api/probador/estilos", handlers.PublicTryonEstilos)
 	router.GET("/media/hero/:key", handlers.ServeHeroVideo)
 	router.GET("/logout", handlers.Logout)
 	router.GET("/admin/logout", handlers.AdminLogout)

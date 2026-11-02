@@ -40,7 +40,55 @@
     const b = e.target.closest(".estilo"); if(!b) return;
     app.estilo = b.dataset.estilo;
     activarGrupo(document.getElementById("estilos"), b);
+    syncControles();
   });
+
+  // ---------- Estilos del panel (Elementor → Ecommerce) ----------
+  // Cada estilo puede traer su imagen PNG (armazón de frente, sin fondo):
+  // entonces se pone esa imagen sobre la cara. Los 4 de siempre, si no
+  // tienen imagen, se siguen dibujando con código.
+  const imagenes = {};   // slug → Image ya cargada
+  const conImagen = {};  // slug → URL
+  const SVG_BASE = {
+    clasico: '<rect x="8" y="10" width="42" height="26" rx="8"/><rect x="70" y="10" width="42" height="26" rx="8"/><path d="M50 18 Q60 12 70 18"/>',
+    redondo: '<circle cx="30" cy="23" r="15"/><circle cx="90" cy="23" r="15"/><path d="M45 18 Q60 12 75 18"/>',
+    aviador: '<path d="M10 12 h40 v6 q0 20 -20 20 q-20 0 -20 -20 z"/><path d="M70 12 h40 v6 q0 20 -20 20 q-20 0 -20 -20 z"/><path d="M50 15 Q60 11 70 15"/>',
+    cateye: '<path d="M10 16 Q6 8 16 10 L50 16 Q52 32 32 34 Q12 36 10 16 z"/><path d="M110 16 Q114 8 104 10 L70 16 Q68 32 88 34 Q108 36 110 16 z"/><path d="M50 20 Q60 14 70 20"/>'
+  };
+  function escTxt(t){ return String(t == null ? "" : t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+  // Color y mica solo aplican a los dibujados; la imagen se ve tal cual.
+  function syncControles(){
+    const img = !!conImagen[app.estilo];
+    ["colores","micas"].forEach(id=>{
+      const g = document.getElementById(id);
+      const grupo = g && g.closest(".grupo");
+      if(grupo) grupo.classList.toggle("is-off", img);
+    });
+    const nota = document.getElementById("nota-imagen");
+    if(nota) nota.hidden = !img;
+  }
+  fetch("/api/probador/estilos", { headers:{ Accept:"application/json" } })
+    .then(r=> r.ok ? r.json() : null)
+    .then(d=>{
+      const lista = (d && d.items) || [];
+      if(!lista.length) return;
+      const cont = document.getElementById("estilos");
+      cont.innerHTML = lista.map(e=>{
+        if(e.imagen){
+          conImagen[e.slug] = e.imagen;
+          const im = new Image();
+          im.onload = ()=>{ imagenes[e.slug] = im; };
+          im.src = e.imagen;
+        }
+        const vista = e.imagen
+          ? `<img src="${escTxt(e.imagen)}" alt="">`
+          : `<svg viewBox="0 0 120 44"><g class="trazo">${SVG_BASE[e.slug] || ""}</g></svg>`;
+        return `<button class="estilo${e.imagen ? " con-imagen" : ""}" data-estilo="${escTxt(e.slug)}" aria-pressed="false">${vista}<span>${escTxt(e.nombre)}</span></button>`;
+      }).join("");
+      // El que venía de la ficha del producto, o el primero.
+      if(!(estiloParam && elegirEstilo(estiloParam)) && !elegirEstilo(app.estilo)) elegirEstilo(lista[0].slug);
+    })
+    .catch(()=>{ /* se quedan los 4 de siempre */ });
   document.getElementById("colores").addEventListener("click", e=>{
     const b = e.target.closest(".color"); if(!b) return;
     app.color = b.dataset.color;
@@ -67,12 +115,15 @@
   const micaParam = paramsProbador.get("mica");
   const nombreParam = paramsProbador.get("nombre");
 
-  const ESTILOS_VALIDOS = ["clasico","redondo","aviador","cateye"];
-  if(estiloParam && ESTILOS_VALIDOS.includes(estiloParam)){
-    app.estilo = estiloParam;
-    const btnEstilo = document.querySelector(`#estilos [data-estilo="${estiloParam}"]`);
-    if(btnEstilo) activarGrupo(document.getElementById("estilos"), btnEstilo);
+  function elegirEstilo(slug){
+    const btnEstilo = document.querySelector(`#estilos [data-estilo="${slug}"]`);
+    if(!btnEstilo) return false;
+    app.estilo = slug;
+    activarGrupo(document.getElementById("estilos"), btnEstilo);
+    syncControles();
+    return true;
   }
+  if(estiloParam) elegirEstilo(estiloParam);
   const MICAS_VALIDAS = ["oftalmico","sol"];
   if(micaParam && MICAS_VALIDAS.includes(micaParam)){
     app.mica = micaParam;
@@ -206,7 +257,21 @@
   }
 
   // ---------- Dibujo de los lentes ----------
+  // Estilo con imagen: el armazón (de frente, recortado) del ancho de la
+  // cara a la altura de los ojos, girado con la cabeza.
+  function dibujarImagen(im, cx, cy, ancho, ang){
+    const w = ancho * 1.02;
+    const h = w * (im.naturalHeight / im.naturalWidth);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(ang);
+    ctx.drawImage(im, -w/2, -h*0.48, w, h);
+    ctx.restore();
+  }
   function dibujarLentes(cx, cy, ancho, ang){
+    const im = imagenes[app.estilo];
+    if(im){ dibujarImagen(im, cx, cy, ancho, ang); return; }
+    if(conImagen[app.estilo]) return; // la imagen todavía está cargando
     const grosor = Math.max(3, ancho * 0.028);   // grosor del armazón
     const lenteW = ancho * 0.42;                  // ancho de cada lente
     const sep    = ancho * 0.08;                  // medio puente

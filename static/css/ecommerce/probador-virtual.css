@@ -195,3 +195,12 @@ h1,h2,h3{ font-family:var(--serif); font-weight:500; letter-spacing:-.01em; }
 .nota-panel{ font-size:12.5px; color:var(--grey); text-align:center; line-height:1.6; }
 .nota-panel a{ color:var(--blue-700); font-weight:600; }
 .nota-panel a:hover{ color:var(--blue-600); }
+/* Estilos con imagen (Elementor → Ecommerce → Probador virtual) */
+.estilo img{ width:84px; height:30px; object-fit:contain; }
+.estilo.con-imagen img{ filter:drop-shadow(0 3px 5px rgba(10,14,56,.15)); }
+.grupo.is-off{ opacity:.4; pointer-events:none; transition:opacity .2s var(--ease); }
+.nota-imagen{
+  margin:-6px 0 4px; padding:9px 12px; border-radius:12px; background:var(--blue-50); border:1px solid var(--blue-100);
+  font-size:12px; font-weight:600; color:var(--blue-700); line-height:1.45;
+}
+.nota-imagen[hidden]{ display:none; }

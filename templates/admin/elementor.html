@@ -386,14 +386,29 @@
       </section>
     </div>
 
-    <!-- ===== tab: ecommerce (próximamente) ===== -->
+    <!-- ===== tab: ecommerce — probador virtual (probador-estilos.js) ===== -->
     <div class="elementor-tabpanel" data-tabpanel="ecommerce" hidden>
       <section class="panel elementor-panel">
-        <div class="elementor-soon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6"/></svg>
-          <h3>Edición de la Tienda</h3>
-          <p>Próximamente vas a poder editar los textos de la sección de Ecommerce desde aquí.</p>
+        <div class="panel-head panel-head-actions">
+          <div>
+            <h2>Probador virtual · estilos de armazón</h2>
+            <p>Son los estilos que el cliente puede elegir en el probador virtual, en este orden. Cada cambio se guarda al momento.</p>
+          </div>
+          <button type="button" class="btn thin" id="tryAddBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Agregar estilo
+          </button>
         </div>
+        <div class="try-guide">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <div>
+            <b>Cómo debe ser la imagen</b>
+            <span>PNG o WEBP <b>sin fondo</b> (transparente), el armazón <b>de frente</b>, derecho y centrado, de preferencia sin las varillas. Mínimo 800 px de ancho. El sistema recorta solo el espacio vacío de alrededor. Los 4 estilos de siempre se dibujan solos mientras no les subas imagen.</span>
+          </div>
+        </div>
+        <p class="try-msg" id="tryMsg" hidden></p>
+        <div class="try-grid" id="tryGrid"><p class="try-empty">Cargando estilos…</p></div>
+        <input type="file" id="tryFile" accept="image/png,image/webp" hidden>
       </section>
     </div>
   </main>
@@ -403,5 +418,6 @@
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/admin/userbar.js"></script>
 <script src="/static/js/admin/elementor.js"></script>
+<script src="/static/js/admin/probador-estilos.js"></script>
 </body>
 </html>
