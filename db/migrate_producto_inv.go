@@ -8,6 +8,7 @@ import "log"
 func EnsureProductInvLink() {
 	ensureProductCol("tipo_armazon", "VARCHAR(60) NOT NULL DEFAULT ''")
 	ensureProductCol("materiales", "VARCHAR(160) NOT NULL DEFAULT ''")
+	ensureProductCol("mica_tipo", "VARCHAR(12) NOT NULL DEFAULT ''")
 	var n int
 	if err := DB.QueryRow(`SELECT COUNT(*) FROM information_schema.COLUMNS
 		WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products' AND COLUMN_NAME = 'inv_item_id'`).Scan(&n); err != nil {

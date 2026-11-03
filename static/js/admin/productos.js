@@ -142,6 +142,31 @@ var setProductIcon = (function(){
   return setIcon;
 })();
 
+/* ---------- Mica: oftálmico / de sol (se llena desde el inventario) ---------- */
+window.productMica = (function(){
+  var seg = document.getElementById('prodMica');
+  if (!seg) return null;
+  function set(v, flash){
+    v = v === 'sol' || v === 'oftalmico' ? v : '';
+    seg.dataset.mica = v;
+    seg.querySelectorAll('button[data-mica]').forEach(function(b){
+      var on = b.dataset.mica === v;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    // El icono de la tienda: de sol → sun; si no, el que toca por el tipo.
+    var icon = document.getElementById('prodIcon');
+    var tipo = document.getElementById('prodTipoArm');
+    if (icon) icon.value = v === 'sol' ? 'sun' : (ICON_POR_TIPO[tipo && tipo.value] || (tipo && tipo.value ? 'square' : icon.value));
+    if (flash) { seg.classList.remove('is-flash'); void seg.offsetWidth; seg.classList.add('is-flash'); }
+  }
+  seg.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-mica]');
+    if (b) set(b.dataset.mica);
+  });
+  return { set: set, get: function(){ return seg.dataset.mica || ''; } };
+})();
+
 /* ---------- Material del armazón (lista del inventario) ---------- */
 window.productMats = (function(){
   var box = document.getElementById('prodMats');
@@ -638,6 +663,7 @@ var logoModePicker = (function(){
     productPhotos.reset();
     setProductTipo('');
     window.productMats && window.productMats.set([]);
+    window.productMica && window.productMica.set('');
     promoEndsField.reset();
     setPriceMode('normal', true);
     titleEl.textContent = 'Agregar producto';
@@ -671,6 +697,11 @@ var logoModePicker = (function(){
     document.getElementById('prodDescripcion').value = card.dataset.descripcion || '';
     if (card.dataset.tipoArm) setProductTipo(card.dataset.tipoArm); else setProductIcon(card.dataset.icon || 'round');
     window.productMats && window.productMats.set((card.dataset.materiales || '').split(',').filter(Boolean));
+    if (window.productMica) {
+      if (card.dataset.mica) window.productMica.set(card.dataset.mica);
+      else if (card.dataset.icon === 'sun') window.productMica.set('sol'); // productos de antes
+      else window.productMica.set('');
+    }
 
     if (card.dataset.logoUrl) window.setProductLogoPreview(card.dataset.logoUrl);
 
@@ -745,6 +776,8 @@ var logoModePicker = (function(){
     if (window.productInvPick) formData.append('inv_item_id', String(window.productInvPick.linked() || ''));
     formData.append('tipo_armazon', document.getElementById('prodTipoArm').value);
     formData.append('materiales', window.productMats ? window.productMats.get().join(',') : '');
+    formData.append('mica_tipo', window.productMica ? window.productMica.get() : '');
+    if (window.productMica && window.productMica.get() === 'sol') formData.set('icon', 'sun');
     if (logoInput.files[0]) formData.append('logo', logoInput.files[0]);
     var existingLogoKey = document.getElementById('prodExistingLogoKey').value;
     if (existingLogoKey) formData.append('existing_logo_key', existingLogoKey);
@@ -1186,7 +1219,8 @@ window.productInvPick = (function(){
     linkedId = a.id;
     // Tipo de armazón y material vienen del inventario (también al editar).
     if (a.tipo_armazon) setProductTipo(a.tipo_armazon);
-    if (a.mica_tipo === 'sol') document.getElementById('prodIcon').value = 'sun';
+    if (a.mica_tipo && window.productMica) window.productMica.set(a.mica_tipo, true);
+    else if (a.mica_tipo === 'sol') document.getElementById('prodIcon').value = 'sun';
     if (a.materiales && a.materiales.length && window.productMats) window.productMats.set(a.materiales, true);
     if (mode === 'edit') { q.value = ''; paintLink(); return; }
     q.value = a.descripcion;
@@ -1202,6 +1236,7 @@ window.productInvPick = (function(){
     if (a.tipo_armazon) lleno.push('Tipo de armazón');
     else if (g.forma && window.setProductIcon) { window.setProductIcon(g.forma); revisa.push('Tipo de armazón'); } else falta.push('Tipo de armazón');
     if (a.materiales && a.materiales.length) lleno.push('Material'); else falta.push('Material');
+    if (a.mica_tipo) lleno.push('Mica'); else falta.push('Mica');
     falta.push('Año', 'Logo de la marca');
     var opc = ['Etiqueta', 'Promoción (precio anterior y fin)'];
     function paint(fotos){

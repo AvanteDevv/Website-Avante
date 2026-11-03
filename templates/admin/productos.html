@@ -74,7 +74,7 @@
         <div class="product-card product-item" data-product-id="{{.ID}}"
              data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
              data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
-             data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}" data-tipo-arm="{{.TipoArmazon}}" data-materiales="{{.MaterialesCSV}}"
+             data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}" data-tipo-arm="{{.TipoArmazon}}" data-materiales="{{.MaterialesCSV}}" data-mica="{{.MicaTipo}}"
              data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
              data-descripcion="{{.Description}}"
              data-logo-url="{{.LogoURL}}"
@@ -134,7 +134,7 @@
             <tr class="product-row product-item" data-product-id="{{.ID}}"
                 data-titulo="{{.Title}}" data-marca="{{.Brand}}" data-anio="{{.Year}}" data-modelo="{{.Model}}"
                 data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
-                data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}" data-tipo-arm="{{.TipoArmazon}}" data-materiales="{{.MaterialesCSV}}"
+                data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}" data-tipo-arm="{{.TipoArmazon}}" data-materiales="{{.MaterialesCSV}}" data-mica="{{.MicaTipo}}"
                 data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
                 data-fotos="{{len .Images}}"
                 data-descripcion="{{.Description}}"
@@ -293,6 +293,16 @@
           <label>Etiqueta <span class="admin-user-form-optional">(opcional)</span>
             <input type="text" id="prodBadge" name="badge" placeholder="Ej. Nuevo, Bestseller">
           </label>
+        </div>
+
+        <div class="prod-price-mode">
+          <span class="prod-price-mode-label">Mica <span class="admin-user-form-optional">(se llena desde el inventario)</span></span>
+          <div class="prod-price-seg prod-mica-seg" id="prodMica" role="radiogroup" aria-label="Tipo de mica" data-mica="">
+            <span class="prod-price-seg-thumb" aria-hidden="true"></span>
+            <button type="button" data-mica="oftalmico" role="radio" aria-checked="false">Oftálmico</button>
+            <button type="button" data-mica="sol" role="radio" aria-checked="false">De sol</button>
+            <button type="button" data-mica="" class="active" role="radio" aria-checked="true">Sin definir</button>
+          </div>
         </div>
 
         <div class="prod-mats-field">

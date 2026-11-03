@@ -475,6 +475,16 @@ body.dark .prod-inv-link{ background:rgba(31,157,85,.12); }
 body.dark .prod-inv-unlink{ background:transparent; }
 body.dark .prod-inv-link-txt em{ color:#ffd36e; }
 /* Material del armazón (lista del inventario) */
+/* Mica: oftálmico / de sol / sin definir (mismo segmento que el precio) */
+.prod-mica-seg{ grid-template-columns:repeat(3, 1fr); min-width:300px; }
+.prod-mica-seg .prod-price-seg-thumb{ width:calc((100% - 8px) / 3); }
+.prod-mica-seg[data-mica="sol"] .prod-price-seg-thumb{ transform:translateX(100%); }
+.prod-mica-seg[data-mica=""] .prod-price-seg-thumb{ transform:translateX(200%); }
+.prod-mica-seg[data-mica="sol"] button.active{ color:#c2410c; }
+.prod-mica-seg.is-flash .prod-price-seg-thumb{ animation:prodMicaFlash .6s ease; }
+@keyframes prodMicaFlash{ 0%{ box-shadow:0 0 0 0 rgba(31,157,85,.5); } 100%{ box-shadow:0 0 0 7px rgba(31,157,85,0); } }
+@media (max-width:420px){ .prod-mica-seg{ min-width:0; width:100%; } }
+
 .prod-mats-field{ display:flex; flex-direction:column; gap:7px; }
 .prod-mats-label{ font-size:12.5px; font-weight:700; color:var(--ink); }
 .prod-mats{ display:flex; flex-wrap:wrap; gap:6px; }

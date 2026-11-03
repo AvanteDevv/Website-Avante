@@ -443,11 +443,12 @@ func saveProductInvLink(c *gin.Context, productID int64) {
 }
 
 // saveProductArmazon guarda el tipo de armazón (estilo del probador) y los
-// materiales, si el form los manda.
+// materiales y la mica (oftálmico / de sol), si el form los manda.
 func saveProductArmazon(c *gin.Context, productID int64) {
 	tipo, okT := c.GetPostForm("tipo_armazon")
 	matsRaw, okM := c.GetPostForm("materiales")
-	if !okT && !okM {
+	mica, okC := c.GetPostForm("mica_tipo")
+	if !okT && !okM && !okC {
 		return
 	}
 	tipo = strings.TrimSpace(tipo)
@@ -458,7 +459,10 @@ func saveProductArmazon(c *gin.Context, productID int64) {
 	if !ok && len(mats) > 4 {
 		mats = mats[:4]
 	}
-	if err := models.SetProductArmazon(productID, tipo, mats); err != nil {
-		log.Printf("productos: no se guardó el tipo/material (#%d): %v", productID, err)
+	if mica = strings.TrimSpace(mica); mica != "oftalmico" && mica != "sol" {
+		mica = ""
+	}
+	if err := models.SetProductArmazon(productID, tipo, mats, mica); err != nil {
+		log.Printf("productos: no se guardó el tipo/material/mica (#%d): %v", productID, err)
 	}
 }

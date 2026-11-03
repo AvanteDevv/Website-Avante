@@ -37,6 +37,7 @@ type Product struct {
 	InvItemID   int64    // artículo del inventario vinculado (0 = ninguno)
 	TipoArmazon string   // slug del estilo del probador (Redondo, Aviador…)
 	Materiales  []string // materiales del armazón
+	MicaTipo    string   // "oftalmico", "sol" o "" (sin definir)
 }
 
 // MaterialesCSV: para el data-* del panel de admin.
@@ -186,14 +187,14 @@ func GetAllProducts() ([]Product, error) {
 
 	// Vínculo con el inventario, tipo de armazón y materiales (columnas
 	// aparte: si todavía no existen, no truena).
-	if linkRows, err := db.DB.Query(`SELECT id, COALESCE(inv_item_id, 0), tipo_armazon, materiales FROM products`); err == nil {
+	if linkRows, err := db.DB.Query(`SELECT id, COALESCE(inv_item_id, 0), tipo_armazon, materiales, mica_tipo FROM products`); err == nil {
 		defer linkRows.Close()
 		for linkRows.Next() {
 			var pid, iid int64
-			var tipo, mats string
-			if linkRows.Scan(&pid, &iid, &tipo, &mats) == nil {
+			var tipo, mats, mica string
+			if linkRows.Scan(&pid, &iid, &tipo, &mats, &mica) == nil {
 				if p, ok := byID[pid]; ok {
-					p.InvItemID, p.TipoArmazon = iid, tipo
+					p.InvItemID, p.TipoArmazon, p.MicaTipo = iid, tipo, mica
 					for _, m := range strings.Split(mats, ",") {
 						if m = strings.TrimSpace(m); m != "" {
 							p.Materiales = append(p.Materiales, m)
@@ -218,9 +219,10 @@ func SetProductInvItem(productID, invItemID int64) error {
 	return err
 }
 
-// SetProductArmazon guarda el tipo de armazón y los materiales del producto.
-func SetProductArmazon(productID int64, tipo string, materiales []string) error {
-	_, err := db.DB.Exec(`UPDATE products SET tipo_armazon = ?, materiales = ? WHERE id = ?`, tipo, strings.Join(materiales, ","), productID)
+// SetProductArmazon guarda el tipo de armazón, los materiales y la mica
+// (oftálmico / de sol) del producto.
+func SetProductArmazon(productID int64, tipo string, materiales []string, mica string) error {
+	_, err := db.DB.Exec(`UPDATE products SET tipo_armazon = ?, materiales = ?, mica_tipo = ? WHERE id = ?`, tipo, strings.Join(materiales, ","), mica, productID)
 	return err
 }
 

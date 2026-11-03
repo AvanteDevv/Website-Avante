@@ -103,12 +103,16 @@ func buildStoreProductsJSON() template.JS {
 		}
 		sp.TryonEstilo = p.TipoArmazon
 		sp.Materiales = p.Materiales
+		sp.TryonMica = p.MicaTipo
 		if t, ok := tryon[p.ID]; ok {
 			// Lo del inventario manda (si el artículo lo tiene capturado).
 			if t.Estilo != "" {
 				sp.TryonEstilo = t.Estilo
 			}
-			sp.TryonMica, sp.TryonColor = t.Mica, t.ColorHex
+			if t.Mica != "" {
+				sp.TryonMica = t.Mica
+			}
+			sp.TryonColor = t.ColorHex
 			if len(t.Materiales) > 0 {
 				sp.Materiales = t.Materiales
 			}
