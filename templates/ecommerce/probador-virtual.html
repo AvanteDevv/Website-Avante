@@ -16,22 +16,40 @@
 
 {{template "navbar" .}}
 
-<section class="intro">
-  <span class="eyebrow">
-    <svg class="eyebrow-glasses" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><circle cx="27" cy="7" r="6"/><path d="M13 7h8"/></svg>
-    Probador virtual
-  </span>
-  <h1>Pruébate tus próximos lentes sin salir de casa</h1>
-  <p>Activa tu cámara, elige un estilo y mira cómo te quedan en tiempo real. Cuando encuentres el indicado, agenda tu cita o visítanos en tienda.</p>
+<!-- Vistas: probador normal / cámara completa con los controles encima -->
+<section class="pv-top">
+  <div class="pv-tabs" id="pv-tabs" role="tablist" aria-label="Vista del probador">
+    <span class="pv-tabs-glow" aria-hidden="true"></span>
+    <button type="button" class="pv-tab activo" data-vista="probador" role="tab" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="11" height="16" rx="2"/><path d="M17 4h4M17 9h4M17 14h4M17 19h4"/></svg>
+      Probador
+    </button>
+    <button type="button" class="pv-tab" data-vista="camara" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/><circle cx="12" cy="12" r="3.2"/></svg>
+      Cámara completa
+    </button>
+  </div>
   <span class="tryon-producto-chip" id="tryon-producto" style="display:none;"></span>
 </section>
 
-<main class="probador">
+<main class="probador" id="probador">
 
   <!-- Visor de cámara -->
   <div class="visor">
     <video id="video" playsinline></video>
     <canvas id="lienzo"></canvas>
+
+    <!-- Barra de la cámara completa (solo se ve en esa vista) -->
+    <div class="pv-cam-bar">
+      <button type="button" class="pv-cam-btn pv-cam-salir" id="pv-salir" aria-label="Salir de la cámara completa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <span>Salir</span>
+      </button>
+      <span class="pv-cam-nombre" id="pv-cam-nombre"></span>
+      <button type="button" class="pv-cam-btn pv-cam-foto" id="pv-foto" aria-label="Tomar foto">
+        <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM9 3 7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9z"/></svg>
+      </button>
+    </div>
 
     <div class="estado" id="estado">
       <div class="icono-cam">
