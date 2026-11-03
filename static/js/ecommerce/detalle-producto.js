@@ -85,6 +85,8 @@ const TRYON_ESTILO_POR_ICON = { round: 'redondo', square: 'clasico', sun: 'aviad
 const tryonEstilo = product.tryonEstilo || TRYON_ESTILO_POR_ICON[product.icon] || 'clasico';
 const tryonMica = product.tryonMica || (product.icon === 'sun' ? 'sol' : 'oftalmico');
 const tryonParams = new URLSearchParams({ estilo: tryonEstilo, mica: tryonMica, nombre: product.name });
+// Si es un producto real, el probador lo deja ya elegido en su lista de armazones.
+if (AVANTE_PRODUCTS.length) tryonParams.set('p', String(pid));
 if (product.tryonColor) tryonParams.set('color', product.tryonColor);
 document.getElementById('pdTryOn').href = `/probador-virtual?${tryonParams.toString()}`;
 

@@ -25,6 +25,10 @@
     escala: 1.0,       // ajuste fino del usuario
     caraVisible: false,
     listo: false,
+    arrancando: false,
+    // Armazones de la tienda: el elegido y los filtros (vacío = todos).
+    armazon: null,
+    filtro: { color:"", mica:"" },
     // Suavizado de la posición entre frames
     suave: { cx:0, cy:0, ancho:0, ang:0, iniciado:false }
   };
@@ -39,6 +43,7 @@
   document.getElementById("estilos").addEventListener("click", e=>{
     const b = e.target.closest(".estilo"); if(!b) return;
     app.estilo = b.dataset.estilo;
+    app.filtro = { color:"", mica:"" };
     activarGrupo(document.getElementById("estilos"), b);
     syncControles();
   });
@@ -56,16 +61,136 @@
     cateye: '<path d="M10 16 Q6 8 16 10 L50 16 Q52 32 32 34 Q12 36 10 16 z"/><path d="M110 16 Q114 8 104 10 L70 16 Q68 32 88 34 Q108 36 110 16 z"/><path d="M50 20 Q60 14 70 20"/>'
   };
   function escTxt(t){ return String(t == null ? "" : t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-  // Color y mica solo aplican a los dibujados; la imagen se ve tal cual.
-  function syncControles(){
-    const img = !!conImagen[app.estilo];
-    ["colores","micas"].forEach(id=>{
-      const g = document.getElementById(id);
-      const grupo = g && g.closest(".grupo");
-      if(grupo) grupo.classList.toggle("is-off", img);
+  // ---------- Armazones de la tienda ----------
+  // Los productos traen su tipo de armazón, color y mica (del inventario o
+  // del propio producto). Al elegir un estilo salen los de ese estilo;
+  // color y mica los filtran (sin elegir nada = todos los del estilo).
+  function leerProductos(){
+    const el = document.getElementById("avante-products-data");
+    if(!el) return [];
+    try{ return JSON.parse(el.textContent) || []; }catch(e){ return []; }
+  }
+  const PRODUCTOS = leerProductos().map((p, i)=> Object.assign({ idx:i }, p));
+  const fotosArmazon = {};   // idx → canvas sin fondo (null = no se pudo)
+  const fotosListas = {};    // idx → ya se intentó recortar
+  let armazonPedido = -1;    // ?p= (viene de la ficha del producto)
+  let coloresBase = null;    // paleta de los dibujados, para regresar a ella
+
+  function delEstilo(){ return PRODUCTOS.filter(p=> p.tryonEstilo && p.tryonEstilo === app.estilo); }
+  function filtrados(){
+    return delEstilo().filter(p=>
+      (!app.filtro.color || (p.tryonColor || "").toLowerCase() === app.filtro.color) &&
+      (!app.filtro.mica || p.tryonMica === app.filtro.mica));
+  }
+  function modoArmazones(){ return delEstilo().length > 0; }
+
+  function pintarColores(lista){
+    const cont = document.getElementById("colores");
+    const ayuda = document.getElementById("colores-ayuda");
+    if(lista){
+      if(cont.dataset.modo !== "arm") coloresBase = cont.innerHTML;
+      cont.dataset.modo = "arm";
+      const vistos = {};
+      const colores = [];
+      lista.forEach(p=>{
+        const hex = (p.tryonColor || "").toLowerCase();
+        if(/^#[0-9a-f]{6}$/.test(hex) && !vistos[hex]){ vistos[hex] = 1; colores.push({ hex, nombre: p.tryonColorNombre || "" }); }
+      });
+      cont.innerHTML = colores.length ? colores.map(c=>{
+        const on = app.filtro.color === c.hex;
+        return `<button class="color${on ? " activo" : ""}" data-color="${c.hex}" style="background:${c.hex}" title="${escTxt(c.nombre)}" aria-label="${escTxt(c.nombre || c.hex)}" aria-pressed="${on}"></button>`;
+      }).join("") : `<p class="filtro-vacio">Los armazones de este estilo aún no tienen color capturado.</p>`;
+      if(ayuda) ayuda.textContent = colores.length ? "toca para filtrar" : "";
+    }else{
+      if(cont.dataset.modo === "arm" && coloresBase != null){
+        cont.innerHTML = coloresBase;
+        const b = Array.from(cont.querySelectorAll(".color")).filter(x=> x.dataset.color === app.color)[0];
+        if(b) activarGrupo(cont, b);
+      }
+      cont.dataset.modo = "dibujo";
+      if(ayuda) ayuda.textContent = "";
+    }
+  }
+  function pintarMicas(arm){
+    const cont = document.getElementById("micas");
+    const ayuda = document.getElementById("micas-ayuda");
+    cont.querySelectorAll(".mica").forEach(b=>{
+      const on = arm ? app.filtro.mica === b.dataset.mica : app.mica === b.dataset.mica;
+      b.classList.toggle("activo", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
     });
+    if(ayuda) ayuda.textContent = arm ? "toca para filtrar" : "";
+  }
+  function setOff(id, off){
+    const g = document.getElementById(id);
+    const grupo = g && g.closest(".grupo");
+    if(grupo) grupo.classList.toggle("is-off", off);
+  }
+
+  function pintarArmazones(){
+    const grupo = document.getElementById("grupo-armazones");
+    const cont = document.getElementById("armazones");
+    const todos = delEstilo();
+    grupo.hidden = !todos.length;
+    if(!todos.length) return;
+    const lista = filtrados();
+    const btnEst = document.querySelector(`#estilos [data-estilo="${app.estilo}"] span`);
+    document.getElementById("armazones-cuenta").textContent =
+      `${btnEst ? btnEst.textContent : ""} · ${lista.length}${lista.length !== todos.length ? " de " + todos.length : ""}`;
+    if(!lista.length){
+      cont.innerHTML = `<p class="armazones-vacio">No hay armazones de este estilo con ese color o mica. <button type="button" data-quitar-filtros>Quitar filtros</button></p>`;
+      return;
+    }
+    cont.innerHTML = lista.map(p=>{
+      const on = app.armazon && app.armazon.idx === p.idx;
+      const foto = p.images && p.images[0];
+      const mica = p.tryonMica === "sol" ? "De sol" : p.tryonMica === "oftalmico" ? "Oftálmico" : "";
+      return `<button type="button" class="armazon${on ? " activo" : ""}" data-idx="${p.idx}" aria-pressed="${!!on}">
+        <span class="armazon-foto">${foto ? `<img src="${escTxt(foto)}" alt="" loading="lazy">` : ""}</span>
+        <span class="armazon-nombre">${escTxt(p.name)}</span>
+        <span class="armazon-sub">${p.tryonColor ? `<i style="background:${escTxt(p.tryonColor)}"></i>` : ""}${escTxt([p.tryonColorNombre, mica].filter(Boolean).join(" · ") || p.brand || "")}</span>
+        <span class="armazon-precio">${escTxt(p.price || "")}</span>
+      </button>`;
+    }).join("");
+  }
+
+  // Deja elegido un armazón válido para el estilo y los filtros actuales.
+  function ajustarArmazon(){
+    const lista = filtrados();
+    if(app.armazon && lista.some(p=> p.idx === app.armazon.idx)) return;
+    const pedido = lista.filter(p=> p.idx === armazonPedido)[0];
+    elegirArmazon(pedido || lista[0] || null, false);
+  }
+  function elegirArmazon(p, conCamara){
+    app.armazon = p;
+    if(p) prepararFoto(p);
+    avisoFoto();
+    document.querySelectorAll("#armazones .armazon").forEach(b=>{
+      const on = !!p && Number(b.dataset.idx) === p.idx;
+      b.classList.toggle("activo", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    pintarChip();
+    if(p && !app.listo){
+      estTit.textContent = `Pruébate ${p.name}`;
+      estTxt.textContent = "Activa tu cámara para ver cómo te queda. La imagen no se guarda ni se envía a ningún servidor.";
+      if(conCamara && !app.arrancando) iniciar();
+    }
+  }
+
+  // Color y mica: con armazones de la tienda son filtros; en los estilos
+  // dibujados cambian el dibujo; en los de imagen (sin armazones) no aplican.
+  function syncControles(){
+    const arm = modoArmazones();
+    const img = !!conImagen[app.estilo];
+    pintarColores(arm ? delEstilo() : null);
+    pintarMicas(arm);
+    setOff("colores", !arm && img);
+    setOff("micas", !arm && img);
     const nota = document.getElementById("nota-imagen");
-    if(nota) nota.hidden = !img;
+    if(nota) nota.hidden = arm || !img;
+    if(arm){ pintarArmazones(); ajustarArmazon(); }
+    else { document.getElementById("grupo-armazones").hidden = true; elegirArmazon(null, false); }
   }
   fetch("/api/probador/estilos", { headers:{ Accept:"application/json" } })
     .then(r=> r.ok ? r.json() : null)
@@ -91,13 +216,30 @@
     .catch(()=>{ /* se quedan los 4 de siempre */ });
   document.getElementById("colores").addEventListener("click", e=>{
     const b = e.target.closest(".color"); if(!b) return;
+    if(modoArmazones()){
+      const c = (b.dataset.color || "").toLowerCase();
+      app.filtro.color = app.filtro.color === c ? "" : c;
+      syncControles();
+      return;
+    }
     app.color = b.dataset.color;
     activarGrupo(document.getElementById("colores"), b);
   });
   document.getElementById("micas").addEventListener("click", e=>{
     const b = e.target.closest(".mica"); if(!b) return;
+    if(modoArmazones()){
+      app.filtro.mica = app.filtro.mica === b.dataset.mica ? "" : b.dataset.mica;
+      syncControles();
+      return;
+    }
     app.mica = b.dataset.mica;
     activarGrupo(document.getElementById("micas"), b);
+  });
+  document.getElementById("armazones").addEventListener("click", e=>{
+    if(e.target.closest("[data-quitar-filtros]")){ app.filtro = { color:"", mica:"" }; syncControles(); return; }
+    const b = e.target.closest(".armazon"); if(!b) return;
+    const p = PRODUCTOS[Number(b.dataset.idx)];
+    if(p) elegirArmazon(p, true);
   });
   const rango = document.getElementById("tamano");
   const rangoVal = document.getElementById("tamano-valor");
@@ -123,6 +265,8 @@
     syncControles();
     return true;
   }
+  const pParam = parseInt(paramsProbador.get("p"), 10);
+  if(!isNaN(pParam) && PRODUCTOS[pParam]) armazonPedido = pParam;
   if(estiloParam) elegirEstilo(estiloParam);
   const MICAS_VALIDAS = ["oftalmico","sol"];
   if(micaParam && MICAS_VALIDAS.includes(micaParam)){
@@ -148,11 +292,21 @@
     app.color = colorParam;
     activarGrupo(cont, btnColor);
   }
-  const chipProducto = document.getElementById("tryon-producto");
-  if(nombreParam && chipProducto){
-    chipProducto.textContent = `Probando: ${nombreParam}`;
-    chipProducto.style.display = "";
+  function pintarChip(){
+    const chip = document.getElementById("tryon-producto");
+    if(!chip) return;
+    const p = app.armazon;
+    if(p){
+      chip.innerHTML = `Probando: ${escTxt(p.name)} · <a href="/eccomerce/detalle?id=${p.idx}">Ver en la tienda</a>`;
+      chip.style.display = "";
+    }else if(nombreParam && armazonPedido < 0){
+      chip.textContent = `Probando: ${nombreParam}`;
+      chip.style.display = "";
+    }else{
+      chip.style.display = "none";
+    }
   }
+  pintarChip();
 
   // ---------- FaceMesh ----------
   let faceMesh = null;
@@ -175,6 +329,8 @@
 
   // ---------- Cámara ----------
   async function iniciar(){
+    if(app.arrancando || app.listo) return;
+    app.arrancando = true;
     estTit.textContent = "Preparando cámara…";
     estTxt.textContent = "Un momento, estamos cargando el detector facial.";
     btnIni.style.display = "none";
@@ -200,8 +356,10 @@
       app.listo = true;
       btnFoto.disabled = false;
       estado.classList.add("oculto");
+      app.arrancando = false;
       bucle();
     }catch(err){
+      app.arrancando = false;
       spinner.remove();
       btnIni.style.display = "";
       btnIni.textContent = "Intentar de nuevo";
@@ -279,7 +437,7 @@
   // cara a la altura de los ojos, girado con la cabeza.
   function dibujarImagen(im, cx, cy, ancho, ang){
     const w = ancho * 1.02;
-    const h = w * (im.naturalHeight / im.naturalWidth);
+    const h = w * ((im.naturalHeight || im.height) / (im.naturalWidth || im.width));
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(ang);
@@ -287,6 +445,9 @@
     ctx.restore();
   }
   function dibujarLentes(cx, cy, ancho, ang){
+    // Armazón de la tienda: su foto (ya sin fondo) sobre la cara.
+    const foto = app.armazon && fotosArmazon[app.armazon.idx];
+    if(foto){ dibujarImagen(foto, cx, cy, ancho, ang); return; }
     const im = imagenes[app.estilo];
     if(im){ dibujarImagen(im, cx, cy, ancho, ang); return; }
     if(conImagen[app.estilo]) return; // la imagen todavía está cargando
@@ -376,6 +537,92 @@
       ctx.quadraticCurveTo(x, y, x + r, y);
       ctx.closePath();
     }
+  }
+
+  // ---------- Foto del armazón sin fondo ----------
+  // La primera foto del producto se recorta: se quita el fondo liso (blanco,
+  // gris, de color) desde las orillas y lo que quede claro dentro de las
+  // micas, y se ajusta al tamaño del armazón para ponerlo a la altura de
+  // los ojos. Si la foto no tiene fondo liso se usa el dibujo del estilo.
+  function prepararFoto(p){
+    if(p.idx in fotosArmazon) return;
+    fotosArmazon[p.idx] = null;
+    const src = p.images && p.images[0];
+    if(!src) return;
+    const im = new Image();
+    im.onload = ()=>{
+      try{ fotosArmazon[p.idx] = quitarFondo(im); }catch(e){ fotosArmazon[p.idx] = null; }
+      fotosListas[p.idx] = true;
+      avisoFoto();
+    };
+    im.onerror = ()=>{ fotosListas[p.idx] = true; avisoFoto(); };
+    im.src = src;
+  }
+  // Si la foto no se pudo recortar se avisa que se ve el estilo de referencia.
+  function avisoFoto(){
+    const nota = document.getElementById("nota-foto");
+    if(!nota) return;
+    const p = app.armazon;
+    nota.hidden = !(p && fotosListas[p.idx] && !fotosArmazon[p.idx]);
+  }
+  function quitarFondo(im){
+    const k = Math.min(1, 720 / im.naturalWidth);
+    const W = Math.max(1, Math.round(im.naturalWidth * k)), H = Math.max(1, Math.round(im.naturalHeight * k));
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d", { willReadFrequently:true });
+    g.drawImage(im, 0, 0, W, H);
+    const datos = g.getImageData(0, 0, W, H), px = datos.data;
+    // Color del fondo: promedio de las 4 esquinas.
+    const ref = [0,0,0]; let n = 0;
+    [[0,0],[W-6,0],[0,H-6],[W-6,H-6]].forEach(([x0,y0])=>{
+      for(let y=y0; y<y0+6; y++) for(let x=x0; x<x0+6; x++){
+        if(x<0||y<0||x>=W||y>=H) continue;
+        const o = (y*W + x)*4; ref[0]+=px[o]; ref[1]+=px[o+1]; ref[2]+=px[o+2]; n++;
+      }
+    });
+    ref[0]/=n; ref[1]/=n; ref[2]/=n;
+    const aRef = o=> Math.abs(px[o]-ref[0]) + Math.abs(px[o+1]-ref[1]) + Math.abs(px[o+2]-ref[2]);
+    const entre = (a,b)=> Math.abs(px[a]-px[b]) + Math.abs(px[a+1]-px[b+1]) + Math.abs(px[a+2]-px[b+2]);
+    const fondo = new Uint8Array(W*H);
+    const cola = new Int32Array(W*H); let ini = 0, fin = 0;
+    const sembrar = i=>{ if(!fondo[i] && aRef(i*4) < 90){ fondo[i] = 1; cola[fin++] = i; } };
+    for(let x=0; x<W; x++){ sembrar(x); sembrar((H-1)*W + x); }
+    for(let y=0; y<H; y++){ sembrar(y*W); sembrar(y*W + W-1); }
+    // Se extiende por los vecinos parecidos (aguanta degradados suaves).
+    while(ini < fin){
+      const i = cola[ini++], x = i % W, y = (i / W) | 0;
+      const vec = [x>0 ? i-1 : -1, x<W-1 ? i+1 : -1, y>0 ? i-W : -1, y<H-1 ? i+W : -1];
+      for(const v of vec){
+        if(v < 0 || fondo[v]) continue;
+        if(entre(v*4, i*4) < 26 && aRef(v*4) < 170){ fondo[v] = 1; cola[fin++] = v; }
+      }
+    }
+    // Lo muy parecido al fondo dentro del armazón (micas claras) también se quita.
+    let quitados = 0;
+    for(let i=0; i<W*H; i++){
+      if(!fondo[i] && aRef(i*4) < 22) fondo[i] = 1;
+      if(fondo[i]){ px[i*4+3] = 0; quitados++; }
+    }
+    // Solo sirve si es foto de producto con fondo liso: casi toda la orilla
+    // tiene que ser fondo y el armazón no puede llenar la foto.
+    let orilla = 0, orillaFondo = 0;
+    for(let x=0; x<W; x++){ orilla += 2; orillaFondo += fondo[x] + fondo[(H-1)*W + x]; }
+    for(let y=0; y<H; y++){ orilla += 2; orillaFondo += fondo[y*W] + fondo[y*W + W-1]; }
+    if(orillaFondo < orilla*0.85 || quitados < W*H*0.3) return null;
+    // Orillas suaves y recorte al armazón.
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for(let y=0; y<H; y++) for(let x=0; x<W; x++){
+      const i = y*W + x;
+      if(fondo[i]) continue;
+      if((x>0 && fondo[i-1]) || (x<W-1 && fondo[i+1]) || (y>0 && fondo[i-W]) || (y<H-1 && fondo[i+W])) px[i*4+3] = 150;
+      if(x<x0) x0 = x; if(x>x1) x1 = x; if(y<y0) y0 = y; if(y>y1) y1 = y;
+    }
+    if(x1 < x0 || (x1-x0) < W*0.2) return null;
+    g.putImageData(datos, 0, 0);
+    const out = document.createElement("canvas");
+    out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+    out.getContext("2d").drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+    return out;
   }
 
   // ---------- Captura de foto ----------

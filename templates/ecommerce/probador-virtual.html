@@ -70,10 +70,16 @@
       </div>
     </div>
 
+    <div class="grupo grupo-armazones" id="grupo-armazones" hidden>
+      <h3>Armazones <small id="armazones-cuenta"></small></h3>
+      <div class="armazones" id="armazones"></div>
+      <p class="nota-imagen nota-foto" id="nota-foto" hidden>La foto de este armazón no tiene fondo liso, así que te mostramos su estilo de referencia.</p>
+    </div>
+
     <p class="nota-imagen" id="nota-imagen" hidden>Este estilo se muestra con la foto real del armazón, con su color y mica.</p>
 
     <div class="grupo">
-      <h3>Color</h3>
+      <h3>Color <small id="colores-ayuda"></small></h3>
       <div class="colores" id="colores">
         <button class="color activo" data-color="#1c1c22" style="background:#1c1c22" aria-label="Negro" aria-pressed="true"></button>
         <button class="color" data-color="#6e4a2a" style="background:linear-gradient(135deg,#6e4a2a 40%,#a5773f)" aria-label="Carey" aria-pressed="false"></button>
@@ -83,7 +89,7 @@
     </div>
 
     <div class="grupo">
-      <h3>Mica</h3>
+      <h3>Mica <small id="micas-ayuda"></small></h3>
       <div class="micas" id="micas">
         <button class="mica activo" data-mica="oftalmico" aria-pressed="true">Oftálmica</button>
         <button class="mica" data-mica="sol" aria-pressed="false">De sol</button>
@@ -110,6 +116,9 @@
 </main>
 
 {{template "footer" .}}
+
+<!-- Armazones de la tienda (mismos datos que /eccomerce) -->
+<script type="application/json" id="avante-products-data">{{.ProductsJSON}}</script>
 
 <!-- MediaPipe FaceMesh -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>

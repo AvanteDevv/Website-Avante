@@ -69,6 +69,7 @@ type storeProduct struct {
 	TryonEstilo string   `json:"tryonEstilo,omitempty"`
 	TryonMica   string   `json:"tryonMica,omitempty"`
 	TryonColor  string   `json:"tryonColor,omitempty"` // hex del color principal
+	TryonColorN string   `json:"tryonColorNombre,omitempty"`
 	Materiales  []string `json:"materiales,omitempty"`
 }
 
@@ -112,7 +113,7 @@ func buildStoreProductsJSON() template.JS {
 			if t.Mica != "" {
 				sp.TryonMica = t.Mica
 			}
-			sp.TryonColor = t.ColorHex
+			sp.TryonColor, sp.TryonColorN = t.ColorHex, t.Color
 			if len(t.Materiales) > 0 {
 				sp.Materiales = t.Materiales
 			}
@@ -1051,7 +1052,8 @@ func main() {
 	// Probador virtual (templates/ecommerce/probador-virtual.html).
 	router.GET("/probador-virtual", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "probador-virtual.html", handlers.WithUser(c, gin.H{
-			"ActivePage": "tienda",
+			"ActivePage":   "tienda",
+			"ProductsJSON": buildStoreProductsJSON(),
 		}))
 	})
 
