@@ -202,13 +202,16 @@
           <div class="prod-inv-summary" id="prodInvSummary" hidden></div>
         </div>
 
-        <label>Título
-          <input type="text" id="prodTitulo" name="title" required placeholder="Ej. Armazón Meridian">
-        </label>
+        <div class="prod-sec"><span>Datos del producto</span></div>
 
-        <label>Marca
-          <input type="text" id="prodMarca" name="brand" required placeholder="Ej. Avante">
-        </label>
+        <div class="product-field-row">
+          <label>Título
+            <input type="text" id="prodTitulo" name="title" required placeholder="Ej. Armazón Meridian">
+          </label>
+          <label>Marca
+            <input type="text" id="prodMarca" name="brand" required placeholder="Ej. Avante">
+          </label>
+        </div>
 
         <div class="product-field-row">
           <label>Año <span class="admin-user-form-optional">(opcional)</span>
@@ -218,6 +221,8 @@
             <input type="text" id="prodModelo" name="model" placeholder="Ej. MRD-102">
           </label>
         </div>
+
+        <div class="prod-sec"><span>Precio</span></div>
 
         <div class="prod-price-mode">
           <span class="prod-price-mode-label">Tipo de precio</span>
@@ -275,6 +280,8 @@
         </div>
         </div>
 
+        <div class="prod-sec"><span>Armazón</span></div>
+
         <div class="product-field-row">
           <label>Tipo de armazón
             <div class="admin-role-select" id="prodIconWrap">
@@ -315,6 +322,8 @@
           <textarea id="prodDescripcion" name="description" rows="3" placeholder="Se muestra en el detalle del producto — materiales, ajuste, protección UV, etc."></textarea>
         </label>
 
+        <div class="prod-sec"><span>Fotos</span></div>
+
         <div class="prod-invfotos" id="prodInvFotos" hidden>
           <div class="prod-invfotos-head">
             <span class="prod-invfotos-title">Fotos del inventario <small id="prodInvFotosCount"></small></span>
@@ -336,7 +345,7 @@
           <span class="ad-upload-hint" id="prodPhotosHint">JPG, PNG o WEBP — puedes elegir varias a la vez. Si es una sola, en la tienda no se mostrará carrusel.</span>
         </label>
 
-        <label>Logo de la marca</label>
+        <div class="prod-sec"><span>Logo de la marca</span></div>
         <div class="logo-mode-tabs" id="logoModeTabs">
           <button type="button" class="logo-mode-tab active" data-mode="upload">Subir nuevo</button>
           <button type="button" class="logo-mode-tab" data-mode="existing">Usar uno existente</button>

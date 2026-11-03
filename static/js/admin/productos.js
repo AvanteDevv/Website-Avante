@@ -460,9 +460,14 @@ var productPhotos = (function(){
   grid.addEventListener('click', function(e){
     var btn = e.target.closest('.prod-photo-remove');
     if (!btn) return;
-    if (btn.dataset.ex != null) existing.splice(parseInt(btn.dataset.ex, 10), 1);
-    else { newFiles.splice(parseInt(btn.dataset.i, 10), 1); syncInput(); }
-    render();
+    var tile = btn.closest('.prod-photo-tile');
+    if (tile.classList.contains('is-leaving')) return;
+    tile.classList.add('is-leaving');
+    setTimeout(function(){
+      if (btn.dataset.ex != null) existing.splice(parseInt(btn.dataset.ex, 10), 1);
+      else { newFiles.splice(parseInt(btn.dataset.i, 10), 1); syncInput(); }
+      render();
+    }, 230);
   });
 
   return {
@@ -513,6 +518,8 @@ window.productInvFotos = (function(){
     var id = Number(b.closest('.prod-invfoto').dataset.id);
     fotos.forEach(function(f){ if (f.id === id) f.estado = f.estado === b.dataset.set ? 'pendiente' : b.dataset.set; });
     render();
+    var t = grid.querySelector('.prod-invfoto[data-id="' + id + '"]');
+    if (t) t.classList.add('is-pop');
   });
   if (all) all.addEventListener('click', function(){
     fotos.forEach(function(f){ f.estado = 'aprobada'; });
@@ -1185,13 +1192,17 @@ window.productInvPick = (function(){
     linkBox.innerHTML = '<span class="prod-inv-link-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span>' +
       '<span class="prod-inv-link-txt"><b>Vinculado: ' + esc(a ? a.clave + ' · ' + a.descripcion : 'artículo #' + linkedId) + '</b>' +
       '<small>' + (info.length ? 'Probador: ' + esc(info.join(' · ')) : 'Sin datos para el probador') + (falta.length ? ' · <em>Falta en inventario: ' + esc(falta.join(', ')) + '</em>' : '') + '</small></span>' +
-      '<button type="button" class="prod-inv-unlink" data-unlink>Quitar</button>';
+      '<button type="button" class="prod-inv-unlink" data-unlink><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Quitar</button>';
     linkBox.classList.remove('is-in'); void linkBox.offsetWidth; linkBox.classList.add('is-in');
   }
   if (linkBox) linkBox.addEventListener('click', function(e){
-    if (!e.target.closest('[data-unlink]')) return;
-    linkedId = 0; paintLink();
-    if (window.productInvFotos) window.productInvFotos.clear();
+    if (!e.target.closest('[data-unlink]') || linkBox.classList.contains('is-out')) return;
+    linkBox.classList.add('is-out');
+    setTimeout(function(){
+      linkBox.classList.remove('is-out');
+      linkedId = 0; paintLink();
+      if (window.productInvFotos) window.productInvFotos.clear();
+    }, 260);
   });
   var mxn = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
   var MATERIAL = { PASTA: 'pasta', METAL: 'metal', ACETATO: 'acetato', TR90: 'TR90', TITANIO: 'titanio', METALICO: 'metal', METÁLICO: 'metal', PLASTICO: 'plástico', PLÁSTICO: 'plástico' };
