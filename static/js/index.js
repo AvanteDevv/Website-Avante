@@ -172,7 +172,9 @@ shopGrid.innerHTML = PRODUCTS.map((p,i) => {
     : [0,1,2].map(k => PRODUCT_IMAGES[(i + k) % PRODUCT_IMAGES.length]);
   const svgImages = imgs.map((src,k) => `
       <clipPath id="clip-${i}-${k}"><path id="path-${i}-${k}" d="${k===0 ? SHOP_CLIP.FULL : SHOP_CLIP.HIDDEN_R}"/></clipPath>`).join('');
-  const svgUses = imgs.map((src,k) => `<image clip-path="url(#clip-${i}-${k})" href="${src}" x="0" y="0" width="400" height="400" preserveAspectRatio="xMidYMid slice" onerror="this.style.opacity='0';"/>`).join('');
+  // La foto completa (sin recortar el lente) sobre un fondo hecho con la
+  // misma foto desenfocada, para que no queden franjas vacías.
+  const svgUses = `<filter id="pblur-${i}" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="22"/></filter>` + imgs.map((src,k) => `<g clip-path="url(#clip-${i}-${k})"><rect width="400" height="400" fill="#fff"/><image href="${src}" x="-20" y="-20" width="440" height="440" preserveAspectRatio="xMidYMid slice" filter="url(#pblur-${i})" opacity=".55" onerror="this.style.opacity='0';"/><image href="${src}" x="8" y="8" width="384" height="384" preserveAspectRatio="xMidYMid meet" onerror="this.style.opacity='0';"/></g>`).join('');
   const shareUrl = new URL(`/eccomerce/detalle?id=${i}`, window.location.href).href;
   const shareText = `${p.name} de ${p.brand} — ${p.price} en Avante Optics`;
   const fbShareHref = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;

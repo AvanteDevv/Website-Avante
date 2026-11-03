@@ -294,6 +294,8 @@
   }
   function pintarChip(){
     const chip = document.getElementById("tryon-producto");
+    const camNombre = document.getElementById("pv-cam-nombre");
+    if(camNombre) camNombre.textContent = app.armazon ? app.armazon.name : (nombreParam && armazonPedido < 0 ? nombreParam : "");
     if(!chip) return;
     const p = app.armazon;
     if(p){
@@ -632,5 +634,32 @@
     enlace.href = lienzo.toDataURL("image/png");
     enlace.click();
   });
+
+  // ---------- Vistas: probador / cámara completa ----------
+  const tabs = document.getElementById("pv-tabs");
+  const btnFotoCam = document.getElementById("pv-foto");
+  function setVista(vista){
+    const cam = vista === "camara";
+    tabs.dataset.vista = cam ? "camara" : "probador";
+    tabs.querySelectorAll(".pv-tab").forEach(b=>{
+      const on = b.dataset.vista === tabs.dataset.vista;
+      b.classList.toggle("activo", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    document.body.classList.toggle("modo-camara", cam);
+    if(cam && !app.listo && !app.arrancando) iniciar();
+  }
+  tabs.addEventListener("click", e=>{
+    const b = e.target.closest(".pv-tab");
+    if(b) setVista(b.dataset.vista);
+  });
+  document.getElementById("pv-salir").addEventListener("click", ()=> setVista("probador"));
+  document.addEventListener("keydown", e=>{
+    if(e.key === "Escape" && document.body.classList.contains("modo-camara")) setVista("probador");
+  });
+  btnFotoCam.addEventListener("click", ()=> btnFoto.click());
+  // El botón de foto de la barra se habilita igual que el del panel.
+  new MutationObserver(()=>{ btnFotoCam.disabled = btnFoto.disabled; }).observe(btnFoto, { attributes:true, attributeFilter:["disabled"] });
+  btnFotoCam.disabled = btnFoto.disabled;
 
 })();

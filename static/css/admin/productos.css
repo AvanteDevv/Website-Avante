@@ -607,3 +607,11 @@ body.dark .prod-photos-inv-note{ background:rgba(31,157,85,.12); color:#6ee7a5; 
 .prod-photo-tile.is-new{ border-color:var(--blue-600); }
 body.dark .prod-invfotos{ background:rgba(137,146,255,.06); }
 body.dark .prod-invfoto{ background:#fff; }
+/* Fotos del inventario aprobadas dentro de "Fotos del producto" */
+.prod-photo-tile.is-inv{ border:2px solid #1f9d55; }
+.prod-photo-tag{
+  position:absolute; left:4px; bottom:4px; font-size:9px; font-weight:800; padding:2px 6px; border-radius:100px;
+  background:#1f9d55; color:#fff; letter-spacing:.02em;
+}
+.prod-invfoto.is-moving{ animation:prodInvFotoMove .28s ease forwards; pointer-events:none; }
+@keyframes prodInvFotoMove{ to{ opacity:0; transform:translateY(24px) scale(.8); } }

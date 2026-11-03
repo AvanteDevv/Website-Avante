@@ -422,19 +422,27 @@ var productPhotos = (function(){
     input.files = dt.files;
   }
   function render(){
-    var html = existing.map(function(url, i){
+    // Las del inventario aprobadas se ven aquí primero (así salen en la tienda).
+    var inv = window.productInvFotos ? window.productInvFotos.aprobadasList() : [];
+    var html = inv.map(function(f){
+      return '<div class="prod-photo-tile is-inv"><img src="' + f.url + '" alt="">' +
+        '<span class="prod-photo-tag">Inventario</span>' +
+        '<button type="button" class="prod-photo-remove" data-inv="' + f.id + '" aria-label="Quitar (regresa al inventario)">' + removeSvg() + '</button></div>';
+    }).join('') + existing.map(function(url, i){
       return '<div class="prod-photo-tile is-current"><img src="' + url + '" alt="">' +
         '<button type="button" class="prod-photo-remove" data-ex="' + i + '" aria-label="Quitar foto">' + removeSvg() + '</button></div>';
     }).join('') + newFiles.map(function(file, i){
       return '<div class="prod-photo-tile is-new"><img src="' + URL.createObjectURL(file) + '" alt="">' +
         '<button type="button" class="prod-photo-remove" data-i="' + i + '" aria-label="Quitar foto">' + removeSvg() + '</button></div>';
     }).join('');
-    if (existing.length || newFiles.length) {
-      html += '<p class="prod-photos-note">' + (existing.length && newFiles.length ? 'Las nuevas se agregan a las actuales.' : existing.length ? 'Fotos actuales — quita las que ya no quieras o agrega más arriba.' : 'Se guardarán estas fotos.') + '</p>';
+    if (inv.length || existing.length || newFiles.length) {
+      html += '<p class="prod-photos-note">' + (inv.length ? 'Las marcadas como "Inventario" vienen del artículo; si las quitas regresan a las fotos del inventario. ' : '') +
+        (existing.length && newFiles.length ? 'Las nuevas se agregan a las actuales.' : existing.length ? 'Quita las que ya no quieras o agrega más arriba.' : newFiles.length ? 'Se guardarán estas fotos.' : '') + '</p>';
     }
     grid.innerHTML = html;
     document.dispatchEvent(new CustomEvent('prod-photos-change'));
   }
+  document.addEventListener('prod-invfotos-change', render);
   function add(files){
     files = Array.prototype.filter.call(files || [], function(f){ return /^image\//.test(f.type); });
     if (!files.length) return;
@@ -464,6 +472,7 @@ var productPhotos = (function(){
     if (tile.classList.contains('is-leaving')) return;
     tile.classList.add('is-leaving');
     setTimeout(function(){
+      if (btn.dataset.inv != null) { if (window.productInvFotos) window.productInvFotos.setEstado(Number(btn.dataset.inv), 'rechazada'); return; }
       if (btn.dataset.ex != null) existing.splice(parseInt(btn.dataset.ex, 10), 1);
       else { newFiles.splice(parseInt(btn.dataset.i, 10), 1); syncInput(); }
       render();
@@ -499,9 +508,12 @@ window.productInvFotos = (function(){
     if (!itemId) return;
     var pend = fotos.filter(function(f){ return f.estado === 'pendiente'; }).length;
     var ok = fotos.filter(function(f){ return f.estado === 'aprobada'; }).length;
-    if (count) count.textContent = fotos.length ? (ok + ' aprobada' + (ok === 1 ? '' : 's') + (pend ? ' · ' + pend + ' por revisar' : '')) : '';
+    if (count) count.textContent = fotos.length ? ((ok ? ok + ' en Fotos del producto' : 'ninguna aprobada') + (pend ? ' · ' + pend + ' por revisar' : '')) : '';
     if (all) all.hidden = !fotos.some(function(f){ return f.estado !== 'aprobada'; });
-    grid.innerHTML = fotos.length ? fotos.map(function(f){
+    var visibles = fotos.filter(function(f){ return f.estado !== 'aprobada'; });
+    grid.innerHTML = !fotos.length ? '<p class="prod-invfotos-empty">El artículo todavía no tiene fotos en Inventario.</p>'
+      : !visibles.length ? '<p class="prod-invfotos-empty">Todas las fotos del inventario están aprobadas: las ves en Fotos del producto.</p>'
+      : visibles.map(function(f){
       return '<div class="prod-invfoto is-' + f.estado + '" data-id="' + f.id + '">' +
         '<img src="' + f.url + '" alt="">' +
         '<span class="prod-invfoto-tag">' + ESTADO_TXT[f.estado] + '</span>' +
@@ -509,18 +521,30 @@ window.productInvFotos = (function(){
           '<button type="button" class="is-yes" data-set="aprobada" aria-label="Aprobar"' + (f.estado === 'aprobada' ? ' aria-pressed="true"' : '') + '>' + CHECK + '</button>' +
           '<button type="button" class="is-no" data-set="rechazada" aria-label="No usar"' + (f.estado === 'rechazada' ? ' aria-pressed="true"' : '') + '>' + CROSS + '</button>' +
         '</span></div>';
-    }).join('') : '<p class="prod-invfotos-empty">El artículo todavía no tiene fotos en Inventario.</p>';
-    document.dispatchEvent(new CustomEvent('prod-photos-change'));
+    }).join('');
+    document.dispatchEvent(new CustomEvent('prod-invfotos-change'));
   }
   grid.addEventListener('click', function(e){
     var b = e.target.closest('[data-set]');
     if (!b) return;
-    var id = Number(b.closest('.prod-invfoto').dataset.id);
-    fotos.forEach(function(f){ if (f.id === id) f.estado = f.estado === b.dataset.set ? 'pendiente' : b.dataset.set; });
-    render();
+    var tile = b.closest('.prod-invfoto');
+    var id = Number(tile.dataset.id);
+    var nuevo;
+    fotos.forEach(function(f){ if (f.id === id) nuevo = f.estado === b.dataset.set ? 'pendiente' : b.dataset.set; });
+    if (nuevo === 'aprobada') {
+      // Se va a "Fotos del producto" con una animación.
+      tile.classList.add('is-moving');
+      setTimeout(function(){ setEstado(id, nuevo); }, 260);
+      return;
+    }
+    setEstado(id, nuevo);
     var t = grid.querySelector('.prod-invfoto[data-id="' + id + '"]');
     if (t) t.classList.add('is-pop');
   });
+  function setEstado(id, estado){
+    fotos.forEach(function(f){ if (f.id === id) f.estado = estado; });
+    render();
+  }
   if (all) all.addEventListener('click', function(){
     fotos.forEach(function(f){ f.estado = 'aprobada'; });
     render();
@@ -550,6 +574,8 @@ window.productInvFotos = (function(){
     clear: function(){ req++; itemId = 0; fotos = []; render(); },
     linked: function(){ return itemId; },
     aprobadas: function(){ return fotos.filter(function(f){ return f.estado === 'aprobada'; }).map(function(f){ return f.id; }); },
+    aprobadasList: function(){ return fotos.filter(function(f){ return f.estado === 'aprobada'; }); },
+    setEstado: setEstado,
     rechazadas: function(){ return fotos.filter(function(f){ return f.estado === 'rechazada'; }).map(function(f){ return f.id; }); }
   };
 })();
