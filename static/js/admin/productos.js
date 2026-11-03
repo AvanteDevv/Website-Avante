@@ -401,111 +401,149 @@ function updateProductCount(){
   };
 })();
 
-/* ---------- Modal: fotos del producto (dropzone + grilla, 1 o varias) ----------
-   Al CREAR: los archivos elegidos se muestran como miniaturas quitables.
-   Al EDITAR: primero se muestran las fotos actuales (sin poder quitarlas
-   una por una); en cuanto el admin elige fotos nuevas, esas reemplazan
-   por completo a las actuales al guardar (mismo criterio que el logo). */
+/* ---------- Fotos propias del producto ----------
+   Las actuales se pueden quitar una por una y las nuevas se agregan al
+   final (al guardar se manda "keep_images" con las que se quedan). */
 var productPhotos = (function(){
   var drop = document.getElementById('prodPhotosDrop');
   var input = document.getElementById('prodPhotosInput');
   var grid = document.getElementById('prodPhotosGrid');
-  var hint = document.getElementById('prodPhotosHint');
-  if (!drop || !input || !grid) return { reset: function(){}, showExisting: function(){}, hasNewFiles: function(){ return false; } };
+  if (!drop || !input || !grid) return { reset: function(){}, showExisting: function(){}, hasNewFiles: function(){ return false; }, keep: function(){ return []; }, count: function(){ return 0; }, addFiles: function(){} };
 
-  var newFiles = [];   // File[] recién elegidos por el admin
-  var showingExisting = false;
+  var newFiles = [];   // File[] recién elegidos
+  var existing = [];   // URLs actuales que se conservan
 
   function removeSvg(){
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
   }
-
+  function syncInput(){
+    var dt = new DataTransfer();
+    newFiles.forEach(function(f){ dt.items.add(f); });
+    input.files = dt.files;
+  }
   function render(){
-    if (newFiles.length){
-      showingExisting = false;
-      grid.innerHTML = newFiles.map(function(file, i){
-        var url = URL.createObjectURL(file);
-        return '<div class="prod-photo-tile" data-i="' + i + '"><img src="' + url + '" alt="">' +
-          '<button type="button" class="prod-photo-remove" data-i="' + i + '" aria-label="Quitar">' + removeSvg() + '</button></div>';
-      }).join('') + '<p class="prod-photos-note">Se guardarán estas fotos (reemplazan a las anteriores si estás editando).</p>';
-    } else if (showingExisting && window.__prodExistingImages && window.__prodExistingImages.length) {
-      grid.innerHTML = window.__prodExistingImages.map(function(url){
-        return '<div class="prod-photo-tile is-current"><img src="' + url + '" alt=""></div>';
-      }).join('') + '<p class="prod-photos-note">Fotos actuales — elige nuevas arriba para reemplazarlas.</p>';
-    } else {
-      grid.innerHTML = '';
+    var html = existing.map(function(url, i){
+      return '<div class="prod-photo-tile is-current"><img src="' + url + '" alt="">' +
+        '<button type="button" class="prod-photo-remove" data-ex="' + i + '" aria-label="Quitar foto">' + removeSvg() + '</button></div>';
+    }).join('') + newFiles.map(function(file, i){
+      return '<div class="prod-photo-tile is-new"><img src="' + URL.createObjectURL(file) + '" alt="">' +
+        '<button type="button" class="prod-photo-remove" data-i="' + i + '" aria-label="Quitar foto">' + removeSvg() + '</button></div>';
+    }).join('');
+    if (existing.length || newFiles.length) {
+      html += '<p class="prod-photos-note">' + (existing.length && newFiles.length ? 'Las nuevas se agregan a las actuales.' : existing.length ? 'Fotos actuales — quita las que ya no quieras o agrega más arriba.' : 'Se guardarán estas fotos.') + '</p>';
     }
+    grid.innerHTML = html;
+    document.dispatchEvent(new CustomEvent('prod-photos-change'));
+  }
+  function add(files){
+    files = Array.prototype.filter.call(files || [], function(f){ return /^image\//.test(f.type); });
+    if (!files.length) return;
+    newFiles = newFiles.concat(files);
+    syncInput();
+    render();
   }
 
   drop.addEventListener('click', function(){ input.click(); });
   input.addEventListener('change', function(){
     var picked = Array.prototype.slice.call(input.files || []);
-    if (!picked.length) return;
-    newFiles = newFiles.concat(picked);
-    var dt = new DataTransfer();
-    newFiles.forEach(function(f){ dt.items.add(f); });
-    input.files = dt.files;
-    render();
+    // input.files ya trae solo lo recién elegido: se junta con lo anterior
+    add(picked);
   });
-
   ['dragenter', 'dragover'].forEach(function(evt){
-    drop.addEventListener(evt, function(e){
-      e.preventDefault(); e.stopPropagation();
-      drop.classList.add('is-dragover');
-    });
+    drop.addEventListener(evt, function(e){ e.preventDefault(); e.stopPropagation(); drop.classList.add('is-dragover'); });
   });
   ['dragleave', 'drop'].forEach(function(evt){
-    drop.addEventListener(evt, function(e){
-      e.preventDefault(); e.stopPropagation();
-      drop.classList.remove('is-dragover');
-    });
+    drop.addEventListener(evt, function(e){ e.preventDefault(); e.stopPropagation(); drop.classList.remove('is-dragover'); });
   });
-  drop.addEventListener('drop', function(e){
-    var files = Array.prototype.slice.call(e.dataTransfer.files || []);
-    if (!files.length) return;
-    newFiles = newFiles.concat(files);
-    // reflejar en el <input> para que el submit lo tome también si hiciera falta
-    var dt = new DataTransfer();
-    newFiles.forEach(function(f){ dt.items.add(f); });
-    input.files = dt.files;
-    render();
-  });
+  drop.addEventListener('drop', function(e){ add(e.dataTransfer.files); });
 
   grid.addEventListener('click', function(e){
     var btn = e.target.closest('.prod-photo-remove');
     if (!btn) return;
-    var i = parseInt(btn.dataset.i, 10);
-    newFiles.splice(i, 1);
-    var dt = new DataTransfer();
-    newFiles.forEach(function(f){ dt.items.add(f); });
-    input.files = dt.files;
+    if (btn.dataset.ex != null) existing.splice(parseInt(btn.dataset.ex, 10), 1);
+    else { newFiles.splice(parseInt(btn.dataset.i, 10), 1); syncInput(); }
     render();
   });
 
   return {
-    // Agrega fotos ya descargadas (p. ej. las del artículo del inventario).
-    addFiles: function(files){
-      newFiles = newFiles.concat(files || []);
-      var dt = new DataTransfer();
-      newFiles.forEach(function(f){ dt.items.add(f); });
-      input.files = dt.files;
+    addFiles: add,
+    reset: function(){ newFiles = []; existing = []; input.value = ''; render(); },
+    showExisting: function(urls){ newFiles = []; existing = (urls || []).slice(); input.value = ''; render(); },
+    hasNewFiles: function(){ return newFiles.length > 0; },
+    keep: function(){ return existing.slice(); },
+    count: function(){ return existing.length + newFiles.length; }
+  };
+})();
+
+/* ---------- Fotos del artículo del inventario: aprobar cuáles sí ----------
+   Cada foto queda pendiente (no sale en la tienda) hasta que se aprueba. */
+window.productInvFotos = (function(){
+  var box = document.getElementById('prodInvFotos');
+  var grid = document.getElementById('prodInvFotosGrid');
+  var count = document.getElementById('prodInvFotosCount');
+  var all = document.getElementById('prodInvFotosAll');
+  if (!box || !grid) return null;
+  var fotos = [];   // {id, url, estado}
+  var itemId = 0, req = 0;
+  var ESTADO_TXT = { pendiente: 'Nueva', aprobada: 'Aprobada', rechazada: 'No se usa' };
+  var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
+  function render(){
+    box.hidden = !itemId;
+    if (!itemId) return;
+    var pend = fotos.filter(function(f){ return f.estado === 'pendiente'; }).length;
+    var ok = fotos.filter(function(f){ return f.estado === 'aprobada'; }).length;
+    if (count) count.textContent = fotos.length ? (ok + ' aprobada' + (ok === 1 ? '' : 's') + (pend ? ' · ' + pend + ' por revisar' : '')) : '';
+    if (all) all.hidden = !fotos.some(function(f){ return f.estado !== 'aprobada'; });
+    grid.innerHTML = fotos.length ? fotos.map(function(f){
+      return '<div class="prod-invfoto is-' + f.estado + '" data-id="' + f.id + '">' +
+        '<img src="' + f.url + '" alt="">' +
+        '<span class="prod-invfoto-tag">' + ESTADO_TXT[f.estado] + '</span>' +
+        '<span class="prod-invfoto-acts">' +
+          '<button type="button" class="is-yes" data-set="aprobada" aria-label="Aprobar"' + (f.estado === 'aprobada' ? ' aria-pressed="true"' : '') + '>' + CHECK + '</button>' +
+          '<button type="button" class="is-no" data-set="rechazada" aria-label="No usar"' + (f.estado === 'rechazada' ? ' aria-pressed="true"' : '') + '>' + CROSS + '</button>' +
+        '</span></div>';
+    }).join('') : '<p class="prod-invfotos-empty">El artículo todavía no tiene fotos en Inventario.</p>';
+    document.dispatchEvent(new CustomEvent('prod-photos-change'));
+  }
+  grid.addEventListener('click', function(e){
+    var b = e.target.closest('[data-set]');
+    if (!b) return;
+    var id = Number(b.closest('.prod-invfoto').dataset.id);
+    fotos.forEach(function(f){ if (f.id === id) f.estado = f.estado === b.dataset.set ? 'pendiente' : b.dataset.set; });
+    render();
+  });
+  if (all) all.addEventListener('click', function(){
+    fotos.forEach(function(f){ f.estado = 'aprobada'; });
+    render();
+  });
+
+  return {
+    // Fotos que ya trae el producto (al editar).
+    set: function(id, list){ req++; itemId = id || 0; fotos = (list || []).map(function(f){ return { id: f.id, url: f.url, estado: f.estado || 'pendiente' }; }); render(); },
+    // Al vincular otro artículo: se piden sus fotos (todas pendientes,
+    // salvo las que ya se habían decidido para este mismo artículo).
+    load: function(id){
+      var prev = {};
+      if (id === itemId) fotos.forEach(function(f){ prev[f.id] = f.estado; });
+      itemId = id || 0; fotos = [];
+      var my = ++req;
       render();
+      if (!itemId) return Promise.resolve([]);
+      return fetch('/api/inventario/articulos/' + itemId + '/fotos', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function(r){ return r.ok ? r.json() : { fotos: [] }; })
+        .then(function(d){
+          if (my !== req) return fotos;
+          fotos = (d.fotos || []).map(function(f){ return { id: f.id, url: f.url, estado: prev[f.id] || 'pendiente' }; });
+          render();
+          return fotos;
+        }).catch(function(){ return []; });
     },
-    reset: function(){
-      newFiles = [];
-      showingExisting = false;
-      input.value = '';
-      window.__prodExistingImages = [];
-      grid.innerHTML = '';
-    },
-    showExisting: function(urls){
-      newFiles = [];
-      showingExisting = true;
-      input.value = '';
-      window.__prodExistingImages = urls || [];
-      render();
-    },
-    hasNewFiles: function(){ return newFiles.length > 0; }
+    clear: function(){ req++; itemId = 0; fotos = []; render(); },
+    linked: function(){ return itemId; },
+    aprobadas: function(){ return fotos.filter(function(f){ return f.estado === 'aprobada'; }).map(function(f){ return f.id; }); },
+    rechazadas: function(){ return fotos.filter(function(f){ return f.estado === 'rechazada'; }).map(function(f){ return f.id; }); }
   };
 })();
 
@@ -661,6 +699,7 @@ var logoModePicker = (function(){
     window.resetProductLogo();
     logoModePicker.reset();
     productPhotos.reset();
+    window.productInvFotos && window.productInvFotos.clear();
     setProductTipo('');
     window.productMats && window.productMats.set([]);
     window.productMica && window.productMica.set('');
@@ -708,6 +747,11 @@ var logoModePicker = (function(){
     var existingImages = [];
     try { existingImages = JSON.parse(card.dataset.images || '[]'); } catch (e) { existingImages = []; }
     productPhotos.showExisting(existingImages);
+    if (window.productInvFotos) {
+      var invFotos = [];
+      try { invFotos = JSON.parse(card.dataset.invFotos || '[]'); } catch (e) { invFotos = []; }
+      window.productInvFotos.set(Number(card.dataset.invItem) || 0, invFotos);
+    }
 
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -748,8 +792,10 @@ var logoModePicker = (function(){
 
     var editingId = form.dataset.editingId;
 
-    if (!editingId && !productPhotos.hasNewFiles()) {
-      errorEl.textContent = 'Sube al menos una foto del producto.';
+    var invF = window.productInvFotos;
+    var invAprob = invF && invF.linked() ? invF.aprobadas() : [];
+    if (productPhotos.count() + invAprob.length === 0) {
+      errorEl.textContent = invF && invF.linked() ? 'Aprueba al menos una foto del inventario o sube una propia.' : 'Sube al menos una foto del producto.';
       return;
     }
 
@@ -784,6 +830,13 @@ var logoModePicker = (function(){
     Array.prototype.forEach.call(document.getElementById('prodPhotosInput').files || [], function(file){
       formData.append('images', file);
     });
+    // Fotos propias que se conservan (al editar) y decisión sobre las del inventario.
+    if (editingId) formData.append('keep_images', productPhotos.keep().join(','));
+    if (invF && invF.linked() && invF.linked() === (window.productInvPick ? window.productInvPick.linked() : 0)) {
+      formData.append('inv_fotos_decision', '1');
+      formData.append('inv_fotos_aprobadas', invAprob.join(','));
+      formData.append('inv_fotos_rechazadas', invF.rechazadas().join(','));
+    }
 
     var url = editingId ? ('/api/admin/productos/' + editingId) : '/api/admin/productos';
     var method = editingId ? 'PUT' : 'POST';
@@ -1126,8 +1179,6 @@ window.productInvPick = (function(){
   function paintLink(){
     if (!linkBox) return;
     var a = linkedId && items ? items.filter(function(x){ return x.id === linkedId; })[0] : null;
-    var nota = document.getElementById('prodPhotosInvNote');
-    if (nota) nota.hidden = !linkedId;
     linkBox.hidden = !linkedId;
     if (!linkedId) { linkBox.innerHTML = ''; return; }
     var info = a ? tryonTxt(a) : [], falta = a ? faltaTryon(a) : [];
@@ -1140,6 +1191,7 @@ window.productInvPick = (function(){
   if (linkBox) linkBox.addEventListener('click', function(e){
     if (!e.target.closest('[data-unlink]')) return;
     linkedId = 0; paintLink();
+    if (window.productInvFotos) window.productInvFotos.clear();
   });
   var mxn = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
   var MATERIAL = { PASTA: 'pasta', METAL: 'metal', ACETATO: 'acetato', TR90: 'TR90', TITANIO: 'titanio', METALICO: 'metal', METÁLICO: 'metal', PLASTICO: 'plástico', PLÁSTICO: 'plástico' };
@@ -1224,7 +1276,7 @@ window.productInvPick = (function(){
     if (a.mica_tipo && window.productMica) window.productMica.set(a.mica_tipo, true);
     else if (a.mica_tipo === 'sol') document.getElementById('prodIcon').value = 'sun';
     if (a.materiales && a.materiales.length && window.productMats) window.productMats.set(a.materiales, true);
-    if (mode === 'edit') { q.value = ''; paintLink(); return; }
+    if (mode === 'edit') { q.value = ''; paintLink(); if (window.productInvFotos) window.productInvFotos.load(a.id); return; }
     q.value = a.descripcion;
     paintLink();
     var g = guess(a.descripcion);
@@ -1239,8 +1291,8 @@ window.productInvPick = (function(){
     else if (g.forma && window.setProductIcon) { window.setProductIcon(g.forma); revisa.push('Tipo de armazón'); } else falta.push('Tipo de armazón');
     if (a.materiales && a.materiales.length) lleno.push('Material'); else falta.push('Material');
     if (a.mica_tipo) lleno.push('Mica'); else falta.push('Mica');
-    falta.push('Año', 'Logo de la marca');
-    var opc = ['Etiqueta', 'Promoción (precio anterior y fin)'];
+    falta.push('Logo de la marca');
+    var opc = ['Año', 'Etiqueta', 'Promoción (precio anterior y fin)'];
     function paint(fotos){
       sum.hidden = false;
       sum.innerHTML = '<div class="prod-inv-sum-head"><b>' + esc(a.clave) + '</b> · ' + esc(a.descripcion) + '</div>' +
@@ -1253,26 +1305,14 @@ window.productInvPick = (function(){
           (faltaTryon(a).length ? '<i>Falta en inventario: ' + esc(faltaTryon(a).join(', ')) + '</i>' : '') + '</div>';
     }
     paint(0);
-    // Fotos del artículo → se agregan como fotos del producto.
-    fetch('/api/inventario/articulos/' + a.id + '/fotos', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      .then(function(r){ return r.ok ? r.json() : { fotos: [] }; })
-      .then(function(d){
-        var fotos = (d.fotos || []).slice(0, 8);
-        return Promise.all(fotos.map(function(f, i){
-          return fetch(f.url, { credentials: 'same-origin' }).then(function(r){ return r.ok ? r.blob() : null; }).then(function(b){
-            if (!b) return null;
-            var ext = (b.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
-            return new File([b], (a.clave || 'foto') + '-' + (i + 1) + '.' + ext, { type: b.type || 'image/jpeg' });
-          }).catch(function(){ return null; });
-        }));
-      })
-      .then(function(files){
-        files = (files || []).filter(Boolean);
-        if (files.length && window.productPhotos) window.productPhotos.addFiles(files);
-        if (!files.length) falta.unshift('Fotos');
-        paint(files.length);
-      })
-      .catch(function(){ falta.unshift('Fotos'); paint(0); });
+    // Fotos del artículo: se muestran para aprobar cuáles salen en la tienda.
+    if (window.productInvFotos) {
+      window.productInvFotos.load(a.id).then(function(list){
+        var n = (list || []).length;
+        if (n) revisa.push('Fotos del inventario (' + n + ' por aprobar)'); else falta.unshift('Fotos');
+        paint(0);
+      });
+    } else paint(0);
   }
   box.addEventListener('click', function(e){
     var b = e.target.closest('.prod-inv-item');

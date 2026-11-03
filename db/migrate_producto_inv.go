@@ -9,6 +9,16 @@ func EnsureProductInvLink() {
 	ensureProductCol("tipo_armazon", "VARCHAR(60) NOT NULL DEFAULT ''")
 	ensureProductCol("materiales", "VARCHAR(160) NOT NULL DEFAULT ''")
 	ensureProductCol("mica_tipo", "VARCHAR(12) NOT NULL DEFAULT ''")
+	// Qué fotos del artículo del inventario se aprueban (o no) para el
+	// producto. Sin fila = pendiente de revisar (no sale en la tienda).
+	if _, err := DB.Exec(`CREATE TABLE IF NOT EXISTS product_inv_fotos (
+		product_id BIGINT NOT NULL,
+		inv_foto_id BIGINT NOT NULL,
+		aprobada TINYINT(1) NOT NULL DEFAULT 0,
+		PRIMARY KEY (product_id, inv_foto_id)
+	)`); err != nil {
+		log.Printf("productos: no se pudo crear product_inv_fotos: %v", err)
+	}
 	var n int
 	if err := DB.QueryRow(`SELECT COUNT(*) FROM information_schema.COLUMNS
 		WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products' AND COLUMN_NAME = 'inv_item_id'`).Scan(&n); err != nil {

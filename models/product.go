@@ -38,21 +38,50 @@ type Product struct {
 	TipoArmazon string   // slug del estilo del probador (Redondo, Aviador…)
 	Materiales  []string // materiales del armazón
 	MicaTipo    string   // "oftalmico", "sol" o "" (sin definir)
-	// Fotos del artículo del inventario vinculado (en vivo): si las hay,
-	// son las que se muestran en la tienda en lugar de las del producto.
-	InvImages []string
+	// Fotos del artículo del inventario vinculado, con lo que se decidió
+	// de cada una. Solo las aprobadas salen en la tienda.
+	InvFotos  []ProductInvFoto
+	InvImages []string // URLs de las aprobadas
 }
 
-// ShownImages: las fotos que se muestran (tienda y tarjeta del panel).
+// ProductInvFoto: una foto del artículo vinculado y su estado para el
+// producto ("pendiente", "aprobada" o "rechazada").
+type ProductInvFoto struct {
+	ID     int64  `json:"id"`
+	URL    string `json:"url"`
+	Estado string `json:"estado"`
+}
+
+// ShownImages: las fotos que se muestran (tienda y tarjeta del panel):
+// las del inventario aprobadas y luego las propias del producto.
 func (p Product) ShownImages() []string {
-	if len(p.InvImages) > 0 {
-		return p.InvImages
-	}
-	return p.Images
+	out := make([]string, 0, len(p.InvImages)+len(p.Images))
+	out = append(out, p.InvImages...)
+	return append(out, p.Images...)
 }
 
-// FotosDelInventario: true si las fotos que se ven salen del inventario.
-func (p Product) FotosDelInventario() bool { return len(p.InvImages) > 0 }
+// InvFotosPendientes: cuántas fotos del inventario faltan por revisar.
+func (p Product) InvFotosPendientes() int {
+	n := 0
+	for _, f := range p.InvFotos {
+		if f.Estado == "pendiente" {
+			n++
+		}
+	}
+	return n
+}
+
+// InvFotosJSON: para el data-* del panel de admin.
+func (p Product) InvFotosJSON() string {
+	if len(p.InvFotos) == 0 {
+		return "[]"
+	}
+	b, err := json.Marshal(p.InvFotos)
+	if err != nil {
+		return "[]"
+	}
+	return string(b)
+}
 
 // MaterialesCSV: para el data-* del panel de admin.
 func (p Product) MaterialesCSV() string { return strings.Join(p.Materiales, ",") }
@@ -219,24 +248,78 @@ func GetAllProducts() ([]Product, error) {
 		}
 	}
 
-	// Fotos del artículo vinculado (la principal primero).
+	// Fotos del artículo vinculado (la principal primero) y si se
+	// aprobaron para este producto (sin decisión = pendiente).
 	if fotoRows, err := db.DB.Query(`
-		SELECT p.id, f.id
+		SELECT p.id, f.id, COALESCE(d.aprobada, -1)
 		FROM products p
 		JOIN inv_fotos f ON f.item_id = p.inv_item_id
+		LEFT JOIN product_inv_fotos d ON d.product_id = p.id AND d.inv_foto_id = f.id
 		ORDER BY p.id, f.orden ASC, f.id ASC`); err == nil {
 		defer fotoRows.Close()
 		for fotoRows.Next() {
 			var pid, fid int64
-			if fotoRows.Scan(&pid, &fid) == nil {
+			var dec int
+			if fotoRows.Scan(&pid, &fid, &dec) == nil {
 				if p, ok := byID[pid]; ok {
-					p.InvImages = append(p.InvImages, InvFotoURL(fid))
+					f := ProductInvFoto{ID: fid, URL: InvFotoURL(fid), Estado: "pendiente"}
+					switch dec {
+					case 1:
+						f.Estado = "aprobada"
+						p.InvImages = append(p.InvImages, f.URL)
+					case 0:
+						f.Estado = "rechazada"
+					}
+					p.InvFotos = append(p.InvFotos, f)
 				}
 			}
 		}
 	}
 
 	return products, nil
+}
+
+// InvFotoIDsOfItem regresa, de ids, los que sí son fotos del artículo.
+func InvFotoIDsOfItem(itemID int64, ids []int64) map[int64]bool {
+	out := map[int64]bool{}
+	if itemID <= 0 || len(ids) == 0 {
+		return out
+	}
+	rows, err := db.DB.Query(`SELECT id FROM inv_fotos WHERE item_id = ?`, itemID)
+	if err != nil {
+		return out
+	}
+	defer rows.Close()
+	want := map[int64]bool{}
+	for _, id := range ids {
+		want[id] = true
+	}
+	for rows.Next() {
+		var id int64
+		if rows.Scan(&id) == nil && want[id] {
+			out[id] = true
+		}
+	}
+	return out
+}
+
+// SetProductInvFotos guarda qué fotos del inventario se aprueban y cuáles
+// no; las que no vengan en ninguna lista quedan pendientes.
+func SetProductInvFotos(productID int64, aprobadas, rechazadas []int64) error {
+	if _, err := db.DB.Exec(`DELETE FROM product_inv_fotos WHERE product_id = ?`, productID); err != nil {
+		return err
+	}
+	for _, id := range aprobadas {
+		if _, err := db.DB.Exec(`INSERT IGNORE INTO product_inv_fotos (product_id, inv_foto_id, aprobada) VALUES (?, ?, 1)`, productID, id); err != nil {
+			return err
+		}
+	}
+	for _, id := range rechazadas {
+		if _, err := db.DB.Exec(`INSERT IGNORE INTO product_inv_fotos (product_id, inv_foto_id, aprobada) VALUES (?, ?, 0)`, productID, id); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // SetProductInvItem vincula (o desvincula con 0) el producto con un
@@ -292,7 +375,8 @@ func GetProductsTryon() map[int64]ProductTryon {
 }
 
 // CreateProduct guarda un producto nuevo (con su logo y sus fotos) y
-// regresa su ID. imageKeys debe traer al menos una foto. promoEndsAt
+// regresa su ID. imageKeys puede ir vacío si el producto usa fotos
+// aprobadas del inventario. promoEndsAt
 // puede venir con su zero value (time.Time{}) si no aplica.
 func CreateProduct(title, brand, year, model string, price, oldPrice float64, promoEndsAt time.Time, icon, badge, description, logoKey string, imageKeys []string) (int64, error) {
 	var promoEndsAtParam interface{}
@@ -382,6 +466,7 @@ func UpdateProduct(id int64, title, brand, year, model string, price, oldPrice f
 	}
 
 	if newImageKeys != nil {
+		// (lista vacía pero no nil = el producto se queda sin fotos propias)
 		if _, err := db.DB.Exec(`DELETE FROM product_images WHERE product_id = ?`, id); err != nil {
 			return err
 		}
@@ -412,6 +497,7 @@ func DeleteProduct(id int64) (logoKey string, imageKeys []string, err error) {
 	if _, err = db.DB.Exec(`DELETE FROM products WHERE id = ?`, id); err != nil {
 		return "", nil, err
 	}
+	db.DB.Exec(`DELETE FROM product_inv_fotos WHERE product_id = ?`, id)
 
 	return logoKey, imageKeys, nil
 }

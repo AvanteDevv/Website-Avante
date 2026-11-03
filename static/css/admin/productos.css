@@ -510,3 +510,58 @@ body.dark .prod-mat.is-on{ background:rgba(137,146,255,.12); }
 }
 .prod-photos-inv-note[hidden]{ display:none; }
 body.dark .prod-photos-inv-note{ background:rgba(31,157,85,.12); color:#6ee7a5; }
+/* ---------- Fotos del inventario: aprobar cuáles salen en la tienda ---------- */
+.product-inv-pending{
+  position:absolute; bottom:10px; right:10px; z-index:2;
+  font-size:10px; font-weight:800; padding:5px 10px; border-radius:100px;
+  background:#f59e0b; color:#1f1300; box-shadow:0 4px 10px -2px rgba(245,158,11,.5);
+  animation:prodPendPulse 2s ease-in-out infinite;
+}
+@keyframes prodPendPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(245,158,11,.45); } 50%{ box-shadow:0 0 0 6px rgba(245,158,11,0); } }
+.prod-invfotos{
+  display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:14px;
+  border:1.5px dashed var(--line); background:var(--blue-50, #f5f7ff);
+}
+.prod-invfotos[hidden]{ display:none; }
+.prod-invfotos-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.prod-invfotos-title{ font-size:12.5px; font-weight:700; color:var(--ink); }
+.prod-invfotos-title small{ font-weight:600; color:var(--grey); margin-left:4px; }
+.prod-invfotos-all{
+  font-size:11.5px; font-weight:700; color:#157a43; padding:5px 11px; border-radius:100px;
+  border:1.5px solid rgba(31,157,85,.35); background:rgba(31,157,85,.08); cursor:pointer; font-family:inherit;
+}
+.prod-invfotos-all:hover{ background:rgba(31,157,85,.16); }
+.prod-invfotos-all[hidden]{ display:none; }
+.prod-invfotos-hint{ font-size:11.5px; color:var(--grey); line-height:1.45; margin:0; }
+.prod-invfotos-empty{ font-size:12px; color:var(--grey); margin:0; }
+.prod-invfotos-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+.prod-invfoto{
+  position:relative; width:96px; height:96px; border-radius:12px; overflow:hidden;
+  border:2px solid var(--line); background:var(--white);
+  transition:border-color .2s, opacity .2s, transform .2s;
+  animation:prodInvIn .25s ease both;
+}
+.prod-invfoto img{ width:100%; height:100%; object-fit:cover; display:block; transition:filter .2s; }
+.prod-invfoto.is-pendiente{ border-color:#f59e0b; }
+.prod-invfoto.is-aprobada{ border-color:#1f9d55; }
+.prod-invfoto.is-rechazada{ opacity:.55; }
+.prod-invfoto.is-rechazada img{ filter:grayscale(1); }
+.prod-invfoto-tag{
+  position:absolute; top:5px; left:5px; font-size:9.5px; font-weight:800; padding:3px 7px; border-radius:100px;
+  background:rgba(10,14,56,.72); color:#fff;
+}
+.prod-invfoto.is-pendiente .prod-invfoto-tag{ background:#f59e0b; color:#1f1300; }
+.prod-invfoto.is-aprobada .prod-invfoto-tag{ background:#1f9d55; }
+.prod-invfoto-acts{ position:absolute; bottom:5px; right:5px; display:flex; gap:4px; }
+.prod-invfoto-acts button{
+  width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.92); color:var(--ink); box-shadow:0 2px 6px rgba(10,14,56,.25); cursor:pointer; border:none;
+  transition:transform .15s, background .15s, color .15s;
+}
+.prod-invfoto-acts button svg{ width:13px; height:13px; }
+.prod-invfoto-acts button:hover{ transform:scale(1.1); }
+.prod-invfoto-acts .is-yes[aria-pressed="true"], .prod-invfoto-acts .is-yes:hover{ background:#1f9d55; color:#fff; }
+.prod-invfoto-acts .is-no[aria-pressed="true"], .prod-invfoto-acts .is-no:hover{ background:#c0392b; color:#fff; }
+.prod-photo-tile.is-new{ border-color:var(--blue-600); }
+body.dark .prod-invfotos{ background:rgba(137,146,255,.06); }
+body.dark .prod-invfoto{ background:transparent; }

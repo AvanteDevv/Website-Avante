@@ -281,13 +281,15 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
+	// Fotos del inventario aprobadas (si viene vinculado) cuentan como fotos.
+	invAprob, invRech, invDecide := readInvFotoDecision(c)
 	imageKeys, err := uploadProductPhotos(c, folder)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if len(imageKeys) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Sube al menos una foto del producto."})
+	if len(imageKeys) == 0 && len(invAprob) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Sube al menos una foto del producto o aprueba una del inventario."})
 		return
 	}
 
@@ -298,6 +300,9 @@ func CreateProduct(c *gin.Context) {
 	}
 	saveProductInvLink(c, id)
 	saveProductArmazon(c, id)
+	if invDecide {
+		saveProductInvFotos(id, invAprob, invRech)
+	}
 
 	imageURLs := make([]string, len(imageKeys))
 	for i, k := range imageKeys {
@@ -350,21 +355,60 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	// Fotos opcionales al editar: si mandan alguna, se reemplazan TODAS
-	// las anteriores por las nuevas (mismo criterio simple que el logo).
-	newImageKeys, err := uploadProductPhotos(c, folder)
+	// Fotos propias: "keep_images" trae las actuales que se conservan (en
+	// orden) y "images" las nuevas, que se agregan al final. Sin
+	// "keep_images" (versión anterior del panel): si mandan fotos nuevas,
+	// reemplazan a todas.
+	uploaded, err := uploadProductPhotos(c, folder)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	invAprob, invRech, invDecide := readInvFotoDecision(c)
+	currentKeys, _ := models.GetProductImageKeys(id)
+	var newImageKeys, oldImageKeys []string
+	if keepRaw, ok := c.GetPostForm("keep_images"); ok {
+		current := map[string]bool{}
+		for _, k := range currentKeys {
+			current[k] = true
+		}
+		kept := map[string]bool{}
+		newImageKeys = []string{}
+		for _, k := range strings.Split(keepRaw, ",") {
+			k = strings.TrimPrefix(strings.TrimSpace(k), "/media/productos/")
+			if k != "" && current[k] && !kept[k] {
+				kept[k] = true
+				newImageKeys = append(newImageKeys, k)
+			}
+		}
+		newImageKeys = append(newImageKeys, uploaded...)
+		for _, k := range currentKeys {
+			if !kept[k] {
+				oldImageKeys = append(oldImageKeys, k)
+			}
+		}
+		if len(oldImageKeys) == 0 && len(uploaded) == 0 {
+			newImageKeys = nil // nada cambió
+		}
+	} else if len(uploaded) > 0 {
+		newImageKeys, oldImageKeys = uploaded, currentKeys
+	}
+	// Tiene que quedar al menos una foto (propia o aprobada del inventario).
+	ownLeft := len(currentKeys)
+	if newImageKeys != nil {
+		ownLeft = len(newImageKeys)
+	}
+	if invDecide && ownLeft == 0 && len(invAprob) == 0 {
+		for _, k := range uploaded {
+			storage.DeleteObject(c.Request.Context(), "productos/"+k)
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Deja al menos una foto: sube una o aprueba una del inventario."})
 		return
 	}
 
 	var oldLogoKey string
 	if newLogoKey != "" {
 		oldLogoKey = existingLogoKey
-	}
-	var oldImageKeys []string
-	if len(newImageKeys) > 0 {
-		oldImageKeys, _ = models.GetProductImageKeys(id)
 	}
 
 	if err := models.UpdateProduct(id, title, brand, year, model, price, oldPrice, promoEndsAt, icon, badge, description, newLogoKey, newImageKeys); err != nil {
@@ -373,6 +417,9 @@ func UpdateProduct(c *gin.Context) {
 	}
 	saveProductInvLink(c, id)
 	saveProductArmazon(c, id)
+	if invDecide {
+		saveProductInvFotos(id, invAprob, invRech)
+	}
 
 	if newLogoKey != "" && oldLogoKey != "" {
 		storage.DeleteObject(c.Request.Context(), "logos/"+oldLogoKey)
@@ -439,6 +486,45 @@ func saveProductInvLink(c *gin.Context, productID int64) {
 	}
 	if err := models.SetProductInvItem(productID, invID); err != nil {
 		log.Printf("productos: no se guardó el vínculo con el inventario (#%d): %v", productID, err)
+	}
+}
+
+// readInvFotoDecision lee del form qué fotos del inventario se aprobaron
+// y cuáles no (ids separados por coma), validando que sean del artículo
+// vinculado. ok=false si el form no trae la decisión (no se toca nada).
+func readInvFotoDecision(c *gin.Context) (aprob, rech []int64, ok bool) {
+	if _, ok = c.GetPostForm("inv_fotos_decision"); !ok {
+		return nil, nil, false
+	}
+	itemID, _ := strconv.ParseInt(strings.TrimSpace(c.PostForm("inv_item_id")), 10, 64)
+	parse := func(raw string) []int64 {
+		var out []int64
+		for _, s := range strings.Split(raw, ",") {
+			if v, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64); err == nil && v > 0 {
+				out = append(out, v)
+			}
+		}
+		return out
+	}
+	a, r := parse(c.PostForm("inv_fotos_aprobadas")), parse(c.PostForm("inv_fotos_rechazadas"))
+	valid := models.InvFotoIDsOfItem(itemID, append(append([]int64{}, a...), r...))
+	for _, v := range a {
+		if valid[v] {
+			aprob = append(aprob, v)
+		}
+	}
+	for _, v := range r {
+		if valid[v] {
+			rech = append(rech, v)
+		}
+	}
+	return aprob, rech, true
+}
+
+// saveProductInvFotos guarda la decisión sobre las fotos del inventario.
+func saveProductInvFotos(productID int64, aprob, rech []int64) {
+	if err := models.SetProductInvFotos(productID, aprob, rech); err != nil {
+		log.Printf("productos: no se guardaron las fotos del inventario (#%d): %v", productID, err)
 	}
 }
 

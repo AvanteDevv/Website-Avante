@@ -78,11 +78,12 @@
              data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
              data-descripcion="{{.Description}}"
              data-logo-url="{{.LogoURL}}"
-             data-images='{{.ImagesJSON}}'>
+             data-images='{{.ImagesJSON}}' data-inv-fotos='{{.InvFotosJSON}}'>
           <div class="product-card-media">
             {{with .ShownImages}}<img src="{{index . 0}}" alt="">{{else}}<img src="{{.LogoURL}}" alt="{{.Brand}}">{{end}}
             {{if .Badge}}<span class="product-badge-pill">{{.Badge}}</span>{{end}}
             {{if gt (len .ShownImages) 1}}<span class="product-photo-count">{{len .ShownImages}} fotos</span>{{end}}
+            {{with .InvFotosPendientes}}<span class="product-inv-pending" title="Fotos nuevas del inventario por aprobar">{{.}} {{if eq . 1}}foto nueva{{else}}fotos nuevas{{end}} por revisar</span>{{end}}
             <div class="row-menu product-card-menu">
               <button type="button" class="row-menu-btn" aria-label="Más acciones" aria-haspopup="true" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
@@ -139,7 +140,7 @@
                 data-fotos="{{len .ShownImages}}"
                 data-descripcion="{{.Description}}"
                 data-logo-url="{{.LogoURL}}"
-                data-images='{{.ImagesJSON}}'>
+                data-images='{{.ImagesJSON}}' data-inv-fotos='{{.InvFotosJSON}}'>
               <td class="pt-photo">
                 {{with .ShownImages}}<img src="{{index . 0}}" alt="">{{else}}<img src="{{.LogoURL}}" alt="{{.Brand}}">{{end}}
               </td>
@@ -210,7 +211,7 @@
         </label>
 
         <div class="product-field-row">
-          <label>Año
+          <label>Año <span class="admin-user-form-optional">(opcional)</span>
             <input type="text" id="prodAnio" name="year" placeholder="Ej. 2026" inputmode="numeric" maxlength="4">
           </label>
           <label>Modelo
@@ -314,7 +315,16 @@
           <textarea id="prodDescripcion" name="description" rows="3" placeholder="Se muestra en el detalle del producto — materiales, ajuste, protección UV, etc."></textarea>
         </label>
 
-        <label>Fotos del producto
+        <div class="prod-invfotos" id="prodInvFotos" hidden>
+          <div class="prod-invfotos-head">
+            <span class="prod-invfotos-title">Fotos del inventario <small id="prodInvFotosCount"></small></span>
+            <button type="button" class="prod-invfotos-all" id="prodInvFotosAll">Aprobar todas</button>
+          </div>
+          <p class="prod-invfotos-hint">Solo las que apruebes salen en la tienda. Cuando se suban fotos nuevas al artículo en Inventario, aparecerán aquí para que las revises.</p>
+          <div class="prod-invfotos-grid" id="prodInvFotosGrid"></div>
+        </div>
+
+        <label><span id="prodPhotosLabel">Fotos del producto</span>
           <div class="ad-upload-drop prod-photos-drop" id="prodPhotosDrop">
             <div class="ad-upload-placeholder" id="prodPhotosPlaceholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
@@ -324,7 +334,6 @@
           </div>
           <div class="prod-photos-grid" id="prodPhotosGrid"></div>
           <span class="ad-upload-hint" id="prodPhotosHint">JPG, PNG o WEBP — puedes elegir varias a la vez. Si es una sola, en la tienda no se mostrará carrusel.</span>
-          <span class="prod-photos-inv-note" id="prodPhotosInvNote" hidden>Vinculado al inventario: la tienda muestra las fotos del artículo (si las cambias en Inventario, aquí se actualizan solas). Estas fotos solo se usan si el artículo no tiene ninguna.</span>
         </label>
 
         <label>Logo de la marca</label>
