@@ -502,3 +502,11 @@ body.dark .prod-inv-link-txt em{ color:#ffd36e; }
 .prod-mats-empty{ font-size:12px; color:var(--grey); }
 body.dark .prod-mat{ background:transparent; }
 body.dark .prod-mat.is-on{ background:rgba(137,146,255,.12); }
+/* Nota: fotos tomadas del inventario mientras el producto esté vinculado */
+.prod-photos-inv-note{
+  display:block; margin-top:8px; padding:9px 12px; border-radius:10px;
+  background:rgba(31,157,85,.08); border:1px solid rgba(31,157,85,.25);
+  color:#157a43; font-size:12px; font-weight:600; line-height:1.45;
+}
+.prod-photos-inv-note[hidden]{ display:none; }
+body.dark .prod-photos-inv-note{ background:rgba(31,157,85,.12); color:#6ee7a5; }

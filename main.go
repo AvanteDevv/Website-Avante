@@ -99,7 +99,7 @@ func buildStoreProductsJSON() template.JS {
 			Icon:    p.Icon,
 			Badge:   p.Badge,
 			Desc:    p.Description,
-			Images:  p.Images,
+			Images:  p.ShownImages(),
 			LogoURL: p.LogoURL,
 		}
 		sp.TryonEstilo = p.TipoArmazon

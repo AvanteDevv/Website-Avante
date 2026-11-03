@@ -80,9 +80,9 @@
              data-logo-url="{{.LogoURL}}"
              data-images='{{.ImagesJSON}}'>
           <div class="product-card-media">
-            {{if .Images}}<img src="{{index .Images 0}}" alt="{{.Brand}}">{{else}}<img src="{{.LogoURL}}" alt="{{.Brand}}">{{end}}
+            {{with .ShownImages}}<img src="{{index . 0}}" alt="">{{else}}<img src="{{.LogoURL}}" alt="{{.Brand}}">{{end}}
             {{if .Badge}}<span class="product-badge-pill">{{.Badge}}</span>{{end}}
-            {{if gt (len .Images) 1}}<span class="product-photo-count">{{len .Images}} fotos</span>{{end}}
+            {{if gt (len .ShownImages) 1}}<span class="product-photo-count">{{len .ShownImages}} fotos</span>{{end}}
             <div class="row-menu product-card-menu">
               <button type="button" class="row-menu-btn" aria-label="Más acciones" aria-haspopup="true" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
@@ -136,12 +136,12 @@
                 data-precio="{{.Price}}" data-precio-anterior="{{.OldPrice}}" data-icon="{{.Icon}}" data-badge="{{.Badge}}"
                 data-promo-ends="{{.PromoEndsAtValue}}" data-inv-item="{{.InvItemID}}" data-tipo-arm="{{.TipoArmazon}}" data-materiales="{{.MaterialesCSV}}" data-mica="{{.MicaTipo}}"
                 data-status="{{if .HasPromo}}{{if .PromoExpired}}expired{{else}}promo{{end}}{{else}}none{{end}}"
-                data-fotos="{{len .Images}}"
+                data-fotos="{{len .ShownImages}}"
                 data-descripcion="{{.Description}}"
                 data-logo-url="{{.LogoURL}}"
                 data-images='{{.ImagesJSON}}'>
               <td class="pt-photo">
-                {{if .Images}}<img src="{{index .Images 0}}" alt="{{.Brand}}">{{else}}<img src="{{.LogoURL}}" alt="{{.Brand}}">{{end}}
+                {{with .ShownImages}}<img src="{{index . 0}}" alt="">{{else}}<img src="{{.LogoURL}}" alt="{{.Brand}}">{{end}}
               </td>
               <td>
                 <div class="pt-title">{{.Title}}</div>
@@ -151,7 +151,7 @@
               <td>{{if .Year}}{{.Year}}{{else}}—{{end}}</td>
               <td>{{if .OldPrice}}<span class="pt-old-price">${{printf "%.2f" .OldPrice}}</span>{{else}}—{{end}}</td>
               <td><span class="pt-new-price">${{printf "%.2f" .Price}}</span></td>
-              <td>{{len .Images}}</td>
+              <td>{{len .ShownImages}}</td>
               <td>
                 {{if .HasPromo}}
                   {{if .PromoExpired}}<span class="pt-status pt-status-expired">Promoción vencida</span>
@@ -324,6 +324,7 @@
           </div>
           <div class="prod-photos-grid" id="prodPhotosGrid"></div>
           <span class="ad-upload-hint" id="prodPhotosHint">JPG, PNG o WEBP — puedes elegir varias a la vez. Si es una sola, en la tienda no se mostrará carrusel.</span>
+          <span class="prod-photos-inv-note" id="prodPhotosInvNote" hidden>Vinculado al inventario: la tienda muestra las fotos del artículo (si las cambias en Inventario, aquí se actualizan solas). Estas fotos solo se usan si el artículo no tiene ninguna.</span>
         </label>
 
         <label>Logo de la marca</label>

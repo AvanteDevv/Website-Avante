@@ -1126,6 +1126,8 @@ window.productInvPick = (function(){
   function paintLink(){
     if (!linkBox) return;
     var a = linkedId && items ? items.filter(function(x){ return x.id === linkedId; })[0] : null;
+    var nota = document.getElementById('prodPhotosInvNote');
+    if (nota) nota.hidden = !linkedId;
     linkBox.hidden = !linkedId;
     if (!linkedId) { linkBox.innerHTML = ''; return; }
     var info = a ? tryonTxt(a) : [], falta = a ? faltaTryon(a) : [];

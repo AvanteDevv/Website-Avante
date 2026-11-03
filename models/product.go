@@ -38,7 +38,21 @@ type Product struct {
 	TipoArmazon string   // slug del estilo del probador (Redondo, Aviador…)
 	Materiales  []string // materiales del armazón
 	MicaTipo    string   // "oftalmico", "sol" o "" (sin definir)
+	// Fotos del artículo del inventario vinculado (en vivo): si las hay,
+	// son las que se muestran en la tienda en lugar de las del producto.
+	InvImages []string
 }
+
+// ShownImages: las fotos que se muestran (tienda y tarjeta del panel).
+func (p Product) ShownImages() []string {
+	if len(p.InvImages) > 0 {
+		return p.InvImages
+	}
+	return p.Images
+}
+
+// FotosDelInventario: true si las fotos que se ven salen del inventario.
+func (p Product) FotosDelInventario() bool { return len(p.InvImages) > 0 }
 
 // MaterialesCSV: para el data-* del panel de admin.
 func (p Product) MaterialesCSV() string { return strings.Join(p.Materiales, ",") }
@@ -200,6 +214,23 @@ func GetAllProducts() ([]Product, error) {
 							p.Materiales = append(p.Materiales, m)
 						}
 					}
+				}
+			}
+		}
+	}
+
+	// Fotos del artículo vinculado (la principal primero).
+	if fotoRows, err := db.DB.Query(`
+		SELECT p.id, f.id
+		FROM products p
+		JOIN inv_fotos f ON f.item_id = p.inv_item_id
+		ORDER BY p.id, f.orden ASC, f.id ASC`); err == nil {
+		defer fotoRows.Close()
+		for fotoRows.Next() {
+			var pid, fid int64
+			if fotoRows.Scan(&pid, &fid) == nil {
+				if p, ok := byID[pid]; ok {
+					p.InvImages = append(p.InvImages, InvFotoURL(fid))
 				}
 			}
 		}
