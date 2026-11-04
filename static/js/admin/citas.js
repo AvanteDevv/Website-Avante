@@ -14,8 +14,9 @@
      Rango): filtra por el DÍA de la cita. Cambia los indicadores
      de estado (totales, verificadas, …), los de tipo y la tabla.
    - Tipo de cita = la etiqueta de "cómo llegó" (vino sin cita,
-     chequeo, teléfono, WhatsApp). Las citas sin etiqueta cuentan
-     como "Web / sin etiqueta". Clic en un tipo filtra la tabla.
+     chequeo, teléfono, WhatsApp) más "Sitio web", que se pone sola
+     a las citas que hizo el cliente en la página. Las que no tienen
+     ninguna cuentan como "Sin etiqueta". Clic en un tipo filtra la tabla.
 
    Recepción ya carga las etiquetas (CitaTags, row.dataset.tag y el
    evento "citatags:change"). En Admin no existe CitaTags: aquí se
@@ -83,7 +84,9 @@ window.CitasFiltro = (function(){
   var STORE = 'avanteCitasFiltro';
 
   var TIPOS = {
-    web: { label: 'Sin etiqueta', title: 'Citas sin etiqueta: agendadas en la página o sin marcar cómo llegaron',
+    sitio_web: { label: 'Sitio web', title: 'Agendó en el sitio web (se pone sola)',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="11" rx="2"/><path d="M2 20h20M9.5 9.5l2 2 3.5-3.5"/></svg>' },
+    web: { label: 'Sin etiqueta', title: 'Citas de recepción sin marcar cómo llegaron',
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>' },
     sin_cita: { label: 'Vino sin cita', title: 'Vino sin cita',
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' },
@@ -94,7 +97,7 @@ window.CitasFiltro = (function(){
     whatsapp: { label: 'Por WhatsApp', title: 'Agendó por WhatsApp',
       icon: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3Z"/></svg>' }
   };
-  var ORDER = ['web', 'sin_cita', 'chequeo', 'telefono', 'whatsapp'];
+  var ORDER = ['sitio_web', 'sin_cita', 'chequeo', 'telefono', 'whatsapp', 'web'];
   var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
   var state = { period: 'todas', desde: '', hasta: '', tipo: '' };
@@ -177,7 +180,7 @@ window.CitasFiltro = (function(){
   }
   function renderTipos(rows){
     if (!tiposEl) return;
-    var counts = { web: 0, sin_cita: 0, chequeo: 0, telefono: 0, whatsapp: 0 };
+    var counts = { sitio_web: 0, web: 0, sin_cita: 0, chequeo: 0, telefono: 0, whatsapp: 0 };
     rows.forEach(function(r){ counts[tipoOf(r)]++; });
     var total = rows.length;
     ORDER.forEach(function(k){

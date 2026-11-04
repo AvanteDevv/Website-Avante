@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -291,9 +292,17 @@ func CreateAppointment(c *gin.Context) {
 		cuestionarioJSON = []byte("{}")
 	}
 
-	if _, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, "", string(cuestionarioJSON), userID); err != nil {
+	appt, err := models.CreateAppointment(date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, "", string(cuestionarioJSON), userID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo agendar la cita. Intenta de nuevo."})
 		return
+	}
+	// Etiqueta automática "Sitio web" (cómo llegó). Si falla no se tumba
+	// la cita: al siguiente arranque EnsureSitioWebTags la pone.
+	if appt != nil && appt.ID > 0 {
+		if err := models.SetAppointmentTag(appt.ID, models.TagSitioWeb, "Automático"); err != nil {
+			log.Printf("citas: no se pudo etiquetar la cita %d como sitio web: %v", appt.ID, err)
+		}
 	}
 
 	// Si viene de la Unison, después del "tu cita quedó agendada" se le

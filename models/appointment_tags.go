@@ -9,12 +9,19 @@ import (
 // ⚠️ Ajusta "avante-optics" en el import de arriba para que coincida con
 // el nombre del módulo en tu go.mod.
 
+// TagSitioWeb es la etiqueta automática de las citas que el cliente hizo
+// él solo desde la página (appointments.origen = "web"). Recepción no la
+// puede elegir: se pone sola al agendar y, si recepción le quita la
+// etiqueta que haya puesto encima, la cita regresa a "sitio_web".
+const TagSitioWeb = "sitio_web"
+
 // Etiquetas de cita: cómo llegó la cita.
 var AppointmentTagLabels = map[string]string{
-	"sin_cita": "Vino sin cita",
-	"chequeo":  "Chequeo",
-	"telefono": "Agendó por teléfono",
-	"whatsapp": "Agendó por WhatsApp",
+	TagSitioWeb: "Agendó en el sitio web",
+	"sin_cita":  "Vino sin cita",
+	"chequeo":   "Chequeo",
+	"telefono":  "Agendó por teléfono",
+	"whatsapp":  "Agendó por WhatsApp",
 }
 
 // IsAppointmentTag indica si la etiqueta existe.

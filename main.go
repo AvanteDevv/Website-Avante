@@ -252,6 +252,8 @@ func main() {
 	db.EnsureAppointmentTagsTable()
 	// Quién hizo la cita (el cliente desde la página o recepción).
 	db.EnsureCitaOrigen()
+	// Las citas hechas en la página llevan la etiqueta "Sitio web" sola.
+	db.EnsureSitioWebTags()
 	// Seguimiento al asistir: si compró y cada cuánto le toca su revisión.
 	db.EnsureAppointmentFollowupTable()
 	// Punto de venta: clientes, ventas, créditos (lo que quedan a deber) y abonos.

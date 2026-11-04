@@ -1417,6 +1417,12 @@ body.dark .tag-sin_cita{ --tag:#ffc04d; --tag-bg:rgba(255,176,32,.16); }
 body.dark .tag-chequeo{ --tag:#ff7aa2; --tag-bg:rgba(224,36,94,.18); }
 body.dark .tag-telefono{ --tag:#8fb4ff; --tag-bg:rgba(37,99,235,.2); }
 body.dark .tag-whatsapp{ --tag:#5be08e; --tag-bg:rgba(31,168,85,.18); }
+/* Sitio web: automática (citas que el cliente hizo en la página) */
+.tag-sitio_web{ --tag:#7c3aed; --tag-bg:#f1eaff; }
+body.dark .tag-sitio_web{ --tag:#c4a5ff; --tag-bg:rgba(124,58,237,.22); }
+.cita-tag-opt.is-auto{ cursor:default; }
+.cita-tag-opt.is-auto:active{ transform:none; }
+.cal-event-modal .cita-tag-opt.is-auto{ grid-column:1 / -1; }
 
 /* Ícono suelto (calendario, tabla, leyenda, listas) */
 .cita-tag-ico{
@@ -1627,7 +1633,7 @@ body.dark .tag-web{ --tag:#b7bfd3; --tag-bg:rgba(183,191,211,.14); }
 .cf-tipos-head{ display:flex; align-items:baseline; gap:10px; margin:-14px 0 10px; }
 .cf-tipos-head h3{ margin:0; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
 .cf-tipos-head span{ font-size:11.5px; color:var(--muted); }
-.cf-tipos{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:10px; margin-bottom:28px; }
+.cf-tipos{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:10px; margin-bottom:28px; }
 .cf-tipo{
   position:relative; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px;
   padding:12px 14px 16px; border-radius:16px; border:1.5px solid var(--line); background:var(--white);

@@ -204,7 +204,7 @@
   /* ---------- números del reporte ---------- */
   // "pendiente" no se usa en el panel: si llegara a haber, cuenta como por atender.
   var ESTADOS = [['asistio', 'Asistieron'], ['no_asistio', 'No asistieron'], ['cancelada', 'Canceladas'], ['verificada', 'Por atender']];
-  var TIPOS = [['web', 'Sin etiqueta (página web)'], ['sin_cita', 'Vino sin cita'], ['chequeo', 'Chequeo'], ['telefono', 'Por teléfono'], ['whatsapp', 'Por WhatsApp']];
+  var TIPOS = [['sitio_web', 'Sitio web'], ['sin_cita', 'Vino sin cita'], ['chequeo', 'Chequeo'], ['telefono', 'Por teléfono'], ['whatsapp', 'Por WhatsApp'], ['web', 'Sin etiqueta']];
   var COMO = { facebook: 'Facebook', instagram: 'Instagram', television: 'Televisión', tiktok: 'TikTok', sitio_web: 'Sitio web', google_maps: 'Google Maps', familiares: 'Familiares', amigos: 'Amigos', recomendado: 'Me recomendaron', casualidad: 'Pasé por casualidad', recurrente: 'Cliente recurrente', por_empresa: 'Por empresa' };
 
   function inR(r, rg) { return r.date && r.date >= rg.desde && r.date <= rg.hasta; }

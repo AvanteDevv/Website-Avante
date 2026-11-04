@@ -18,3 +18,19 @@ func EnsureAppointmentTagsTable() {
 	}
 	log.Println("citas: tabla appointment_tags lista")
 }
+
+// EnsureSitioWebTags pone la etiqueta automática "sitio_web" a las citas
+// que hizo el cliente desde la página (origen = 'web') y que no tienen
+// etiqueta. Las que recepción ya etiquetó (chequeo, WhatsApp…) se quedan
+// como están. Va después de EnsureCitaOrigen; se llama al arrancar.
+func EnsureSitioWebTags() {
+	res, err := DB.Exec(`INSERT IGNORE INTO appointment_tags (appointment_id, tag, updated_by)
+		SELECT id, 'sitio_web', 'Automático' FROM appointments WHERE origen = 'web'`)
+	if err != nil {
+		log.Printf("citas: no se pudo poner la etiqueta sitio_web: %v", err)
+		return
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		log.Printf("citas: %d citas de la página etiquetadas como sitio web", n)
+	}
+}
