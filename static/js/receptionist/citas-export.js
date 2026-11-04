@@ -131,6 +131,7 @@
         id: r.dataset.id, date: r.dataset.date || '', hour: hm ? +hm[1] : null, time: r.dataset.time || '',
         status: r.dataset.status || 'pendiente', tag: r.dataset.tag || '', nombre: (r.dataset.nombre || '').replace(/\s+/g, ' ').trim(),
         como: q && q.como_se_entero ? String(q.como_se_entero) : '', procedencia: q && q.procedencia ? String(q.procedencia) : '',
+        celular: (r.dataset.celular || '').trim(),
         compra: compraDe(r.dataset.id, r.dataset.status || 'pendiente', r.dataset.tag || ''),
         origen: r.dataset.origen === 'recepcion' ? 'recepcion' : 'web'
       };
@@ -390,6 +391,29 @@
       }).join('') + '</tbody></table></div>';
   }
 
+  // Citas confirmadas que todavía no se marcan (Asistió / No asistió /
+  // Cancelada). Las de días que ya pasaron se quedaron sin marcar y hay
+  // que corregirlas en el panel; las de hoy en adelante siguen por atender.
+  function porAtenderHTML(list) {
+    var pend = list.filter(function (r) { return r.status === 'verificada' || r.status === 'pendiente'; })
+      .sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); });
+    if (!pend.length) return '';
+    var today = iso(new Date());
+    var pasadas = pend.filter(function (r) { return r.date < today; }).length;
+    var d = function (x) { var p = parseISO(x); return p ? p.getDate() + ' ' + MESES[p.getMonth()] : '—'; };
+    var nota = pasadas
+      ? (pasadas === 1 ? '1 ya pasó' : pasadas + ' ya pasaron') + ' y ' + (pasadas === 1 ? 'quedó' : 'quedaron') + ' sin marcar: hay que ' + (pasadas === 1 ? 'marcarla' : 'marcarlas') + ' en el panel como Asistió, No asistió o Cancelada.'
+      : 'Confirmadas que todavía no llega su día u hora.';
+    return '<div class="cr-sec"><h2>Citas por atender</h2><p class="cr-note">' + nota + '</p>' +
+      '<table><thead><tr><th class="cr-l">Fecha</th><th class="cr-l">Hora</th><th class="cr-l">Paciente</th><th class="cr-l">Teléfono</th><th class="cr-l">Situación</th></tr></thead><tbody>' +
+      pend.map(function (r) {
+        var paso = r.date < today;
+        return '<tr><td class="cr-l">' + d(r.date) + '</td><td class="cr-l">' + esc(r.time) + '</td><td class="cr-l">' + esc(r.nombre || '—') + '</td>' +
+          '<td class="cr-l">' + esc(r.celular || '—') + '</td>' +
+          '<td class="cr-l"><span class="cr-chip ' + (paso ? 'is-sin">Sin marcar' : 'is-chequeo">Próxima') + '</span></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
   function reportHTML(rg, all) {
     var list = all.filter(function (r) { return inR(r, rg); });
     var prev = all.filter(function (r) { return inR(r, prevRange(rg)); });
@@ -413,6 +437,7 @@
     var porComo = Object.keys(comoCount).map(function (k) { return [COMO[k] || cap(k.replace(/_/g, ' ')), comoCount[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
     var porEstado = ESTADOS.map(function (e) { return [e[1], e[0] === 'verificada' ? s.verificada + s.pendiente : s[e[0]]]; });
 
+    var sinMarcar = list.filter(function (r) { return (r.status === 'verificada' || r.status === 'pendiente') && r.date < today; }).length;
     var kpi = function (label, val, sub, cls) { return '<div class="cr-kpi' + (cls ? ' ' + cls : '') + '"><small>' + label + '</small><b>' + val + '</b>' + (sub ? '<em>' + sub + '</em>' : '') + '</div>'; };
     var pct = function (n) { return s.total ? Math.round(n * 100 / s.total) + '% del total' : ''; };
     var generado = (document.querySelector('.userbar-name') || {}).textContent || 'Recepción';
@@ -427,7 +452,7 @@
         kpi('Mejor ' + unidad, best ? esc(best.label) : '—', best ? best.total + (best.total === 1 ? ' cita' : ' citas') : '') +
         kpi('No asistieron', String(s.no_asistio), pct(s.no_asistio)) +
         kpi('Canceladas', String(s.cancelada), pct(s.cancelada)) +
-        kpi('Por atender', String(s.verificada + s.pendiente), pct(s.verificada + s.pendiente)) +
+        kpi('Por atender', String(s.verificada + s.pendiente), sinMarcar ? (sinMarcar === 1 ? '1 ya pasó sin marcar' : sinMarcar + ' ya pasaron sin marcar') : pct(s.verificada + s.pendiente)) +
         kpi('Hora más pedida', topHora != null ? horaTxt(+topHora) : '—', topHora != null ? horas[topHora] + (horas[topHora] === 1 ? ' cita' : ' citas') : '') +
         kpi('Compraron', String(s.compro), s.asistio ? 'de ' + s.asistio + ' que asistieron' : '', 'is-main') +
         kpi('Conversión', s.conv == null ? '—' : Math.round(s.conv) + '%', s.sinreg ? s.sinreg + ' sin registrar' : (s.compro + s.nocompro ? 'de los que se registró' : 'aún no se registra')) +
@@ -444,6 +469,7 @@
         (porComo.length ? hbars(porComo, conCuest) : '<div class="cr-empty">Nadie contestó el cuestionario en este periodo.</div>') + '</div>' +
       '<div class="cr-sec"><h2>¿Compraron?</h2><p class="cr-note">De los que asistieron. Los chequeos no cuentan como venta.</p>' +
         (s.asistio ? hbars([['Sí compraron', s.compro], ['No compraron', s.nocompro], ['Sin registrar', s.sinreg], ['Chequeos', s.chequeos]], s.asistio) : '<div class="cr-empty">Nadie asistió en este periodo.</div>') + '</div>' +
+      porAtenderHTML(list) +
       pacientesHTML(list) +
       '<div class="cr-sec"><h2>Detalle por ' + unidad + '</h2><p class="cr-note">Solo aparecen ' + (bk.mode === 'hora' ? 'las horas' : bk.mode === 'dia' ? 'los días' : 'los meses') + ' con citas.</p>' +
         '<table><thead><tr><th>' + cap(unidad) + '</th><th>Citas</th><th>Asistieron</th><th>No asistieron</th><th>Canceladas</th><th>Compraron</th><th>Asistencia</th></tr></thead><tbody>' +
