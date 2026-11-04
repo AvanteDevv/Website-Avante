@@ -310,6 +310,7 @@ buyBtn.addEventListener('click', async () => {
     cart.push({
       lineKey,
       pid,
+      productId: product.id || 0, // id real: el servidor cobra con el precio de la BD
       name: product.name,
       brand: product.brand,
       image: imgs[0],

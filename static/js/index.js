@@ -608,6 +608,7 @@ Array.from(shopGrid.querySelectorAll('.shop-card')).forEach((card, cardIndex) =>
       const priceNumber = parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0;
       window.AvanteCart.addOne({
         pid: cardIndex,
+        productId: (p && p.id) || 0,
         name: p.name,
         brand: p.brand,
         image: mainImg,

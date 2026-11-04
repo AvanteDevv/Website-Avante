@@ -224,3 +224,47 @@ ul{list-style:none;}
 .pay-modal-actions{ display:flex; flex-direction:column; gap:10px; margin-top:22px; }
 .pay-modal-secondary{ font-size:12.5px; font-weight:600; color:var(--grey); transition:color .2s var(--ease); }
 .pay-modal-secondary:hover{ color:var(--blue-600); }
+/* ===========================================================
+   CLIP — datos del cliente, bloque de pago y estados del modal
+   =========================================================== */
+.pay-step{
+  display:flex; align-items:center; gap:10px; font-family:var(--sans); font-size:13px; font-weight:800;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--ink); margin-top:6px;
+}
+.pay-step span{
+  width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  background:var(--blue-600); color:var(--white); font-size:12px; letter-spacing:0;
+}
+.pay-field span em{ font-style:normal; font-weight:500; text-transform:none; letter-spacing:0; }
+.pay-clip{
+  border:1.5px solid var(--blue-600); border-radius:18px; padding:16px 18px; background:var(--blue-50);
+  display:flex; flex-direction:column; gap:12px;
+}
+.pay-clip-head{ display:flex; align-items:center; gap:14px; }
+.pay-clip-logo{
+  flex-shrink:0; width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+  background:var(--ink); color:#fff; font-weight:800; font-size:16px; letter-spacing:-.01em;
+  box-shadow:0 10px 20px -10px rgba(10,14,56,.6);
+}
+.pay-clip-txt{ display:flex; flex-direction:column; gap:3px; font-size:14px; font-weight:700; color:var(--ink); }
+.pay-clip-txt small{ font-size:12px; font-weight:500; color:var(--grey); line-height:1.45; }
+.pay-clip-cards{ display:flex; gap:8px; flex-wrap:wrap; }
+.pay-clip-cards span{
+  font-size:10.5px; font-weight:800; letter-spacing:.04em; padding:5px 10px; border-radius:8px;
+  background:var(--white); border:1px solid var(--line); color:var(--ink);
+}
+.pay-submit-btn.is-loading{ opacity:.85; cursor:progress; }
+.pay-submit-btn.is-loading svg{ animation:payLockPulse 1s ease-in-out infinite; }
+@keyframes payLockPulse{ 50%{ transform:scale(.85); opacity:.6; } }
+
+.modal-card[data-estado="verificando"] .modal-icon{ background:var(--blue-50); color:var(--blue-600); }
+.modal-card[data-estado="pendiente"] .modal-icon{ background:#fff4dc; color:#b26b00; }
+.modal-card[data-estado="fallido"] .modal-icon{ background:#fde7e5; color:#c0392b; }
+.modal-card[data-estado="pagado"] .modal-icon{ animation:payOkPop .5s cubic-bezier(.34,1.56,.64,1); }
+@keyframes payOkPop{ from{ transform:scale(.4); opacity:0; } to{ transform:none; opacity:1; } }
+.pay-spinner{
+  width:26px; height:26px; border-radius:50%; border:3px solid var(--blue-100); border-top-color:var(--blue-600);
+  animation:paySpin .8s linear infinite;
+}
+@keyframes paySpin{ to{ transform:rotate(360deg); } }
+.pay-modal-actions:empty{ display:none; }

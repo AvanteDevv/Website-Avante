@@ -55,6 +55,7 @@ func spanishDateTime(t time.Time) string {
 // ejemplo, más "images" con la imagen real subida en el panel de admin
 // (se repite en las 3 posiciones del carrusel si solo hay una).
 type storeProduct struct {
+	ID       int64    `json:"id,omitempty"` // id del producto (para cobrar con el precio del servidor)
 	Name     string   `json:"name"`
 	Brand    string   `json:"brand"`
 	Price    string   `json:"price"`
@@ -93,6 +94,7 @@ func buildStoreProductsJSON() template.JS {
 	out := make([]storeProduct, 0, len(products))
 	for _, p := range products {
 		sp := storeProduct{
+			ID:      p.ID,
 			Name:    p.Title,
 			Brand:   p.Brand,
 			Price:   fmt.Sprintf("$%.2f", p.Price),
@@ -232,6 +234,8 @@ func main() {
 	db.EnsureInvColoresTable()
 	// Productos de la tienda vinculados con su artículo del inventario.
 	db.EnsureProductInvLink()
+	// Pagos de la tienda en línea con Clip.
+	db.EnsurePagosClipTable()
 	// Panel de Inventario: columnas nuevas de artículos, departamentos,
 	// categorías, ajustes y kárdex (movimientos).
 	db.EnsureInventarioProTables()
@@ -901,6 +905,11 @@ func main() {
 		api.GET("/horarios/ocupadas", handlers.GetOccupiedHours)
 		api.GET("/horarios", handlers.GetAgendaHours)
 		api.POST("/pedidos", handlers.CreatePedido)
+		// Pagos de la tienda con Clip (Checkout redireccionado).
+		api.GET("/pagos/clip/datos", handlers.PagoClipDatos)
+		api.POST("/pagos/clip/checkout", handlers.PagoClipCheckout)
+		api.GET("/pagos/clip/estado/:ref", handlers.PagoClipEstado)
+		api.POST("/pagos/clip/webhook", handlers.PagoClipWebhook)
 		api.GET("/estados", handlers.GetOrderStatuses)
 		api.GET("/rastreo", handlers.TrackOrder)
 	}
