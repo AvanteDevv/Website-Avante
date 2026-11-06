@@ -84,6 +84,28 @@
       <svg class="pd-tryon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
     </a>
 
+    <div class="pd-field-label">Entrega</div>
+    <div class="pd-entrega" id="pdEntrega" role="radiogroup" aria-label="Forma de entrega">
+      <label class="pd-entrega-opt">
+        <input type="radio" name="pdEntrega" value="sucursal" checked>
+        <span class="pd-entrega-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 4.5 4h15L21 9.5M3 9.5h18M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12.5V20h14v-7.5M10 20v-4.5h4V20"/></svg></span>
+        <span class="pd-entrega-txt">
+          <strong>Recoger en sucursal</strong>
+          <small id="pdSucursal">Luis Donaldo Colosio #69, Col. Centro, Hermosillo, Son.</small>
+        </span>
+        <span class="pd-entrega-tag is-free">Gratis</span>
+      </label>
+      <label class="pd-entrega-opt is-off" id="pdDomicilioOpt">
+        <input type="radio" name="pdEntrega" value="domicilio" disabled>
+        <span class="pd-entrega-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h13v12H1zM14 8h4l4 4v4h-8"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></svg></span>
+        <span class="pd-entrega-txt">
+          <strong>Envío a domicilio</strong>
+          <small id="pdDomicilioTxt">Por ahora no está disponible</small>
+        </span>
+        <span class="pd-entrega-tag" id="pdDomicilioTag">Próximamente</span>
+      </label>
+    </div>
+
     <div class="pd-qty-row">
       <div class="pd-qty">
         <button type="button" id="pdQtyMinus" aria-label="Reducir cantidad">−</button>

@@ -39,11 +39,15 @@ type pagoItemInput struct {
 }
 
 type pagoCheckoutInput struct {
-	Items    []pagoItemInput `json:"items"`
-	Nombre   string          `json:"nombre"`
-	Email    string          `json:"email"`
-	Telefono string          `json:"telefono"`
+	Items     []pagoItemInput  `json:"items"`
+	Nombre    string           `json:"nombre"`
+	Email     string           `json:"email"`
+	Telefono  string           `json:"telefono"`
+	Entrega   string           `json:"entrega"` // sucursal | domicilio
+	Direccion models.Direccion `json:"direccion"`
 }
+
+var pagoCPRe = regexp.MustCompile(`^\d{5}$`)
 
 var pagoEmailRe = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 
@@ -55,10 +59,23 @@ func cut(s string, n int) string {
 	return s
 }
 
+// EcommerceEntrega (público): formas de entrega disponibles, para el
+// detalle del producto.
+func EcommerceEntrega(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"sucursal":       models.SucursalRecoleccion,
+		"envioDomicilio": models.EnvioDomicilioActivo(),
+	})
+}
+
 // PagoClipDatos — GET /api/pagos/clip/datos: si Clip está configurado y
 // los datos del cliente con sesión, para llenar el formulario.
 func PagoClipDatos(c *gin.Context) {
-	out := gin.H{"configurado": clip.Configured()}
+	out := gin.H{
+		"configurado":    clip.Configured(),
+		"envioDomicilio": models.EnvioDomicilioActivo(),
+		"sucursal":       models.SucursalRecoleccion,
+	}
 	if uid := optionalUserID(c); uid > 0 {
 		if u, err := models.GetUserByID(uid); err == nil {
 			out["nombre"] = strings.TrimSpace(u.Name + " " + u.Apellido)
@@ -91,6 +108,36 @@ func PagoClipCheckout(c *gin.Context) {
 	}
 	if !pagoEmailRe.MatchString(in.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe un correo válido para enviarte el comprobante."})
+		return
+	}
+
+	// Entrega: en sucursal siempre; a domicilio solo si está activo en
+	// Elementor → Ecommerce.
+	var direccion string
+	switch strings.TrimSpace(in.Entrega) {
+	case "", models.EntregaSucursal:
+		in.Entrega = models.EntregaSucursal
+	case models.EntregaDomicilio:
+		if !models.EnvioDomicilioActivo() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "El envío a domicilio no está disponible por ahora. Elige recoger en sucursal."})
+			return
+		}
+		d := models.Direccion{
+			Calle: cut(in.Direccion.Calle, 120), Numero: cut(in.Direccion.Numero, 20),
+			Colonia: cut(in.Direccion.Colonia, 80), CP: cut(in.Direccion.CP, 5),
+			Ciudad: cut(in.Direccion.Ciudad, 80), Referencias: cut(in.Direccion.Referencias, 200),
+		}
+		if d.Calle == "" || d.Numero == "" || d.Colonia == "" || d.Ciudad == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Completa tu dirección de envío."})
+			return
+		}
+		if !pagoCPRe.MatchString(d.CP) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Revisa el código postal (5 dígitos)."})
+			return
+		}
+		direccion = d.String()
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige cómo quieres recibir tu pedido."})
 		return
 	}
 
@@ -138,6 +185,7 @@ func PagoClipCheckout(c *gin.Context) {
 	p := &models.PagoClip{
 		Ref: models.NewPagoRef(), Monto: total, Items: items,
 		Nombre: in.Nombre, Email: in.Email, Tel: in.Telefono, UserID: optionalUserID(c),
+		Entrega: in.Entrega, Direccion: direccion,
 	}
 	if err := models.CreatePagoClip(p); err != nil {
 		log.Printf("pagos: no se guardó el pago: %v", err)
@@ -230,6 +278,7 @@ func crearPedidosDePago(p *models.PagoClip) {
 			_ = models.AttachOrderToUser(o.ID, p.UserID)
 		}
 		models.SetOrderPagoRef(o.ID, p.Ref)
+		models.SetOrderEntrega(o.ID, p.Entrega, p.Direccion)
 		ids = append(ids, o.ID)
 	}
 	if err := models.SetPagoClipOrders(p.Ref, ids); err != nil {
@@ -260,6 +309,7 @@ func PagoClipEstado(c *gin.Context) {
 		"unidades": unidades,
 		"pedidos":  len(p.OrderIDs),
 		"url":      p.URL, // para reintentar si sigue pendiente
+		"entrega":  p.Entrega,
 	})
 }
 

@@ -36,6 +36,47 @@ const nombreIn = document.getElementById('payNombre');
 const emailIn = document.getElementById('payEmail');
 const telIn = document.getElementById('payTel');
 
+/* ---------- entrega: se elige en el detalle del producto ----------
+   Aquí solo se muestra lo que eligió (localStorage avante_entrega). Si
+   eligió domicilio y ya no está activo, se cambia a sucursal y se avisa.
+   El servidor también lo valida. */
+const ENTREGA_KEY = 'avante_entrega';
+const direccionEl = document.getElementById('payDireccion');
+const dir = {
+  calle: document.getElementById('payCalle'),
+  numero: document.getElementById('payNumero'),
+  colonia: document.getElementById('payColonia'),
+  cp: document.getElementById('payCP'),
+  ciudad: document.getElementById('payCiudad'),
+  referencias: document.getElementById('payReferencias')
+};
+let entrega = 'sucursal';
+let sucursalTxt = document.getElementById('payEntregaDesc').textContent;
+try { entrega = localStorage.getItem(ENTREGA_KEY) === 'domicilio' ? 'domicilio' : 'sucursal'; } catch(e){ /* ignorado */ }
+function entregaElegida(){ return entrega; }
+function pintarEntrega(){
+  const dom = entrega === 'domicilio';
+  direccionEl.hidden = !dom;
+  document.getElementById('payEntregaIcoSuc').hidden = dom;
+  document.getElementById('payEntregaIcoDom').hidden = !dom;
+  document.getElementById('payEntregaTitulo').textContent = dom ? 'Envío a domicilio' : 'Recoger en sucursal';
+  document.getElementById('payEntregaDesc').textContent = dom ? 'Escribe abajo la dirección donde lo recibes' : sucursalTxt;
+  document.getElementById('payEntregaLabel').textContent = dom ? 'Envío a domicilio' : 'Recoger en sucursal';
+  document.getElementById('payEntregaCosto').textContent = 'Gratis';
+}
+function activarDomicilio(on){
+  if (!on && entrega === 'domicilio') {
+    entrega = 'sucursal';
+    try { localStorage.setItem(ENTREGA_KEY, 'sucursal'); } catch(e){ /* ignorado */ }
+    const note = document.getElementById('payEntregaNote');
+    note.textContent = 'El envío a domicilio no está disponible por ahora, así que tu pedido se recoge en sucursal.';
+    note.classList.add('is-aviso');
+  }
+  pintarEntrega();
+}
+pintarEntrega();
+dir.cp.addEventListener('input', () => { dir.cp.value = dir.cp.value.replace(/\D/g, '').slice(0, 5); });
+
 /* ---------- modal de estado (verificando / pagado / error) ---------- */
 const modal = {
   overlay: document.getElementById('payModalOverlay'),
@@ -96,6 +137,8 @@ fetch('/api/pagos/clip/datos', { credentials: 'same-origin', headers: { Accept: 
     if (d.nombre && !nombreIn.value) nombreIn.value = d.nombre;
     if (d.email && !emailIn.value) emailIn.value = d.email;
     if (d.telefono && !telIn.value) telIn.value = d.telefono;
+    if (d.sucursal) sucursalTxt = d.sucursal;
+    activarDomicilio(!!d.envioDomicilio);
     if (d.configurado === false) {
       pagosActivos = false;
       errorEl.textContent = 'Los pagos en línea todavía no están activos. Visítanos en tienda o escríbenos por WhatsApp.';
@@ -112,6 +155,14 @@ payForm.addEventListener('submit', e => {
   const email = emailIn.value.trim();
   if (!nombre) { errorEl.textContent = 'Escribe tu nombre.'; nombreIn.focus(); return; }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { errorEl.textContent = 'Escribe un correo válido para enviarte el comprobante.'; emailIn.focus(); return; }
+  const entrega = entregaElegida();
+  const direccion = {};
+  Object.keys(dir).forEach(k => { direccion[k] = dir[k].value.trim(); });
+  if (entrega === 'domicilio') {
+    const falta = ['calle', 'numero', 'colonia', 'ciudad'].find(k => !direccion[k]);
+    if (falta) { errorEl.textContent = 'Completa tu dirección de envío.'; dir[falta].focus(); return; }
+    if (!/^\d{5}$/.test(direccion.cp)) { errorEl.textContent = 'Revisa el código postal (5 dígitos).'; dir.cp.focus(); return; }
+  }
 
   submitBtn.disabled = true;
   const original = submitLabel.textContent;
@@ -124,6 +175,7 @@ payForm.addEventListener('submit', e => {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
       nombre, email, telefono: telIn.value.trim(),
+      entrega, direccion: entrega === 'domicilio' ? direccion : undefined,
       items: cart.map(item => ({
         productId: item.productId || 0,
         name: item.name, brand: item.brand,

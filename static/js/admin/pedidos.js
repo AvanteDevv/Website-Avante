@@ -28,7 +28,7 @@ function getFilteredOrders(){
   return orders.filter(o => {
     const matchesEstado = activeEstado === 'todos' || o.status === activeEstado;
     const matchesOrigen = activeOrigen === 'todos' || o.origen === activeOrigen;
-    const haystack = `${o.orderCode} ${o.customerName || ''} ${o.productName || ''} ${o.origen || ''}`.toLowerCase();
+    const haystack = `${o.orderCode} ${o.customerName || ''} ${o.productName || ''} ${o.origen || ''} ${o.entregaDireccion || ''}`.toLowerCase();
     const matchesSearch = term === '' || haystack.indexOf(term) !== -1;
     return matchesEstado && matchesOrigen && matchesSearch;
   });
@@ -84,6 +84,18 @@ function origenBadge(origen){
     ? '<span class="origen-badge is-sucursal" title="Venta en la sucursal (punto de venta)">Sucursal</span>'
     : '<span class="origen-badge is-ecommerce" title="Compra en la tienda en línea">Ecommerce</span>';
 }
+
+// Cómo se entrega (solo compras de la tienda en línea pagadas con Clip).
+function entregaInfo(o){
+  if(o.entrega === 'domicilio'){
+    const dir = escAttr(o.entregaDireccion || '');
+    return `<span class="entrega-info is-domicilio" title="${dir}">Envío a domicilio${o.entregaDireccion ? `<small>${escHtml(o.entregaDireccion)}</small>` : ''}</span>`;
+  }
+  if(o.entrega === 'sucursal') return '<span class="entrega-info">Recoge en sucursal</span>';
+  return '';
+}
+function escHtml(s){ return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function escAttr(s){ return escHtml(s); }
 
 document.addEventListener('click', (e) => {
   const op = e.target.closest('#origenFilters .filter-pill');
@@ -143,7 +155,7 @@ function renderTable(){
         <tr>
           <td>${o.orderCode}</td>
           <td>${o.customerName || 'Cliente sin nombre'}</td>
-          <td>${origenBadge(o.origen)}</td>
+          <td>${origenBadge(o.origen)}${entregaInfo(o)}</td>
           <td>${money(o.total)}</td>
           <td><span class="estado-badge" style="--badge-color:${color}">${label}</span></td>
           <td>${fecha(o.createdAt)}</td>

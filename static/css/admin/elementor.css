@@ -130,6 +130,11 @@
 .elementor-toggle input:checked + .elementor-toggle-slider{ background:var(--blue-600); }
 .elementor-toggle input:checked + .elementor-toggle-slider::before{ transform:translateX(18px); }
 .elementor-toggle input:focus-visible + .elementor-toggle-slider{ outline:2px solid var(--blue-300); outline-offset:2px; }
+.elementor-toggle input:disabled{ cursor:default; }
+.elementor-toggle-row.is-locked{ cursor:default; }
+.elementor-toggle-row.is-locked .elementor-toggle-slider{ opacity:.55; }
+#entregaPanel{ margin-bottom:18px; }
+#entregaPanel .try-msg{ margin-top:8px; margin-bottom:0; }
 
 /* ---------- carrusel de marcas ---------- */
 .elementor-carousel-list{

@@ -388,6 +388,38 @@
 
     <!-- ===== tab: ecommerce — probador virtual (probador-estilos.js) ===== -->
     <div class="elementor-tabpanel" data-tabpanel="ecommerce" hidden>
+      <section class="panel elementor-panel" id="entregaPanel">
+        <div class="panel-head">
+          <div>
+            <h2>Formas de entrega</h2>
+            <p>Lo que el cliente puede elegir al pagar en la tienda en línea. Cada cambio se guarda al momento.</p>
+          </div>
+        </div>
+        <p class="try-msg" id="entregaMsg" hidden></p>
+        <div class="elementor-toggle-list">
+          <label class="elementor-toggle-row is-locked">
+            <span class="elementor-toggle-row-text">
+              <strong>Recoger en sucursal</strong>
+              <small>Siempre disponible · Luis Donaldo Colosio #69, Col. Centro, Hermosillo</small>
+            </span>
+            <span class="elementor-toggle">
+              <input type="checkbox" checked disabled aria-label="Recoger en sucursal (siempre activo)">
+              <span class="elementor-toggle-slider"></span>
+            </span>
+          </label>
+          <label class="elementor-toggle-row">
+            <span class="elementor-toggle-row-text">
+              <strong>Envío a domicilio</strong>
+              <small id="entregaDomicilioTxt">Apagado: el cliente lo ve como “Próximamente”</small>
+            </span>
+            <span class="elementor-toggle">
+              <input type="checkbox" id="entregaDomicilio" disabled>
+              <span class="elementor-toggle-slider"></span>
+            </span>
+          </label>
+        </div>
+      </section>
+
       <section class="panel elementor-panel">
         <div class="panel-head panel-head-actions">
           <div>
@@ -419,5 +451,6 @@
 <script src="/static/js/admin/userbar.js"></script>
 <script src="/static/js/admin/elementor.js"></script>
 <script src="/static/js/admin/probador-estilos.js"></script>
+<script src="/static/js/admin/entrega.js"></script>
 </body>
 </html>

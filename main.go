@@ -236,6 +236,8 @@ func main() {
 	db.EnsureProductInvLink()
 	// Pagos de la tienda en línea con Clip.
 	db.EnsurePagosClipTable()
+	// Formas de entrega de la tienda (sucursal / domicilio).
+	db.EnsureEntregaTables()
 	// Panel de Inventario: columnas nuevas de artículos, departamentos,
 	// categorías, ajustes y kárdex (movimientos).
 	db.EnsureInventarioProTables()
@@ -908,6 +910,7 @@ func main() {
 		api.GET("/horarios", handlers.GetAgendaHours)
 		api.POST("/pedidos", handlers.CreatePedido)
 		// Pagos de la tienda con Clip (Checkout redireccionado).
+		api.GET("/ecommerce/entrega", handlers.EcommerceEntrega)
 		api.GET("/pagos/clip/datos", handlers.PagoClipDatos)
 		api.POST("/pagos/clip/checkout", handlers.PagoClipCheckout)
 		api.GET("/pagos/clip/estado/:ref", handlers.PagoClipEstado)
@@ -951,6 +954,9 @@ func main() {
 		apiAdmin.DELETE("/probador/estilos/:id", onlyAdmin, adminHandlers.DeleteTryonEstilo)
 		apiAdmin.PUT("/probador/estilos-orden", onlyAdmin, adminHandlers.ReorderTryonEstilos)
 		apiAdmin.POST("/elementor", onlyAdmin, adminHandlers.SaveElementorSettings)
+		// Elementor → Ecommerce: formas de entrega (envío a domicilio on/off).
+		apiAdmin.GET("/ecommerce/entrega", onlyAdmin, adminHandlers.GetEntregaSettings)
+		apiAdmin.PUT("/ecommerce/entrega", onlyAdmin, adminHandlers.SaveEntregaSettings)
 		apiAdmin.POST("/productos", onlyAdmin, adminHandlers.CreateProduct)
 		apiAdmin.PUT("/productos/:id", onlyAdmin, adminHandlers.UpdateProduct)
 		apiAdmin.DELETE("/productos/:id", onlyAdmin, adminHandlers.DeleteProduct)

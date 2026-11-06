@@ -282,6 +282,43 @@ const buyBtnLabel = buyBtn.querySelector('span');
 const buyBtnOriginalLabel = buyBtnLabel.textContent;
 
 const CART_KEY = 'avante_cart';
+
+/* ---------- entrega: se elige aquí y la pasarela la toma ----------
+   Se guarda en localStorage (avante_entrega) y aplica a todo el pedido.
+   Domicilio llega apagado hasta que se active en Elementor → Ecommerce. */
+const ENTREGA_KEY = 'avante_entrega';
+const entregaEl = document.getElementById('pdEntrega');
+const pdDomOpt = document.getElementById('pdDomicilioOpt');
+const pdDomIn = pdDomOpt.querySelector('input');
+function guardarEntrega(v){ try { localStorage.setItem(ENTREGA_KEY, v); } catch(e){ /* ignorado */ } }
+function leerEntrega(){ try { return localStorage.getItem(ENTREGA_KEY) || 'sucursal'; } catch(e){ return 'sucursal'; } }
+function entregaElegida(){
+  const r = entregaEl.querySelector('input[name="pdEntrega"]:checked');
+  return r ? r.value : 'sucursal';
+}
+function marcarEntrega(v){
+  const r = entregaEl.querySelector(`input[value="${v}"]`);
+  if (r && !r.disabled) r.checked = true;
+  else entregaEl.querySelector('input[value="sucursal"]').checked = true;
+}
+function activarDomicilioPd(on){
+  pdDomIn.disabled = !on;
+  pdDomOpt.classList.toggle('is-off', !on);
+  document.getElementById('pdDomicilioTxt').textContent = on ? 'Te lo llevamos a tu casa u oficina' : 'Por ahora no está disponible';
+  const tag = document.getElementById('pdDomicilioTag');
+  tag.textContent = on ? 'Gratis' : 'Próximamente';
+  tag.classList.toggle('is-free', on);
+  marcarEntrega(leerEntrega());
+}
+entregaEl.addEventListener('change', () => guardarEntrega(entregaElegida()));
+marcarEntrega(leerEntrega());
+fetch('/api/ecommerce/entrega', { headers: { Accept: 'application/json' } })
+  .then(r => r.ok ? r.json() : {})
+  .then(d => {
+    if (d.sucursal) document.getElementById('pdSucursal').textContent = d.sucursal;
+    activarDomicilioPd(!!d.envioDomicilio);
+  }).catch(() => {});
+
 function readCart(){
   try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); }
   catch(e){ return []; }
@@ -321,6 +358,7 @@ buyBtn.addEventListener('click', async () => {
     });
   }
   writeCart(cart);
+  guardarEntrega(entregaElegida());
   if(window.AvanteCart) window.AvanteCart.bump();
 
   buyBtn.disabled = true;

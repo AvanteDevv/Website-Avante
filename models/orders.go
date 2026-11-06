@@ -43,6 +43,10 @@ type Order struct {
 	// punto de venta o del inventario de la sucursal, "ecommerce" si se
 	// compró en la tienda en línea.
 	Origen string `json:"origen,omitempty"`
+	// Entrega (solo pedidos de la tienda en línea pagados con Clip):
+	// "sucursal" o "domicilio", con la dirección de envío si aplica.
+	Entrega          string `json:"entrega,omitempty"`
+	EntregaDireccion string `json:"entregaDireccion,omitempty"`
 }
 
 // ErrOrderNotFound is returned when no order matches the given id.
@@ -134,11 +138,15 @@ func GetAllOrders() ([]Order, error) {
 		}
 		r2.Close()
 	}
+	ent := orderEntregas()
 	for i := range list {
 		if suc[list[i].ID] {
 			list[i].Origen = "sucursal"
 		} else {
 			list[i].Origen = "ecommerce"
+		}
+		if e, ok := ent[list[i].ID]; ok {
+			list[i].Entrega, list[i].EntregaDireccion = e[0], e[1]
 		}
 	}
 	return list, nil

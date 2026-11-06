@@ -49,7 +49,53 @@
           </label>
         </div>
 
-        <h2 class="pay-step"><span>2</span> Pago</h2>
+        <h2 class="pay-step"><span>2</span> Entrega</h2>
+        <div class="pay-entrega is-resumen" id="payEntrega">
+          <div class="pay-entrega-opt is-chosen">
+            <span class="pay-entrega-ico" aria-hidden="true">
+              <span id="payEntregaIcoSuc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 4.5 4h15L21 9.5M3 9.5h18M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12.5V20h14v-7.5M10 20v-4.5h4V20"/></svg></span>
+              <span id="payEntregaIcoDom" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h13v12H1zM14 8h4l4 4v4h-8"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></svg></span>
+            </span>
+            <span class="pay-entrega-txt">
+              <strong id="payEntregaTitulo">Recoger en sucursal</strong>
+              <small id="payEntregaDesc">Luis Donaldo Colosio #69, Col. Centro, Hermosillo, Son.</small>
+            </span>
+            <span class="pay-entrega-tag is-free">Gratis</span>
+          </div>
+          <p class="pay-entrega-note" id="payEntregaNote">La elegiste en el producto. Si quieres cambiarla, hazlo desde el detalle del producto.</p>
+        </div>
+        <div class="pay-direccion" id="payDireccion" hidden>
+          <div class="pay-field-row pay-row-calle">
+            <label class="pay-field">
+              <span>Calle</span>
+              <input type="text" id="payCalle" autocomplete="address-line1" maxlength="120">
+            </label>
+            <label class="pay-field">
+              <span>Número</span>
+              <input type="text" id="payNumero" maxlength="20" placeholder="Ext. / Int.">
+            </label>
+          </div>
+          <div class="pay-field-row">
+            <label class="pay-field">
+              <span>Colonia</span>
+              <input type="text" id="payColonia" autocomplete="address-level3" maxlength="80">
+            </label>
+            <label class="pay-field">
+              <span>Código postal</span>
+              <input type="text" id="payCP" autocomplete="postal-code" inputmode="numeric" maxlength="5" placeholder="83000">
+            </label>
+          </div>
+          <label class="pay-field">
+            <span>Ciudad</span>
+            <input type="text" id="payCiudad" autocomplete="address-level2" maxlength="80" value="Hermosillo, Sonora">
+          </label>
+          <label class="pay-field">
+            <span>Referencias <em>(opcional)</em></span>
+            <input type="text" id="payReferencias" maxlength="200" placeholder="Entre calles, color de la casa…">
+          </label>
+        </div>
+
+        <h2 class="pay-step"><span>3</span> Pago</h2>
         <div class="pay-clip">
           <div class="pay-clip-head">
             <span class="pay-clip-logo">Clip</span>
@@ -81,8 +127,8 @@
         <strong id="paySubtotal">$0.00</strong>
       </div>
       <div class="pay-summary-row">
-        <span>Envío</span>
-        <strong>Gratis</strong>
+        <span id="payEntregaLabel">Recoger en sucursal</span>
+        <strong id="payEntregaCosto">Gratis</strong>
       </div>
       <div class="pay-summary-divider"></div>
       <div class="pay-summary-row pay-summary-total">

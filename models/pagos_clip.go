@@ -39,6 +39,8 @@ type PagoClip struct {
 	Tel        string
 	UserID     int64
 	OrderIDs   []int64
+	Entrega    string // sucursal | domicilio
+	Direccion  string // dirección de envío (solo domicilio), en una línea
 }
 
 var (
@@ -81,8 +83,11 @@ func CreatePagoClip(p *PagoClip) error {
 	if p.UserID > 0 {
 		uid = p.UserID
 	}
-	res, err := db.DB.Exec(`INSERT INTO pagos_clip (ref, monto, items, cliente_nombre, cliente_email, cliente_tel, user_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`, p.Ref, p.Monto, string(items), p.Nombre, p.Email, p.Tel, uid)
+	if p.Entrega == "" {
+		p.Entrega = EntregaSucursal
+	}
+	res, err := db.DB.Exec(`INSERT INTO pagos_clip (ref, monto, items, cliente_nombre, cliente_email, cliente_tel, user_id, entrega, entrega_direccion)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, p.Ref, p.Monto, string(items), p.Nombre, p.Email, p.Tel, uid, p.Entrega, p.Direccion)
 	if err != nil {
 		return err
 	}
@@ -107,12 +112,12 @@ func SetPagoClipEstado(ref, clipEstado string, fallido bool) error {
 	return err
 }
 
-const pagoCols = `id, ref, clip_id, COALESCE(url, ''), monto, estado, clip_estado, COALESCE(items, ''), cliente_nombre, cliente_email, cliente_tel, COALESCE(user_id, 0), order_ids`
+const pagoCols = `id, ref, clip_id, COALESCE(url, ''), monto, estado, clip_estado, COALESCE(items, ''), cliente_nombre, cliente_email, cliente_tel, COALESCE(user_id, 0), order_ids, entrega, COALESCE(entrega_direccion, '')`
 
 func scanPago(row interface{ Scan(...any) error }) (*PagoClip, error) {
 	var p PagoClip
 	var items, orders string
-	err := row.Scan(&p.ID, &p.Ref, &p.ClipID, &p.URL, &p.Monto, &p.Estado, &p.ClipEstado, &items, &p.Nombre, &p.Email, &p.Tel, &p.UserID, &orders)
+	err := row.Scan(&p.ID, &p.Ref, &p.ClipID, &p.URL, &p.Monto, &p.Estado, &p.ClipEstado, &items, &p.Nombre, &p.Email, &p.Tel, &p.UserID, &orders, &p.Entrega, &p.Direccion)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrPagoNotFound
 	}

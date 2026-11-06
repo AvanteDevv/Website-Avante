@@ -449,3 +449,8 @@ body.dark .role-badge.admin{ background:var(--blue-600); color:var(--on-accent);
 .origen-badge.is-ecommerce{ background:#e3f1ff; color:#0b66c3; }
 body.dark .origen-badge.is-sucursal{ background:rgba(139,92,246,.2); color:#c4b5fd; }
 body.dark .origen-badge.is-ecommerce{ background:rgba(59,130,246,.2); color:#93c5fd; }
+/* Entrega (compras en línea): debajo del origen */
+.entrega-info{ display:flex; flex-direction:column; gap:2px; margin-top:5px; font-size:11.5px; font-weight:600; color:var(--grey); }
+.entrega-info.is-domicilio{ color:#b45309; }
+.entrega-info small{ font-size:11px; font-weight:500; color:var(--grey); max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+body.dark .entrega-info.is-domicilio{ color:#fbbf24; }

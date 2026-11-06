@@ -223,6 +223,39 @@ nav a.active::after, nav a:hover::after{ width:100%; }
 .pd-rx-help:hover{ background:var(--blue-50); border-color:var(--blue-300); transform:translateY(-2px); }
 .pd-rx-help:hover .pd-tryon-arrow{ transform:translateX(3px); }
 
+/* entrega: recoger en sucursal / envío a domicilio */
+.pd-entrega{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:26px; }
+.pd-entrega-opt{
+  position:relative; display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:11px; row-gap:7px;
+  align-items:start; padding:13px 14px; border:1.5px solid var(--blue-100); border-radius:18px; background:var(--white);
+  cursor:pointer; transition:border-color .2s var(--ease), background .2s var(--ease), box-shadow .2s var(--ease), transform .15s var(--ease);
+}
+.pd-entrega-opt input{ position:absolute; opacity:0; pointer-events:none; }
+.pd-entrega-opt:hover{ border-color:var(--blue-300); }
+.pd-entrega-opt:active{ transform:scale(.985); }
+.pd-entrega-opt:has(input:checked){ border-color:var(--blue-600); background:var(--blue-50); box-shadow:0 0 0 3px var(--blue-100); }
+.pd-entrega-opt:has(input:focus-visible){ outline:2px solid var(--blue-300); outline-offset:2px; }
+.pd-entrega-ico{
+  grid-row:1 / 3; width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  background:var(--blue-50); color:var(--blue-600); transition:background .2s var(--ease), color .2s var(--ease);
+}
+.pd-entrega-ico svg{ width:20px; height:20px; }
+.pd-entrega-opt:has(input:checked) .pd-entrega-ico{ background:var(--blue-600); color:var(--white); }
+.pd-entrega-txt{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.pd-entrega-txt strong{ font-size:13.5px; font-weight:700; color:var(--ink); }
+.pd-entrega-txt small{ font-size:11.5px; font-weight:500; color:var(--grey); line-height:1.4; }
+.pd-entrega-tag{
+  justify-self:start; font-size:10px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+  padding:4px 9px; border-radius:100px; background:#f1f2f7; color:var(--grey);
+}
+.pd-entrega-tag.is-free{ background:#e6f7ee; color:#1f7a45; }
+.pd-entrega-opt.is-off{ cursor:not-allowed; background:#fafbfe; border-style:dashed; }
+.pd-entrega-opt.is-off:hover{ border-color:var(--blue-100); }
+.pd-entrega-opt.is-off:active{ transform:none; }
+.pd-entrega-opt.is-off .pd-entrega-ico{ background:#f1f2f7; color:#a3a9c7; }
+.pd-entrega-opt.is-off .pd-entrega-txt strong{ color:var(--grey); }
+@media (max-width:520px){ .pd-entrega{ grid-template-columns:1fr; } }
+
 /* =========================================================
    MODAL — agenda de cita (mismo widget que index.html#appointment)
    ========================================================= */
