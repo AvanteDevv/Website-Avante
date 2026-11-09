@@ -10,6 +10,10 @@
   if (!I || !I.$('invMovimientos')) return;
   var $ = I.$, esc = I.esc;
   var TIPOS = { venta: 'Venta', entrada: 'Entrada', salida: 'Salida', ajuste: 'Ajuste', inicial: 'Alta' };
+  // Solo el admin puede borrar movimientos (pruebas).
+  var canDel = $('invMovimientos').getAttribute('data-can-delete') === '1';
+  var TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>';
+  var shown = [], sel = {};
 
   var f = { item: 0, q: '', tipo: '', per: '30d' };
   var arts = [];
@@ -134,10 +138,14 @@
     $('mvCaption').textContent = when + ' · ' + I.num(items.length) + (items.length === 1 ? ' movimiento' : ' movimientos') + (items.length >= 1000 ? ' (se muestran los 1,000 más recientes)' : '');
     $('mvEmpty').hidden = items.length > 0;
     $('mvEmpty').textContent = 'No hay movimientos con estos filtros.';
+    shown = items;
+    sel = {};
+    syncSel();
     $('mvBody').innerHTML = items.map(function (m, i) {
       var up = m.cantidad > 0;
       var ref = refHTML(m);
-      return '<tr style="--i:' + Math.min(i, 20) + '">' +
+      return '<tr style="--i:' + Math.min(i, 20) + '" data-mv="' + m.id + '">' +
+        (canDel ? '<td class="inv-mv-sel"><input type="checkbox" data-sel="' + m.id + '" aria-label="Seleccionar movimiento"></td>' : '') +
         '<td class="inv-nowrap">' + esc(I.fechaHora(m.fecha)) + '</td>' +
         '<td class="inv-cell-art">' + (f.item ? '' : '<button type="button" class="inv-link-art" data-item="' + m.item_id + '">') +
           '<span class="inv-clave">' + esc(m.clave) + '</span><strong>' + esc(m.descripcion) + '</strong>' + (f.item ? '' : '</button>') + '</td>' +
@@ -146,13 +154,91 @@
         '<td class="num inv-nowrap"><span class="inv-muted">' + I.num(m.antes) + ' →</span> <strong>' + I.num(m.despues) + '</strong></td>' +
         '<td>' + esc(m.usuario || '—') + '</td>' +
         '<td>' + (m.comentario && m.comentario !== 'Ticket ' + m.venta_id ? esc(m.comentario) : '<span class="inv-muted">—</span>') + '</td>' +
+        (canDel ? '<td class="inv-mv-act"><button type="button" class="inv-mv-trash" data-del="' + m.id + '" title="Eliminar movimiento" aria-label="Eliminar movimiento">' + TRASH + '</button></td>' : '') +
       '</tr>';
     }).join('');
   }
   $('mvBody').addEventListener('click', function (e) {
+    var d = e.target.closest('[data-del]');
+    if (d) { openDel([Number(d.getAttribute('data-del'))]); return; }
     var b = e.target.closest('[data-item]');
     if (b) chooseItem(Number(b.getAttribute('data-item')));
   });
+
+  /* =======================================================
+     ELIMINAR MOVIMIENTOS (solo admin) — para quitar pruebas.
+     POST /api/inventario/movimientos/eliminar {ids, revertir}
+     ======================================================= */
+  function selIds() { return Object.keys(sel).map(Number); }
+  function syncSel() {
+    if (!canDel) return;
+    var n = selIds().length;
+    var btn = $('mvDelSel');
+    btn.hidden = n === 0;
+    btn.querySelector('span').textContent = 'Eliminar ' + I.num(n) + (n === 1 ? ' seleccionado' : ' seleccionados');
+    var all = $('mvSelAll');
+    all.checked = n > 0 && n === shown.length;
+    all.indeterminate = n > 0 && n < shown.length;
+  }
+  function byId(id) { for (var i = 0; i < shown.length; i++) if (shown[i].id === id) return shown[i]; return null; }
+  var delIds = [];
+  function openDel(ids) {
+    var list = ids.map(byId).filter(Boolean);
+    if (!list.length) return;
+    delIds = list.map(function (m) { return m.id; });
+    var m0 = list[0];
+    $('mvDelError').textContent = '';
+    $('mvDelRevertir').checked = true;
+    $('mvDelText').innerHTML = list.length === 1
+      ? '¿Eliminar definitivamente la <strong>' + esc((TIPOS[m0.tipo] || m0.tipo).toLowerCase()) + '</strong> de <strong>' + (m0.cantidad > 0 ? '+' : '−') + I.num(Math.abs(m0.cantidad)) + '</strong> de <strong>' + esc(m0.descripcion) + '</strong> (' + esc(I.fechaHora(m0.fecha)) + ')? No se puede deshacer.'
+      : '¿Eliminar definitivamente <strong>' + I.num(list.length) + ' movimientos</strong>? No se puede deshacer.';
+    var neto = {};
+    list.forEach(function (m) { neto[m.item_id] = (neto[m.item_id] || 0) + m.cantidad; });
+    var arts = Object.keys(neto).length;
+    $('mvDelRevTxt').textContent = list.length === 1
+      ? 'La existencia de este artículo ' + (m0.cantidad > 0 ? 'baja ' : 'sube ') + I.num(Math.abs(m0.cantidad)) + ', como si el movimiento no hubiera pasado. Desmárcalo si solo quieres borrar el renglón.'
+      : 'Se corrige la existencia de ' + I.num(arts) + (arts === 1 ? ' artículo' : ' artículos') + ', como si estos movimientos no hubieran pasado. Desmárcalo si solo quieres borrar los renglones.';
+    var ventas = list.filter(function (m) { return m.venta_id; }).length;
+    $('mvDelWarn').hidden = !ventas;
+    $('mvDelWarn').textContent = ventas
+      ? (ventas === 1 ? 'Este movimiento es de un ticket' : I.num(ventas) + ' de estos movimientos son de tickets') + ' del Punto de venta. Si la venta fue real, mejor cancélala en Corte de caja; borrar aquí no cancela el ticket.'
+      : '';
+    I.openModal($('mvDelModal'));
+  }
+  if (canDel) {
+    $('mvBody').addEventListener('change', function (e) {
+      var c = e.target.closest('[data-sel]');
+      if (!c) return;
+      var id = Number(c.getAttribute('data-sel'));
+      if (c.checked) sel[id] = true; else delete sel[id];
+      c.closest('tr').classList.toggle('is-checked', c.checked);
+      syncSel();
+    });
+    $('mvSelAll').addEventListener('change', function () {
+      var on = this.checked;
+      sel = {};
+      Array.prototype.forEach.call($('mvBody').querySelectorAll('[data-sel]'), function (c) {
+        c.checked = on;
+        c.closest('tr').classList.toggle('is-checked', on);
+        if (on) sel[Number(c.getAttribute('data-sel'))] = true;
+      });
+      syncSel();
+    });
+    $('mvDelSel').addEventListener('click', function () { openDel(selIds()); });
+    $('mvDelOk').addEventListener('click', function () {
+      if (!delIds.length) return;
+      var btn = this; btn.disabled = true;
+      var revertir = $('mvDelRevertir').checked;
+      I.api('/api/inventario/movimientos/eliminar', { method: 'POST', body: { ids: delIds, revertir: revertir } }).then(function (r) {
+        I.closeModal($('mvDelModal'));
+        var n = r.eliminados || 0;
+        I.toast((n === 1 ? 'Movimiento eliminado' : I.num(n) + ' movimientos eliminados') +
+          (revertir && r.articulos ? ' · existencia corregida en ' + I.num(r.articulos) + (r.articulos === 1 ? ' artículo' : ' artículos') : '') + '.');
+        load();
+      }).catch(function (e2) { $('mvDelError').textContent = e2.message; })
+        .finally(function () { btn.disabled = false; });
+    });
+  }
 
   /* =======================================================
      REPORTE (PDF / Excel) con los mismos filtros de la pantalla.

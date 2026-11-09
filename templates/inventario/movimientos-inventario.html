@@ -25,7 +25,7 @@
 <div class="cuenta-shell">
   {{if eq .Panel "admin"}}{{template "admin-sidebar" .}}{{else}}{{template "inventario-sidebar" .}}{{end}}
 
-  <main class="cuenta-main admin-main inv-page" id="invMovimientos" data-inv-base="{{.InvBase}}" data-can-cost="{{if .CanCost}}1{{end}}">
+  <main class="cuenta-main admin-main inv-page" id="invMovimientos" data-inv-base="{{.InvBase}}" data-can-cost="{{if .CanCost}}1{{end}}" data-can-delete="{{if .CanDeleteMov}}1{{end}}">
     <div class="admin-header">
       <div>
         <h1>Movimientos</h1>
@@ -91,6 +91,7 @@
       <div class="inv-sel-bar">
         <p class="inv-caption" id="mvCaption">Cargando…</p>
         <div class="inv-mv-export">
+          {{if .CanDeleteMov}}<button type="button" class="inv-btn-ghost inv-mv-del" id="mvDelSel" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg><span>Eliminar seleccionados</span></button>{{end}}
           <button type="button" class="inv-btn-ghost" id="mvPdf" title="Reporte en PDF con los filtros de arriba"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h2"/></svg>Reporte PDF</button>
           <button type="button" class="inv-btn-ghost" id="mvXlsx" title="Los mismos movimientos en Excel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13l4 5M12 13l-4 5"/></svg>Excel</button>
         </div>
@@ -99,6 +100,7 @@
         <table class="inv-table is-kardex">
           <thead>
             <tr>
+              {{if .CanDeleteMov}}<th class="inv-mv-sel"><input type="checkbox" id="mvSelAll" aria-label="Seleccionar todos"></th>{{end}}
               <th>Fecha</th>
               <th>Artículo</th>
               <th>Movimiento</th>
@@ -106,6 +108,7 @@
               <th class="num">Existencia</th>
               <th>Usuario</th>
               <th>Comentario</th>
+              {{if .CanDeleteMov}}<th class="inv-mv-act"><span class="sr-only">Eliminar</span></th>{{end}}
             </tr>
           </thead>
           <tbody id="mvBody"></tbody>
@@ -115,6 +118,34 @@
     </section>
   </main>
 </div>
+
+{{if .CanDeleteMov}}
+<!-- ================= Modal: eliminar movimientos (solo admin) ================= -->
+<div class="admin-modal-overlay" id="mvDelModal">
+  <div class="admin-modal-card inv-confirm-card" role="dialog" aria-modal="true" aria-labelledby="mvDelTitle">
+    <div class="admin-modal-head">
+      <h3 id="mvDelTitle">Eliminar movimientos</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="inv-confirm-text" id="mvDelText"></p>
+      <label class="inv-check is-inline">
+        <input type="checkbox" id="mvDelRevertir" checked>
+        <span class="inv-check-box"></span>
+        <span><strong>Regresar la existencia</strong><small id="mvDelRevTxt"></small></span>
+      </label>
+      <p class="inv-mv-del-warn" id="mvDelWarn" hidden></p>
+      <p class="staff-error" id="mvDelError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-close-modal>Cancelar</button>
+        <button type="button" class="btn solid small inv-btn-danger" id="mvDelOk">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 {{if eq .Panel "admin"}}

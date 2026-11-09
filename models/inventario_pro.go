@@ -680,6 +680,118 @@ func ListInvMovimientos(f InvMovFilter, limit int) ([]InvMovimiento, InvMovTotal
 	return out, t, rows.Err()
 }
 
+// InvMovBorrado — resultado de borrar movimientos del kárdex.
+type InvMovBorrado struct {
+	Eliminados int  `json:"eliminados"`
+	Articulos  int  `json:"articulos"` // artículos a los que se les corrigió la existencia
+	Revertido  bool `json:"revertido"`
+}
+
+// DeleteInvMovimientos borra definitivamente movimientos del kárdex (solo
+// admin; para quitar pruebas). Con revertir=true también deshace lo que
+// hizo cada movimiento en la existencia (una entrada de +5 resta 5, una
+// salida de −3 suma 3). Los folios de ajuste que se quedan sin
+// movimientos también se borran. Todo va en una sola transacción: si un
+// artículo quedaría en negativo, no se borra nada.
+func DeleteInvMovimientos(ids []int64, revertir bool) (*InvMovBorrado, error) {
+	out := &InvMovBorrado{Revertido: revertir}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	ph := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	rows, err := tx.Query(`SELECT id, item_id, cantidad, COALESCE(ajuste_id, 0) FROM inv_movimientos WHERE id IN (`+ph+`) FOR UPDATE`, args...)
+	if err != nil {
+		return nil, err
+	}
+	porArticulo := map[int64]int{} // item_id → suma de cantidades a deshacer
+	ajustes := map[int64]bool{}
+	found := []interface{}{}
+	for rows.Next() {
+		var id, item, aj int64
+		var cant int
+		if err := rows.Scan(&id, &item, &cant, &aj); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		found = append(found, id)
+		porArticulo[item] += cant
+		if aj > 0 {
+			ajustes[aj] = true
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(found) == 0 {
+		return out, nil
+	}
+
+	if revertir {
+		for item, cant := range porArticulo {
+			if cant == 0 {
+				continue
+			}
+			var actual int
+			var desc string
+			var servicio bool
+			err := tx.QueryRow("SELECT cantidad_actual, descripcion, servicio FROM inventory_items WHERE id = ? FOR UPDATE", item).Scan(&actual, &desc, &servicio)
+			if errors.Is(err, sql.ErrNoRows) || servicio {
+				continue // artículo eliminado o servicio: no hay existencia que corregir
+			}
+			if err != nil {
+				return nil, err
+			}
+			nueva := actual - cant
+			if nueva < 0 {
+				return nil, fmt.Errorf("«%s» quedaría con existencia %d (hoy tiene %d). Quita ese movimiento de la selección o bórralo sin regresar la existencia", desc, nueva, actual)
+			}
+			if _, err := tx.Exec("UPDATE inventory_items SET cantidad_actual = ? WHERE id = ?", nueva, item); err != nil {
+				return nil, err
+			}
+			out.Articulos++
+		}
+	}
+
+	ph = strings.TrimSuffix(strings.Repeat("?,", len(found)), ",")
+	res, err := tx.Exec("DELETE FROM inv_movimientos WHERE id IN ("+ph+")", found...)
+	if err != nil {
+		return nil, err
+	}
+	n, _ := res.RowsAffected()
+	out.Eliminados = int(n)
+
+	// Folios de ajuste que se quedaron vacíos.
+	for aj := range ajustes {
+		var quedan int
+		if err := tx.QueryRow("SELECT COUNT(*) FROM inv_movimientos WHERE ajuste_id = ?", aj).Scan(&quedan); err != nil {
+			return nil, err
+		}
+		if quedan == 0 {
+			if _, err := tx.Exec("DELETE FROM inv_ajustes WHERE id = ?", aj); err != nil {
+				return nil, err
+			}
+		} else if _, err := tx.Exec(
+			"UPDATE inv_ajustes SET articulos = (SELECT COUNT(DISTINCT item_id) FROM inv_movimientos WHERE ajuste_id = ?) WHERE id = ?", aj, aj); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // logInvVenta deja en el kárdex lo que salió por una venta del Punto de
 // venta. Va dentro de la misma transacción de la venta; si la tabla del
 // kárdex no existiera, la venta igual se guarda (solo no queda el

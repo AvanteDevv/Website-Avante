@@ -78,7 +78,7 @@ func invHideCost(c *gin.Context, items ...*models.InvArticulo) {
 //     y pestañas arriba para moverse entre las 4 secciones)
 func invPage(file, tab string, admin bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		data := gin.H{"InvTab": tab, "CanCost": invCanCost(c)}
+		data := gin.H{"InvTab": tab, "CanCost": invCanCost(c), "CanDeleteMov": invCanCost(c)}
 		if admin {
 			data["Panel"] = "admin"
 			data["ActivePage"] = "admin-inventario"
@@ -745,6 +745,51 @@ func InvListMovimientos(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+// InvDeleteMovimientos — POST /api/inventario/movimientos/eliminar
+// {"ids":[…], "revertir":true}. Solo admin: borra definitivamente los
+// movimientos (pruebas) y, si revertir, deshace su efecto en la existencia.
+func InvDeleteMovimientos(c *gin.Context) {
+	if !invCanCost(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo el administrador puede eliminar movimientos."})
+		return
+	}
+	var in struct {
+		IDs      []int64 `json:"ids"`
+		Revertir bool    `json:"revertir"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	ids := make([]int64, 0, len(in.IDs))
+	seen := map[int64]bool{}
+	for _, id := range in.IDs {
+		if id > 0 && !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige al menos un movimiento."})
+		return
+	}
+	if len(ids) > 1000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Máximo 1,000 movimientos a la vez."})
+		return
+	}
+	r, err := models.DeleteInvMovimientos(ids, in.Revertir)
+	if err != nil {
+		if strings.Contains(err.Error(), "quedaría con existencia") {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error() + "."})
+			return
+		}
+		invFail(c, "DeleteMovimientos", err, "No se pudieron eliminar los movimientos.")
+		return
+	}
+	log.Printf("inventario: %v borró %d movimientos (revertir=%v): %v", c.GetString("staff_email"), r.Eliminados, in.Revertir, ids)
+	c.JSON(http.StatusOK, r)
 }
 
 /* ---------------- números de rastreo ---------------- */

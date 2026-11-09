@@ -706,6 +706,7 @@ func main() {
 		apiInventario.GET("/ajustes/:id", handlers.InvGetAjuste)
 		apiInventario.POST("/ajustes", handlers.InvAplicarAjuste)
 		apiInventario.GET("/movimientos", handlers.InvListMovimientos)
+		apiInventario.POST("/movimientos/eliminar", onlyAdmin, handlers.InvDeleteMovimientos)
 		apiInventario.GET("/articulos/:id/rastreo", handlers.InvListRastreo)
 		apiInventario.GET("/rastreo/:numero", handlers.InvGetRastreo)
 		apiInventario.GET("/tipos-armazon", handlers.InvTiposArmazon)
