@@ -67,7 +67,7 @@
       return '<article class="try-card" data-id="' + e.id + '" draggable="true" style="--i:' + i + '">' +
         '<span class="try-grip" title="Arrastra para cambiar el orden" aria-hidden="true">' + IC.grip + '</span>' +
         '<div class="try-prev" data-drop="' + e.id + '" title="Arrastra aquí otra imagen para cambiarla">' + previewHTML(e) +
-          '<span class="try-tag ' + (e.imagen ? 'is-img' : 'is-draw') + '">' + (e.imagen ? 'Imagen' : 'Dibujado') + '</span></div>' +
+          '<span class="try-tag ' + (e.imagen ? 'is-img' : 'is-draw') + '">' + (e.imagen ? 'Imagen' : e.base ? 'Dibujado' : 'Falta imagen') + '</span></div>' +
         '<div class="try-body">' +
           '<div class="try-name"><strong>' + esc(e.nombre) + '</strong><small>#' + (i + 1) + '</small></div>' +
           '<div class="try-acts">' +

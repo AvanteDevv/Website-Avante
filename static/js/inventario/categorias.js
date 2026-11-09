@@ -4,6 +4,10 @@
      POST   /api/inventario/categorias        { nombre, comision }
      PUT    /api/inventario/categorias/:id    { nombre, comision }
      DELETE /api/inventario/categorias/:id    (sin artículos)
+     GET    /api/inventario/tipos-armazon     → { items: [{id, slug, nombre, imagen, base, articulos}] }
+     POST   /api/inventario/tipos-armazon     { nombre }
+     PUT    /api/inventario/tipos-armazon/:id { nombre }
+     DELETE /api/inventario/tipos-armazon/:id (sin artículos y sin imagen)
    ========================================================= */
 (function () {
   var I = window.Inv;
@@ -104,6 +108,7 @@
     if (!c) return;
     del = c;
     $('delError').textContent = '';
+    $('delTitle').textContent = 'Borrar categoría';
     var blocked = c.articulos > 0;
     $('delText').innerHTML = blocked
       ? 'No se puede borrar <strong>' + esc(c.nombre) + '</strong>: tiene <strong>' + I.num(c.articulos) + '</strong> ' + (c.articulos === 1 ? 'artículo' : 'artículos') + '. Primero cámbialos de categoría (en Artículos → Editar).'
@@ -114,13 +119,92 @@
   $('delOk').addEventListener('click', function () {
     if (!del) return;
     var btn = this; btn.disabled = true;
-    I.api('/api/inventario/categorias/' + del.id, { method: 'DELETE' }).then(function () {
+    var t = del.tipo;
+    I.api(t ? '/api/inventario/tipos-armazon/' + t.id : '/api/inventario/categorias/' + del.id, { method: 'DELETE' }).then(function () {
       I.closeModal($('delModal'));
-      I.toast('Categoría ' + del.nombre + ' borrada.');
-      return load();
+      I.toast(t ? 'Tipo «' + t.nombre + '» borrado.' : 'Categoría ' + del.nombre + ' borrada.');
+      return t ? loadTipos() : load();
     }).catch(function (err) { $('delError').textContent = err.message; })
       .finally(function () { btn.disabled = false; });
   });
+
+  /* =======================================================
+     TIPOS DE ARMAZÓN (los estilos del probador virtual)
+     ======================================================= */
+  var tipos = [], editTipo = null;
+  function loadTipos() {
+    return I.api('/api/inventario/tipos-armazon').then(function (d) {
+      tipos = d.items || [];
+      renderTipos();
+    }).catch(function (e) { $('tipoEmpty').hidden = false; $('tipoEmpty').textContent = e.message; });
+  }
+  function tipoById(id) { return tipos.filter(function (t) { return t.id === id; })[0] || null; }
+  function renderTipos() {
+    $('tipoSub').textContent = I.num(tipos.length) + (tipos.length === 1 ? ' tipo' : ' tipos');
+    $('tipoEmpty').hidden = tipos.length > 0;
+    $('tipoEmpty').textContent = 'Todavía no hay tipos de armazón.';
+    $('tipoBody').innerHTML = tipos.map(function (t, i) {
+      if (editTipo === t.id) {
+        return '<tr data-id="' + t.id + '" style="--i:' + Math.min(i, 20) + '"><td colspan="4">' +
+          '<form class="inv-inline-edit" data-form="tipo">' +
+            '<input type="text" maxlength="60" value="' + esc(t.nombre) + '" data-f="nombre" aria-label="Nombre" style="text-transform:none">' +
+            '<button type="submit" class="inv-icon-btn" title="Guardar">' + OK + '</button>' +
+            '<button type="button" class="inv-icon-btn" data-act="cancel" title="Cancelar">' + CANCEL + '</button>' +
+          '</form></td></tr>';
+      }
+      var visible = t.base || t.imagen;
+      return '<tr data-id="' + t.id + '" style="--i:' + Math.min(i, 20) + '">' +
+        '<td><strong>' + esc(t.nombre) + '</strong></td>' +
+        '<td><span class="inv-tipo-tag ' + (visible ? 'is-on' : 'is-off') + '">' + (visible ? 'Sí sale' : 'Falta su imagen') + '</span></td>' +
+        '<td class="num">' + (t.articulos ? I.num(t.articulos) : '<span class="inv-muted">0</span>') + '</td>' +
+        '<td class="act">' +
+          '<button type="button" class="inv-icon-btn" data-act="edit" title="Cambiar nombre">' + PENCIL + '</button>' +
+          (visible ? '' : '<button type="button" class="inv-icon-btn is-danger" data-act="del" title="Borrar">' + TRASH + '</button>') +
+        '</td></tr>';
+    }).join('');
+    var inp = $('tipoBody').querySelector('input[data-f="nombre"]');
+    if (inp) { inp.focus(); inp.select(); }
+  }
+  $('tipoBody').addEventListener('click', function (e) {
+    var act = e.target.closest('[data-act]');
+    if (!act) return;
+    var id = Number(act.closest('tr').getAttribute('data-id'));
+    var a = act.getAttribute('data-act');
+    if (a === 'edit') { editTipo = id; renderTipos(); }
+    if (a === 'cancel') { editTipo = null; renderTipos(); }
+    if (a === 'del') askDeleteTipo(tipoById(id));
+  });
+  $('tipoBody').addEventListener('keydown', function (e) { if (e.key === 'Escape' && editTipo) { editTipo = null; renderTipos(); } });
+  $('tipoBody').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var t = tipoById(editTipo);
+    var inp = e.target.querySelector('[data-f="nombre"]');
+    if (!t || !inp.value.trim()) { inp.focus(); return; }
+    I.api('/api/inventario/tipos-armazon/' + t.id, { method: 'PUT', body: { nombre: inp.value.trim() } })
+      .then(function (d) { editTipo = null; I.toast('Tipo «' + d.item.nombre + '» guardado.'); return loadTipos(); })
+      .catch(function (err) { I.toast(err.message, 'error'); });
+  });
+  $('tipoForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var nombre = $('tipoNombre').value.trim();
+    if (!nombre) { $('tipoNombre').focus(); return; }
+    I.api('/api/inventario/tipos-armazon', { method: 'POST', body: { nombre: nombre } })
+      .then(function (d) { $('tipoNombre').value = ''; I.toast('Tipo «' + d.item.nombre + '» agregado.'); return loadTipos(); })
+      .then(function () { $('tipoNombre').focus(); })
+      .catch(function (err) { I.toast(err.message, 'error'); });
+  });
+  function askDeleteTipo(t) {
+    if (!t) return;
+    del = { tipo: t };
+    $('delError').textContent = '';
+    $('delTitle').textContent = 'Borrar tipo de armazón';
+    var blocked = t.articulos > 0;
+    $('delText').innerHTML = blocked
+      ? 'No se puede borrar <strong>' + esc(t.nombre) + '</strong>: tiene <strong>' + I.num(t.articulos) + '</strong> ' + (t.articulos === 1 ? 'artículo' : 'artículos') + '. Primero cámbialos de tipo (en Artículos → Editar).'
+      : '¿Borrar el tipo de armazón <strong>' + esc(t.nombre) + '</strong>?';
+    $('delOk').hidden = blocked;
+    I.openModal($('delModal'));
+  }
 
   $('catNombre').addEventListener('input', function () {
     var p = this.selectionStart; this.value = this.value.toUpperCase();
@@ -128,4 +212,5 @@
   });
 
   load();
+  loadTipos();
 })();

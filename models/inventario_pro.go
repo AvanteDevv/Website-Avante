@@ -1151,3 +1151,107 @@ func DeleteInvCategoria(id int64) error {
 	}
 	return nil
 }
+
+/* ---------- tipos de armazón desde Inventario ---------- */
+
+// InvTipoArmazon — un tipo de armazón (estilo del probador) con cuántos
+// artículos del inventario lo usan.
+type InvTipoArmazon struct {
+	TryonEstilo
+	Articulos int `json:"articulos"`
+}
+
+var (
+	ErrTipoArmDuplicado = errors.New("ya existe ese tipo de armazón")
+	ErrTipoArmEnUso     = errors.New("hay artículos con ese tipo de armazón")
+	ErrTipoArmConImagen = errors.New("ese tipo tiene su imagen en el probador")
+	ErrTipoArmUltimo    = errors.New("debe quedar al menos un tipo de armazón")
+)
+
+// ListInvTiposArmazon — los estilos del probador con su conteo de artículos.
+func ListInvTiposArmazon() ([]InvTipoArmazon, error) {
+	estilos, err := ListTryonEstilos()
+	if err != nil {
+		return nil, err
+	}
+	cnt := map[string]int{}
+	rows, err := db.DB.Query(`SELECT tipo_armazon, COUNT(*) FROM inventory_items WHERE tipo_armazon <> '' GROUP BY tipo_armazon`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var slug string
+		var n int
+		if err := rows.Scan(&slug, &n); err != nil {
+			return nil, err
+		}
+		cnt[slug] = n
+	}
+	out := make([]InvTipoArmazon, 0, len(estilos))
+	for _, e := range estilos {
+		out = append(out, InvTipoArmazon{TryonEstilo: e, Articulos: cnt[e.Slug]})
+	}
+	return out, rows.Err()
+}
+
+func tipoArmNombreUsado(nombre string, exceptID int64) (bool, error) {
+	var n int
+	err := db.DB.QueryRow(`SELECT COUNT(*) FROM tryon_estilos WHERE LOWER(nombre) = LOWER(?) AND id <> ?`, nombre, exceptID).Scan(&n)
+	return n > 0, err
+}
+
+// CreateInvTipoArmazon agrega un tipo sin imagen. Sale en el probador
+// hasta que le suban su imagen en Elementor → Ecommerce.
+func CreateInvTipoArmazon(nombre string) (*TryonEstilo, error) {
+	if dup, err := tipoArmNombreUsado(nombre, 0); err != nil {
+		return nil, err
+	} else if dup {
+		return nil, ErrTipoArmDuplicado
+	}
+	return CreateTryonEstilo(nombre, "")
+}
+
+// RenameInvTipoArmazon cambia el nombre (el slug, que es lo que guardan
+// los artículos, no cambia).
+func RenameInvTipoArmazon(id int64, nombre string) (*TryonEstilo, error) {
+	if _, err := GetTryonEstilo(id); err != nil {
+		return nil, err
+	}
+	if dup, err := tipoArmNombreUsado(nombre, id); err != nil {
+		return nil, err
+	} else if dup {
+		return nil, ErrTipoArmDuplicado
+	}
+	if _, err := UpdateTryonEstilo(id, nombre, "", false); err != nil {
+		return nil, err
+	}
+	return GetTryonEstilo(id)
+}
+
+// DeleteInvTipoArmazon borra un tipo que no usa ningún artículo y que no
+// tiene imagen (los que tienen imagen se quitan en Elementor).
+func DeleteInvTipoArmazon(id int64) error {
+	e, err := GetTryonEstilo(id)
+	if err != nil {
+		return err
+	}
+	if e.ImageKey != "" || e.Base {
+		return ErrTipoArmConImagen // se quita desde Elementor (es del probador)
+	}
+	var n int
+	if err := db.DB.QueryRow(`SELECT COUNT(*) FROM inventory_items WHERE tipo_armazon = ?`, e.Slug).Scan(&n); err != nil {
+		return err
+	}
+	if n > 0 {
+		return fmt.Errorf("%w (%d)", ErrTipoArmEnUso, n)
+	}
+	if err := db.DB.QueryRow(`SELECT COUNT(*) FROM tryon_estilos`).Scan(&n); err != nil {
+		return err
+	}
+	if n <= 1 {
+		return ErrTipoArmUltimo
+	}
+	_, err = DeleteTryonEstilo(id)
+	return err
+}

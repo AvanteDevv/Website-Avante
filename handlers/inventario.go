@@ -858,12 +858,94 @@ func InvGetRastreo(c *gin.Context) {
 // InvTiposArmazon — GET /api/inventario/tipos-armazon: los estilos del
 // probador virtual (Elementor → Ecommerce), para el campo "Tipo de armazón".
 func InvTiposArmazon(c *gin.Context) {
-	items, err := models.ListTryonEstilos()
+	items, err := models.ListInvTiposArmazon()
 	if err != nil {
 		invFail(c, "TiposArmazon", err, "No se pudieron cargar los tipos de armazón.")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+func invTipoArmNombre(c *gin.Context) (string, bool) {
+	var b struct {
+		Nombre string `json:"nombre"`
+	}
+	if err := c.ShouldBindJSON(&b); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return "", false
+	}
+	n := strings.Join(strings.Fields(b.Nombre), " ")
+	if n == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe el nombre del tipo de armazón."})
+		return "", false
+	}
+	if len([]rune(n)) > 60 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "El nombre es muy largo (máximo 60 caracteres)."})
+		return "", false
+	}
+	return n, true
+}
+
+func invTipoArmErr(c *gin.Context, where string, err error) {
+	switch {
+	case errors.Is(err, models.ErrTipoArmDuplicado):
+		c.JSON(http.StatusConflict, gin.H{"error": "Ya existe ese tipo de armazón."})
+	case errors.Is(err, models.ErrTryonNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese tipo de armazón ya no existe."})
+	case errors.Is(err, models.ErrTipoArmEnUso):
+		c.JSON(http.StatusConflict, gin.H{"error": "No se puede borrar: hay artículos con ese tipo. Cámbialos primero (en Artículos → Editar)."})
+	case errors.Is(err, models.ErrTipoArmConImagen):
+		c.JSON(http.StatusConflict, gin.H{"error": "Ese tipo ya sale en el probador virtual; quítalo desde Elementor → Ecommerce."})
+	case errors.Is(err, models.ErrTipoArmUltimo):
+		c.JSON(http.StatusConflict, gin.H{"error": "Debe quedar al menos un tipo de armazón."})
+	default:
+		invFail(c, where, err, "No se pudo guardar el tipo de armazón.")
+	}
+}
+
+// InvCreateTipoArmazon — POST /api/inventario/tipos-armazon {nombre}
+func InvCreateTipoArmazon(c *gin.Context) {
+	n, ok := invTipoArmNombre(c)
+	if !ok {
+		return
+	}
+	e, err := models.CreateInvTipoArmazon(n)
+	if err != nil {
+		invTipoArmErr(c, "CreateTipoArmazon", err)
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"item": e})
+}
+
+// InvRenameTipoArmazon — PUT /api/inventario/tipos-armazon/:id {nombre}
+func InvRenameTipoArmazon(c *gin.Context) {
+	id, ok := invID(c)
+	if !ok {
+		return
+	}
+	n, ok := invTipoArmNombre(c)
+	if !ok {
+		return
+	}
+	e, err := models.RenameInvTipoArmazon(id, n)
+	if err != nil {
+		invTipoArmErr(c, "RenameTipoArmazon", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"item": e})
+}
+
+// InvDeleteTipoArmazon — DELETE /api/inventario/tipos-armazon/:id
+func InvDeleteTipoArmazon(c *gin.Context) {
+	id, ok := invID(c)
+	if !ok {
+		return
+	}
+	if err := models.DeleteInvTipoArmazon(id); err != nil {
+		invTipoArmErr(c, "DeleteTipoArmazon", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 // InvListColores — GET /api/inventario/colores (paleta).

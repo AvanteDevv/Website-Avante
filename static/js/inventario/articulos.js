@@ -396,9 +396,42 @@
   function buildTipos() {
     var opts = [{ value: '', label: 'Sin tipo' }].concat(tiposArm.map(function (t) { return { value: t.slug, label: t.nombre }; }));
     if (formTipo && !tiposArm.some(function (t) { return t.slug === formTipo; })) opts.push({ value: formTipo, label: tipoNombre(formTipo) });
+    opts.push({ value: '__new', label: '+ Nuevo tipo de armazón…', action: function () { openTipoNew(); } });
     aTipo.setOptions(opts);
     aTipo.set(formTipo, true);
   }
+  /* ---------- nuevo tipo de armazón (sin imagen: sale en el probador
+     cuando se le sube su imagen en Elementor → Ecommerce) ---------- */
+  function openTipoNew() {
+    var box = $('aTipoNew');
+    box.hidden = false;
+    setTimeout(function () { $('aTipoName').focus(); }, 30);
+  }
+  function closeTipoNew() {
+    var box = $('aTipoNew');
+    if (box.hidden) return;
+    box.classList.add('is-closing');
+    setTimeout(function () { box.hidden = true; box.classList.remove('is-closing'); $('aTipoName').value = ''; }, 200);
+  }
+  $('aTipoCancel').addEventListener('click', closeTipoNew);
+  $('aTipoName').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); $('aTipoAdd').click(); }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeTipoNew(); }
+  });
+  $('aTipoAdd').addEventListener('click', function () {
+    var name = $('aTipoName').value.trim(), btn = this;
+    if (!name) { $('aTipoName').focus(); return; }
+    btn.disabled = true;
+    I.api('/api/inventario/tipos-armazon', { method: 'POST', body: { nombre: name } }).then(function (d) {
+      tiposArm.push(d.item);
+      formTipo = d.item.slug;
+      buildTipos();
+      closeTipoNew();
+      I.toast('Tipo «' + d.item.nombre + '» agregado. Para que salga en el probador virtual, súbele su imagen en Elementor → Ecommerce.');
+    }).catch(function (err) { I.toast(err.message, 'error'); })
+      .finally(function () { btn.disabled = false; });
+  });
+
   function loadArmazonData() {
     return Promise.all([
       I.api('/api/inventario/tipos-armazon').then(function (d) { tiposArm = d.items || []; }).catch(function () {}),
@@ -782,6 +815,7 @@
     $('aMatNew').hidden = true;
     renderMats();
     $('aColorNew').hidden = true;
+    $('aTipoNew').hidden = true; $('aTipoName').value = '';
     buildTipos(); renderPalette();
     syncServicio();
     resetFotos(a, mode);

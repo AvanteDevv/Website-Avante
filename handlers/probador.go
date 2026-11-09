@@ -18,8 +18,17 @@ func PublicTryonEstilos(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar los estilos."})
 		return
 	}
+	// Los tipos agregados desde Inventario no traen imagen: salen en el
+	// probador hasta que se les sube en Elementor (los 4 de siempre se
+	// dibujan con código).
+	visibles := items[:0]
+	for _, e := range items {
+		if e.Base || e.Imagen != "" {
+			visibles = append(visibles, e)
+		}
+	}
 	c.Header("Cache-Control", "no-cache")
-	c.JSON(http.StatusOK, gin.H{"items": items})
+	c.JSON(http.StatusOK, gin.H{"items": visibles})
 }
 
 // ServeTryonImage — GET /media/probador/*key (imagen PNG del armazón).

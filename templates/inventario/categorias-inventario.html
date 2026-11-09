@@ -29,7 +29,7 @@
     <div class="admin-header">
       <div>
         <h1>Categorías</h1>
-        <p>Cómo se clasifican los artículos. Sirve para filtrar el catálogo, hacer conteos por partes y ver reportes.</p>
+        <p>Cómo se clasifican los artículos (categorías) y los tipos de armazón. Sirve para filtrar el catálogo, hacer conteos por partes y ver reportes.</p>
       </div>
 
     {{/* Admin → Inventario: pestañas para moverse entre las 4 secciones
@@ -69,6 +69,27 @@
           <tbody id="catBody"></tbody>
         </table>
         <p class="inv-empty" id="catEmpty" hidden></p>
+      </div>
+    </section>
+
+    <section class="admin-panel inv-cat-panel inv-cat-solo" id="tipoPanel">
+      <div class="inv-panel-head">
+        <div>
+          <h2>Tipos de armazón</h2>
+          <small id="tipoSub"></small>
+        </div>
+      </div>
+      <p class="inv-tipo-note">Son los mismos estilos del probador virtual. Un tipo nuevo sale en el probador cuando le subes su imagen en Elementor → Ecommerce.</p>
+      <form class="inv-cat-form is-tipo" id="tipoForm" autocomplete="off">
+        <input type="text" id="tipoNombre" maxlength="60" placeholder="Nuevo tipo de armazón (ej. Rectangular)">
+        <button type="submit" class="inv-add-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Agregar</button>
+      </form>
+      <div class="inv-table-wrap is-auto">
+        <table class="inv-mini-table">
+          <thead><tr><th>Tipo</th><th>Probador virtual</th><th class="num">Artículos</th><th class="act"></th></tr></thead>
+          <tbody id="tipoBody"></tbody>
+        </table>
+        <p class="inv-empty" id="tipoEmpty" hidden></p>
       </div>
     </section>
   </main>
