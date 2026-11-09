@@ -796,7 +796,7 @@ func InvDeleteMovimientos(c *gin.Context) {
 		invFail(c, "DeleteMovimientos", err, "No se pudieron eliminar los movimientos.")
 		return
 	}
-	log.Printf("inventario: %v borró %d movimientos (revertir=%v): %v", c.GetString("staff_email"), r.Eliminados, in.Revertir, ids)
+	log.Printf("inventario: %v borró %d movimientos y %d tickets (revertir=%v): %v", c.GetString("staff_email"), r.Eliminados, r.Tickets, in.Revertir, ids)
 	c.JSON(http.StatusOK, r)
 }
 

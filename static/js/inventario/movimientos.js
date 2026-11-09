@@ -198,10 +198,13 @@
     $('mvDelRevTxt').textContent = list.length === 1
       ? 'La existencia de este artículo ' + (m0.cantidad > 0 ? 'baja ' : 'sube ') + I.num(Math.abs(m0.cantidad)) + ', como si el movimiento no hubiera pasado. Desmárcalo si solo quieres borrar el renglón.'
       : 'Se corrige la existencia de ' + I.num(arts) + (arts === 1 ? ' artículo' : ' artículos') + ', como si estos movimientos no hubieran pasado. Desmárcalo si solo quieres borrar los renglones.';
-    var ventas = list.filter(function (m) { return m.venta_id; }).length;
-    $('mvDelWarn').hidden = !ventas;
-    $('mvDelWarn').textContent = ventas
-      ? (ventas === 1 ? 'Este movimiento es de un ticket' : I.num(ventas) + ' de estos movimientos son de tickets') + ' del Punto de venta. Si la venta fue real, mejor cancélala en Corte de caja; borrar aquí no cancela el ticket.'
+    // Movimientos de venta: se borra el ticket completo (es prueba).
+    var tk = {};
+    list.forEach(function (m) { if (m.venta_id) tk[m.venta_id] = true; });
+    var tickets = Object.keys(tk).map(Number).sort(function (x, y) { return x - y; });
+    $('mvDelWarn').hidden = !tickets.length;
+    $('mvDelWarn').innerHTML = tickets.length
+      ? 'También se borra' + (tickets.length === 1 ? ' el ticket ' : 'n los tickets ') + '<strong>' + tickets.map(function (t) { return '#' + t; }).join(', ') + '</strong> con todo lo suyo: la venta, su cobro o crédito y su pedido. Ya no le aparece' + (tickets.length === 1 ? '' : 'n') + ' a la optometrista, al laboratorio ni en Corte de caja, y se borran los demás movimientos de ' + (tickets.length === 1 ? 'ese ticket' : 'esos tickets') + '. <b>Solo hazlo si son pruebas.</b>'
       : '';
     I.openModal($('mvDelModal'));
   }
@@ -233,6 +236,7 @@
         I.closeModal($('mvDelModal'));
         var n = r.eliminados || 0;
         I.toast((n === 1 ? 'Movimiento eliminado' : I.num(n) + ' movimientos eliminados') +
+          (r.tickets ? ' · ' + I.num(r.tickets) + (r.tickets === 1 ? ' ticket borrado' : ' tickets borrados') : '') +
           (revertir && r.articulos ? ' · existencia corregida en ' + I.num(r.articulos) + (r.articulos === 1 ? ' artículo' : ' artículos') : '') + '.');
         load();
       }).catch(function (e2) { $('mvDelError').textContent = e2.message; })

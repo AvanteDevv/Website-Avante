@@ -685,14 +685,24 @@ type InvMovBorrado struct {
 	Eliminados int  `json:"eliminados"`
 	Articulos  int  `json:"articulos"` // artículos a los que se les corrigió la existencia
 	Revertido  bool `json:"revertido"`
+	Tickets    int  `json:"tickets"` // tickets de prueba borrados con todo lo suyo
 }
 
 // DeleteInvMovimientos borra definitivamente movimientos del kárdex (solo
 // admin; para quitar pruebas). Con revertir=true también deshace lo que
 // hizo cada movimiento en la existencia (una entrada de +5 resta 5, una
 // salida de −3 suma 3). Los folios de ajuste que se quedan sin
-// movimientos también se borran. Todo va en una sola transacción: si un
-// artículo quedaría en negativo, no se borra nada.
+// movimientos también se borran.
+//
+// Si un movimiento es de una venta del Punto de venta, se borra el ticket
+// completo (son pruebas): la venta y sus renglones, su crédito y abonos,
+// su pedido (el que ve la optometrista en "Ventas por hacer orden de
+// laboratorio" y el laboratorio en su tablero) con su historial, y todos
+// los movimientos de ese ticket (también los de sus otros artículos y su
+// cancelación, si la tenía).
+//
+// Todo va en una sola transacción: si un artículo quedaría en negativo,
+// no se borra nada.
 func DeleteInvMovimientos(ids []int64, revertir bool) (*InvMovBorrado, error) {
 	out := &InvMovBorrado{Revertido: revertir}
 	if len(ids) == 0 {
@@ -709,7 +719,30 @@ func DeleteInvMovimientos(ids []int64, revertir bool) (*InvMovBorrado, error) {
 	for i, id := range ids {
 		args[i] = id
 	}
-	rows, err := tx.Query(`SELECT id, item_id, cantidad, COALESCE(ajuste_id, 0) FROM inv_movimientos WHERE id IN (`+ph+`) FOR UPDATE`, args...)
+	// Tickets de los movimientos elegidos: se borran completos.
+	ventas := []interface{}{}
+	vrows, err := tx.Query(`SELECT DISTINCT venta_id FROM inv_movimientos WHERE id IN (`+ph+`) AND venta_id IS NOT NULL AND venta_id > 0`, args...)
+	if err != nil {
+		return nil, err
+	}
+	for vrows.Next() {
+		var v int64
+		if err := vrows.Scan(&v); err != nil {
+			vrows.Close()
+			return nil, err
+		}
+		ventas = append(ventas, v)
+	}
+	vrows.Close()
+	if err := vrows.Err(); err != nil {
+		return nil, err
+	}
+	q := `SELECT id, item_id, cantidad, COALESCE(ajuste_id, 0) FROM inv_movimientos WHERE id IN (` + ph + `)`
+	if len(ventas) > 0 {
+		q += ` OR venta_id IN (` + strings.TrimSuffix(strings.Repeat("?,", len(ventas)), ",") + `)`
+		args = append(args, ventas...)
+	}
+	rows, err := tx.Query(q+` FOR UPDATE`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -770,6 +803,37 @@ func DeleteInvMovimientos(ids []int64, revertir bool) (*InvMovBorrado, error) {
 	}
 	n, _ := res.RowsAffected()
 	out.Eliminados = int(n)
+
+	// Tickets de prueba: la venta y todo lo que cuelga de ella.
+	if len(ventas) > 0 {
+		vp := strings.TrimSuffix(strings.Repeat("?,", len(ventas)), ",")
+		if revertir {
+			// Las piezas numeradas que salieron con esa venta vuelven a estar disponibles.
+			if _, err := tx.Exec(`UPDATE inv_piezas SET estado = 'disponible', venta_id = NULL, salida_at = NULL
+				WHERE venta_id IN (`+vp+`) AND estado = 'vendida'`, ventas...); err != nil {
+				return nil, err
+			}
+		} else if _, err := tx.Exec(`UPDATE inv_piezas SET venta_id = NULL WHERE venta_id IN (`+vp+`)`, ventas...); err != nil {
+			return nil, err
+		}
+		for _, stmt := range []string{
+			`DELETE FROM order_status_history WHERE order_id IN (SELECT id FROM orders WHERE pos_sale_id IN (` + vp + `))`,
+			`DELETE FROM orders WHERE pos_sale_id IN (` + vp + `)`,
+			`DELETE FROM pos_credit_payments WHERE credit_id IN (SELECT id FROM pos_credits WHERE sale_id IN (` + vp + `))`,
+			`DELETE FROM pos_credits WHERE sale_id IN (` + vp + `)`,
+			`DELETE FROM pos_sale_items WHERE sale_id IN (` + vp + `)`,
+		} {
+			if _, err := tx.Exec(stmt, ventas...); err != nil {
+				return nil, err
+			}
+		}
+		res, err := tx.Exec(`DELETE FROM pos_sales WHERE id IN (`+vp+`)`, ventas...)
+		if err != nil {
+			return nil, err
+		}
+		k, _ := res.RowsAffected()
+		out.Tickets = int(k)
+	}
 
 	// Folios de ajuste que se quedaron vacíos.
 	for aj := range ajustes {
