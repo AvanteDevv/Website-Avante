@@ -416,6 +416,12 @@ body.dark .inv-lbl-status.is-off{ background:rgba(217,45,32,.14); color:#ff8b7d;
 .inv-icon-btn.is-danger:hover{ background:#fdecea; color:#b42318; }
 .inv-dep-item.is-on .inv-icon-btn{ color:rgba(255,255,255,.8); }
 .inv-dep-item.is-on .inv-icon-btn:hover{ background:rgba(255,255,255,.18); color:#fff; }
+/* Categorías (página sola, sin departamentos) */
+.inv-cat-solo{ max-width:880px; }
+.inv-cat-solo .inv-panel-head{ flex-wrap:wrap; }
+.inv-cat-search{ max-width:280px; }
+.inv-cat-solo .inv-table-wrap.is-auto{ max-height:calc(100vh - 340px); }
+@media (max-width:640px){ .inv-cat-search{ max-width:none; flex-basis:100%; } }
 .inv-cat-form{ display:grid; grid-template-columns:minmax(0,1fr) 130px auto; gap:8px; margin-bottom:12px; }
 .inv-cat-form input{
   min-width:0; font-family:var(--sans); font-size:13.5px; color:var(--ink); padding:10px 13px;

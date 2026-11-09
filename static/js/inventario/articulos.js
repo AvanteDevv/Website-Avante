@@ -16,9 +16,9 @@
 
   var PAGE = 60;
   var UNIDADES = ['PZA', 'PAR', 'CAJA', 'PAQ', 'JGO', 'KIT', 'ML', 'SERV'];
-  var items = [], deps = [], byId = {};
+  var items = [], cats = [], byId = {};
   var filtered = [], page = 1, selectedId = null;
-  var f = { q: '', dep: '', cat: '', estado: '' };
+  var f = { q: '', cat: '', estado: '' };
   var loading = false;
 
   /* ---------- estado de existencia ---------- */
@@ -41,7 +41,7 @@
     $('invBody').classList.add('is-loading');
     return I.api('/api/inventario/articulos').then(function (d) {
       items = d.items || [];
-      deps = d.departamentos || [];
+      cats = flatCats(d.departamentos);
       byId = {};
       items.forEach(function (a) { byId[a.id] = a; });
       if (!keepSelection || !byId[selectedId]) selectedId = null;
@@ -79,24 +79,16 @@
   }
 
   /* ---------- filtros ---------- */
-  var depSel = I.select($('fDepartamento'), { placeholder: 'Todos los departamentos', onChange: function (v) { f.dep = v; f.cat = ''; buildCatFilter(); apply(); } });
+  // Ya no se usan departamentos: las categorías son una sola lista.
+  function flatCats(deps) {
+    var out = [];
+    (deps || []).forEach(function (d) { (d.categorias || []).forEach(function (c) { out.push(c); }); });
+    return out.sort(function (x, y) { return x.nombre.localeCompare(y.nombre, 'es'); });
+  }
   var catSel = I.select($('fCategoria'), { placeholder: 'Todas las categorías', onChange: function (v) { f.cat = v; apply(); } });
   function buildFilterSelects() {
-    depSel.setOptions([{ value: '', label: 'Todos los departamentos' }].concat(deps.map(function (d) {
-      return { value: String(d.id), label: d.nombre, hint: d.articulos + (d.articulos === 1 ? ' artículo' : ' artículos') };
-    })));
-    if (f.dep && !deps.some(function (d) { return String(d.id) === f.dep; })) f.dep = '';
-    depSel.set(f.dep, true);
-    buildCatFilter();
-  }
-  function buildCatFilter() {
-    var dep = deps.filter(function (d) { return String(d.id) === f.dep; })[0];
-    var cats = [];
-    (dep ? [dep] : deps).forEach(function (d) {
-      d.categorias.forEach(function (c) { cats.push({ id: c.id, nombre: c.nombre, articulos: c.articulos, dep: d.nombre }); });
-    });
     catSel.setOptions([{ value: '', label: 'Todas las categorías' }].concat(cats.map(function (c) {
-      return { value: String(c.id), label: c.nombre, hint: dep ? c.articulos + ' art.' : c.dep };
+      return { value: String(c.id), label: c.nombre, hint: c.articulos + (c.articulos === 1 ? ' artículo' : ' artículos') };
     })));
     if (f.cat && !cats.some(function (c) { return String(c.id) === f.cat; })) f.cat = '';
     catSel.set(f.cat, true);
@@ -137,7 +129,6 @@
   function apply(keepPage) {
     var words = I.norm(f.q).split(/\s+/).filter(Boolean);
     filtered = items.filter(function (a) {
-      if (f.dep && String(a.departamento_id) !== f.dep) return false;
       if (f.cat && String(a.categoria_id) !== f.cat) return false;
       if (f.estado && estadoOf(a) !== f.estado) return false;
       if (words.length) {
@@ -182,7 +173,7 @@
           (a.foto ? '<img class="inv-thumb" src="' + esc(a.foto) + '" alt="" loading="lazy">' : '<span class="inv-thumb is-empty" aria-hidden="true"></span>') +
           '<div><span class="inv-clave">' + esc(a.clave || '—') + (a.clave_alterna ? '<em> / ' + esc(a.clave_alterna) + '</em>' : '') + '</span>' +
           '<strong>' + esc(a.descripcion) + '</strong></div></div></td>' +
-        '<td class="c-dep"><span>' + esc(a.departamento || 'Sin departamento') + '</span>' + (a.categoria ? '<small>' + esc(a.categoria) + '</small>' : '') + '</td>' +
+        '<td class="c-dep"><span>' + esc(a.categoria || 'Sin categoría') + '</span></td>' +
         '<td class="num">' + existCell(a) + '</td>' +
         '<td class="num inv-price">' + mxn.format(a.precio_1) + '</td>' +
       '</tr>';
@@ -295,7 +286,6 @@
         '<span class="inv-d-chip is-' + st + '">' + stLabel + '</span>' +
       '</div>' + bar + profit +
       '<div class="inv-d-rows">' +
-        '<div class="inv-d-row"><span>Departamento</span><strong>' + esc(a.departamento || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Categoría</span><strong>' + esc(a.categoria || '—') + '</strong></div>' +
         '<div class="inv-d-row"><span>Localización</span><strong>' + esc(a.localizacion || '—') + '</strong></div>' +
         (a.tipo_armazon ? '<div class="inv-d-row"><span>Tipo de armazón</span><strong>' + esc(tipoNombre(a.tipo_armazon)) + '</strong></div>' : '') +
@@ -335,8 +325,7 @@
      ======================================================= */
   var artModal = $('artModal'), artForm = $('artForm');
   var editing = null; // artículo que se edita (null = nuevo)
-  var formDep = '', formCat = '';
-  var aDep = I.select($('aDepartamento'), { placeholder: 'Sin departamento', onChange: function (v) { formDep = v; formCat = ''; buildFormCats(); } });
+  var formCat = '';
   var aCat = I.select($('aCategoria'), { placeholder: 'Sin categoría', onChange: function (v) { formCat = v; } });
   var unitOpts = UNIDADES.map(function (u) { return { value: u, label: u }; });
   var aUC = I.select($('aUCompra'), { options: unitOpts, value: 'PZA' });
@@ -486,16 +475,9 @@
       .finally(function () { btn.disabled = false; });
   });
 
-  function buildFormDeps() {
-    aDep.setOptions([{ value: '', label: 'Sin departamento' }].concat(deps.map(function (d) { return { value: String(d.id), label: d.nombre }; })));
-    aDep.set(formDep, true);
-    buildFormCats();
-  }
   function buildFormCats() {
-    var dep = deps.filter(function (d) { return String(d.id) === formDep; })[0];
-    var opts = [{ value: '', label: 'Sin categoría' }];
-    if (dep) opts = opts.concat(dep.categorias.map(function (c) { return { value: String(c.id), label: c.nombre }; }));
-    opts.push({ value: '__new', label: '+ Nueva categoría…', action: function () { openCatModal(formDep); } });
+    var opts = [{ value: '', label: 'Sin categoría' }].concat(cats.map(function (c) { return { value: String(c.id), label: c.nombre }; }));
+    opts.push({ value: '__new', label: '+ Nueva categoría…', action: function () { openCatModal(); } });
     aCat.setOptions(opts);
     aCat.set(formCat, true);
   }
@@ -768,9 +750,8 @@
     $('aClave').value = mode === 'clone' ? '' : (a ? a.clave : '');
     $('aClaveAlt').value = a ? a.clave_alterna : '';
     $('aDesc').value = a ? a.descripcion : '';
-    formDep = a && a.departamento_id ? String(a.departamento_id) : '';
     formCat = a && a.categoria_id ? String(a.categoria_id) : '';
-    buildFormDeps();
+    buildFormCats();
     aUC.set(a ? a.unidad_compra : 'PZA', true);
     aUV.set(a ? a.unidad_venta : 'PZA', true);
     $('aFactor').value = a ? (a.factor || 1) : 1;
@@ -823,7 +804,6 @@
       clave: $('aClave').value.trim(),
       clave_alterna: $('aClaveAlt').value.trim(),
       descripcion: $('aDesc').value.trim().replace(/\s+/g, ' '),
-      departamento_id: Number(formDep) || 0,
       categoria_id: Number(formCat) || 0,
       unidad_compra: aUC.get(),
       unidad_venta: aUV.get(),
@@ -890,7 +870,7 @@
   function revealSelected() {
     var idx = filtered.findIndex(function (a) { return a.id === selectedId; });
     if (idx === -1 && byId[selectedId]) {
-      f.q = ''; $('invSearch').value = ''; f.dep = ''; f.cat = ''; f.estado = '';
+      f.q = ''; $('invSearch').value = ''; f.cat = ''; f.estado = '';
       depSel.set('', true); buildCatFilter(); setEstado('');
       idx = filtered.findIndex(function (a) { return a.id === selectedId; });
     }
@@ -904,10 +884,7 @@
 
   /* ---------- nueva categoría (desde el formulario) ---------- */
   var catModal = $('catModal');
-  var cDep = I.select($('cDepartamento'), { placeholder: 'Elige el departamento' });
-  function openCatModal(depId) {
-    cDep.setOptions(deps.map(function (d) { return { value: String(d.id), label: d.nombre }; }));
-    cDep.set(depId || '', true);
+  function openCatModal() {
     $('catForm').reset();
     $('catError').textContent = '';
     I.openModal(catModal);
@@ -915,17 +892,15 @@
   }
   $('catForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    var body = { departamento_id: Number(cDep.get()) || 0, nombre: $('cNombre').value.trim(), comision: parseFloat($('cComision').value) || 0 };
-    if (!body.departamento_id) { $('catError').textContent = 'Elige el departamento.'; return; }
+    var body = { nombre: $('cNombre').value.trim(), comision: parseFloat($('cComision').value) || 0 };
     if (!body.nombre) { $('catError').textContent = 'Escribe el nombre de la categoría.'; $('cNombre').focus(); return; }
     var btn = $('catSave'); btn.disabled = true;
     I.api('/api/inventario/categorias', { method: 'POST', body: body }).then(function (d) {
       return I.api('/api/inventario/departamentos').then(function (r) {
-        deps = r.departamentos || [];
+        cats = flatCats(r.departamentos);
         buildFilterSelects();
-        formDep = String(body.departamento_id);
         formCat = String(d.categoria.id);
-        buildFormDeps();
+        buildFormCats();
         I.closeModal(catModal);
         I.toast('Categoría ' + d.categoria.nombre + ' creada.');
       });
@@ -1369,7 +1344,6 @@
     var sp = new URLSearchParams(location.search);
     var q = sp.get('q');
     if (q) { $('invSearch').value = q; f.q = q; }
-    if (sp.get('dep')) f.dep = sp.get('dep');
     if (sp.get('cat')) f.cat = sp.get('cat');
   } catch (e) {}
   load(false);

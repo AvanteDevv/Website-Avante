@@ -94,18 +94,18 @@ func invPage(file, tab string, admin bool) gin.HandlerFunc {
 
 // Páginas del panel de Inventario (cuenta de Inventario).
 var (
-	InventarioArticulosPage     = invPage("articulos-inventario.html", "articulos", false)
-	InventarioDepartamentosPage = invPage("departamentos-inventario.html", "departamentos", false)
-	InventarioAjustesPage       = invPage("ajustes-inventario.html", "ajustes", false)
-	InventarioMovimientosPage   = invPage("movimientos-inventario.html", "movimientos", false)
+	InventarioArticulosPage   = invPage("articulos-inventario.html", "articulos", false)
+	InventarioCategoriasPage  = invPage("categorias-inventario.html", "categorias", false)
+	InventarioAjustesPage     = invPage("ajustes-inventario.html", "ajustes", false)
+	InventarioMovimientosPage = invPage("movimientos-inventario.html", "movimientos", false)
 )
 
 // Las mismas páginas dentro del panel del admin (Admin → Inventario).
 var (
-	AdminInventarioArticulosPage     = invPage("articulos-inventario.html", "articulos", true)
-	AdminInventarioDepartamentosPage = invPage("departamentos-inventario.html", "departamentos", true)
-	AdminInventarioAjustesPage       = invPage("ajustes-inventario.html", "ajustes", true)
-	AdminInventarioMovimientosPage   = invPage("movimientos-inventario.html", "movimientos", true)
+	AdminInventarioArticulosPage   = invPage("articulos-inventario.html", "articulos", true)
+	AdminInventarioCategoriasPage  = invPage("categorias-inventario.html", "categorias", true)
+	AdminInventarioAjustesPage     = invPage("ajustes-inventario.html", "ajustes", true)
+	AdminInventarioMovimientosPage = invPage("movimientos-inventario.html", "movimientos", true)
 )
 
 func invID(c *gin.Context) (int64, bool) {
@@ -521,9 +521,6 @@ func bindInvCategoria(c *gin.Context) (models.InvCategoria, bool) {
 	}
 	n := models.NormalizeInvNombre(in.Nombre)
 	switch {
-	case in.DepartamentoID <= 0:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige el departamento."})
-		return models.InvCategoria{}, false
 	case n == "":
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe el nombre de la categoría."})
 		return models.InvCategoria{}, false
@@ -540,7 +537,7 @@ func bindInvCategoria(c *gin.Context) (models.InvCategoria, bool) {
 func invCategoriaErr(c *gin.Context, where string, err error, nombre string) {
 	switch {
 	case errors.Is(err, models.ErrInvCatDuplicada):
-		c.JSON(http.StatusConflict, gin.H{"error": "Ya existe la categoría " + nombre + " en ese departamento."})
+		c.JSON(http.StatusConflict, gin.H{"error": "Ya existe la categoría " + nombre + "."})
 	case errors.Is(err, models.ErrInvDepNotFound):
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese departamento ya no existe."})
 	case errors.Is(err, models.ErrInvCatNotFound):
@@ -548,6 +545,17 @@ func invCategoriaErr(c *gin.Context, where string, err error, nombre string) {
 	default:
 		invFail(c, where, err, "No se pudo guardar la categoría.")
 	}
+}
+
+// InvListCategorias — GET /api/inventario/categorias → { categorias }
+// Una sola lista (ya no se usan departamentos).
+func InvListCategorias(c *gin.Context) {
+	cats, err := models.ListInvCategorias()
+	if err != nil {
+		invFail(c, "ListCategorias", err, "No se pudieron cargar las categorías.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"categorias": cats})
 }
 
 // InvCreateCategoria — POST /api/inventario/categorias {departamento_id, nombre, comision}

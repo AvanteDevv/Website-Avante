@@ -556,7 +556,9 @@ func main() {
 		adminGroup.GET("/laboratorio", onlyAdmin, handlers.AdminLaboratorioPage)
 		adminGroup.GET("/inventario", onlyAdmin, handlers.AdminInventarioArticulosPage)
 		adminGroup.GET("/inventario/articulos", onlyAdmin, handlers.AdminInventarioArticulosPage)
-		adminGroup.GET("/inventario/departamentos", onlyAdmin, handlers.AdminInventarioDepartamentosPage)
+		adminGroup.GET("/inventario/categorias", onlyAdmin, handlers.AdminInventarioCategoriasPage)
+		// Ya no hay departamentos: el link viejo lleva a Categorías.
+		adminGroup.GET("/inventario/departamentos", onlyAdmin, func(c *gin.Context) { c.Redirect(http.StatusMovedPermanently, "/admin/inventario/categorias") })
 		adminGroup.GET("/inventario/ajustes", onlyAdmin, handlers.AdminInventarioAjustesPage)
 		adminGroup.GET("/inventario/movimientos", onlyAdmin, handlers.AdminInventarioMovimientosPage)
 		// Logs del servidor (errores incluidos) sin entrar a Railway.
@@ -651,7 +653,8 @@ func main() {
 	{
 		inventarioGroup.GET("", func(c *gin.Context) { c.Redirect(http.StatusFound, "/inventario/articulos") })
 		inventarioGroup.GET("/articulos", handlers.InventarioArticulosPage)
-		inventarioGroup.GET("/departamentos", handlers.InventarioDepartamentosPage)
+		inventarioGroup.GET("/categorias", handlers.InventarioCategoriasPage)
+		inventarioGroup.GET("/departamentos", func(c *gin.Context) { c.Redirect(http.StatusMovedPermanently, "/inventario/categorias") })
 		inventarioGroup.GET("/ajustes", handlers.InventarioAjustesPage)
 		inventarioGroup.GET("/movimientos", handlers.InventarioMovimientosPage)
 	}
@@ -699,6 +702,7 @@ func main() {
 		apiInventario.POST("/departamentos", handlers.InvCreateDepartamento)
 		apiInventario.PUT("/departamentos/:id", handlers.InvRenameDepartamento)
 		apiInventario.DELETE("/departamentos/:id", handlers.InvDeleteDepartamento)
+		apiInventario.GET("/categorias", handlers.InvListCategorias)
 		apiInventario.POST("/categorias", handlers.InvCreateCategoria)
 		apiInventario.PUT("/categorias/:id", handlers.InvUpdateCategoria)
 		apiInventario.DELETE("/categorias/:id", handlers.InvDeleteCategoria)

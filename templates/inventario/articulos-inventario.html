@@ -37,7 +37,7 @@
     {{if eq .Panel "admin"}}
     <nav class="inv-seg inv-subnav" aria-label="Secciones de inventario">
       <a href="/admin/inventario" class="{{if eq .InvTab "articulos"}}is-on{{end}}">Artículos</a>
-      <a href="/admin/inventario/departamentos" class="{{if eq .InvTab "departamentos"}}is-on{{end}}">Departamentos</a>
+      <a href="/admin/inventario/categorias" class="{{if eq .InvTab "categorias"}}is-on{{end}}">Categorías</a>
       <a href="/admin/inventario/ajustes" class="{{if eq .InvTab "ajustes"}}is-on{{end}}">Ajustes</a>
       <a href="/admin/inventario/movimientos" class="{{if eq .InvTab "movimientos"}}is-on{{end}}">Movimientos</a>
     </nav>
@@ -78,7 +78,6 @@
             </div>
           </div>
           <div class="inv-filter-selects">
-            <div class="inv-filter-select" id="fDepartamento"></div>
             <div class="inv-filter-select" id="fCategoria"></div>
           </div>
         </div>
@@ -96,7 +95,7 @@
             <thead>
               <tr>
                 <th>Clave / Descripción</th>
-                <th class="c-dep">Departamento · Categoría</th>
+                <th class="c-dep">Categoría</th>
                 <th class="num">Exist.</th>
                 <th class="num">Precio</th>
               </tr>
@@ -159,15 +158,9 @@
             <span>Descripción</span>
             <input type="text" id="aDesc" maxlength="200" required placeholder="Ej. ARMAZON GUESS PASTA ROJO">
           </label>
-          <div class="staff-form-row">
-            <div class="staff-field">
-              <span>Departamento</span>
-              <div id="aDepartamento"></div>
-            </div>
-            <div class="staff-field">
-              <span>Categoría</span>
-              <div id="aCategoria"></div>
-            </div>
+          <div class="staff-field">
+            <span>Categoría</span>
+            <div id="aCategoria"></div>
           </div>
           <div class="inv-arm" id="aArmazon">
             <div class="inv-arm-col">
@@ -500,10 +493,6 @@
     </div>
     <div class="admin-modal-body">
       <form class="staff-form" id="catForm" novalidate autocomplete="off">
-        <div class="staff-field">
-          <span>Departamento</span>
-          <div id="cDepartamento"></div>
-        </div>
         <label class="staff-field">
           <span>Categoría</span>
           <input type="text" id="cNombre" maxlength="60" placeholder="Ej. PASTA GUESS ROJO">

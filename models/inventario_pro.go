@@ -941,12 +941,27 @@ func DeleteInvDepartamento(id int64) error {
 }
 
 func CreateInvCategoria(c InvCategoria) (int64, error) {
-	var n int
-	if err := db.DB.QueryRow("SELECT COUNT(*) FROM inv_departamentos WHERE id = ?", c.DepartamentoID).Scan(&n); err != nil {
-		return 0, err
+	// Ya no se usan departamentos: si no viene uno, la categoría queda en
+	// el departamento interno "SIN DEFINIR" (la columna sigue en la BD).
+	if c.DepartamentoID <= 0 {
+		dep, err := invDepInterno()
+		if err != nil {
+			return 0, err
+		}
+		c.DepartamentoID = dep
+	} else {
+		var n int
+		if err := db.DB.QueryRow("SELECT COUNT(*) FROM inv_departamentos WHERE id = ?", c.DepartamentoID).Scan(&n); err != nil {
+			return 0, err
+		}
+		if n == 0 {
+			return 0, ErrInvDepNotFound
+		}
 	}
-	if n == 0 {
-		return 0, ErrInvDepNotFound
+	if dup, err := invCatNombreUsado(c.Nombre, 0); err != nil {
+		return 0, err
+	} else if dup {
+		return 0, ErrInvCatDuplicada
 	}
 	res, err := db.DB.Exec("INSERT INTO inv_categorias (departamento_id, nombre, comision) VALUES (?, ?, ?)",
 		c.DepartamentoID, c.Nombre, round2(c.Comision))
@@ -959,15 +974,72 @@ func CreateInvCategoria(c InvCategoria) (int64, error) {
 	return res.LastInsertId()
 }
 
+// invDepInterno: id del departamento "SIN DEFINIR" (lo crea si no está).
+// Las categorías nuevas quedan ahí porque la tabla pide un departamento.
+func invDepInterno() (int64, error) {
+	if _, err := db.DB.Exec("INSERT IGNORE INTO inv_departamentos (nombre) VALUES ('SIN DEFINIR')"); err != nil {
+		return 0, err
+	}
+	var id int64
+	err := db.DB.QueryRow("SELECT id FROM inv_departamentos WHERE nombre = 'SIN DEFINIR'").Scan(&id)
+	return id, err
+}
+
+// invCatNombreUsado: ya hay otra categoría con ese nombre (en cualquier
+// departamento). Ahora las categorías son una sola lista.
+func invCatNombreUsado(nombre string, exceptID int64) (bool, error) {
+	var n int
+	err := db.DB.QueryRow("SELECT COUNT(*) FROM inv_categorias WHERE nombre = ? AND id <> ?", nombre, exceptID).Scan(&n)
+	return n > 0, err
+}
+
+// ListInvCategorias — todas las categorías (una sola lista, sin
+// departamentos) con cuántos artículos tiene cada una.
+func ListInvCategorias() ([]InvCategoria, error) {
+	rows, err := db.DB.Query(`
+		SELECT c.id, c.departamento_id, c.nombre, c.comision,
+		       (SELECT COUNT(*) FROM inventory_items i WHERE i.categoria_id = c.id)
+		FROM inv_categorias c ORDER BY c.nombre, c.id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []InvCategoria{}
+	for rows.Next() {
+		var c InvCategoria
+		if err := rows.Scan(&c.ID, &c.DepartamentoID, &c.Nombre, &c.Comision, &c.Articulos); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
 // UpdateInvCategoria cambia nombre, comisión o departamento. Si cambia de
 // departamento, sus artículos se mueven con ella.
 func UpdateInvCategoria(c InvCategoria) error {
-	var n int
-	if err := db.DB.QueryRow("SELECT COUNT(*) FROM inv_departamentos WHERE id = ?", c.DepartamentoID).Scan(&n); err != nil {
-		return err
+	if c.DepartamentoID <= 0 {
+		// Sin departamento: se queda en el que ya tenía.
+		err := db.DB.QueryRow("SELECT departamento_id FROM inv_categorias WHERE id = ?", c.ID).Scan(&c.DepartamentoID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrInvCatNotFound
+		}
+		if err != nil {
+			return err
+		}
+	} else {
+		var n int
+		if err := db.DB.QueryRow("SELECT COUNT(*) FROM inv_departamentos WHERE id = ?", c.DepartamentoID).Scan(&n); err != nil {
+			return err
+		}
+		if n == 0 {
+			return ErrInvDepNotFound
+		}
 	}
-	if n == 0 {
-		return ErrInvDepNotFound
+	if dup, err := invCatNombreUsado(c.Nombre, c.ID); err != nil {
+		return err
+	} else if dup {
+		return ErrInvCatDuplicada
 	}
 	tx, err := db.DB.Begin()
 	if err != nil {
