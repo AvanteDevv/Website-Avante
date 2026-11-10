@@ -3,23 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ventas — Recepción · Avante Optics</title>
+<title>Ventas — {{if eq .Panel "admin"}}Admin{{else}}Recepción{{end}} · Avante Optics</title>
 <link rel="icon" type="image/png" href="/static/images/avante-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+{{if eq .Panel "admin"}}
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+{{else}}
 <link rel="stylesheet" href="/static/css/receptionist/userbar-receptionist.css">
 <link rel="stylesheet" href="/static/css/receptionist/sidebar-receptionist.css">
+{{end}}
 <link rel="stylesheet" href="/static/css/optometrist/av-select.css">
 <link rel="stylesheet" href="/static/css/receptionist/citas-recepcion.css">
 <link rel="stylesheet" href="/static/css/receptionist/ventas-recepcion.css">
 </head>
 <body class="cuenta-body admin-body">
 
-{{template "receptionist-userbar" .}}
+{{if eq .Panel "admin"}}{{template "admin-userbar" .}}{{else}}{{template "receptionist-userbar" .}}{{end}}
 
 <div class="cuenta-shell">
-  {{template "receptionist-sidebar" .}}
+  {{if eq .Panel "admin"}}{{template "admin-sidebar" .}}{{else}}{{template "receptionist-sidebar" .}}{{end}}
 
   <main class="cuenta-main admin-main vt-page" id="vtPage" data-cajero="{{.StaffName}}" data-admin="{{if eq .StaffRoleKey "admin"}}1{{end}}">
     <div class="admin-header">
@@ -169,9 +174,14 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+{{if eq .Panel "admin"}}
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+{{else}}
 <script src="/static/js/receptionist/sidebar-receptionist.js"></script>
-<script src="/static/js/optometrist/av-select.js"></script>
 <script src="/static/js/receptionist/userbar-receptionist.js"></script>
+{{end}}
+<script src="/static/js/optometrist/av-select.js"></script>
 <script src="/static/js/receptionist/ticket-render.js"></script>
 <script src="/static/js/receptionist/av-date.js"></script>
 <script>

@@ -21,6 +21,15 @@ func ReceptionistPuntoDeVentaPage(c *gin.Context) {
 // ReceptionistVentasPage — GET /receptionist/ventas
 // Tabla de ventas del punto de venta: cuánto se pagó en efectivo (y
 // demás formas), cuánto quedó a crédito y cuánto deben todavía.
+// AdminVentasPage — GET /admin/ventas: la misma página de Ventas con el
+// sidebar del admin (ahí también puede borrar tickets de prueba).
+func AdminVentasPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "ventas-recepcion.html", WithStaff(c, gin.H{
+		"ActivePage": "admin-ventas",
+		"Panel":      "admin",
+	}))
+}
+
 func ReceptionistVentasPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "ventas-recepcion.html", WithStaff(c, gin.H{
 		"ActivePage": "receptionist-ventas",

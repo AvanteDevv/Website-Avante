@@ -540,6 +540,7 @@ func main() {
 		adminGroup.DELETE("/citas/:id", citasStaff, handlers.NotifyCitasChanged(), adminHandlers.DeleteAppointment)
 		adminGroup.GET("/configuracion", onlyAdmin, adminHandlers.Settings)
 		adminGroup.POST("/configuracion/horarios", onlyAdmin, adminHandlers.UpdateAgendaHours)
+		adminGroup.GET("/ventas", onlyAdmin, handlers.AdminVentasPage)
 		adminGroup.GET("/pedidos", pedidosStaff, func(c *gin.Context) {
 			c.HTML(http.StatusOK, "pedidos.html", gin.H{
 				"ActivePage": "admin-pedidos",
