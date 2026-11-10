@@ -704,8 +704,27 @@ type InvMovBorrado struct {
 // Todo va en una sola transacción: si un artículo quedaría en negativo,
 // no se borra nada.
 func DeleteInvMovimientos(ids []int64, revertir bool) (*InvMovBorrado, error) {
+	return deleteInvMovs(ids, nil, revertir)
+}
+
+// DeletePosVentaPrueba borra definitivamente un ticket de prueba desde
+// Ventas (solo admin), con lo mismo que DeleteInvMovimientos: la venta,
+// su crédito y abonos, su pedido y sus movimientos de inventario. Sirve
+// también para tickets sin movimientos (solo servicios).
+func DeletePosVentaPrueba(saleID int64, revertir bool) (*InvMovBorrado, error) {
+	var n int
+	if err := db.DB.QueryRow("SELECT COUNT(*) FROM pos_sales WHERE id = ?", saleID).Scan(&n); err != nil {
+		return nil, err
+	}
+	if n == 0 {
+		return nil, ErrPosSaleNotFound
+	}
+	return deleteInvMovs(nil, []int64{saleID}, revertir)
+}
+
+func deleteInvMovs(ids []int64, extraVentas []int64, revertir bool) (*InvMovBorrado, error) {
 	out := &InvMovBorrado{Revertido: revertir}
-	if len(ids) == 0 {
+	if len(ids) == 0 && len(extraVentas) == 0 {
 		return out, nil
 	}
 	tx, err := db.DB.Begin()
@@ -721,27 +740,43 @@ func DeleteInvMovimientos(ids []int64, revertir bool) (*InvMovBorrado, error) {
 	}
 	// Tickets de los movimientos elegidos: se borran completos.
 	ventas := []interface{}{}
-	vrows, err := tx.Query(`SELECT DISTINCT venta_id FROM inv_movimientos WHERE id IN (`+ph+`) AND venta_id IS NOT NULL AND venta_id > 0`, args...)
-	if err != nil {
-		return nil, err
+	seenV := map[int64]bool{}
+	for _, v := range extraVentas {
+		if v > 0 && !seenV[v] {
+			seenV[v] = true
+			ventas = append(ventas, v)
+		}
 	}
-	for vrows.Next() {
-		var v int64
-		if err := vrows.Scan(&v); err != nil {
-			vrows.Close()
+	if len(ids) > 0 {
+		vrows, err := tx.Query(`SELECT DISTINCT venta_id FROM inv_movimientos WHERE id IN (`+ph+`) AND venta_id IS NOT NULL AND venta_id > 0`, args...)
+		if err != nil {
 			return nil, err
 		}
-		ventas = append(ventas, v)
+		for vrows.Next() {
+			var v int64
+			if err := vrows.Scan(&v); err != nil {
+				vrows.Close()
+				return nil, err
+			}
+			if !seenV[v] {
+				seenV[v] = true
+				ventas = append(ventas, v)
+			}
+		}
+		vrows.Close()
+		if err := vrows.Err(); err != nil {
+			return nil, err
+		}
 	}
-	vrows.Close()
-	if err := vrows.Err(); err != nil {
-		return nil, err
+	conds := []string{}
+	if len(ids) > 0 {
+		conds = append(conds, `id IN (`+ph+`)`)
 	}
-	q := `SELECT id, item_id, cantidad, COALESCE(ajuste_id, 0) FROM inv_movimientos WHERE id IN (` + ph + `)`
 	if len(ventas) > 0 {
-		q += ` OR venta_id IN (` + strings.TrimSuffix(strings.Repeat("?,", len(ventas)), ",") + `)`
+		conds = append(conds, `venta_id IN (`+strings.TrimSuffix(strings.Repeat("?,", len(ventas)), ",")+`)`)
 		args = append(args, ventas...)
 	}
+	q := `SELECT id, item_id, cantidad, COALESCE(ajuste_id, 0) FROM inv_movimientos WHERE ` + strings.Join(conds, " OR ")
 	rows, err := tx.Query(q+` FOR UPDATE`, args...)
 	if err != nil {
 		return nil, err
@@ -766,7 +801,7 @@ func DeleteInvMovimientos(ids []int64, revertir bool) (*InvMovBorrado, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	if len(found) == 0 {
+	if len(found) == 0 && len(ventas) == 0 {
 		return out, nil
 	}
 
@@ -796,13 +831,15 @@ func DeleteInvMovimientos(ids []int64, revertir bool) (*InvMovBorrado, error) {
 		}
 	}
 
-	ph = strings.TrimSuffix(strings.Repeat("?,", len(found)), ",")
-	res, err := tx.Exec("DELETE FROM inv_movimientos WHERE id IN ("+ph+")", found...)
-	if err != nil {
-		return nil, err
+	if len(found) > 0 {
+		ph = strings.TrimSuffix(strings.Repeat("?,", len(found)), ",")
+		res, err := tx.Exec("DELETE FROM inv_movimientos WHERE id IN ("+ph+")", found...)
+		if err != nil {
+			return nil, err
+		}
+		n, _ := res.RowsAffected()
+		out.Eliminados = int(n)
 	}
-	n, _ := res.RowsAffected()
-	out.Eliminados = int(n)
 
 	// Tickets de prueba: la venta y todo lo que cuelga de ella.
 	if len(ventas) > 0 {

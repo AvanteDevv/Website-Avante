@@ -21,7 +21,7 @@
 <div class="cuenta-shell">
   {{template "receptionist-sidebar" .}}
 
-  <main class="cuenta-main admin-main vt-page" id="vtPage" data-cajero="{{.StaffName}}">
+  <main class="cuenta-main admin-main vt-page" id="vtPage" data-cajero="{{.StaffName}}" data-admin="{{if eq .StaffRoleKey "admin"}}1{{end}}">
     <div class="admin-header">
       <div>
         <h1>Ventas</h1>

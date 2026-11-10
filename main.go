@@ -746,6 +746,7 @@ func main() {
 		apiReceptionist.GET("/pos/ventas/:id", handlers.PosGetSale)
 		apiReceptionist.POST("/pos/ventas", handlers.PosCreateSale)
 		apiReceptionist.POST("/pos/ventas/:id/cancelar", handlers.PosCancelSale)
+		apiReceptionist.POST("/pos/ventas/:id/eliminar", onlyAdmin, handlers.PosDeleteSalePrueba)
 		// Corte de caja
 		apiReceptionist.GET("/caja/estado", handlers.CajaEstadoAPI)
 		// Clarito+

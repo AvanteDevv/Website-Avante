@@ -15,6 +15,8 @@
   if (!page) return;
   var T = window.AvanteTicket;
   var cajero = page.getAttribute('data-cajero') || '';
+  // Solo el admin puede borrar tickets de prueba.
+  var isAdmin = page.getAttribute('data-admin') === '1';
 
   var mxn = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 });
   var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -305,7 +307,17 @@
         '<div class="vt-cancel-actions"><button type="button" class="btn small" id="vtCancelNo">No cancelar</button><button type="button" class="btn small vt-btn-danger" id="vtCancelYes">Sí, cancelar la venta</button></div>' +
       '</div>';
     }
-    html += '<div class="staff-form-actions">' + (v.cancelada ? '' : '<button type="button" class="btn small vt-btn-danger-ghost" id="vtCancelOpen">Cancelar venta</button>') +
+    if (isAdmin) {
+      html += '<div class="vt-cancel-box vt-del-box" id="vtDelBox" hidden>' +
+        '<p class="vt-del-title"><b>Eliminar ticket de prueba</b></p>' +
+        '<p class="vt-cancel-note">Se borra definitivamente el ticket ' + v.folio + ' con todo lo suyo: la venta, su cobro o crédito, su pedido y sus movimientos de inventario. Ya no sale en Ventas, Corte de caja, Optometría ni Laboratorio. No se puede deshacer. <b>Solo para pruebas</b>; si la venta fue real, mejor cancélala.</p>' +
+        '<label class="vt-del-check"><input type="checkbox" id="vtDelRevertir" checked><span><b>Regresar la existencia</b><small>Lo vendido vuelve al inventario como si la venta no hubiera pasado.</small></span></label>' +
+        '<p class="staff-error" id="vtDelError"></p>' +
+        '<div class="vt-cancel-actions"><button type="button" class="btn small" id="vtDelNo">No eliminar</button><button type="button" class="btn small vt-btn-danger" id="vtDelYes">Sí, eliminar definitivamente</button></div>' +
+      '</div>';
+    }
+    html += '<div class="staff-form-actions">' + (isAdmin ? '<button type="button" class="btn small vt-btn-danger-ghost vt-del-open" id="vtDelOpen" title="Solo para tickets de prueba">Eliminar (prueba)</button>' : '') +
+      (v.cancelada ? '' : '<button type="button" class="btn small vt-btn-danger-ghost" id="vtCancelOpen">Cancelar venta</button>') +
       '<button type="button" class="btn small" id="vtReprint">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' +
       'Reimprimir ticket</button><button type="button" class="btn solid small" id="vtDetailOk">Cerrar</button></div>';
@@ -333,6 +345,22 @@
           renderDetail(current);
           load();
         }).catch(function (err) { $('vtCancelError').textContent = err.message; b.disabled = false; b.textContent = 'Sí, cancelar la venta'; });
+      });
+    }
+    if ($('vtDelOpen')) {
+      $('vtDelOpen').addEventListener('click', function () {
+        if ($('vtCancelBox')) $('vtCancelBox').hidden = true;
+        $('vtDelBox').hidden = false;
+        $('vtDelBox').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+      $('vtDelNo').addEventListener('click', function () { $('vtDelBox').hidden = true; });
+      $('vtDelYes').addEventListener('click', function () {
+        var b = this; b.disabled = true; b.textContent = 'Eliminando…';
+        $('vtDelError').textContent = '';
+        send('POST', '/api/receptionist/pos/ventas/' + v.folio + '/eliminar', { revertir: $('vtDelRevertir').checked }).then(function () {
+          closeModal();
+          load();
+        }).catch(function (err) { $('vtDelError').textContent = err.message; b.disabled = false; b.textContent = 'Sí, eliminar definitivamente'; });
       });
     }
     var copyBtn = $('vtCopyLink');

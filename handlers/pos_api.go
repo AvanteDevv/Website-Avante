@@ -311,6 +311,36 @@ func PosListSales(c *gin.Context) {
 }
 
 // PosGetSale — GET /api/receptionist/pos/ventas/:id  (detalle: productos, pagos y abonos)
+// PosDeleteSalePrueba — POST /api/receptionist/pos/ventas/:id/eliminar
+// {"revertir":true}. Solo admin: borra definitivamente un ticket de
+// prueba con todo lo suyo (crédito, pedido y movimientos de inventario).
+func PosDeleteSalePrueba(c *gin.Context) {
+	id, ok := posID(c, "id")
+	if !ok {
+		return
+	}
+	var in struct {
+		Revertir bool `json:"revertir"`
+	}
+	_ = c.ShouldBindJSON(&in)
+	r, err := models.DeletePosVentaPrueba(id, in.Revertir)
+	if errors.Is(err, models.ErrPosSaleNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese ticket ya no existe."})
+		return
+	}
+	if err != nil {
+		if strings.Contains(err.Error(), "quedaría con existencia") {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error() + "."})
+			return
+		}
+		log.Printf("pos.DeleteSalePrueba: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo eliminar el ticket."})
+		return
+	}
+	log.Printf("pos: %v borró el ticket %d (prueba, revertir=%v, %d movimientos)", c.GetString("staff_email"), id, in.Revertir, r.Eliminados)
+	c.JSON(http.StatusOK, r)
+}
+
 func PosGetSale(c *gin.Context) {
 	id, ok := posID(c, "id")
 	if !ok {
