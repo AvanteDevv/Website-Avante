@@ -315,3 +315,46 @@ body.dark .cp-folio{ background:rgba(90,120,255,.18); color:#b8c6ff; }
 .cp-table-wrap::-webkit-scrollbar-thumb, .cp-drawer-body::-webkit-scrollbar-thumb, .cp-tabs::-webkit-scrollbar-thumb{ background:var(--line); border-radius:100px; }
 .cp-table-wrap::-webkit-scrollbar-thumb:hover, .cp-drawer-body::-webkit-scrollbar-thumb:hover, .cp-tabs::-webkit-scrollbar-thumb:hover{ background:var(--blue-300, #8992FF); }
 .cp-table-wrap::-webkit-scrollbar-corner, .cp-drawer-body::-webkit-scrollbar-corner, .cp-tabs::-webkit-scrollbar-corner{ background:transparent; }
+/* ---------- Modal para ver al miembro (el mismo de citas) ---------- */
+.cp-view-modal{ max-width:400px; }
+.cp-view-folio{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13px; font-weight:700; color:var(--accent); background:var(--accent-soft); padding:3px 9px; border-radius:8px; margin-left:6px; vertical-align:middle; }
+.cp-view-meta{ font-size:11.5px; color:var(--muted); margin:10px 2px 0; line-height:1.5; }
+.cp-view-meta:empty{ display:none; }
+.cp-vig-badge{ text-transform:none !important; white-space:nowrap; }
+.cp-vig-badge.is-vigente{ background:#e3f6ea; color:#1f7a45; }
+.cp-vig-badge.is-porvencer{ background:#fdf1d6; color:#8a6a12; }
+.cp-vig-badge.is-vencida{ background:#fde4e1; color:#a3231b; }
+.cp-vig-badge.is-sin{ background:#ececec; color:#6b6b6b; }
+body.dark .cp-vig-badge.is-vigente{ background:rgba(31,157,85,.2); color:#7fe0a8; }
+body.dark .cp-vig-badge.is-porvencer{ background:rgba(255,193,7,.16); color:#ffcf5c; }
+body.dark .cp-vig-badge.is-vencida{ background:rgba(231,76,60,.18); color:#ff9d92; }
+body.dark .cp-vig-badge.is-sin{ background:rgba(255,255,255,.08); color:#aaa; }
+.cp-vdots{ display:inline-flex; gap:4px; vertical-align:-1px; margin-right:4px; }
+.cp-vdot{ width:11px; height:11px; border-radius:50%; border:1.5px solid var(--line); display:inline-block; }
+.cp-vdot.is-on{ background:var(--accent); border-color:var(--accent); }
+.cal-action{ text-decoration:none; }
+.cp-act-call .cal-action-icon{ background:var(--accent-soft); color:var(--accent); }
+.cp-act-call:hover{ border-color:var(--accent-border); background:var(--accent-soft); }
+.cp-act-wa .cal-action-icon{ background:#dcf8e6; color:#1a8f4c; }
+.cp-act-wa:hover{ border-color:#9fe3b9; background:#f1fbf5; }
+body.dark .cp-act-wa .cal-action-icon{ background:rgba(37,211,102,.16); color:#5fe39a; }
+body.dark .cp-act-wa:hover{ border-color:#1a8f4c; background:rgba(37,211,102,.08); }
+.cp-act-edit .cal-action-icon{ background:var(--accent-soft); color:var(--accent); }
+.cp-act-edit:hover{ border-color:var(--accent-border); background:var(--accent-soft); }
+.admin-modal-overlay.open .cp-view-modal .cev-row:nth-child(n+5){ animation-delay:.2s; }
+
+/* ---------- Doble clic: editar la celda ---------- */
+.cp-table td.is-editable{ cursor:pointer; }
+.cp-table td.is-editable:hover{ box-shadow:inset 0 0 0 1.5px var(--accent-border, var(--line)); border-radius:10px; }
+.cp-table td.is-editable.is-editing, .cp-table td.is-editable.is-editing:hover{ box-shadow:none; }
+.cp-cell-edit{
+  width:100%; min-width:120px; padding:7px 10px; border:1.5px solid var(--accent); border-radius:10px;
+  background:var(--white); color:var(--ink); font-family:var(--sans); font-size:13px; font-weight:600; outline:none;
+  box-shadow:0 0 0 3px var(--accent-soft);
+  animation:cpCellIn .18s var(--ease, ease) both;
+}
+select.cp-cell-edit{ cursor:pointer; }
+.cp-cell-hint{ display:block; margin-top:4px; font-size:10.5px; color:var(--muted); white-space:nowrap; }
+@keyframes cpCellIn{ from{ transform:scale(.96); opacity:.4; } to{ transform:none; opacity:1; } }
+body.dark .cp-cell-edit{ background:rgba(255,255,255,.04); }
+@media (prefers-reduced-motion:reduce){ .cp-cell-edit{ animation:none; } }

@@ -25,7 +25,7 @@
     <div class="admin-header">
       <div>
         <h1>Clarito<span class="cp-plus">+</span></h1>
-        <p>Miembros del programa Clarito+. Toca un renglón para ver o editar todos sus datos; la revisión y los lentes se cambian directo en la tabla.</p>
+        <p>Miembros del programa Clarito+. Un clic en un renglón para ver sus datos; doble clic en una celda para editarla ahí mismo.</p>
       </div>
       <div class="cp-head-actions">
         <a class="btn small cp-ghost" href="/clarito-plus" target="_blank" rel="noopener" title="La página de beneficios que ve el cliente">
@@ -122,6 +122,23 @@
     </footer>
   </form>
 </aside>
+
+<!-- ============ Ver miembro (mismo modal que el de citas) ============ -->
+<div class="admin-modal-overlay" id="cpViewModal">
+  <div class="admin-modal-card cal-event-modal cp-view-modal" role="dialog" aria-modal="true" aria-labelledby="cpViewTitle">
+    <div class="admin-modal-head">
+      <h3 id="cpViewTitle">Miembro</h3>
+      <button type="button" class="admin-modal-close" data-cp-close aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="cev-info" id="cpViewInfo"></div>
+      <p class="cp-view-meta" id="cpViewMeta"></p>
+      <div class="cal-event-actions" id="cpViewActions"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ============ Importar Excel ============ -->
 <div class="admin-modal-overlay" id="cpImportModal">

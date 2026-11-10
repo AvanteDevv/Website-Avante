@@ -415,7 +415,7 @@
     $('cpBody').innerHTML = list.slice(0, 600).map(function (r, i) {
       var cls = state.hoja === 'miembros' ? ' is-' + vigState(r.datos).k : '';
       return '<tr data-id="' + r.id + '" class="' + cls + '" style="--i:' + Math.min(i, 24) + '" tabindex="0">' +
-        cols.map(function (c) { return '<td class="' + (c.cls || '') + '">' + cell(r, c) + '</td>'; }).join('') + '</tr>';
+        cols.map(function (c) { return '<td class="' + (c.cls || '') + (CELL_EDIT[c.k] ? ' is-editable' : '') + '" data-k="' + c.k + '">' + cell(r, c) + '</td>'; }).join('') + '</tr>';
     }).join('') + (list.length > 600 ? '<tr class="cp-more"><td colspan="' + cols.length + '">Se muestran 600 de ' + list.length + '. Usa la búsqueda para encontrar el resto.</td></tr>' : '');
   }
 
@@ -426,16 +426,131 @@
     if (i >= 0) list[i] = item; else { list.push(item); conteos[item.hoja] = (conteos[item.hoja] || 0) + 1; renderCounts(); }
   }
 
-  // Abrir panel al tocar un renglón (no al tocar un control de la tabla).
+  /* ---------- un clic = ver (modal de citas) · doble clic = editar la celda ----------
+     El clic espera un momento para saber si viene un segundo clic. */
+  var clickT = null;
   $('cpBody').addEventListener('click', function (e) {
-    if (e.target.closest('[data-stop]')) return;
+    if (e.target.closest('[data-stop]') || e.target.closest('.cp-cell-edit')) return;
     var tr = e.target.closest('tr[data-id]');
-    if (tr) openDrawer(byId(tr.getAttribute('data-id')));
+    if (!tr) return;
+    clearTimeout(clickT);
+    if (e.detail > 1) return; // es parte de un doble clic
+    var id = tr.getAttribute('data-id');
+    clickT = setTimeout(function () { openView(byId(id)); }, 240);
+  });
+  $('cpBody').addEventListener('dblclick', function (e) {
+    clearTimeout(clickT);
+    if (e.target.closest('[data-stop]') || e.target.closest('.cp-cell-edit')) return;
+    var td = e.target.closest('td[data-k]'), tr = e.target.closest('tr[data-id]');
+    if (!td || !tr) return;
+    var k = td.getAttribute('data-k');
+    if (!CELL_EDIT[k]) { openView(byId(tr.getAttribute('data-id'))); return; }
+    window.getSelection && window.getSelection().removeAllRanges();
+    editCell(byId(tr.getAttribute('data-id')), td, k);
   });
   $('cpBody').addEventListener('keydown', function (e) {
     if (e.key !== 'Enter' || e.target.tagName !== 'TR') return;
-    openDrawer(byId(e.target.getAttribute('data-id')));
+    openView(byId(e.target.getAttribute('data-id')));
   });
+
+  // Celdas que se editan con doble clic (la revisión y los lentes ya se
+  // cambian directo con un clic).
+  var CELL_EDIT = {
+    folio: { type: 'text', upper: true, max: 20 },
+    nombre: { type: 'text', upper: true, req: true, max: 120 },
+    vigencia: { type: 'date' },
+    empresa: { type: 'select', opts: EMPRESA },
+    asesor: { type: 'text', max: 60 }
+  };
+  var cellEditing = null;
+  function editCell(r, td, k) {
+    if (!r || cellEditing) return;
+    var cfg = CELL_EDIT[k], v = r.datos[k] || '';
+    cellEditing = { r: r, td: td, k: k };
+    td.classList.add('is-editing');
+    var html;
+    if (cfg.type === 'select') {
+      html = '<select class="cp-cell-edit" aria-label="' + esc(HOJAS[state.hoja].byKey[k].label) + '">' +
+        cfg.opts.map(function (o) { return '<option' + (o === (v || 'Particular') ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
+    } else {
+      html = '<input class="cp-cell-edit" type="' + (cfg.type === 'date' ? 'date' : 'text') + '" value="' + esc(v) + '"' + (cfg.max ? ' maxlength="' + cfg.max + '"' : '') + ' aria-label="' + esc(HOJAS[state.hoja].byKey[k].label) + '">';
+    }
+    td.innerHTML = html + '<small class="cp-cell-hint">Enter guarda · Esc cancela</small>';
+    var el = td.querySelector('.cp-cell-edit');
+    el.focus();
+    if (el.select && cfg.type === 'text') el.select();
+    if (cfg.upper) el.addEventListener('input', function () { var p = el.selectionStart; el.value = el.value.toUpperCase(); try { el.setSelectionRange(p, p); } catch (x) {} });
+    var done = false;
+    function finish(save) {
+      if (done) return;
+      done = true;
+      var nv = (el.value || '').trim();
+      cellEditing = null;
+      if (!save || nv === v) { render(); return; }
+      if (cfg.req && !nv) { toast('El nombre no puede quedar vacío.', 'error'); render(); return; }
+      var patch = {}; patch[k] = nv;
+      if (k === 'empresa' && nv !== 'Empresa') patch.empresa_nombre = '';
+      quickSave(r, patch, td).then(function (ok) { if (ok) toast('Se guardó ' + HOJAS[state.hoja].byKey[k].label.toLowerCase() + ' de ' + (patch.nombre || r.nombre) + '.', 'ok'); });
+    }
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); }
+    });
+    el.addEventListener('blur', function () { finish(true); });
+    if (cfg.type === 'select') el.addEventListener('change', function () { finish(true); });
+  }
+
+  /* ---------- modal para ver al miembro (el mismo de citas) ---------- */
+  var VICO = {"cal": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18\"/></svg>", "tel": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z\"/></svg>", "mail": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"2\"/><path d=\"m22 6-10 7L2 6\"/></svg>", "glasses": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"6\" cy=\"15\" r=\"4\"/><circle cx=\"18\" cy=\"15\" r=\"4\"/><path d=\"M10 15c1.3-1 2.7-1 4 0M2 15 4 6M22 15 20 6\"/></svg>", "eye": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>", "bldg": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"4\" y=\"2\" width=\"16\" height=\"20\" rx=\"2\"/><path d=\"M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01\"/></svg>", "user": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4 20c0-4 3.6-7 8-7s8 3 8 7\"/></svg>", "note": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M16 13H8M16 17H8\"/></svg>", "cake": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1M2 21h20M7 8v3M12 8v3M17 8v3M7 4h.01M12 4h.01M17 4h.01\"/></svg>", "edit": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z\"/></svg>", "trash": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6\"/></svg>", "wa": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm4.5 12.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3Z\"/></svg>"};
+  var viewModal = $('cpViewModal'), viewing = null;
+  function vRow(ico, label, val, extra) {
+    return '<div class="cev-row' + (extra || '') + '"><span class="cev-ico">' + VICO[ico] + '</span><div class="cev-txt"><small>' + esc(label) + '</small><strong>' + val + '</strong></div></div>';
+  }
+  function fechaLarga(s) {
+    var d = parseISO(s);
+    var M = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    return d ? d.getDate() + ' de ' + M[d.getMonth()] + ' de ' + d.getFullYear() : '';
+  }
+  function openView(r) {
+    if (!r) return;
+    viewing = r;
+    var d = r.datos, st = vigState(d), tel = digits(d.telefono);
+    var n = Math.max(0, Math.min(4, Number(d.lentes) || 0)), dots = '';
+    for (var i = 1; i <= 4; i++) dots += '<i class="cp-vdot' + (i <= n ? ' is-on' : '') + '"></i>';
+    $('cpViewTitle').innerHTML = 'Miembro' + (d.folio ? ' <span class="cp-view-folio">' + esc(d.folio) + '</span>' : '');
+    var html = '<div class="cev-row cev-row--who"><span class="cev-avatar">' + esc(initials(r.nombre)) + '</span>' +
+      '<div class="cev-txt"><small>' + esc(d.tipo || 'Clarito+') + '</small><strong>' + esc(r.nombre) + '</strong></div>' +
+      '<span class="admin-badge cp-vig-badge is-' + st.k + '">' + esc(st.label) + '</span></div>';
+    html += vRow('cal', 'Vigencia', d.vigencia ? esc(fechaLarga(d.vigencia)) : '<span class="cp-muted">Sin vigencia</span>');
+    html += vRow('glasses', 'Lentes comprados', '<span class="cp-vdots">' + dots + '</span> ' + (n >= 4 ? '¡Ya tiene su lente gratis!' : n + ' de 4 · le faltan ' + (4 - n)));
+    if (d.telefono) html += vRow('tel', 'Teléfono', esc(fmtTel(d.telefono)));
+    if (d.correo) html += vRow('mail', 'Correo', esc(d.correo));
+    if (d.nacimiento) html += vRow('cake', 'Fecha de nacimiento', esc(fechaLarga(d.nacimiento)));
+    html += vRow('bldg', 'Empresa', d.empresa === 'Empresa' ? esc(d.empresa_nombre || 'Empresa') : esc(d.empresa || 'Particular'));
+    if (d.revision) html += vRow('eye', 'Última revisión', esc(d.revision));
+    if (d.asesor) html += vRow('user', 'Asesor', esc(d.asesor));
+    if (d.notas) html += vRow('note', 'Notas', esc(d.notas));
+    $('cpViewInfo').innerHTML = html;
+    $('cpViewMeta').textContent = 'Lo agregó ' + (r.created_by || '—') + ' el ' + fechaHora(r.created_at) + (r.updated_at && r.updated_at !== r.created_at ? ' · último cambio: ' + (r.updated_by || '—') + ', ' + fechaHora(r.updated_at) : '');
+    var acts = '';
+    if (tel.length >= 10) {
+      acts += '<a class="cal-action cp-act-call" href="tel:' + tel + '"><span class="cal-action-icon">' + VICO.tel + '</span>Llamar</a>';
+      acts += '<a class="cal-action cp-act-wa" target="_blank" rel="noopener" href="https://wa.me/' + (tel.length === 10 ? '52' + tel : tel) + '"><span class="cal-action-icon">' + VICO.wa + '</span>WhatsApp</a>';
+    }
+    acts += '<button type="button" class="cal-action cal-action-edit cp-act-edit" data-vact="editar"><span class="cal-action-icon">' + VICO.edit + '</span>Editar todos los datos</button>';
+    acts += '<button type="button" class="cal-action cal-action-delete" data-vact="eliminar"><span class="cal-action-icon">' + VICO.trash + '</span>Eliminar miembro</button>';
+    $('cpViewActions').innerHTML = acts;
+    openModal(viewModal);
+  }
+  $('cpViewActions').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-vact]');
+    if (!b || !viewing) return;
+    var r = viewing;
+    closeModal(viewModal);
+    if (b.getAttribute('data-vact') === 'editar') openDrawer(r);
+    else askDelete(r);
+  });
+  viewModal.addEventListener('click', function (e) { if (e.target === viewModal) closeModal(viewModal); });
   // Edición rápida en la tabla
   $('cpBody').addEventListener('change', function (e) {
     var s = e.target.closest('select[data-inline]');
@@ -465,7 +580,8 @@
       var row = $('cpBody').querySelector('tr[data-id="' + r.id + '"]');
       if (row) { row.classList.add('is-flash'); }
       if (patch.lentes === '4') toast('¡' + d.item.nombre + ' ya tiene su lente gratis! 🎉', 'gift');
-    }).catch(function (e) { toast(e.message, 'error'); render(); });
+      return true;
+    }).catch(function (e) { toast(e.message, 'error'); render(); return false; });
   }
 
   /* =======================================================
@@ -668,10 +784,14 @@
   Array.prototype.forEach.call(document.querySelectorAll('[data-cp-close]'), function (b) {
     b.addEventListener('click', function () { closeModal(b.closest('.admin-modal-overlay')); });
   });
+  function askDelete(r) {
+    editing = r;
+    $('cpConfirmText').innerHTML = '¿Eliminar a <strong>' + esc(r.nombre) + '</strong> de ' + esc(HOJAS[state.hoja].label) + '? No se puede deshacer.';
+    openModal(confirmModal);
+  }
   $('cpDelete').addEventListener('click', function () {
     if (!editing) return;
-    $('cpConfirmText').innerHTML = '¿Eliminar a <strong>' + esc(editing.nombre) + '</strong> de ' + esc(HOJAS[state.hoja].label) + '? No se puede deshacer.';
-    openModal(confirmModal);
+    askDelete(editing);
   });
   $('cpConfirmYes').addEventListener('click', function () {
     if (!editing) return;
