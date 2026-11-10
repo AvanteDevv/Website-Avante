@@ -83,7 +83,15 @@ body.dark .cp-stat.is-gift strong{ color:#ffd36e; }
 .cp-table thead th:hover .cp-sort, .cp-table thead th.is-sorted .cp-sort{ opacity:1; color:var(--accent); }
 .cp-table td.c-name, .cp-table th.c-name{ position:sticky; left:0; z-index:2; background:var(--white); }
 .cp-table thead th.c-name{ z-index:4; }
-.cp-table tbody tr:hover td.c-name{ background:var(--accent-soft); }
+/* La columna fija siempre lleva fondo sólido: el resaltado (hover, foco,
+   guardado) se pinta encima con un degradado, así lo que pasa por
+   debajo al desplazar la tabla a la derecha no se transparenta. */
+.cp-table tbody tr:hover td.c-name{ background:linear-gradient(var(--accent-soft), var(--accent-soft)), var(--white); }
+.cp-table tbody tr:focus-visible td.c-name{ background:linear-gradient(var(--accent-soft), var(--accent-soft)), var(--white); }
+.cp-table tbody tr.is-flash td.c-name{ animation:cpFlashSticky 1.4s var(--ease); }
+@keyframes cpFlashSticky{ 0%,30%{ background:linear-gradient(rgba(245,184,0,.22), rgba(245,184,0,.22)), var(--white); } 100%{ background:var(--white); } }
+.cp-table td.c-name{ box-shadow:1px 0 0 var(--line); }
+.cp-table tbody tr td:not(.c-name){ position:relative; z-index:0; }
 .cp-table td{ white-space:nowrap; }
 .cp-table tbody tr:focus-visible td{ background:var(--accent-soft); outline:none; }
 .cp-table tbody tr.is-flash td{ animation:cpFlash 1.4s var(--ease); }
@@ -358,3 +366,45 @@ select.cp-cell-edit{ cursor:pointer; }
 @keyframes cpCellIn{ from{ transform:scale(.96); opacity:.4; } to{ transform:none; opacity:1; } }
 body.dark .cp-cell-edit{ background:rgba(255,255,255,.04); }
 @media (prefers-reduced-motion:reduce){ .cp-cell-edit{ animation:none; } }
+/* ---------- Modal editable: cada dato se cambia con un clic ---------- */
+.cp-view-modal .cev-row{ padding:9px 14px; }
+.cp-view-modal .cev-ico, .cp-view-modal .cev-avatar{ width:32px; height:32px; }
+.cp-view-modal.is-live .cev-row, .cp-view-modal.is-live .cal-action, .cp-view-modal.is-live .cev-row--who .admin-badge{ animation:none !important; }
+#cpViewModal.is-live .cev-row, #cpViewModal.is-live .cal-action, #cpViewModal.is-live .admin-badge{ animation:none !important; }
+.cp-vrow{ position:relative; transition:background .15s var(--ease); }
+.cp-vrow.is-editable{ cursor:pointer; }
+.cp-vrow.is-editable:hover{ background:var(--accent-soft); }
+.cp-vrow.cev-row--who.is-editable:hover{ background:linear-gradient(rgba(0,0,0,.03), rgba(0,0,0,.03)), var(--accent-soft); }
+.cp-vrow.is-editing{ cursor:default; background:var(--accent-soft); }
+.cp-vrow.is-saving{ opacity:.6; pointer-events:none; }
+.cp-vrow.is-bad .cp-vinput{ border-color:#c0392b; box-shadow:0 0 0 3px rgba(192,57,43,.15); }
+.cp-vrow.is-saved{ animation:cpVSaved 1.1s var(--ease); }
+@keyframes cpVSaved{ 0%,35%{ background:rgba(46,204,113,.16); } 100%{ background:transparent; } }
+.cp-vval.is-empty{ color:var(--muted); font-weight:600; font-style:italic; }
+.cp-vpen{ margin-left:auto; width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--muted); opacity:0; transition:opacity .15s var(--ease); flex-shrink:0; }
+.cp-vpen svg{ width:14px; height:14px; }
+.cp-vrow.is-editable:hover .cp-vpen{ opacity:1; color:var(--accent); }
+.cp-vrow.is-editing .cp-vpen{ display:none; }
+.cp-vinput{
+  width:100%; margin-top:3px; padding:7px 10px; border:1.5px solid var(--accent); border-radius:10px;
+  background:var(--white); color:var(--ink); font-family:var(--sans); font-size:14px; font-weight:600; outline:none;
+  box-shadow:0 0 0 3px var(--accent-soft); resize:vertical;
+}
+textarea.cp-vinput{ min-height:70px; font-weight:500; line-height:1.45; }
+.cp-vhint{ display:block; margin-top:4px; font-style:normal; font-size:10.5px; color:var(--muted); }
+.cp-vopts{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.cp-vopt{
+  border:1.5px solid transparent; border-radius:100px; padding:5px 12px; cursor:pointer;
+  background:var(--tb); color:var(--tf); font-family:var(--sans); font-size:12px; font-weight:700; opacity:.55;
+  transition:opacity .15s var(--ease), transform .15s var(--ease), border-color .15s var(--ease);
+}
+.cp-vopt:hover{ opacity:.9; }
+.cp-vopt.is-on{ opacity:1; border-color:currentColor; }
+.cp-vopt:active{ transform:scale(.96); }
+.cp-view-modal .cp-vdot{ cursor:pointer; padding:0; background:transparent; transition:transform .15s var(--ease); }
+.cp-view-modal .cp-vdot.is-on{ background:var(--accent); }
+.cp-view-modal .cp-vdot:hover{ transform:scale(1.2); border-color:var(--accent); }
+.cp-view-modal .cp-vdots{ gap:6px; }
+.cp-view-modal .cp-vdot{ width:14px; height:14px; }
+body.dark .cp-vinput{ background:rgba(255,255,255,.04); }
+@media (prefers-reduced-motion:reduce){ .cp-vrow.is-saved{ animation:none; } }

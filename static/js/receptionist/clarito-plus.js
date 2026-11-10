@@ -511,44 +511,175 @@
     var M = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
     return d ? d.getDate() + ' de ' + M[d.getMonth()] + ' de ' + d.getFullYear() : '';
   }
-  function openView(r) {
+  /* El modal también edita: cada dato se cambia con un clic ahí mismo
+     (texto y fechas con Enter / clic afuera; opciones y lentes al
+     tocarlos). Se guarda solo ese dato. */
+  var VICO2 = {"tag": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z\"/><path d=\"M7 7h.01\"/></svg>", "pin": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/></svg>", "brief": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16\"/></svg>", "star": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z\"/></svg>", "pencil": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z\"/></svg>"};
+  Object.keys(VICO2).forEach(function (k) { VICO[k] = VICO2[k]; });
+  var VFIELDS = [
+    { k: 'folio', label: 'Folio', ico: 'tag', type: 'text', upper: true, max: 20 },
+    { k: 'vigencia', label: 'Vigencia', ico: 'cal', type: 'date' },
+    { k: 'lentes', label: 'Lentes comprados', ico: 'glasses', type: 'lentes' },
+    { k: 'telefono', label: 'Teléfono', ico: 'tel', type: 'tel', max: 14 },
+    { k: 'correo', label: 'Correo', ico: 'mail', type: 'email', max: 120 },
+    { k: 'nacimiento', label: 'Fecha de nacimiento', ico: 'cake', type: 'date' },
+    { k: 'direccion', label: 'Dirección', ico: 'pin', type: 'text', max: 200 },
+    { k: 'empresa', label: 'Empresa', ico: 'bldg', type: 'chips', opts: EMPRESA },
+    { k: 'empresa_nombre', label: 'Nombre de la empresa', ico: 'bldg', type: 'text', max: 120, showIf: function (d) { return d.empresa === 'Empresa'; } },
+    { k: 'profesion', label: 'Profesión', ico: 'brief', type: 'text', max: 80 },
+    { k: 'pasatiempo', label: 'Pasatiempo', ico: 'star', type: 'text', max: 80 },
+    { k: 'revision', label: 'Última revisión', ico: 'eye', type: 'chips', opts: REVISION },
+    { k: 'asesor', label: 'Asesor', ico: 'user', type: 'text', max: 60 },
+    { k: 'notas', label: 'Notas', ico: 'note', type: 'textarea', max: 1000 }
+  ];
+  function vShow(f, d) {
+    var v = d[f.k] || '';
+    if (f.type === 'date') return v ? esc(fechaLarga(v)) : '';
+    if (f.type === 'tel') return v ? esc(fmtTel(v)) : '';
+    return esc(v);
+  }
+  function vFieldRow(f, d) {
+    var v = d[f.k] || '';
+    var body;
+    if (f.type === 'lentes') {
+      var n = Math.max(0, Math.min(4, Number(v) || 0)), dots = '';
+      for (var i = 1; i <= 4; i++) dots += '<button type="button" class="cp-vdot' + (i <= n ? ' is-on' : '') + '" data-vlentes="' + i + '" aria-label="' + i + (i === 1 ? ' lente' : ' lentes') + '"></button>';
+      body = '<strong><span class="cp-vdots">' + dots + '</span> ' + (n >= 4 ? '¡Ya tiene su lente gratis!' : n + ' de 4 · le faltan ' + (4 - n)) + '</strong>';
+    } else if (f.type === 'chips') {
+      body = '<span class="cp-vopts">' + f.opts.map(function (o) {
+        return '<button type="button" class="cp-vopt tone-' + tone(o) + (o === v ? ' is-on' : '') + '" data-vopt="' + esc(o) + '">' + esc(o) + '</button>';
+      }).join('') + '</span>';
+    } else {
+      var shown = vShow(f, d);
+      body = '<strong class="cp-vval' + (shown ? '' : ' is-empty') + '">' + (shown || 'Agregar…') + '</strong>';
+    }
+    var editable = f.type !== 'lentes' && f.type !== 'chips';
+    return '<div class="cev-row cp-vrow' + (editable ? ' is-editable' : '') + '" data-vk="' + f.k + '"' + (f.showIf && !f.showIf(d) ? ' hidden' : '') + '>' +
+      '<span class="cev-ico">' + VICO[f.ico] + '</span><div class="cev-txt"><small>' + esc(f.label) + '</small>' + body + '</div>' +
+      (editable ? '<span class="cp-vpen" aria-hidden="true">' + VICO.pencil + '</span>' : '') + '</div>';
+  }
+  function openView(r) { renderView(r, true); }
+  function renderView(r, opening) {
     if (!r) return;
     viewing = r;
     var d = r.datos, st = vigState(d), tel = digits(d.telefono);
-    var n = Math.max(0, Math.min(4, Number(d.lentes) || 0)), dots = '';
-    for (var i = 1; i <= 4; i++) dots += '<i class="cp-vdot' + (i <= n ? ' is-on' : '') + '"></i>';
     $('cpViewTitle').innerHTML = 'Miembro' + (d.folio ? ' <span class="cp-view-folio">' + esc(d.folio) + '</span>' : '');
-    var html = '<div class="cev-row cev-row--who"><span class="cev-avatar">' + esc(initials(r.nombre)) + '</span>' +
-      '<div class="cev-txt"><small>' + esc(d.tipo || 'Clarito+') + '</small><strong>' + esc(r.nombre) + '</strong></div>' +
+    var html = '<div class="cev-row cev-row--who cp-vrow is-editable" data-vk="nombre"><span class="cev-avatar">' + esc(initials(r.nombre)) + '</span>' +
+      '<div class="cev-txt"><small>' + esc(d.tipo || 'Clarito+') + ' · toca para cambiar el nombre</small><strong class="cp-vval">' + esc(r.nombre) + '</strong></div>' +
       '<span class="admin-badge cp-vig-badge is-' + st.k + '">' + esc(st.label) + '</span></div>';
-    html += vRow('cal', 'Vigencia', d.vigencia ? esc(fechaLarga(d.vigencia)) : '<span class="cp-muted">Sin vigencia</span>');
-    html += vRow('glasses', 'Lentes comprados', '<span class="cp-vdots">' + dots + '</span> ' + (n >= 4 ? '¡Ya tiene su lente gratis!' : n + ' de 4 · le faltan ' + (4 - n)));
-    if (d.telefono) html += vRow('tel', 'Teléfono', esc(fmtTel(d.telefono)));
-    if (d.correo) html += vRow('mail', 'Correo', esc(d.correo));
-    if (d.nacimiento) html += vRow('cake', 'Fecha de nacimiento', esc(fechaLarga(d.nacimiento)));
-    html += vRow('bldg', 'Empresa', d.empresa === 'Empresa' ? esc(d.empresa_nombre || 'Empresa') : esc(d.empresa || 'Particular'));
-    if (d.revision) html += vRow('eye', 'Última revisión', esc(d.revision));
-    if (d.asesor) html += vRow('user', 'Asesor', esc(d.asesor));
-    if (d.notas) html += vRow('note', 'Notas', esc(d.notas));
-    $('cpViewInfo').innerHTML = html;
+    html += VFIELDS.map(function (f) { return vFieldRow(f, d); }).join('');
+    var info = $('cpViewInfo');
+    var keep = info.scrollTop, bodyEl = viewModal.querySelector('.admin-modal-body'), keepBody = bodyEl ? bodyEl.scrollTop : 0;
+    viewModal.classList.toggle('is-live', !opening);
+    info.innerHTML = html;
+    if (!opening && bodyEl) { bodyEl.scrollTop = keepBody; info.scrollTop = keep; }
     $('cpViewMeta').textContent = 'Lo agregó ' + (r.created_by || '—') + ' el ' + fechaHora(r.created_at) + (r.updated_at && r.updated_at !== r.created_at ? ' · último cambio: ' + (r.updated_by || '—') + ', ' + fechaHora(r.updated_at) : '');
     var acts = '';
     if (tel.length >= 10) {
       acts += '<a class="cal-action cp-act-call" href="tel:' + tel + '"><span class="cal-action-icon">' + VICO.tel + '</span>Llamar</a>';
       acts += '<a class="cal-action cp-act-wa" target="_blank" rel="noopener" href="https://wa.me/' + (tel.length === 10 ? '52' + tel : tel) + '"><span class="cal-action-icon">' + VICO.wa + '</span>WhatsApp</a>';
     }
-    acts += '<button type="button" class="cal-action cal-action-edit cp-act-edit" data-vact="editar"><span class="cal-action-icon">' + VICO.edit + '</span>Editar todos los datos</button>';
     acts += '<button type="button" class="cal-action cal-action-delete" data-vact="eliminar"><span class="cal-action-icon">' + VICO.trash + '</span>Eliminar miembro</button>';
     $('cpViewActions').innerHTML = acts;
-    openModal(viewModal);
+    if (opening) openModal(viewModal);
   }
+  // Guarda un dato desde el modal y lo vuelve a pintar.
+  function vSave(patch, rowEl) {
+    if (!viewing) return Promise.resolve(false);
+    if (rowEl) rowEl.classList.add('is-saving');
+    var id = viewing.id;
+    return quickSave(viewing, patch, null).then(function (ok) {
+      var r = byId(id);
+      if (r && viewModal.classList.contains('open')) renderView(r, false);
+      if (ok) {
+        var row = $('cpViewInfo').querySelector('[data-vk="' + Object.keys(patch)[0] + '"]');
+        if (row) { row.classList.remove('is-saved'); void row.offsetWidth; row.classList.add('is-saved'); }
+      }
+      return ok;
+    });
+  }
+  var vEditing = false;
+  function vEdit(rowEl) {
+    if (vEditing || !viewing) return;
+    var k = rowEl.getAttribute('data-vk');
+    var f = k === 'nombre' ? { k: 'nombre', type: 'text', upper: true, req: true, max: 120 } : VFIELDS.filter(function (x) { return x.k === k; })[0];
+    if (!f) return;
+    var v = k === 'nombre' ? viewing.nombre : (viewing.datos[k] || '');
+    vEditing = true;
+    rowEl.classList.add('is-editing');
+    var holder = rowEl.querySelector('.cp-vval');
+    var el;
+    if (f.type === 'textarea') {
+      el = document.createElement('textarea'); el.rows = 3;
+    } else {
+      el = document.createElement('input');
+      el.type = f.type === 'date' ? 'date' : f.type === 'email' ? 'email' : f.type === 'tel' ? 'tel' : 'text';
+      if (f.type === 'tel') el.inputMode = 'numeric';
+    }
+    el.className = 'cp-vinput';
+    el.value = v;
+    if (f.max) el.maxLength = f.max;
+    holder.replaceWith(el);
+    var hint = document.createElement('em');
+    hint.className = 'cp-vhint';
+    hint.textContent = f.type === 'textarea' ? 'Ctrl + Enter guarda · Esc cancela' : 'Enter guarda · Esc cancela';
+    el.after(hint);
+    el.focus();
+    if (f.type !== 'date' && el.setSelectionRange) { try { el.setSelectionRange(el.value.length, el.value.length); } catch (x) {} }
+    el.addEventListener('input', function () {
+      if (f.upper) { var p = el.selectionStart; el.value = el.value.toUpperCase(); try { el.setSelectionRange(p, p); } catch (x) {} }
+      if (f.type === 'tel') el.value = el.value.replace(/[^\d+ ]/g, '');
+      rowEl.classList.remove('is-bad');
+    });
+    var done = false;
+    function finish(save) {
+      if (done) return;
+      var nv = (el.value || '').trim();
+      if (save && nv !== v) {
+        var msg = '';
+        if (f.req && !nv) msg = 'El nombre no puede quedar vacío.';
+        else if (nv && f.type === 'tel' && digits(nv).length !== 10 && digits(nv).length !== 12) msg = 'El teléfono debe tener 10 dígitos.';
+        else if (nv && f.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(nv)) msg = 'Revisa el correo.';
+        if (msg) { rowEl.classList.add('is-bad'); toast(msg, 'error'); el.focus(); return; }
+      }
+      done = true; vEditing = false;
+      if (!save || nv === v) { renderView(viewing, false); return; }
+      var patch = {}; patch[k] = nv;
+      vSave(patch, rowEl);
+    }
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); return; }
+      if (e.key === 'Enter' && (f.type !== 'textarea' || e.ctrlKey || e.metaKey)) { e.preventDefault(); finish(true); }
+    });
+    el.addEventListener('blur', function () { setTimeout(function () { if (!done) finish(true); }, 0); });
+  }
+  $('cpViewInfo').addEventListener('click', function (e) {
+    if (!viewing) return;
+    var dot = e.target.closest('[data-vlentes]');
+    if (dot) {
+      var nl = Number(dot.getAttribute('data-vlentes')), cur = Number(viewing.datos.lentes) || 0;
+      var val = String(nl === cur ? nl - 1 : nl);
+      vSave({ lentes: val }, dot.closest('.cev-row')).then(function (ok) { if (ok && val !== '4') toast('Lentes de ' + viewing.nombre + ': ' + val + ' de 4.', 'ok'); });
+      return;
+    }
+    var opt = e.target.closest('[data-vopt]');
+    if (opt) {
+      var row = opt.closest('[data-vk]'), k = row.getAttribute('data-vk'), o = opt.getAttribute('data-vopt');
+      var patch = {}; patch[k] = viewing.datos[k] === o && k !== 'empresa' ? '' : o;
+      if (k === 'empresa' && o !== 'Empresa') patch.empresa_nombre = '';
+      vSave(patch, row);
+      return;
+    }
+    if (e.target.closest('.cp-vinput')) return;
+    var rowEl = e.target.closest('.cp-vrow.is-editable');
+    if (rowEl) vEdit(rowEl);
+  });
   $('cpViewActions').addEventListener('click', function (e) {
     var b = e.target.closest('[data-vact]');
     if (!b || !viewing) return;
     var r = viewing;
     closeModal(viewModal);
-    if (b.getAttribute('data-vact') === 'editar') openDrawer(r);
-    else askDelete(r);
+    askDelete(r);
   });
   viewModal.addEventListener('click', function (e) { if (e.target === viewModal) closeModal(viewModal); });
   // Edición rápida en la tabla
