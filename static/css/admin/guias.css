@@ -1,0 +1,179 @@
+/* =========================================================
+   ADMIN — Guías (y la página vacía de Contabilidad)
+   Se apoya en base-de-datos.css (tokens, .panel, .btn,
+   .admin-modal-*). Las tarjetas siguen el estilo de las
+   plantillas de Clarito.
+   ========================================================= */
+
+.gd-page [hidden]{ display:none !important; }
+
+.gd-total{
+  align-self:center; padding:8px 16px; border-radius:100px;
+  border:1.5px solid var(--line); background:var(--white);
+  font-size:12px; font-weight:700; color:var(--grey);
+}
+.gd-total:empty{ display:none; }
+
+.gd-alert{
+  margin-bottom:18px; padding:12px 16px; border-radius:var(--radius-sm);
+  border:1.5px solid #f3c7c2; background:#fdf1ef; color:#b3261e; font-size:13px; font-weight:600;
+}
+body.dark .gd-alert{ background:rgba(226,85,74,.12); border-color:rgba(226,85,74,.4); color:#ff9b91; }
+
+.gd-loading{ padding:30px 4px; font-size:13px; color:var(--grey); }
+
+/* ---------- Secciones por rol ---------- */
+.gd-roles{ display:flex; flex-direction:column; gap:20px; }
+.gd-role{
+  position:relative;
+  animation:gdIn .4s var(--ease) backwards; animation-delay:calc(var(--r, 0) * 45ms);
+  transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.gd-role.is-drag{ border-color:var(--blue-600); box-shadow:0 0 0 4px var(--blue-100), var(--shadow-md); }
+.gd-role.is-busy{ cursor:progress; }
+.gd-role-head{ display:flex; align-items:center; gap:14px; }
+.gd-role-ico{
+  width:40px; height:40px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--blue-50); color:var(--blue-600);
+}
+.gd-role-ico svg{ width:19px; height:19px; }
+.gd-count{
+  padding:5px 12px; border-radius:100px; font-size:10.5px; font-weight:800;
+  letter-spacing:.05em; text-transform:uppercase;
+  background:var(--blue-50); color:var(--grey);
+}
+.gd-count.has{ background:#e7f6ee; color:#1b7a43; }
+body.dark .gd-count.has{ background:rgba(31,157,85,.16); color:#5fd394; }
+
+.gd-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:16px;
+  padding:20px 24px 24px;
+}
+
+.gd-drop-hint{
+  position:absolute; inset:0; z-index:2; border-radius:inherit;
+  display:none; align-items:center; justify-content:center; gap:10px;
+  background:rgba(245,247,255,.88); color:var(--blue-700);
+  font-size:14px; font-weight:700; pointer-events:none;
+}
+.gd-drop-hint svg{ width:20px; height:20px; }
+.gd-role.is-drag .gd-drop-hint{ display:flex; }
+body.dark .gd-drop-hint{ background:rgba(10,14,56,.82); color:#b9c0ff; }
+
+/* ---------- Tarjeta de guía ---------- */
+.gd-card{
+  display:flex; flex-direction:column; overflow:hidden;
+  border:1.5px solid var(--line); border-radius:var(--radius-md); background:var(--white);
+  animation:gdIn .35s var(--ease) backwards; animation-delay:calc(var(--i, 0) * 50ms);
+  transition:border-color .2s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease);
+}
+.gd-card:hover{ border-color:var(--blue-300); transform:translateY(-2px); box-shadow:var(--shadow-md); }
+@keyframes gdIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+
+.gd-thumb{
+  position:relative; display:block; height:200px; overflow:hidden; padding:16px 16px 0;
+  background:linear-gradient(160deg, var(--blue-50), var(--blue-100));
+}
+.gd-thumb img{
+  display:block; width:100%; max-width:220px; margin:0 auto;
+  border-radius:6px 6px 0 0; box-shadow:0 8px 20px rgba(10,10,40,.18);
+  transition:transform .3s var(--ease);
+}
+.gd-card:hover .gd-thumb img{ transform:translateY(-4px); }
+.gd-thumb-ph{
+  display:flex; align-items:center; justify-content:center;
+  width:100%; max-width:220px; height:100%; margin:0 auto;
+  border-radius:6px 6px 0 0; background:rgba(255,255,255,.7); color:#d93025;
+}
+.gd-thumb-ph svg{ width:40px; height:40px; opacity:.55; }
+.gd-thumb.is-loading .gd-thumb-ph{
+  background:linear-gradient(100deg, rgba(255,255,255,.55) 30%, rgba(255,255,255,.95) 50%, rgba(255,255,255,.55) 70%);
+  background-size:300% 100%; animation:gdShimmer 1.3s linear infinite;
+}
+@keyframes gdShimmer{ from{ background-position:100% 0; } to{ background-position:-100% 0; } }
+.gd-chip{
+  position:absolute; top:10px; left:10px; z-index:1;
+  padding:4px 9px; border-radius:100px; background:var(--white); color:#d93025;
+  font-size:10px; font-weight:800; letter-spacing:.05em;
+  box-shadow:0 2px 8px rgba(10,10,40,.12);
+}
+
+.gd-card-body{ padding:14px 16px 4px; flex:1; min-width:0; }
+.gd-card-body h3{
+  font-family:var(--sans); font-size:14.5px; font-weight:700; color:var(--ink); line-height:1.35;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.gd-meta{
+  display:inline-block; margin-top:6px; font-size:10.5px; font-weight:700;
+  letter-spacing:.04em; text-transform:uppercase; color:var(--blue-600);
+}
+body.dark .gd-meta{ color:var(--blue-300); }
+
+.gd-card-actions{ display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:12px 16px 16px; }
+.gd-card-actions .btn{ display:inline-flex; align-items:center; gap:7px; text-decoration:none; }
+.gd-card-actions .btn svg{ width:14px; height:14px; }
+.gd-icon-btn{
+  width:34px; height:34px; border-radius:10px; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1.5px solid var(--line); background:var(--white); color:var(--grey); cursor:pointer;
+  transition:border-color .18s var(--ease), color .18s var(--ease), background .18s var(--ease);
+}
+.gd-icon-btn svg{ width:15px; height:15px; }
+.gd-icon-btn:hover{ border-color:var(--blue-300); color:var(--blue-600); background:var(--blue-50); }
+.gd-icon-btn.danger:hover{ border-color:#e2554a; color:#e2554a; background:#fdf1ef; }
+body.dark .gd-icon-btn.danger:hover{ background:rgba(226,85,74,.14); }
+
+/* ---------- Subir ---------- */
+.gd-add{
+  align-items:center; justify-content:center; gap:8px; min-height:200px;
+  padding:24px 18px; cursor:pointer; text-align:center; font-family:var(--sans);
+  border-style:dashed; border-color:var(--blue-300); background:transparent;
+}
+.gd-add:hover{ background:var(--blue-50); }
+.gd-add:disabled{ opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+.gd-add-ico{
+  width:46px; height:46px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--blue-50); color:var(--blue-600);
+}
+.gd-add-ico svg{ width:22px; height:22px; }
+.gd-add strong{ font-size:14px; color:var(--ink); }
+.gd-add small{ font-size:12px; color:var(--grey); line-height:1.45; max-width:220px; }
+
+/* ---------- Confirmar ---------- */
+.gd-ask-text{ font-size:13.5px; line-height:1.55; color:var(--ink); }
+.gd-ask-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+
+/* ---------- Toast ---------- */
+.gd-toast{
+  position:fixed; left:50%; bottom:28px; z-index:200;
+  transform:translate(-50%, 20px); opacity:0; pointer-events:none;
+  padding:12px 20px; border-radius:100px; max-width:min(520px, calc(100vw - 32px));
+  background:var(--ink); color:var(--white); font-size:13px; font-weight:600;
+  box-shadow:var(--shadow-lg);
+  transition:opacity .25s var(--ease), transform .25s var(--ease);
+}
+.gd-toast.is-on{ opacity:1; transform:translate(-50%, 0); }
+
+/* ---------- Contabilidad (vacía) ---------- */
+.gd-soon{
+  display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;
+  padding:60px 24px;
+}
+.gd-soon-ico{
+  width:56px; height:56px; border-radius:16px; margin-bottom:6px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--blue-50); color:var(--blue-600);
+}
+.gd-soon-ico svg{ width:26px; height:26px; }
+.gd-soon h2{ font-family:var(--sans); font-size:17px; font-weight:700; color:var(--ink); }
+.gd-soon p{ font-size:13px; color:var(--grey); max-width:380px; line-height:1.55; }
+
+@media (max-width:640px){
+  .gd-grid{ grid-template-columns:1fr; padding:16px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .gd-role, .gd-card{ animation:none; }
+  .gd-thumb.is-loading .gd-thumb-ph{ animation:none; }
+}

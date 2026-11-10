@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guías — Admin · Avante Optics</title>
+<link rel="icon" type="image/png" href="/static/images/avante-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin/userbar.css">
+<link rel="stylesheet" href="/static/css/admin/sidebar.css">
+<link rel="stylesheet" href="/static/css/admin/base-de-datos.css">
+<link rel="stylesheet" href="/static/css/admin/guias.css">
+</head>
+<body class="cuenta-body">
+
+{{template "admin-userbar" .}}
+
+<div class="cuenta-shell">
+  {{template "admin-sidebar" .}}
+
+  <main class="cuenta-main gd-page" id="gdPage">
+    <div class="cuenta-header admin-header-row">
+      <div>
+        <h1>Guías</h1>
+        <p>Los manuales en PDF de cada rol. Sube la guía en la sección del rol; puedes arrastrar el archivo encima.</p>
+      </div>
+      <span class="gd-total" id="gdTotal"></span>
+    </div>
+
+    <p class="gd-alert" id="gdAlert" hidden></p>
+    <div class="gd-roles" id="gdRoles" aria-busy="true">
+      <p class="gd-loading">Cargando guías…</p>
+    </div>
+
+    <input type="file" id="gdInput" accept="application/pdf,.pdf" multiple hidden>
+  </main>
+</div>
+
+<!-- Confirmar (eliminar / reemplazar) -->
+<div class="admin-modal-overlay" id="gdAsk" aria-hidden="true">
+  <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="gdAskTitle">
+    <div class="admin-modal-head">
+      <h3 id="gdAskTitle">¿Seguro?</h3>
+      <button type="button" class="admin-modal-close" data-ask="no" aria-label="Cerrar"><i data-feather="x"></i></button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="gd-ask-text" id="gdAskText"></p>
+      <div class="gd-ask-actions">
+        <button type="button" class="btn small" data-ask="no">Cancelar</button>
+        <button type="button" class="btn small solid" data-ask="yes" id="gdAskOk">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="gd-toast" id="gdToast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="/static/js/admin/sidebar.js"></script>
+<script src="/static/js/admin/userbar.js"></script>
+<script src="/static/js/admin/guias.js"></script>
+</body>
+</html>

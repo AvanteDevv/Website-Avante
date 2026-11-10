@@ -541,6 +541,9 @@ func main() {
 		adminGroup.GET("/configuracion", onlyAdmin, adminHandlers.Settings)
 		adminGroup.POST("/configuracion/horarios", onlyAdmin, adminHandlers.UpdateAgendaHours)
 		adminGroup.GET("/ventas", onlyAdmin, handlers.AdminVentasPage)
+		// Contabilidad (todavía vacía) y Guías (los PDF de cada rol).
+		adminGroup.GET("/contabilidad", onlyAdmin, handlers.AdminContabilidadPage)
+		adminGroup.GET("/guias", onlyAdmin, handlers.AdminGuiasPage)
 		adminGroup.GET("/pedidos", pedidosStaff, func(c *gin.Context) {
 			c.HTML(http.StatusOK, "pedidos.html", gin.H{
 				"ActivePage": "admin-pedidos",
@@ -992,6 +995,12 @@ func main() {
 		// Bitácora del staff
 		apiAdmin.GET("/bitacora", onlyAdmin, adminHandlers.ListBitacora)
 		apiAdmin.GET("/bitacora/personas", onlyAdmin, adminHandlers.BitacoraPeople)
+
+		// Guías por rol (handlers/guias.go)
+		apiAdmin.GET("/guias", onlyAdmin, handlers.GuiasList)
+		apiAdmin.POST("/guias", onlyAdmin, handlers.GuiasUpload)
+		apiAdmin.DELETE("/guias", onlyAdmin, handlers.GuiasDelete)
+		apiAdmin.GET("/guias/archivo", onlyAdmin, handlers.GuiasFile)
 	}
 
 	// Client JSON API — llamada desde index.js / ecommerce.js (el corazón
