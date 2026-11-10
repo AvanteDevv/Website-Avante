@@ -1112,12 +1112,21 @@ window.CitasFiltro = (function(){
         id: row.dataset.id,
         status: row.dataset.status,
         disp: CitaOrigen.ofRow(row),
+        orig: CitaOrigen.originKey(row),
         date: row.dataset.date,   // "YYYY-MM-DD"
         time: row.dataset.time || '',
         nombre: row.dataset.nombre ? row.dataset.nombre.trim() : '',
         tag: row.dataset.tag || ''
       };
     }).filter(function(ev){ return !!ev.date; });
+  }
+
+  // Dos bolitas por cita: el estado (asistió, no asistió, cancelada,
+  // pendiente) y quién la hizo (por la web o por recepción). Las que
+  // todavía no pasan solo llevan la de quién la hizo.
+  function calDots(ev){
+    var st = ev.status && ev.status !== 'verificada' ? '<i class="cal-dot ' + ev.status + '" title="' + (CitaOrigen.LABELS[ev.status] || '') + '"></i>' : '';
+    return '<span class="cal-dots">' + st + '<i class="cal-dot ' + ev.orig + '" title="' + (ev.orig === 'recepcion' ? 'Por recepción' : 'Por la web') + '"></i></span>';
   }
 
   var calGrid = document.getElementById('calGrid');
@@ -1179,7 +1188,7 @@ window.CitasFiltro = (function(){
         var shown = dayEvents.slice(0, 3);
         shown.forEach(function(ev){
           html += '<button type="button" class="cal-event-chip" data-event-id="' + ev.id + '">' +
-                  '<i class="cal-dot ' + (ev.disp || ev.status) + '"></i><span class="chip-label">' + (ev.time || '') + '</span>' + (ev.tag ? CitaTags.icon(ev.tag, 'in-chip') : '') + '</button>';
+                  calDots(ev) + '<span class="chip-label">' + (ev.time || '') + '</span>' + (ev.tag ? CitaTags.icon(ev.tag, 'in-chip') : '') + '</button>';
         });
         if (dayEvents.length > 3) {
           html += '<button type="button" class="cal-day-more" data-more-date="' + cellISO + '">+' + (dayEvents.length - 3) + ' más</button>';
@@ -1592,7 +1601,7 @@ window.CitasFiltro = (function(){
       dayModalTitle.textContent = parts[2] + ' de ' + MESES[parts[1] - 1] + ' de ' + parts[0];
       dayList.innerHTML = dayEvents.map(function(ev){
         return '<button type="button" class="day-events-item" data-event-id="' + ev.id + '">' +
-               '<i class="cal-dot ' + (ev.disp || ev.status) + '"></i>' +
+               calDots(ev) +
                '<span class="day-events-time">' + (ev.time || '') + '</span>' +
                '<span class="day-events-name">' + (ev.nombre || '') + '</span>' +
                (ev.tag ? CitaTags.icon(ev.tag) : '') +

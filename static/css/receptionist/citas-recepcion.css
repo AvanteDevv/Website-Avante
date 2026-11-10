@@ -1838,9 +1838,13 @@ body.dark .cev-row--who{ background:rgba(137,146,255,.1); }
 }
 
 /* Cita agendada por recepción (estado "verificada" hecha desde el panel) */
-.admin-badge.verificada.recepcion{ background:#ffedd5; color:#c2410c; }
-body.dark .admin-badge.verificada.recepcion{ background:rgba(249,115,22,.2); color:#fdba74; }
-.cal-dot.recepcion{ background:#ea580c; }
+.admin-badge.verificada.recepcion{ background:#f3e7da; color:#7a4a22; }
+body.dark .admin-badge.verificada.recepcion{ background:rgba(160,104,58,.26); color:#e2b98c; }
+.cal-dot.recepcion{ background:#8b5a2b; }
+body.dark .cal-dot.recepcion{ background:#b7804f; }
+/* Dos bolitas por cita en el calendario: estado + quién la hizo */
+.cal-dots{ display:inline-flex; align-items:center; justify-content:flex-end; gap:3px; flex-shrink:0; min-width:17px; }
+.day-events-item .cal-dots{ min-width:19px; }
 /* "Por la web" / "Por recepción": se escriben tal cual (sin mayúscula en cada palabra) */
 .admin-badge.verificada{ text-transform:none; }
 /* ===========================================================

@@ -573,10 +573,19 @@ window.CitasFiltro = (function(){
         id: row.dataset.id,
         status: row.dataset.status,
         disp: CitaOrigen.ofRow(row),
+        orig: CitaOrigen.originKey(row),
         date: row.dataset.date,   // "YYYY-MM-DD"
         time: row.dataset.time || ''
       };
     }).filter(function(ev){ return !!ev.date; });
+  }
+
+  // Dos bolitas por cita: el estado (asistió, no asistió, cancelada,
+  // pendiente) y quién la hizo (por la web o por recepción). Las que
+  // todavía no pasan solo llevan la de quién la hizo.
+  function calDots(ev){
+    var st = ev.status && ev.status !== 'verificada' ? '<i class="cal-dot ' + ev.status + '" title="' + (CitaOrigen.LABELS[ev.status] || '') + '"></i>' : '';
+    return '<span class="cal-dots">' + st + '<i class="cal-dot ' + ev.orig + '" title="' + (ev.orig === 'recepcion' ? 'Por recepción' : 'Por la web') + '"></i></span>';
   }
 
   var calGrid = document.getElementById('calGrid');
@@ -636,7 +645,7 @@ window.CitasFiltro = (function(){
         var shown = (cellISO === expandedDate) ? dayEvents : dayEvents.slice(0, 3);
         shown.forEach(function(ev){
           html += '<button type="button" class="cal-event-chip" data-event-id="' + ev.id + '">' +
-                  '<i class="cal-dot ' + (ev.disp || ev.status) + '"></i><span class="chip-label">' + (ev.time || '') + '</span></button>';
+                  calDots(ev) + '<span class="chip-label">' + (ev.time || '') + '</span></button>';
         });
         if (dayEvents.length > 3 && cellISO !== expandedDate) {
           html += '<button type="button" class="cal-day-more" data-more-date="' + cellISO + '">+' + (dayEvents.length - 3) + ' más</button>';
