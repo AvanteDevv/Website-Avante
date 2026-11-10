@@ -995,9 +995,9 @@ body.citas-focus-mode .cf-tipos-head{ display:none !important; }
 }
 
 /* Cita agendada por recepción (estado "verificada" hecha desde el panel) */
-.admin-badge.verificada.recepcion{ background:#efe7fd; color:#6d28d9; }
-body.dark .admin-badge.verificada.recepcion{ background:rgba(139,92,246,.2); color:#c4b5fd; }
-.cal-dot.recepcion{ background:#7c3aed; }
+.admin-badge.verificada.recepcion{ background:#ffedd5; color:#c2410c; }
+body.dark .admin-badge.verificada.recepcion{ background:rgba(249,115,22,.2); color:#fdba74; }
+.cal-dot.recepcion{ background:#ea580c; }
 /* "Por la web" / "Por recepción": se escriben tal cual (sin mayúscula en cada palabra) */
 .admin-badge.verificada{ text-transform:none; }
 
