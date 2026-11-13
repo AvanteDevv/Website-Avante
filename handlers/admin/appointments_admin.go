@@ -278,8 +278,8 @@ func CreateAppointmentByStaff(c *gin.Context) {
 		return
 	}
 
-	if !models.IsAgendaDayOpen(date) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese día no se dan citas. Elige otro día."})
+	if msg := models.AgendaDayClosedMessage(date); msg != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 
@@ -410,9 +410,11 @@ func UpdateAppointmentByStaff(c *gin.Context) {
 	}
 	moved := current.Date.Format("2006-01-02") != input.Date || oldTime != input.Time
 
-	if moved && !models.IsAgendaDayOpen(date) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese día no se dan citas. Elige otro día."})
-		return
+	if moved {
+		if msg := models.AgendaDayClosedMessage(date); msg != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+			return
+		}
 	}
 	if moved {
 		booked, err := models.IsSlotBookedExcluding(date, input.Time, id)

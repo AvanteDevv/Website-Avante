@@ -3,6 +3,8 @@ package admin
 import (
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -75,4 +77,78 @@ func UpdateAgendaHours(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Horario actualizado."})
+}
+
+// ---------- Días cerrados ----------
+// Fechas sueltas en que la óptica no abre (día inhábil, inventario, un
+// evento…). Se administran en el modal "Horario de citas" del admin.
+
+func closedDayStaffName(c *gin.Context) string {
+	v, _ := c.Get("staff_name")
+	s, _ := v.(string)
+	if s == "" {
+		s = "Admin"
+	}
+	return s
+}
+
+// ListClosedDays — GET /admin/configuracion/dias-cerrados
+// Regresa los días cerrados de hoy en adelante.
+func ListClosedDays(c *gin.Context) {
+	from := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	days, err := models.ListAgendaClosedDays(from)
+	if err != nil {
+		log.Printf("admin.ListClosedDays: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar los días cerrados."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": days})
+}
+
+type closedDayInput struct {
+	Date   string `json:"date"`
+	Reason string `json:"reason"`
+}
+
+// AddClosedDay — POST /admin/configuracion/dias-cerrados
+// {"date":"2026-11-20","reason":"Inventario"}. Si ese día ya tiene
+// citas, igual se cierra, pero regresa cuántas para avisarle al admin.
+func AddClosedDay(c *gin.Context) {
+	var in closedDayInput
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	date, err := time.Parse("2006-01-02", strings.TrimSpace(in.Date))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige una fecha."})
+		return
+	}
+	if date.Format("2006-01-02") < time.Now().AddDate(0, 0, -1).Format("2006-01-02") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Esa fecha ya pasó."})
+		return
+	}
+	if err := models.SetAgendaClosedDay(date, in.Reason, closedDayStaffName(c)); err != nil {
+		log.Printf("admin.AddClosedDay: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el día cerrado."})
+		return
+	}
+	n, _ := models.CountActiveAppointmentsOn(date)
+	c.JSON(http.StatusOK, gin.H{"message": "Día cerrado.", "citas": n})
+}
+
+// DeleteClosedDay — DELETE /admin/configuracion/dias-cerrados/:fecha
+// Vuelve a abrir ese día.
+func DeleteClosedDay(c *gin.Context) {
+	date, err := time.Parse("2006-01-02", c.Param("fecha"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha inválida."})
+		return
+	}
+	if _, err := models.DeleteAgendaClosedDay(date); err != nil {
+		log.Printf("admin.DeleteClosedDay: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo quitar el día cerrado."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Día abierto otra vez."})
 }

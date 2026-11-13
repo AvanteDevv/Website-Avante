@@ -714,3 +714,24 @@ footer{
    modal no crezca de más (una sola columna en celulares angostos). */
 .qopt-list--2col{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
 @media (max-width:420px){ .qopt-list--2col{ grid-template-columns:1fr; } }
+
+/* Día cerrado por la óptica (día inhábil, inventario…): en rojo y tachado,
+   no se puede elegir. Abajo del calendario sale el aviso con el motivo. */
+.appt-day.closed-date{
+  color:#b42318; background:#fef3f2; text-decoration:line-through; cursor:not-allowed; font-weight:700;
+}
+.appt-day.closed-date:hover{ background:#fee4e2; }
+.appt-day.closed-date::before{
+  content:''; position:absolute; top:5px; right:7px; width:5px; height:5px; border-radius:50%; background:#f04438;
+}
+.appt-closed-notes{ display:grid; gap:6px; margin-top:12px; }
+.appt-closed-notes[hidden]{ display:none; }
+.appt-closed-note{
+  margin:0; padding:8px 12px 8px 30px; border-radius:12px; position:relative;
+  font-size:12.5px; line-height:1.4; font-weight:600; color:#b42318; background:#fef3f2; border:1px solid #fecdca;
+  transition:box-shadow .2s ease, transform .2s ease;
+}
+.appt-closed-note::before{
+  content:''; position:absolute; left:12px; top:50%; width:8px; height:8px; margin-top:-4px; border-radius:50%; background:#f04438;
+}
+.appt-closed-note.is-active{ box-shadow:0 0 0 3px rgba(240,68,56,.25); transform:translateY(-1px); }

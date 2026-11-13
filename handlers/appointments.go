@@ -234,8 +234,8 @@ func CreateAppointment(c *gin.Context) {
 
 	// Días que no se abre (p. ej. domingo): se rechaza aunque alguien
 	// mande la petición directo, sin pasar por el calendario.
-	if !models.IsAgendaDayOpen(date) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese día no se dan citas. Elige otro día."})
+	if msg := models.AgendaDayClosedMessage(date); msg != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 

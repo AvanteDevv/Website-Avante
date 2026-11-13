@@ -1,3 +1,19 @@
+/* Días cerrados (día inhábil, inventario…) de "Horario de citas":
+   { "2026-11-20": "Inventario" }. Se cargan de /api/horarios al abrir la
+   página y cada vez que se agrega o quita uno en el modal. */
+window.AvanteClosedDays = window.AvanteClosedDays || {};
+function citaClosedReason(isoStr){
+  var m = window.AvanteClosedDays || {};
+  return Object.prototype.hasOwnProperty.call(m, isoStr) ? (m[isoStr] || '') : null;
+}
+function citaEscHtml(s){ return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function citaSetClosedDays(list){
+  var map = {};
+  (list || []).forEach(function(d){ if (d && d.date) map[d.date] = d.reason || ''; });
+  window.AvanteClosedDays = map;
+  document.dispatchEvent(new CustomEvent('avante:closeddays'));
+}
+
 /* =========================================================
    ADMIN — Citas
    Los datos ya vienen renderizados por el servidor (MySQL, vía
@@ -639,8 +655,10 @@ window.CitasFiltro = (function(){
         var dayEvents = byDate[cellISO] || [];
         var isToday = cellISO === todayStr;
 
-        html += '<div class="cal-day' + (outside ? ' is-outside' : '') + (isToday ? ' is-today' : '') + '" data-date="' + cellISO + '">';
+        var closedReason = citaClosedReason(cellISO);
+        html += '<div class="cal-day' + (outside ? ' is-outside' : '') + (isToday ? ' is-today' : '') + (closedReason !== null ? ' is-closed is-closed-date' : '') + '" data-date="' + cellISO + '"' + (closedReason !== null ? ' title="' + citaEscHtml('Cerrado' + (closedReason ? ': ' + closedReason : '') + ' — no se dan citas') + '"' : '') + '>';
         html += '<span class="cal-day-num">' + dayNum + '</span>';
+        if (closedReason !== null) html += '<span class="cal-day-closed">Cerrado' + (closedReason ? ' · ' + citaEscHtml(closedReason) : '') + '</span>';
         html += '<div class="cal-day-events">';
         var shown = (cellISO === expandedDate) ? dayEvents : dayEvents.slice(0, 3);
         shown.forEach(function(ev){
@@ -802,6 +820,14 @@ window.CitasFiltro = (function(){
 
       // Resumen por estado
       dvSummary.innerHTML = '';
+      var dvClosed = citaClosedReason(dvDate);
+      if (dvClosed !== null) {
+        var cchip = document.createElement('span');
+        cchip.className = 'day-view-chip is-closed-chip';
+        cchip.textContent = 'Óptica cerrada' + (dvClosed ? ' · ' + dvClosed : '');
+        cchip.title = 'Día cerrado desde "Horario de citas": no se agendan citas';
+        dvSummary.appendChild(cchip);
+      }
       var counts = {};
       // Primero quién hizo la cita (todas las del día), luego el estado.
       var origCounts = {};
@@ -921,6 +947,17 @@ window.CitasFiltro = (function(){
       setInterval(function(){ if (!dvView.hidden && dvDate === todayISO()) renderDay(); }, 60000);
     }
 
+    // Días cerrados: al cargarlos (o al cambiar en el modal) se repintan
+    // el calendario y la vista de Día.
+    document.addEventListener('avante:closeddays', function(){
+      renderCalendar();
+      if (dvView && !dvView.hidden) renderDay();
+    });
+    fetch('/api/horarios', { headers: { Accept: 'application/json' } })
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .then(function(data){ if (data && Array.isArray(data.closed)) citaSetClosedDays(data.closed); })
+      .catch(function(){ /* sin días cerrados */ });
+
     calGrid.addEventListener('click', function(e){
       var chip = e.target.closest('[data-event-id]');
       if (chip) { openEventModal(chip.dataset.eventId); return; }
@@ -1026,6 +1063,103 @@ window.CitasFiltro = (function(){
       b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
     });
   }
+
+  /* ---------- días cerrados (día inhábil, inventario, un evento…) ---------- */
+  var cdList = document.getElementById('cdList');
+  var cdDate = document.getElementById('cdDate');
+  var cdReason = document.getElementById('cdReason');
+  var cdAdd = document.getElementById('cdAdd');
+  var cdMsg = document.getElementById('cdMsg');
+  var CD_DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  var CD_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function cdLabel(isoStr){
+    var p = isoStr.split('-').map(Number);
+    var d = new Date(p[0], p[1] - 1, p[2]);
+    var txt = CD_DIAS[d.getDay()] + ' ' + d.getDate() + ' de ' + CD_MESES[d.getMonth()];
+    if (d.getFullYear() !== new Date().getFullYear()) txt += ' de ' + d.getFullYear();
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  }
+  function cdShowMsg(text, kind){
+    if (!cdMsg) return;
+    cdMsg.textContent = text;
+    cdMsg.className = 'closed-days-msg ' + (kind || '');
+    cdMsg.hidden = !text;
+  }
+  function cdRender(items){
+    if (!cdList) return;
+    if (!items.length) {
+      cdList.innerHTML = '<li class="closed-days-empty">No hay días cerrados próximos.</li>';
+      return;
+    }
+    cdList.innerHTML = items.map(function(it){
+      return '<li class="closed-day-item">' +
+        '<span class="closed-day-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M10 14l4 4M14 14l-4 4"/></svg></span>' +
+        '<span class="closed-day-text"><b>' + citaEscHtml(cdLabel(it.date)) + '</b>' +
+        '<small>' + (it.reason ? citaEscHtml(it.reason) : 'Sin motivo') + '</small></span>' +
+        '<button type="button" class="closed-day-del" data-del="' + it.date + '" title="Volver a abrir este día" aria-label="Volver a abrir ' + citaEscHtml(cdLabel(it.date)) + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+        '</li>';
+    }).join('');
+  }
+  function cdLoad(){
+    return fetch('/admin/configuracion/dias-cerrados', { headers: { Accept: 'application/json' } })
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .then(function(data){
+        if (!data) return;
+        var items = data.items || [];
+        cdRender(items);
+        citaSetClosedDays(items);
+      })
+      .catch(function(){ /* se queda como estaba */ });
+  }
+  if (cdAdd) {
+    cdAdd.addEventListener('click', function(){
+      var date = cdDate ? cdDate.value : '';
+      if (!date) { cdShowMsg('Elige el día que va a estar cerrado.', 'error'); return; }
+      var t = new Date();
+      var todayStr = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+      if (date < todayStr) { cdShowMsg('Esa fecha ya pasó.', 'error'); return; }
+      cdAdd.disabled = true;
+      fetch('/admin/configuracion/dias-cerrados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: date, reason: cdReason ? cdReason.value.trim() : '' })
+      })
+        .then(function(res){
+          return res.json().catch(function(){ return {}; }).then(function(d){
+            if (!res.ok) throw new Error(d.error || 'No se pudo cerrar el día.');
+            var n = Number(d.citas || 0);
+            if (n > 0) cdShowMsg('Listo. Ojo: ese día ya hay ' + (n === 1 ? '1 cita agendada' : n + ' citas agendadas') + '; avísales o reagéndalas.', 'warn');
+            else cdShowMsg('Listo: ' + cdLabel(date) + ' queda cerrado.', 'ok');
+            if (cdReason) cdReason.value = '';
+            if (cdDate) { cdDate.value = ''; var pk = document.getElementById('cdDatePicker'); if (pk && pk._label) pk._label(); }
+            return cdLoad();
+          });
+        })
+        .catch(function(err){ cdShowMsg(err.message || 'No se pudo cerrar el día.', 'error'); })
+        .finally(function(){ cdAdd.disabled = false; });
+    });
+  }
+  if (cdReason && cdAdd) {
+    cdReason.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); cdAdd.click(); } });
+  }
+  if (cdList) {
+    cdList.addEventListener('click', function(e){
+      var b = e.target.closest('[data-del]');
+      if (!b) return;
+      var date = b.dataset.del;
+      if (!confirm('¿Volver a abrir el ' + cdLabel(date).toLowerCase() + '? Los clientes podrán agendar ese día.')) return;
+      b.disabled = true;
+      fetch('/admin/configuracion/dias-cerrados/' + encodeURIComponent(date), { method: 'DELETE' })
+        .then(function(res){
+          if (!res.ok) throw new Error('No se pudo abrir el día.');
+          cdShowMsg(cdLabel(date) + ' vuelve a estar abierto.', 'ok');
+          return cdLoad();
+        })
+        .catch(function(err){ b.disabled = false; cdShowMsg(err.message, 'error'); });
+    });
+  }
+  openBtn.addEventListener('click', function(){ cdShowMsg('', ''); cdLoad(); });
 
   var statusEl = document.getElementById('horariosStatus');
   var submitBtn = document.getElementById('horariosSubmit');

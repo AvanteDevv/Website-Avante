@@ -133,7 +133,11 @@ func SetAgendaDays(days []int) error {
 
 // IsAgendaDayOpen indica si ese día se dan citas según los días
 // configurados. Si no se pudieran leer los días, no bloquea (true).
+// También regresa false si esa fecha está marcada como día cerrado.
 func IsAgendaDayOpen(date time.Time) bool {
+	if _, closed := GetAgendaClosedDay(date); closed {
+		return false
+	}
 	days, err := GetAgendaDays()
 	if err != nil {
 		return true

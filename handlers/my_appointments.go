@@ -108,8 +108,8 @@ func RescheduleMyAppointment(c *gin.Context) {
 		return
 	}
 
-	if !models.IsAgendaDayOpen(date) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ese día no se dan citas. Elige otro día."})
+	if msg := models.AgendaDayClosedMessage(date); msg != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 

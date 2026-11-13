@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -25,5 +26,17 @@ func GetAgendaHours(c *gin.Context) {
 	// days: días de la semana en que se dan citas (0 = domingo … 6 =
 	// sábado). Los calendarios deshabilitan los demás.
 	days, _ := models.GetAgendaDays()
-	c.JSON(http.StatusOK, gin.H{"open": open, "close": close, "days": days})
+	// closed: fechas sueltas en que la óptica no abre (día inhábil,
+	// inventario…), de ayer en adelante, con su motivo. Los calendarios
+	// las muestran como «Cerrado» y no dejan elegirlas.
+	from := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	closed, err := models.ListAgendaClosedDays(from)
+	if err != nil {
+		closed = []models.AgendaClosedDay{}
+	}
+	// Es público: no se manda quién lo cerró.
+	for i := range closed {
+		closed[i].CreatedBy = ""
+	}
+	c.JSON(http.StatusOK, gin.H{"open": open, "close": close, "days": days, "closed": closed})
 }

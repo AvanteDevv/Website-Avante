@@ -252,6 +252,41 @@ let HOURS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13
 // Días de la semana en que se dan citas (0 = domingo … 6 = sábado). Se
 // actualiza con lo que diga /api/horarios ("Horario de citas" del admin).
 let OPEN_DAYS = [1,2,3,4,5,6];
+// Días cerrados (día inhábil, inventario, un evento…) que pone el admin:
+// { "2026-11-20": "Inventario" }. Salen como «Cerrado» y no se eligen.
+let CLOSED_DATES = {};
+const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const closedReasonOf = (d) => Object.prototype.hasOwnProperty.call(CLOSED_DATES, isoOf(d)) ? (CLOSED_DATES[isoOf(d)] || '') : null;
+const WEEKDAYS_LOWER = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function closedText(d, reason){
+  const day = WEEKDAYS_LOWER[d.getDay()];
+  return `${day.charAt(0).toUpperCase() + day.slice(1)} ${d.getDate()} de ${MONTHS[d.getMonth()]}: la óptica estará cerrada${reason ? ' · ' + reason : ''}.`;
+}
+// Debajo del calendario: los días cerrados del mes que se está viendo.
+function renderClosedNotes(activeIso){
+  let box = document.getElementById('apptClosedNotes');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'apptClosedNotes';
+    box.className = 'appt-closed-notes';
+    box.setAttribute('aria-live', 'polite');
+    apptDayGrid.insertAdjacentElement('afterend', box);
+  }
+  const items = Object.keys(CLOSED_DATES).sort().filter(k => {
+    const [y,m,d] = k.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    return y === viewYear && (m-1) === viewMonth && dt >= today;
+  });
+  box.innerHTML = '';
+  items.forEach(k => {
+    const [y,m,d] = k.split('-').map(Number);
+    const p = document.createElement('p');
+    p.className = 'appt-closed-note' + (k === activeIso ? ' is-active' : '');
+    p.textContent = closedText(new Date(y, m-1, d), CLOSED_DATES[k]);
+    box.appendChild(p);
+  });
+  box.hidden = !items.length;
+}
 
 function generateHourSlots(open, close, stepMinutes){
   const toMinutes = (t) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
@@ -273,6 +308,10 @@ async function loadAgendaHours(){
       }
       if(Array.isArray(data.days) && data.days.length){
         OPEN_DAYS = data.days.map(Number);
+      }
+      if(Array.isArray(data.closed)){
+        CLOSED_DATES = {};
+        data.closed.forEach(c => { if(c && c.date) CLOSED_DATES[c.date] = c.reason || ''; });
       }
     }
   } catch(e){ /* si falla, se usa el horario por defecto de arriba */ }
@@ -352,6 +391,18 @@ function renderCalendar(){
       btn.className = 'appt-day';
       btn.textContent = c.day;
       if(sameDay(c.date, today)) btn.classList.add('today');
+      // Día cerrado por el admin (día inhábil, inventario…): se ve en rojo
+      // con «Cerrado»; al tocarlo se resalta el aviso de abajo.
+      const closedReason = closedReasonOf(c.date);
+      if(closedReason !== null){
+        btn.classList.add('closed-date');
+        btn.setAttribute('aria-disabled', 'true');
+        btn.title = 'Cerrado' + (closedReason ? ': ' + closedReason : '');
+        btn.setAttribute('aria-label', c.day + ' — la óptica estará cerrada' + (closedReason ? ' (' + closedReason + ')' : ''));
+        btn.addEventListener('click', () => renderClosedNotes(isoOf(c.date)));
+        apptDayGrid.appendChild(btn);
+        return;
+      }
       // Día que no se abre (p. ej. domingo): se ve tachado y no se puede elegir.
       if(!OPEN_DAYS.includes(c.date.getDay())){
         btn.classList.add('closed');
@@ -367,6 +418,7 @@ function renderCalendar(){
       apptDayGrid.appendChild(btn);
     });
   }
+  renderClosedNotes();
 }
 
 function triggerSideAnim(){

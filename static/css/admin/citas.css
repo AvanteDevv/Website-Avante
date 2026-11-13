@@ -1012,3 +1012,18 @@ td > .cita-origen-badge, #calEventOrigen{ margin-right:6px; }
 .cev-row--who{ flex-wrap:wrap; row-gap:8px; }
 .cev-row--who .cev-txt{ flex:1 1 150px; min-width:150px; }
 .cev-row--who .cev-txt strong{ overflow-wrap:break-word; word-break:normal; }
+
+/* Día cerrado por el admin (día inhábil, inventario…) */
+.cal-day.is-closed{
+  background:repeating-linear-gradient(135deg, transparent 0 8px, rgba(0,0,0,.025) 8px 16px);
+}
+.cal-day.is-closed .cal-day-num{ opacity:.45; text-decoration:line-through; }
+body.dark .cal-day.is-closed{ background:repeating-linear-gradient(135deg, transparent 0 8px, rgba(255,255,255,.04) 8px 16px); }
+.cal-day-closed{
+  display:block; margin-top:3px; padding:2px 6px; border-radius:6px; max-width:100%;
+  font-size:10px; font-weight:700; line-height:1.3; color:#b42318; background:#fef3f2;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+body.dark .cal-day-closed{ color:#fda29b; background:rgba(240,68,56,.14); }
+.day-view-chip.is-closed-chip{ color:#b42318; background:#fef3f2; border-color:#fecdca; font-weight:700; }
+body.dark .day-view-chip.is-closed-chip{ color:#fda29b; background:rgba(240,68,56,.14); border-color:rgba(240,68,56,.3); }
