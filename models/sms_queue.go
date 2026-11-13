@@ -54,12 +54,18 @@ func EnqueueSMS(celular, mensaje string) (int64, error) {
 
 // GetNextPendingSMS regresa el mensaje pendiente más antiguo (FIFO), o
 // nil si no hay ninguno. La app Android llama a esto en cada "poll".
+//
+// Solo toma los de los últimos 10 minutos: el código vence a los 5, así
+// que uno más viejo ya no le sirve a nadie. Así, si el celular estuvo
+// apagado o el SMS estuvo desactivado un tiempo, al volver no le llega
+// al cliente una ráfaga de códigos viejos.
 func GetNextPendingSMS() (*SMSMessage, error) {
 	var m SMSMessage
 	err := db.DB.QueryRow(
 		`SELECT id, celular, mensaje, status, created_at, sent_at
 		 FROM sms_queue
 		 WHERE status = 'pendiente'
+		   AND created_at >= NOW() - INTERVAL 10 MINUTE
 		 ORDER BY created_at ASC
 		 LIMIT 1`,
 	).Scan(&m.ID, &m.Celular, &m.Mensaje, &m.Status, &m.CreatedAt, &m.SentAt)

@@ -428,7 +428,34 @@
           <p class="closed-days-msg" id="cdMsg" hidden></p>
           <ul class="closed-days-list" id="cdList"></ul>
         </div>
+        {{/* Código por SMS: prender/apagar sin tocar código. Apagado, nadie
+             recibe código (agendar, Mis citas, crear cuenta) y la app
+             Android del celular-gateway sigue conectada sin mandar nada. */}}
+        <div class="settings-field sms-toggle-field">
+          <span>Código de verificación por SMS</span>
+          <label class="sms-toggle" for="smsToggle">
+            <input type="checkbox" id="smsToggle" role="switch">
+            <span class="sms-toggle-track" aria-hidden="true"><span class="sms-toggle-thumb"></span></span>
+            <span class="sms-toggle-text">
+              <b id="smsToggleState">—</b>
+              <small id="smsToggleHint">Cargando…</small>
+            </span>
+          </label>
+          <p class="closed-days-msg" id="smsToggleMsg" hidden></p>
+        </div>
         <style>
+          .sms-toggle-field{ margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
+          .sms-toggle{ display:flex; align-items:center; gap:12px; margin-top:8px; padding:12px; border-radius:14px; border:1.5px solid var(--line); cursor:pointer; user-select:none; }
+          .sms-toggle input{ position:absolute; opacity:0; pointer-events:none; }
+          .sms-toggle-track{ position:relative; width:44px; height:26px; flex:0 0 44px; border-radius:100px; background:var(--line); transition:background .2s ease; }
+          .sms-toggle-thumb{ position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.2); transition:transform .22s cubic-bezier(.3,1.4,.5,1); }
+          .sms-toggle input:checked + .sms-toggle-track{ background:var(--accent); }
+          .sms-toggle input:checked + .sms-toggle-track .sms-toggle-thumb{ transform:translateX(18px); }
+          .sms-toggle input:focus-visible + .sms-toggle-track{ outline:2px solid var(--accent); outline-offset:2px; }
+          .sms-toggle input:disabled + .sms-toggle-track{ opacity:.55; }
+          .sms-toggle-text{ display:flex; flex-direction:column; line-height:1.35; min-width:0; }
+          .sms-toggle-text b{ font-size:13px; color:var(--ink); }
+          .sms-toggle-text small{ font-size:12px; color:var(--muted); }
           .agenda-days-field{ margin-top:16px; }
           .agenda-days{ display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:6px; }
           .agenda-day{

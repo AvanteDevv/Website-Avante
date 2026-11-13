@@ -298,6 +298,16 @@ function generateHourSlots(open, close, stepMinutes){
   return slots;
 }
 
+// ¿Se pide el código por SMS? Lo dice /api/horarios ("sms") y lo
+// confirma /api/agendar/codigo ("sin_codigo"). Apagado = el botón dice
+// "Agendar" y se agenda directo, sin pedir los 4 dígitos.
+let SMS_ON = true;
+function setSmsOn(on){
+  SMS_ON = !!on;
+  const btn = document.getElementById('apptContactSubmit');
+  if(btn) btn.textContent = SMS_ON ? 'Enviar código' : 'Agendar';
+}
+
 async function loadAgendaHours(){
   try{
     const res = await fetch('/api/horarios');
@@ -309,6 +319,7 @@ async function loadAgendaHours(){
       if(Array.isArray(data.days) && data.days.length){
         OPEN_DAYS = data.days.map(Number);
       }
+      if(typeof data.sms === 'boolean') setSmsOn(data.sms);
       if(Array.isArray(data.closed)){
         CLOSED_DATES = {};
         data.closed.forEach(c => { if(c && c.date) CLOSED_DATES[c.date] = c.reason || ''; });
@@ -605,6 +616,9 @@ async function sendVerificationCode(data){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nombre: data.nombre, apellido: data.apellido, celular: data.celular })
     });
+    // sin_codigo: el SMS está apagado en el admin; se agenda directo.
+    const body = await res.json().catch(() => ({}));
+    if(res.ok && body.sin_codigo) setSmsOn(false);
     return res.ok;
   } catch(e){
     return false;
@@ -678,12 +692,22 @@ apptContactForm.addEventListener('submit', async (e) => {
   contactData = { nombre, apellido, celular: '+52' + celularDigits };
 
   apptContactSubmit.disabled = true;
-  apptContactSubmit.textContent = 'Enviando...';
+  apptContactSubmit.textContent = SMS_ON ? 'Enviando...' : 'Agendando...';
 
   const sent = await sendVerificationCode(contactData);
 
+  if(sent && !SMS_ON){
+    // SMS apagado: ya quedó verificado, se agenda sin pedir código.
+    const result = await bookAppointment(selectedDate, selectedTime, contactData);
+    apptContactSubmit.disabled = false;
+    setSmsOn(SMS_ON);
+    if(result.ok || result.conflict) closeApptContactModal();
+    if(!(await finishBooking(result))) apptContactError.textContent = 'No pudimos agendar tu cita. Intenta de nuevo.';
+    return;
+  }
+
   apptContactSubmit.disabled = false;
-  apptContactSubmit.textContent = 'Enviar código';
+  setSmsOn(SMS_ON);
 
   if(sent){
     closeApptContactModal();
@@ -720,21 +744,28 @@ apptCodeSubmit.addEventListener('click', async () => {
   apptCodeSubmit.disabled = false;
   apptCodeSubmit.textContent = 'Verificar y agendar';
 
+  if(result.ok || result.conflict) closeCodeModal();
+  if(!(await finishBooking(result))) apptCodeError.textContent = 'No pudimos agendar tu cita. Intenta de nuevo.';
+});
+
+// Después de POST /api/agendar (con o sin código). Regresa false si
+// falló por otra cosa (el que llama muestra el error en su modal).
+async function finishBooking(result){
   if(result.ok){
-    closeCodeModal();
     bookingSucceeded = true;
     openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
-  } else if(result.conflict){
-    closeCodeModal();
+    return true;
+  }
+  if(result.conflict){
     selectedTime = null;
     apptDetailTime.textContent = 'Por definir';
     await loadOccupiedHours(selectedDate);
     renderHours();
     openApptModal('Justo se agendó esa hora — elige otra disponible.');
-  } else {
-    apptCodeError.textContent = 'No pudimos agendar tu cita. Intenta de nuevo.';
+    return true;
   }
-});
+  return false;
+}
 
 apptCodeResend.addEventListener('click', async () => {
   apptCodeResend.disabled = true;

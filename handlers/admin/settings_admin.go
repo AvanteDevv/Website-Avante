@@ -152,3 +152,36 @@ func DeleteClosedDay(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Día abierto otra vez."})
 }
+
+// ---------------------------------------------------------------------
+// Verificación por SMS (Admin → Citas → Horario de citas)
+// ---------------------------------------------------------------------
+
+// GetSMSVerification — GET /admin/configuracion/sms
+func GetSMSVerification(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"enabled": models.SMSVerificationEnabled()})
+}
+
+// UpdateSMSVerification — POST /admin/configuracion/sms { "enabled": bool }
+// Prende o apaga el código por SMS. Al apagarlo no se toca la app
+// Android ni la tabla sms_queue: la app sigue preguntando y recibe
+// "nada pendiente" hasta que se vuelva a prender.
+func UpdateSMSVerification(c *gin.Context) {
+	var input struct {
+		Enabled *bool `json:"enabled"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil || input.Enabled == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	if err := models.SetSMSVerificationEnabled(*input.Enabled); err != nil {
+		log.Printf("admin.UpdateSMSVerification: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar."})
+		return
+	}
+	msg := "Listo: ya no se pide código por SMS."
+	if *input.Enabled {
+		msg = "Listo: se vuelve a pedir el código por SMS."
+	}
+	c.JSON(http.StatusOK, gin.H{"message": msg, "enabled": *input.Enabled})
+}

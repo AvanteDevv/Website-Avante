@@ -97,9 +97,25 @@ async function sendVerificationCode(nombre, apellido, celular){
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nombre, apellido, celular })
     });
+    // sin_codigo: el SMS está apagado en el admin; el celular ya quedó
+    // verificado y la cuenta se crea directo, sin pedir los 4 dígitos.
+    const body = await res.json().catch(() => ({}));
+    if(res.ok && body.sin_codigo) regSmsOn = false;
     return res.ok;
   } catch(e){ return false; }
 }
+
+// ¿Se pide el código por SMS? (/api/horarios → "sms"). Apagado: se
+// esconde el aviso "Te vamos a mandar un código…".
+let regSmsOn = true;
+fetch('/api/horarios').then(r => r.ok ? r.json() : null).then(d => {
+  if(!d || typeof d.sms !== 'boolean') return;
+  regSmsOn = d.sms;
+  if(!regSmsOn){
+    const hint = celularInput.closest('.field') && celularInput.closest('.field').querySelector('.field-hint');
+    if(hint) hint.hidden = true;
+  }
+}).catch(() => {});
 async function sendVerificationCodeByEmail(nombre, apellido, celular, correo){
   try{
     const res = await fetch('/api/agendar/codigo-correo', {
@@ -136,6 +152,16 @@ regCodeSubmit.addEventListener('click', async () => {
     return;
   }
 
+  const err = await createAccount();
+  regCodeSubmit.disabled = false;
+  regCodeSubmit.textContent = 'Verificar y crear cuenta';
+  if(err) regCodeError.textContent = err;
+  else closeRegCodeModal();
+});
+
+// POST /api/registro con pendingRegistration. Regresa '' si se creó la
+// cuenta (y redirige), o el texto del error.
+async function createAccount(){
   try{
     const res = await fetch('/api/registro', {
       method: 'POST',
@@ -143,27 +169,18 @@ regCodeSubmit.addEventListener('click', async () => {
       body: JSON.stringify(pendingRegistration)
     });
     const data = await res.json().catch(() => ({}));
+    if(!res.ok) return data.error || 'No se pudo crear la cuenta.';
 
-    regCodeSubmit.disabled = false;
-    regCodeSubmit.textContent = 'Verificar y crear cuenta';
-
-    if(!res.ok){
-      regCodeError.textContent = data.error || 'No se pudo crear la cuenta.';
-      return;
-    }
-
-    closeRegCodeModal();
     showToast(data.message || 'Cuenta creada correctamente.');
     registerForm.reset();
     strengthBars.forEach(bar => bar.style.background = 'var(--line)');
     strengthLabel.textContent = 'Usa al menos 8 caracteres, con letras y números.';
     setTimeout(() => { window.location.href = data.redirect || '/dashboard'; }, 1200);
+    return '';
   } catch(err){
-    regCodeSubmit.disabled = false;
-    regCodeSubmit.textContent = 'Verificar y crear cuenta';
-    regCodeError.textContent = 'No se pudo conectar con el servidor. Intenta de nuevo.';
+    return 'No se pudo conectar con el servidor. Intenta de nuevo.';
   }
-});
+}
 
 regCodeResend.addEventListener('click', async () => {
   regCodeResend.disabled = true;
@@ -221,7 +238,7 @@ registerForm.addEventListener('submit', async (e) => {
   if(!ok) return;
 
   registerSubmitBtn.disabled = true;
-  registerSubmitBtn.textContent = 'Enviando código...';
+  registerSubmitBtn.textContent = regSmsOn ? 'Enviando código...' : 'Creando cuenta...';
 
   const nombreVal = nombre.value.trim();
   const apellidoVal = apellido.value.trim();
@@ -246,6 +263,16 @@ registerForm.addEventListener('submit', async (e) => {
     fecha_nacimiento: fechaNacimiento.value,
     direccion: direccion.value.trim()
   };
+  if(!regSmsOn){
+    // SMS apagado: el celular ya quedó verificado, se crea la cuenta directo.
+    registerSubmitBtn.disabled = true;
+    registerSubmitBtn.textContent = 'Creando cuenta...';
+    const err = await createAccount();
+    registerSubmitBtn.disabled = false;
+    registerSubmitBtn.innerHTML = 'Crear cuenta <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+    if(err) showToast(err);
+    return;
+  }
   regCodePhoneLabel.textContent = '+52 ' + celularDigits;
   regCodeError.textContent = '';
   regCodeDigits.forEach(i => i.value = '');

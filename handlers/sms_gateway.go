@@ -52,6 +52,13 @@ func GetPendingSMS(c *gin.Context) {
 		return
 	}
 
+	// SMS apagado en Admin → Citas → Horario de citas: la app sigue
+	// preguntando igual (no se rompe nada) y solo recibe "no hay nada".
+	if !models.SMSVerificationEnabled() {
+		c.Status(http.StatusNoContent)
+		return
+	}
+
 	msg, err := models.GetNextPendingSMS()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo consultar la cola."})

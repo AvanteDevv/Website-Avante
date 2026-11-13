@@ -152,3 +152,21 @@ func CodeForEmail(celular, nombre, apellido string) (string, error) {
 	otpMutex.Unlock()
 	return code, nil
 }
+
+// MarkVerifiedWithoutCode da por verificado ese celular SIN código.
+// Solo se usa mientras la verificación por SMS está apagada (ver
+// SMSVerificationEnabled): así ConsumeVerification, CreateAppointment y
+// Register siguen igual y, al volver a prenderla, todo vuelve a pedir
+// el código sin cambiar nada más.
+func MarkVerifiedWithoutCode(celular, nombre, apellido string) {
+	otpMutex.Lock()
+	defer otpMutex.Unlock()
+	now := time.Now()
+	otpStore[celular] = &otpEntry{
+		Nombre:     nombre,
+		Apellido:   apellido,
+		ExpiresAt:  now.Add(otpTTL),
+		Verified:   true,
+		VerifiedAt: now,
+	}
+}

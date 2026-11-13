@@ -136,6 +136,11 @@ function generateHourSlots(open, close, stepMinutes){
   return slots;
 }
 
+// ¿Se pide el código por SMS? Lo dice /api/horarios ("sms") y lo
+// confirma /api/agendar/codigo ("sin_codigo"). Apagado = se agenda
+// directo después del cuestionario.
+let SMS_ON = true;
+
 async function loadAgendaHours(){
   try{
     const res = await fetch('/api/horarios');
@@ -147,6 +152,7 @@ async function loadAgendaHours(){
       if(Array.isArray(data.days) && data.days.length){
         OPEN_DAYS = data.days.map(Number);
       }
+      if(typeof data.sms === 'boolean') SMS_ON = data.sms;
       if(Array.isArray(data.closed)){
         CLOSED_DATES = {};
         data.closed.forEach(c => { if(c && c.date) CLOSED_DATES[c.date] = c.reason || ''; });
@@ -671,6 +677,9 @@ async function sendVerificationCode(data){
     const body = await res.clone().json().catch(() => ({}));
     if(res.ok) console.info('[Avante] Código por SMS/WhatsApp enviado a', data.celular, body);
     else console.error('[Avante] No se pudo enviar el código por SMS/WhatsApp — HTTP ' + res.status, body.error || body);
+    // sin_codigo: el SMS está apagado en el admin; el celular ya quedó
+    // verificado y se agenda directo, sin pedir los 4 dígitos.
+    if(res.ok && body.sin_codigo) SMS_ON = false;
     return res.ok;
   } catch(e){
     console.error('[Avante] No se pudo enviar el código por SMS/WhatsApp — error de red:', e);
@@ -862,9 +871,19 @@ apptQuestForm.addEventListener('submit', async (e) => {
 
   apptQuestError.textContent = '';
   apptQuestSubmit.disabled = true;
-  apptQuestSubmit.textContent = 'Enviando...';
+  apptQuestSubmit.textContent = SMS_ON ? 'Enviando...' : 'Agendando...';
 
   const sent = await sendVerificationCode(contactData);
+
+  if(sent && !SMS_ON){
+    // SMS apagado: ya quedó verificado, se agenda sin pedir código.
+    const result = await bookAppointment(selectedDate, selectedTime, contactData, questionnaireData);
+    apptQuestSubmit.disabled = false;
+    apptQuestSubmit.textContent = 'Continuar';
+    if(result.ok || result.conflict) closeQuestModal();
+    if(!finishBooking(result)) apptQuestError.textContent = 'No pudimos agendar tu cita. Intenta de nuevo.';
+    return;
+  }
 
   apptQuestSubmit.disabled = false;
   apptQuestSubmit.textContent = 'Continuar';
@@ -904,22 +923,28 @@ apptCodeSubmit.addEventListener('click', async () => {
   apptCodeSubmit.disabled = false;
   apptCodeSubmit.textContent = 'Verificar y agendar';
 
+  if(result.ok || result.conflict) closeCodeModal();
+  if(!finishBooking(result)) apptCodeError.textContent = 'No pudimos agendar tu cita. Intenta de nuevo.';
+});
+
+// Después de POST /api/agendar (con o sin código). Regresa false si
+// falló por otra cosa (el que llama muestra el error en su modal).
+function finishBooking(result){
   if(result.ok){
-    closeCodeModal();
     redirectHomeOnClose = true;
     openApptModal('Tu cita quedó agendada para el ' + formatSelectedDate(selectedDate) + ' a las ' + to12h(selectedTime) + '. Te esperamos en Avante Optics.');
     redirectHomeTimer = setTimeout(() => { window.location.href = '/'; }, REDIRECT_HOME_MS);
-  } else if(result.conflict){
-    closeCodeModal();
+    return true;
+  }
+  if(result.conflict){
     selectedTime = null;
     apptDetailTime.textContent = 'Por definir';
-    await loadOccupiedHours(selectedDate);
-    renderHours();
+    loadOccupiedHours(selectedDate).then(renderHours);
     openApptModal('Justo se agendó esa hora — elige otra disponible.');
-  } else {
-    apptCodeError.textContent = 'No pudimos agendar tu cita. Intenta de nuevo.';
+    return true;
   }
-});
+  return false;
+}
 
 apptCodeResend.addEventListener('click', async () => {
   apptCodeResend.disabled = true;

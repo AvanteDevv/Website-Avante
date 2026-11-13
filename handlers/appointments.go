@@ -70,6 +70,15 @@ func SendVerificationCode(c *gin.Context) {
 		return
 	}
 
+	// SMS apagado (Admin → Citas → Horario de citas): no se manda código
+	// ni se encola nada; el celular queda como verificado y el navegador
+	// sigue directo (agendar / crear cuenta) al ver "sin_codigo": true.
+	if !models.SMSVerificationEnabled() {
+		models.MarkVerifiedWithoutCode(input.Celular, input.Nombre, input.Apellido)
+		c.JSON(http.StatusOK, gin.H{"message": "Celular registrado.", "sin_codigo": true})
+		return
+	}
+
 	code, err := models.SaveCode(input.Celular, input.Nombre, input.Apellido)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo generar el código. Intenta de nuevo."})

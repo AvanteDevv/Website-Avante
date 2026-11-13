@@ -1159,7 +1159,61 @@ window.CitasFiltro = (function(){
         .catch(function(err){ b.disabled = false; cdShowMsg(err.message, 'error'); });
     });
   }
-  openBtn.addEventListener('click', function(){ cdShowMsg('', ''); cdLoad(); });
+  /* ---------- Código por SMS: prender / apagar ----------
+     GET/POST /admin/configuracion/sms. Se guarda al momento (aparte de
+     "Guardar horario"). Apagado: agendar, Mis citas y crear cuenta ya
+     no piden código, y la app Android del celular sigue conectada pero
+     no recibe nada que mandar. */
+  var smsToggle = document.getElementById('smsToggle');
+  var smsState = document.getElementById('smsToggleState');
+  var smsHint = document.getElementById('smsToggleHint');
+  var smsMsg = document.getElementById('smsToggleMsg');
+  function smsPaint(on){
+    if (!smsToggle) return;
+    smsToggle.checked = !!on;
+    smsToggle.setAttribute('aria-checked', on ? 'true' : 'false');
+    smsState.textContent = on ? 'Encendido' : 'Apagado';
+    smsHint.textContent = on
+      ? 'Al agendar o crear cuenta se pide el código de 4 dígitos que manda el celular por SMS.'
+      : 'No se pide código: los clientes agendan y crean cuenta sin verificar el celular.';
+  }
+  function smsShowMsg(text, kind){
+    if (!smsMsg) return;
+    smsMsg.hidden = !text;
+    smsMsg.textContent = text || '';
+    smsMsg.className = 'closed-days-msg' + (kind ? ' ' + kind : '');
+  }
+  function smsLoad(){
+    if (!smsToggle) return;
+    fetch('/admin/configuracion/sms', { headers: { Accept: 'application/json' } })
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .then(function(d){ if (d) smsPaint(d.enabled); })
+      .catch(function(){});
+  }
+  if (smsToggle) {
+    smsToggle.addEventListener('change', function(){
+      var on = smsToggle.checked;
+      if (!on && !confirm('¿Apagar el código por SMS? Los clientes podrán agendar y crear cuenta sin verificar su celular.')) { smsPaint(true); return; }
+      smsToggle.disabled = true;
+      smsShowMsg('', '');
+      fetch('/admin/configuracion/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: on })
+      })
+        .then(function(res){
+          return res.json().catch(function(){ return {}; }).then(function(d){
+            if (!res.ok) throw new Error(d.error || 'No se pudo guardar.');
+            smsPaint(d.enabled);
+            smsShowMsg(d.message || 'Guardado.', 'ok');
+          });
+        })
+        .catch(function(err){ smsPaint(!on); smsShowMsg(err.message || 'No se pudo guardar.', 'error'); })
+        .finally(function(){ smsToggle.disabled = false; });
+    });
+  }
+
+  openBtn.addEventListener('click', function(){ cdShowMsg('', ''); cdLoad(); smsShowMsg('', ''); smsLoad(); });
 
   var statusEl = document.getElementById('horariosStatus');
   var submitBtn = document.getElementById('horariosSubmit');

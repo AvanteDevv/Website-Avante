@@ -150,3 +150,36 @@ func IsAgendaDayOpen(date time.Time) bool {
 	}
 	return false
 }
+
+// ---------------------------------------------------------------------
+// Verificación del celular por SMS (código de 4 dígitos)
+// ---------------------------------------------------------------------
+
+// SettingSMSVerification: "on" = se pide el código por SMS (lo manda el
+// celular-gateway con la app Android) al agendar, en Mis citas y al
+// crear cuenta. "off" = no se pide código: el celular se da por
+// verificado y no se encola ningún SMS. Se cambia en Admin → Citas →
+// Horario de citas, sin tocar código ni la app Android.
+const SettingSMSVerification = "sms_verification"
+
+// DefaultSMSVerification: apagado hasta que el admin lo vuelva a prender.
+const DefaultSMSVerification = "off"
+
+// SMSVerificationEnabled dice si hoy se pide el código por SMS. Si la
+// base falla, regresa el valor por defecto.
+func SMSVerificationEnabled() bool {
+	v, err := GetSetting(SettingSMSVerification, DefaultSMSVerification)
+	if err != nil {
+		v = DefaultSMSVerification
+	}
+	return strings.TrimSpace(strings.ToLower(v)) == "on"
+}
+
+// SetSMSVerificationEnabled prende o apaga el código por SMS.
+func SetSMSVerificationEnabled(on bool) error {
+	v := "off"
+	if on {
+		v = "on"
+	}
+	return SetSetting(SettingSMSVerification, v)
+}

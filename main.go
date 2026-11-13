@@ -547,6 +547,9 @@ func main() {
 		adminGroup.GET("/configuracion/dias-cerrados", onlyAdmin, adminHandlers.ListClosedDays)
 		adminGroup.POST("/configuracion/dias-cerrados", onlyAdmin, handlers.NotifyCitasChanged(), adminHandlers.AddClosedDay)
 		adminGroup.DELETE("/configuracion/dias-cerrados/:fecha", onlyAdmin, handlers.NotifyCitasChanged(), adminHandlers.DeleteClosedDay)
+		// Código por SMS al agendar / crear cuenta: prender o apagar.
+		adminGroup.GET("/configuracion/sms", onlyAdmin, adminHandlers.GetSMSVerification)
+		adminGroup.POST("/configuracion/sms", onlyAdmin, adminHandlers.UpdateSMSVerification)
 		adminGroup.GET("/ventas", onlyAdmin, handlers.AdminVentasPage)
 		// Contabilidad (todavía vacía) y Guías (los PDF de cada rol).
 		adminGroup.GET("/contabilidad", onlyAdmin, handlers.AdminContabilidadPage)

@@ -38,5 +38,7 @@ func GetAgendaHours(c *gin.Context) {
 	for i := range closed {
 		closed[i].CreatedBy = ""
 	}
-	c.JSON(http.StatusOK, gin.H{"open": open, "close": close, "days": days, "closed": closed})
+	// "sms": si al agendar se pide el código por SMS (lo usan agendar.js,
+	// mis-citas.js y registro.js para el texto de los botones).
+	c.JSON(http.StatusOK, gin.H{"open": open, "close": close, "days": days, "closed": closed, "sms": models.SMSVerificationEnabled()})
 }
