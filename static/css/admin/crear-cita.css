@@ -1,0 +1,432 @@
+/* =========================================================
+   ADMIN — Modal "Crear cita"
+   Mismos estilos que el modal de recepción (citas-recepcion.css),
+   limitados a #crearCitaModalOverlay para no tocar el resto de
+   la página de citas del admin.
+   ========================================================= */
+#crearCitaModalOverlay .time-picker {
+  position:relative; width:100%;
+}
+
+#crearCitaModalOverlay .cb-datepicker-yearpicker {
+  position:relative;
+}
+
+#crearCitaModalOverlay .cb-datepicker-navlabel {
+  font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--ink);
+  text-transform:capitalize; border:none; background:none; cursor:pointer;
+  padding:5px 9px; border-radius:8px;
+  transition:background .2s var(--ease), color .2s var(--ease);
+}
+
+#crearCitaModalOverlay .cb-datepicker-navlabel:hover {
+  background:var(--blue-50); color:var(--blue-600);
+}
+
+#crearCitaModalOverlay .cb-datepicker-yearmenu {
+  left:0; right:auto; width:110px; max-height:190px;
+}
+
+#crearCitaModalOverlay .admin-role-select-menu {
+  position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:130;
+  background:var(--white); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow-lg);
+  padding:6px;
+  opacity:0; transform:translateY(-10px) scale(.95); transform-origin:top;
+  pointer-events:none;
+  transition:opacity .3s cubic-bezier(.22,1.4,.36,1), transform .3s cubic-bezier(.22,1.4,.36,1);
+}
+
+#crearCitaModalOverlay .admin-role-select.is-open .admin-role-select-menu {
+  opacity:1; transform:translateY(0) scale(1); pointer-events:auto;
+}
+
+#crearCitaModalOverlay .admin-role-option {
+  display:block; width:100%; text-align:left;
+  padding:9px 12px; border-radius:9px; border:none; background:none;
+  font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink);
+  cursor:pointer;
+  transition:background .16s var(--ease), color .16s var(--ease);
+}
+
+#crearCitaModalOverlay .admin-role-option:hover {
+  background:var(--blue-50); color:var(--blue-700);
+}
+
+#crearCitaModalOverlay .admin-role-option.active {
+  background:var(--blue-600); color:var(--on-accent);
+}
+
+#crearCitaModalOverlay .staff-form {
+  display:flex; flex-direction:column; gap:14px;
+}
+
+#crearCitaModalOverlay .staff-form-row {
+  display:flex; gap:12px;
+}
+
+#crearCitaModalOverlay .staff-form-row .staff-field {
+  flex:1; min-width:0;
+}
+
+#crearCitaModalOverlay .staff-field {
+  display:flex; flex-direction:column; gap:6px;
+}
+
+#crearCitaModalOverlay .staff-field > span {
+  font-size:11.5px; font-weight:700; letter-spacing:.3px; color:var(--muted); text-transform:uppercase;
+}
+
+#crearCitaModalOverlay .staff-field > span em {
+  font-style:normal; font-weight:500; text-transform:none; letter-spacing:0;
+}
+
+#crearCitaModalOverlay .staff-field input, #crearCitaModalOverlay .staff-field select {
+  border:1px solid var(--line); border-radius:12px; padding:11px 13px;
+  font-family:var(--sans); font-size:13.5px; color:var(--ink); background:var(--white);
+  transition:border-color .18s var(--ease), background .18s var(--ease);
+}
+
+#crearCitaModalOverlay .staff-field input:focus, #crearCitaModalOverlay .staff-field select:focus {
+  outline:none; border-color:var(--accent); background:var(--accent-soft);
+}
+
+#crearCitaModalOverlay .staff-phone-row {
+  display:flex; align-items:center; gap:8px;
+}
+
+#crearCitaModalOverlay .staff-lada-select {
+  position:relative; flex-shrink:0;
+}
+
+#crearCitaModalOverlay .staff-lada-btn {
+  display:flex; align-items:center; gap:6px;
+  padding:11px 12px; border-radius:12px; border:1.5px solid var(--line);
+  background:var(--accent-soft); color:var(--accent); font-family:var(--sans); font-weight:700; font-size:13px;
+  cursor:pointer;
+  transition:border-color .3s var(--ease), box-shadow .3s var(--ease), transform .3s var(--ease);
+}
+
+#crearCitaModalOverlay .staff-lada-btn:hover {
+  border-color:var(--blue-300);
+}
+
+#crearCitaModalOverlay .staff-lada-btn svg {
+  width:12px; height:12px; flex-shrink:0; transition:transform .3s var(--ease);
+}
+
+#crearCitaModalOverlay .staff-lada-select.is-open .staff-lada-btn {
+  border-color:var(--blue-600); box-shadow:0 0 0 5px var(--blue-100); transform:translateY(-1px);
+}
+
+#crearCitaModalOverlay .staff-lada-select.is-open .staff-lada-btn svg {
+  transform:rotate(180deg);
+}
+
+#crearCitaModalOverlay .staff-lada-menu {
+  width:170px; left:0; right:auto;
+}
+
+#crearCitaModalOverlay .staff-lada-select.is-open .staff-lada-menu {
+  opacity:1; transform:translateY(0) scale(1); pointer-events:auto;
+}
+
+#crearCitaModalOverlay .staff-error {
+  font-size:12.5px; color:#e2554a; min-height:16px;
+}
+
+#crearCitaModalOverlay .staff-form-actions {
+  display:flex; justify-content:flex-end; gap:10px; margin-top:4px;
+}
+
+#crearCitaModalOverlay .crear-cita-card {
+  max-width:580px;
+}
+
+#crearCitaModalOverlay .form-section-title {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  font-size:14px; font-weight:700; color:var(--ink);
+  padding-bottom:10px; margin-top:10px; border-bottom:1px solid var(--line);
+}
+
+#crearCitaModalOverlay .staff-form .form-section-title:first-child {
+  margin-top:0;
+}
+
+#crearCitaModalOverlay .form-section-title small {
+  font-size:11.5px; font-weight:500; color:var(--muted);
+}
+
+#crearCitaModalOverlay .form-section-num {
+  width:22px; height:22px; border-radius:50%; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--accent); color:#fff; font-size:11px; font-weight:700;
+}
+
+#crearCitaModalOverlay .qchips {
+  display:flex; flex-wrap:wrap; gap:8px;
+}
+
+#crearCitaModalOverlay .qchip {
+  position:relative; cursor:pointer;
+}
+
+#crearCitaModalOverlay .qchip input {
+  position:absolute; opacity:0; pointer-events:none;
+}
+
+#crearCitaModalOverlay .qchip span {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 14px; border-radius:100px; border:1.5px solid var(--line);
+  font-size:12.5px; font-weight:600; color:var(--ink); background:var(--white);
+  transition:border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease), transform .18s var(--ease);
+}
+
+#crearCitaModalOverlay .qchip:hover span {
+  border-color:var(--accent-border);
+}
+
+#crearCitaModalOverlay .qchip:active span {
+  transform:scale(.96);
+}
+
+#crearCitaModalOverlay .qchip input:checked + span {
+  background:var(--accent); border-color:var(--accent); color:#fff;
+  animation:qchipPop .28s cubic-bezier(.22,1.4,.36,1);
+}
+
+#crearCitaModalOverlay .qchip input:focus-visible + span {
+  box-shadow:0 0 0 4px var(--accent-soft);
+}
+
+#crearCitaModalOverlay .time-picker-option {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+
+#crearCitaModalOverlay .time-picker-option small {
+  font-size:10px; font-weight:700; letter-spacing:.3px; text-transform:uppercase;
+  padding:3px 8px; border-radius:100px;
+}
+
+#crearCitaModalOverlay .time-picker-option.is-occupied, #crearCitaModalOverlay .time-picker-option.is-past {
+  cursor:not-allowed; color:var(--muted);
+}
+
+#crearCitaModalOverlay .time-picker-option.is-occupied span, #crearCitaModalOverlay .time-picker-option.is-past span {
+  text-decoration:line-through; opacity:.7;
+}
+
+#crearCitaModalOverlay .time-picker-option.is-occupied small {
+  background:#fbe0e0; color:#a3231b;
+}
+
+#crearCitaModalOverlay .time-picker-option.is-past small {
+  background:var(--accent-soft); color:var(--muted);
+}
+
+#crearCitaModalOverlay .time-picker-option.is-occupied:hover, #crearCitaModalOverlay .time-picker-option.is-past:hover {
+  background:none; color:var(--muted);
+}
+
+body.dark #crearCitaModalOverlay .time-picker-option.is-occupied small {
+  background:rgba(231,76,60,.16); color:#ff8b7d;
+}
+
+#crearCitaModalOverlay .crear-cita-empresa {
+  display:grid; grid-template-rows:0fr; opacity:0;
+  transition:grid-template-rows .35s var(--ease), opacity .3s var(--ease), margin .35s var(--ease);
+}
+
+#crearCitaModalOverlay .crear-cita-empresa > div {
+  overflow:hidden; min-height:0;
+}
+
+#crearCitaModalOverlay .crear-cita-empresa.is-open {
+  grid-template-rows:1fr; opacity:1; margin-top:8px;
+}
+
+#crearCitaModalOverlay .crear-cita-empresa input {
+  width:100%; border:1px solid var(--line); border-radius:12px; padding:11px 13px;
+  font-family:var(--sans); font-size:13.5px; color:var(--ink); background:var(--white);
+  transition:border-color .18s var(--ease), background .18s var(--ease);
+}
+
+#crearCitaModalOverlay .crear-cita-empresa input:focus {
+  outline:none; border-color:var(--accent); background:var(--accent-soft);
+}
+
+@media (max-width:560px) {
+  #crearCitaModalOverlay .admin-modal-card, #crearCitaModalOverlay .admin-modal-card--sm, #crearCitaModalOverlay .crear-cita-card { max-width:none; width:100%; max-height:92vh; max-height:92dvh; border-radius:26px 26px 0 0; border-bottom:none; transform:translateY(100%); transition:transform .38s cubic-bezier(.22,1,.36,1); }
+  #crearCitaModalOverlay .staff-form-row { flex-direction:column; gap:14px; }
+  #crearCitaModalOverlay .staff-field input, #crearCitaModalOverlay .staff-field select, #crearCitaModalOverlay .crear-cita-empresa input { font-size:16px; }
+  #crearCitaModalOverlay .staff-phone-row input { flex:1; min-width:0; }
+  #crearCitaModalOverlay .staff-form-actions, #crearCitaModalOverlay .admin-confirm-actions { gap:10px; }
+  #crearCitaModalOverlay .staff-form-actions .btn, #crearCitaModalOverlay .admin-confirm-actions .btn { flex:1; justify-content:center; padding-top:13px; padding-bottom:13px; }
+  #crearCitaModalOverlay .qchip span { padding:9px 14px; font-size:13px; }
+  #crearCitaModalOverlay .cb-datepicker-menu { width:100%; max-width:320px; }
+  #crearCitaModalOverlay .time-picker-menu { max-height:210px; }
+  #crearCitaModalOverlay .time-picker-option { padding:11px 12px; font-size:14px; }
+}
+
+#crearCitaModalOverlay .cita-tag-opt.is-auto {
+  cursor:default;
+}
+
+#crearCitaModalOverlay .cita-tag-opt.is-auto:active {
+  transform:none;
+}
+
+#crearCitaModalOverlay .cita-tag-options {
+  display:flex; flex-wrap:wrap; gap:8px;
+}
+
+#crearCitaModalOverlay .cita-tag-opt {
+  display:inline-flex; align-items:center; gap:7px;
+  padding:8px 13px; border-radius:100px; cursor:pointer;
+  border:1.5px solid var(--line); background:var(--white);
+  font-family:var(--sans); font-size:12.5px; font-weight:600; color:var(--ink);
+  transition:border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease), transform .15s var(--ease);
+}
+
+#crearCitaModalOverlay .cita-tag-opt svg {
+  width:15px; height:15px; color:var(--tag); transition:color .18s var(--ease);
+}
+
+#crearCitaModalOverlay .cita-tag-opt:hover {
+  border-color:var(--tag);
+}
+
+#crearCitaModalOverlay .cita-tag-opt:active {
+  transform:scale(.96);
+}
+
+#crearCitaModalOverlay .cita-tag-opt.is-on {
+  background:var(--tag); border-color:var(--tag); color:#fff;
+  animation:qchipPop .28s cubic-bezier(.22,1.4,.36,1);
+}
+
+#crearCitaModalOverlay .cita-tag-opt.is-on svg {
+  color:#fff;
+}
+
+#crearCitaModalOverlay .cita-tag-options.is-saving {
+  opacity:.6; pointer-events:none;
+}
+
+#crearCitaModalOverlay .crear-cita-tipo {
+  padding:12px 14px 14px; border-radius:14px; background:var(--accent-soft);
+}
+
+#crearCitaModalOverlay .crear-cita-tipo-label {
+  display:block; font-size:11.5px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--muted); margin-bottom:9px;
+}
+
+#crearCitaModalOverlay .crear-cita-tipo-label em {
+  font-style:normal; font-weight:500; text-transform:none; letter-spacing:0;
+}
+
+#crearCitaModalOverlay .crear-cita-tipo-hint {
+  font-size:12px; font-weight:600; color:#a06400; margin-top:9px;
+}
+
+#crearCitaModalOverlay .crear-cita-tipo-hint[hidden] {
+  display:none;
+}
+
+body.dark #crearCitaModalOverlay .crear-cita-tipo-hint {
+  color:#ffc04d;
+}
+
+@media (max-width:720px) {
+  #crearCitaModalOverlay .cita-tag-opt { padding:9px 12px; font-size:12.5px; }
+}
+
+#crearCitaModalOverlay .crear-cita-current {
+  display:grid; grid-template-columns:auto 1fr; align-items:center; gap:4px 12px;
+  padding:12px 14px; border-radius:14px;
+  background:var(--accent-soft); border:1px solid var(--accent-border);
+}
+
+#crearCitaModalOverlay .crear-cita-current[hidden] {
+  display:none !important;
+}
+
+#crearCitaModalOverlay .crear-cita-current > svg {
+  width:20px; height:20px; color:var(--accent);
+}
+
+#crearCitaModalOverlay .crear-cita-current > div {
+  display:flex; flex-direction:column; gap:2px; min-width:0;
+}
+
+#crearCitaModalOverlay .crear-cita-current span {
+  font-size:12px; font-weight:600; color:var(--muted);
+}
+
+#crearCitaModalOverlay .crear-cita-current strong {
+  font-size:14px; font-weight:700; color:var(--ink);
+}
+
+#crearCitaModalOverlay .crear-cita-current-note {
+  grid-column:1 / -1; font-size:12px; color:var(--muted); line-height:1.5; margin:4px 0 0;
+}
+
+#crearCitaModalOverlay .crear-cita-current-note[hidden] {
+  display:none !important;
+}
+
+#crearCitaModalOverlay #crearCitaForm.is-reagendar .crear-cita-tipo, #crearCitaModalOverlay #crearCitaForm.is-reagendar .crear-cita-extra {
+  display:none;
+}
+
+#crearCitaModalOverlay #crearCitaForm.is-reagendar .form-section-num {
+  display:none;
+}
+
+#crearCitaModalOverlay .cb-datepicker-day.is-closed {
+  text-decoration:line-through;
+}
+
+#crearCitaModalOverlay .cb-dp-typed {
+  cursor:default; gap:8px;
+}
+
+#crearCitaModalOverlay .cb-dp-cal {
+  display:flex; align-items:center; justify-content:center; width:26px; height:26px; margin:-4px 0 -4px -4px; padding:0;
+  border:0; border-radius:8px; background:transparent; color:var(--muted); cursor:pointer; transition:background .2s, color .2s;
+}
+
+#crearCitaModalOverlay .cb-dp-cal:hover {
+  background:var(--accent-soft); color:var(--accent);
+}
+
+#crearCitaModalOverlay .cb-dp-cal svg {
+  width:16px; height:16px;
+}
+
+#crearCitaModalOverlay .cb-dp-input {
+  flex:1 1 auto; min-width:0; border:0; outline:none; background:transparent; padding:0;
+  font:inherit; color:var(--ink); letter-spacing:.02em;
+}
+
+#crearCitaModalOverlay .cb-dp-input::placeholder {
+  color:var(--muted);
+}
+
+#crearCitaModalOverlay .cb-dp-typed .time-picker-caret {
+  cursor:pointer;
+}
+
+#crearCitaModalOverlay .cb-datepicker.is-bad .cb-datepicker-trigger {
+  border-color:#d92d20; box-shadow:0 0 0 4px rgba(217,45,32,.12);
+}
+
+#crearCitaModalOverlay .cb-dp-typed:focus-within {
+  border-color:var(--blue-600); box-shadow:0 0 0 5px var(--blue-100);
+}
+
+#crearCitaModalOverlay .staff-field .cb-dp-typed input.cb-dp-input, #crearCitaModalOverlay .staff-field .cb-dp-typed input.cb-dp-input:focus {
+  border:0 !important; padding:0 !important; box-shadow:none !important; background:transparent !important;
+  height:auto !important; min-height:0 !important; border-radius:0 !important; font-size:14px; font-weight:600;
+}
+@keyframes qchipPop{ 0%{ transform:scale(1); } 45%{ transform:scale(1.06); } 100%{ transform:scale(1); } }
