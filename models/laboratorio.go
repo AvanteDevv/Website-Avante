@@ -70,6 +70,8 @@ type LabOrder struct {
 	Limpio      bool        `json:"limpio,omitempty"`  // el laboratorio limpió su columna
 	Convenio    string      `json:"convenio"`          // "" | "unison" | "empresa"
 	Empresa     string      `json:"empresa,omitempty"` // si convenio = "empresa"
+	Entrega     string      `json:"entrega"`           // fecha estimada de entrega "AAAA-MM-DD" ("" = sin fecha)
+	Express     bool        `json:"express"`           // lente express (por ahora solo la etiqueta)
 	hojaID      int64
 	clientPhone string
 }
@@ -85,7 +87,8 @@ func ListLabOrders() ([]LabOrder, error) {
 		       h.changed_by, h.changed_role, h.created_at,
 		       COALESCE(o.lab_sheet_id, 0), COALESCE(pc.celular, ''),
 		       COALESCE(o.pos_sale_id, 0), o.lab_sin_hoja, o.lab_externo, o.lab_directo,
-		       o.lab_limpio, o.convenio, o.convenio_empresa
+		       o.lab_limpio, o.convenio, o.convenio_empresa,
+		       COALESCE(DATE_FORMAT(o.lab_entrega, '%Y-%m-%d'), ''), o.lab_express
 		FROM orders o
 		LEFT JOIN pos_sales ps ON ps.id = o.pos_sale_id
 		LEFT JOIN pos_clients pc ON pc.id = ps.client_id
@@ -114,6 +117,7 @@ func ListLabOrders() ([]LabOrder, error) {
 			&lastBy, &lastRole, &lastAt, &o.hojaID, &o.clientPhone,
 			&o.PosSaleID, &o.SinHoja, &o.Externo, &o.Directo,
 			&o.Limpio, &o.Convenio, &o.Empresa,
+			&o.Entrega, &o.Express,
 		); err != nil {
 			return nil, err
 		}

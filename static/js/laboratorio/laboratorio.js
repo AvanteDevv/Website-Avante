@@ -291,7 +291,7 @@
       else if (origen && o.origen !== origen) return false;
       if (hideDone && o.status === dk) return false;
       if (!q) return true;
-      return norm([codeOf(o), convTxt(o), o.customerName, o.productName, o.clave, o.rxOD, o.rxOI, o.labNotes].join(' ')).indexOf(q) !== -1;
+      return norm([codeOf(o), convTxt(o), o.customerName, o.productName, o.clave, o.rxOD, o.rxOI, o.labNotes, o.express ? 'express' : ''].join(' ')).indexOf(q) !== -1;
     });
   }
 
@@ -319,6 +319,41 @@
     return p.join(' · ');
   }
 
+  /* ---------- entrega estimada y lente express ----------
+     Cada trabajo tiene su propia fecha estimada de entrega (la pone el
+     laboratorio a mano) y puede marcarse como «Express». Express por
+     ahora es solo la etiqueta: no cambia el orden ni los tiempos. */
+  var BOLT_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg>';
+  var CLOCK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  var DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function isoDay(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function parseDay(iso) { var p = String(iso || '').split('-').map(Number); return p.length === 3 && p[0] ? new Date(p[0], p[1] - 1, p[2]) : null; }
+  function todayDay() { var t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+  function capFirst(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+  function shortDay(d) { return DIAS[d.getDay()] + ' ' + d.getDate() + ' ' + MESES[d.getMonth()]; }
+  // Cuántos días faltan (negativo = ya pasó).
+  function daysLeft(iso) { var d = parseDay(iso); return d ? Math.round((d - todayDay()) / 86400000) : null; }
+  // "+N días" desde hoy; si cae en domingo se pasa al lunes.
+  function plusDays(n) { var d = todayDay(); d.setDate(d.getDate() + n); if (d.getDay() === 0) d.setDate(d.getDate() + 1); return d; }
+  function entregaInfo(o) {
+    if (!o.entrega) return null;
+    var d = parseDay(o.entrega), n = daysLeft(o.entrega);
+    if (!d) return null;
+    if (n < 0) return { cls: 'is-late', txt: 'Atrasado ' + (n === -1 ? '1 día' : (-n) + ' días'), full: 'Se esperaba el ' + shortDay(d) };
+    if (n === 0) return { cls: 'is-today', txt: 'Entrega hoy', full: 'Entrega estimada: hoy, ' + shortDay(d) };
+    if (n === 1) return { cls: 'is-soon', txt: 'Entrega mañana', full: 'Entrega estimada: mañana, ' + shortDay(d) };
+    return { cls: '', txt: 'Entrega ' + shortDay(d), full: 'Entrega estimada en ' + n + ' días' };
+  }
+  function entregaTag(o, inline) {
+    var e = entregaInfo(o);
+    return e ? '<span class="lab-eta ' + e.cls + (inline ? ' is-inline' : '') + '" title="' + esc(e.full) + '">' + CLOCK_ICON + esc(e.txt) + '</span>' : '';
+  }
+  function expressTag(o, inline) {
+    return o.express ? '<span class="lab-express' + (inline ? ' is-inline' : '') + '" title="Lente express">' + BOLT_ICON + 'Express</span>' : '';
+  }
+  var ETA_CHIPS = [[1, '1 día'], [2, '2 días'], [3, '3 días'], [5, '5 días'], [7, '1 semana'], [14, '2 semanas']];
+
   var EXT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6v6M10 14 20 4"/></svg>';
   var DOC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>';
   function hojaBtn(o, big) {
@@ -329,7 +364,7 @@
   function cardHTML(o, i) {
     var nx = nextStatus(o.status);
     var rx = rxLine(o);
-    return '<article class="lab-card' + (String(o.id) === String(landedId) ? ' is-landed' : '') + (o.limpio ? ' is-limpio' : '') + '" draggable="true" data-id="' + o.id + '" tabindex="0" style="--i:' + Math.min(i, 12) + '">' +
+    return '<article class="lab-card' + (String(o.id) === String(landedId) ? ' is-landed' : '') + (o.limpio ? ' is-limpio' : '') + (o.express ? ' is-express' : '') + '" draggable="true" data-id="' + o.id + '" tabindex="0" style="--i:' + Math.min(i, 12) + '">' +
       '<div class="lab-card-top"><strong class="lab-code">' + esc(shortCode(o)) + '</strong>' +
         '<span class="lab-card-tags">' + hojaBtn(o) + '<span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span></span></div>' +
       (o.externo ? '<div class="lab-ext-tag" title="Este trabajo está en un laboratorio externo">' + EXT_ICON + 'Laboratorio externo</div>' : '') +
@@ -337,6 +372,7 @@
       '<div class="lab-card-client">' + esc(o.customerName || 'Cliente sin nombre') + '</div>' +
       '<div class="lab-card-prod">' + productLine(o) + (o.quantity > 1 ? ' <span class="lab-qty">×' + o.quantity + '</span>' : '') + '</div>' +
       (rx ? '<div class="lab-card-rx">' + esc(rx) + '</div>' : '') +
+      ((o.express || o.entrega) ? '<div class="lab-card-eta">' + expressTag(o) + entregaTag(o) + '</div>' : '') +
       (o.labNotes ? '<div class="lab-card-note" title="' + esc(o.labNotes) + '">' + esc(o.labNotes) + '</div>' : '') +
       '<div class="lab-card-foot"><span>' + (o.lastAt ? esc((o.lastBy || 'Alguien') + ' · ' + hace(o.lastAt)) : fecha(o.createdAt)) + '</span>' +
         '<span class="lab-split">' +
@@ -378,7 +414,7 @@
     $('labRows').innerHTML = list.map(function (o, i) {
       return '<tr data-id="' + o.id + '" style="--i:' + Math.min(i, 20) + '" class="' + (String(o.id) === String(landedId) ? 'is-landed' : '') + '">' +
         '<td><strong class="lab-code">' + esc(shortCode(o)) + '</strong><div class="lab-muted">' + fecha(o.createdAt) + '</div></td>' +
-        '<td>' + esc(o.customerName || 'Cliente sin nombre') + '<div><span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span>' + convTag(o) + hojaBtn(o) + (o.externo ? '<span class="lab-ext-tag is-inline">' + EXT_ICON + 'Externo</span>' : '') + '</div></td>' +
+        '<td>' + esc(o.customerName || 'Cliente sin nombre') + '<div><span class="lab-origin is-' + o.origen + '">' + origenTxt(o) + '</span>' + convTag(o) + hojaBtn(o) + (o.externo ? '<span class="lab-ext-tag is-inline">' + EXT_ICON + 'Externo</span>' : '') + expressTag(o, true) + entregaTag(o, true) + '</div></td>' +
         '<td>' + productLine(o) + (rxLine(o) ? '<div class="lab-muted">' + esc(rxLine(o)) + '</div>' : '') + '</td>' +
         '<td><button type="button" class="lab-status-btn" data-status-menu="' + o.id + '">' + badge(o.status) +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button></td>' +
@@ -575,6 +611,9 @@
       '<p class="lab-hint">Toca un paso para cambiar el estado.' + (o.orderCode ? ' El cliente lo ve igual en Rastreo.' : ' Esta orden no tiene clave de rastreo (se hizo sin venta).') + '</p>' +
       '<label class="lab-ext-toggle"><input type="checkbox" id="labExtToggle"' + (o.externo ? ' checked' : '') + '><span class="lab-toggle-track"><span class="lab-toggle-thumb"></span></span>' +
         '<span><strong>Laboratorio externo</strong><small>Márcalo si este trabajo se mandó a otro laboratorio.</small></span></label>' +
+      '<label class="lab-ext-toggle lab-express-toggle"><input type="checkbox" id="labExpressToggle"' + (o.express ? ' checked' : '') + '><span class="lab-toggle-track"><span class="lab-toggle-thumb"></span></span>' +
+        '<span><strong>' + BOLT_ICON + 'Lente express</strong><small>Por ahora solo marca el trabajo con la etiqueta «Express».</small></span></label>' +
+      etaBoxHTML(o) +
       '<div class="lab-hoja-box">' + (o.hoja
         ? '<div class="lab-hoja-info">' + DOC_ICON + '<div><strong>Orden de laboratorio' + (o.hoja.folio ? ' Nº ' + o.hoja.folio : '') + '</strong><small>' + esc(o.hoja.paciente) + ' · ' + fecha(o.hoja.fecha) +
             (o.directo ? ' · hecha por el optometrista sin venta' : o.hoja.auto ? ' · encontrada por el nombre / celular del cliente' : ' · ligada a mano') + '</small></div></div>' +
@@ -627,6 +666,15 @@
         toast(codeOf(o) + ' se eliminó definitivamente.');
       }).catch(function (err) { btn.disabled = false; toast(err.message); });
     });
+    wireEtaBox(o);
+    $('labExpressToggle').addEventListener('change', function () {
+      var on = this.checked, box = this;
+      box.disabled = true;
+      api('/api/laboratorio/pedidos/' + o.id + '/express', { method: 'PUT', body: { express: on } }).then(function () {
+        o.express = on; render();
+        toast(on ? codeOf(o) + ' marcado como express.' : 'Se quitó «Express».');
+      }).catch(function (err) { box.checked = !on; toast(err.message); }).finally(function () { box.disabled = false; });
+    });
     $('labExtToggle').addEventListener('change', function () {
       var on = this.checked, box = this;
       box.disabled = true;
@@ -643,14 +691,50 @@
     });
     if (historyCache[detailId]) paintHistory(historyCache[detailId]);
   }
+  function etaBoxHTML(o) {
+    var e = entregaInfo(o), d = parseDay(o.entrega);
+    return '<div class="lab-eta-box" id="labEtaBox">' +
+      '<div class="lab-eta-head"><span class="lab-conv-title">¿Cuánto tarda en entregarse?</span>' +
+        (e ? '<span class="lab-eta-now ' + e.cls + '">' + CLOCK_ICON + '<strong>' + esc(capFirst(shortDay(d))) + '</strong> · ' +
+          esc(e.cls === 'is-late' ? e.txt.toLowerCase() : (e.cls ? e.txt.replace('Entrega ', '') : 'en ' + daysLeft(o.entrega) + ' días')) + '</span>'
+          : '<span class="lab-eta-now is-none">Sin fecha</span>') + '</div>' +
+      '<div class="lab-conv-chips lab-eta-chips">' + ETA_CHIPS.map(function (c) {
+        var iso = isoDay(plusDays(c[0]));
+        return '<button type="button" data-eta="' + iso + '" class="' + (o.entrega === iso ? 'is-on' : '') + '" title="' + esc(shortDay(plusDays(c[0]))) + '">' + c[1] + '</button>';
+      }).join('') + '</div>' +
+      '<div class="lab-eta-row"><label class="lab-eta-date"><span>Otra fecha</span><input type="date" id="labEtaDate" min="' + isoDay(todayDay()) + '" value="' + esc(o.entrega || '') + '"></label>' +
+        (o.entrega ? '<button type="button" class="btn small" id="labEtaClear">Quitar fecha</button>' : '') + '</div>' +
+      '<small class="lab-eta-hint">Se cuenta desde hoy; si cae en domingo pasa al lunes. Es solo para este trabajo.</small>' +
+    '</div>';
+  }
+  function wireEtaBox(o) {
+    function save(iso) {
+      if ((o.entrega || '') === iso) return;
+      api('/api/laboratorio/pedidos/' + o.id + '/entrega', { method: 'PUT', body: { entrega: iso } }).then(function (r) {
+        o.entrega = r.entrega || ''; render(); refreshDetail();
+        var d = parseDay(o.entrega);
+        toast(d ? codeOf(o) + ': entrega el ' + shortDay(d) + '.' : 'Se quitó la fecha de entrega.');
+      }).catch(function (err) { toast(err.message); refreshDetail(); });
+    }
+    var box = $('labEtaBox');
+    if (!box) return;
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-eta]');
+      if (b) save(b.dataset.eta);
+      if (e.target.closest('#labEtaClear')) save('');
+    });
+    $('labEtaDate').addEventListener('change', function () { if (this.value) save(this.value); });
+  }
   var historyCache = {};
+  // Un estatus que ya no existe (p. ej. "aprobado") se muestra como «Aprobado».
+  function prettyKey(k) { k = String(k || '').replace(/_/g, ' '); return k.charAt(0).toUpperCase() + k.slice(1); }
   function paintHistory(list) {
     var el = $('labHistory');
     if (!el) return;
     el.innerHTML = list.length ? list.map(function (h) {
       var s = statusOf(h.status);
       return '<li><span class="lab-menu-dot" style="background:' + colorOf(h.status) + '"></span>' +
-        '<span><strong>' + esc(s ? s.label : h.status) + '</strong> · ' + esc(h.by || 'Sistema') + '</span><time>' + fechaHora(h.at) + '</time></li>';
+        '<span><strong>' + esc(s ? s.label : prettyKey(h.status)) + '</strong> · ' + esc(h.by || 'Sistema') + '</span><time>' + fechaHora(h.at) + '</time></li>';
     }).join('') : '<li class="lab-muted">Sin cambios registrados todavía (los cambios se registran desde hoy).</li>';
   }
   function loadHistory() {

@@ -205,6 +205,37 @@ func SetOrderLabExterno(orderID int64, on bool) error {
 	return nil
 }
 
+// SetOrderLabEntrega guarda la fecha estimada de entrega del trabajo
+// ("AAAA-MM-DD"); "" la quita.
+func SetOrderLabEntrega(orderID int64, date string) error {
+	var v interface{}
+	if date != "" {
+		v = date
+	}
+	return execOrderUpdate("UPDATE orders SET lab_entrega = ? WHERE id = ?", v, orderID)
+}
+
+// SetOrderLabExpress marca o desmarca el trabajo como lente express.
+func SetOrderLabExpress(orderID int64, on bool) error {
+	return execOrderUpdate("UPDATE orders SET lab_express = ? WHERE id = ?", on, orderID)
+}
+
+// execOrderUpdate corre un UPDATE de un pedido y regresa ErrOrderNotFound
+// si ese pedido no existe (0 filas puede ser solo "ya tenía ese valor").
+func execOrderUpdate(q string, v interface{}, orderID int64) error {
+	res, err := db.DB.Exec(q, v, orderID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		var x int
+		if db.DB.QueryRow("SELECT COUNT(*) FROM orders WHERE id = ?", orderID).Scan(&x) == nil && x == 0 {
+			return ErrOrderNotFound
+		}
+	}
+	return nil
+}
+
 /* ---------- ventas que esperan su orden de laboratorio (optometrista) ---------- */
 
 // VentaPendienteOrden — una venta de recepción con pedido que todavía no

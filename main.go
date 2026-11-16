@@ -285,6 +285,8 @@ func main() {
 	db.EnsureClaritoPlusTables()
 	// Laboratorio: orden de laboratorio ligada a cada trabajo
 	db.EnsureLabHojaColumn()
+	// Entrega estimada y «lente express» por trabajo; «Recibido» → «A autorizar», sin «Aprobado».
+	db.EnsureLabEntregaExpress()
 	// Historia clínica: campo de OBSERVACIONES (3 renglones), una sola vez.
 	db.EnsureHistoriaObservaciones()
 
@@ -693,6 +695,8 @@ func main() {
 		apiLaboratorio.GET("/hojas/:id", handlers.LabGetHoja)
 		apiLaboratorio.PUT("/pedidos/:id/hoja", handlers.LabLinkHoja)
 		apiLaboratorio.PUT("/pedidos/:id/externo", handlers.LabSetExterno)
+		apiLaboratorio.PUT("/pedidos/:id/entrega", handlers.LabSetEntrega)
+		apiLaboratorio.PUT("/pedidos/:id/express", handlers.LabSetExpress)
 		apiLaboratorio.PUT("/pedidos/:id/convenio", handlers.LabSetConvenio)
 		apiLaboratorio.POST("/limpiar", handlers.LabClearColumn)
 		// Escáner: el código de barras del ticket pasa el trabajo al siguiente paso.

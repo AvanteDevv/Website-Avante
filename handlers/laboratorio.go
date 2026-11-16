@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -211,6 +212,65 @@ func LabSetExterno(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"externo": in.Externo})
+}
+
+// LabSetEntrega — PUT /api/laboratorio/pedidos/:id/entrega {entrega: "AAAA-MM-DD" | ""}
+// Fecha estimada de entrega de ese trabajo (una por lente, a mano).
+func LabSetEntrega(c *gin.Context) {
+	id, ok := labParamID(c)
+	if !ok {
+		return
+	}
+	var in struct {
+		Entrega string `json:"entrega"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	date := strings.TrimSpace(in.Entrega)
+	if date != "" {
+		d, err := time.Parse("2006-01-02", date)
+		if err != nil || d.Year() < 2000 || d.Year() > 2100 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Fecha inválida."})
+			return
+		}
+	}
+	if err := models.SetOrderLabEntrega(id, date); err != nil {
+		if errors.Is(err, models.ErrOrderNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Ese trabajo ya no existe."})
+			return
+		}
+		log.Println("laboratorio.SetEntrega:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"entrega": date})
+}
+
+// LabSetExpress — PUT /api/laboratorio/pedidos/:id/express {express}
+// Por ahora solo la etiqueta «Express» en la tarjeta.
+func LabSetExpress(c *gin.Context) {
+	id, ok := labParamID(c)
+	if !ok {
+		return
+	}
+	var in struct {
+		Express bool `json:"express"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	if err := models.SetOrderLabExpress(id, in.Express); err != nil {
+		if errors.Is(err, models.ErrOrderNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Ese trabajo ya no existe."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"express": in.Express})
 }
 
 type labStatusInput struct {

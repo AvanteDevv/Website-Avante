@@ -466,3 +466,52 @@ body.dark .lab-scan-chip.is-err{ color:#f19a90; background:rgba(176,58,46,.25); 
 @keyframes labScanShake{ 25%,75%{ transform:translateX(-4px); } 50%{ transform:translateX(4px); } }
 @media (max-width:720px){ .lab-scan-chip span{ display:none; } }
 @media (prefers-reduced-motion:reduce){ .lab-scan-chip, .lab-scan-chip::before{ animation:none !important; } }
+/* ===========================================================
+   Lente express (solo la etiqueta) y entrega estimada por trabajo
+   =========================================================== */
+.lab-express{
+  display:inline-flex; align-items:center; gap:3px; padding:3px 8px; border-radius:100px;
+  background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#451a03; font-size:9.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; white-space:nowrap;
+  box-shadow:0 2px 8px rgba(245,158,11,.35);
+}
+.lab-express svg{ width:10px; height:10px; }
+.lab-express.is-inline{ margin-left:6px; }
+.lab-card.is-express{ box-shadow:inset 3px 0 0 #f59e0b, var(--card-shadow, 0 1px 2px rgba(0,0,0,.04)); }
+body.dark .lab-express{ color:#1c0a00; }
+
+.lab-card-eta{ display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin:2px 0 4px; }
+.lab-eta{
+  display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:100px; white-space:nowrap;
+  background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; font-size:10.5px; font-weight:700;
+}
+.lab-eta svg{ width:11px; height:11px; }
+.lab-eta.is-inline{ margin-left:6px; }
+.lab-eta.is-soon{ background:#fef9c3; color:#854d0e; border-color:#fde68a; }
+.lab-eta.is-today{ background:#ffedd5; color:#9a3412; border-color:#fed7aa; }
+.lab-eta.is-late{ background:#fdecef; color:#be123c; border-color:#f9c4cf; }
+body.dark .lab-eta{ background:rgba(99,102,241,.16); color:#c7d2fe; border-color:rgba(99,102,241,.35); }
+body.dark .lab-eta.is-soon{ background:rgba(234,179,8,.16); color:#fde68a; border-color:rgba(234,179,8,.35); }
+body.dark .lab-eta.is-today{ background:rgba(249,115,22,.16); color:#fdba74; border-color:rgba(249,115,22,.35); }
+body.dark .lab-eta.is-late{ background:rgba(244,63,94,.14); color:#fda4af; border-color:rgba(244,63,94,.35); }
+
+.lab-express-toggle strong{ display:flex; align-items:center; gap:5px; }
+.lab-express-toggle strong svg{ width:13px; height:13px; color:#f59e0b; }
+.lab-express-toggle input:checked + .lab-toggle-track{ background:#f59e0b; }
+
+.lab-eta-box{ margin:0 0 12px; padding:12px 14px; border-radius:14px; border:1.5px solid var(--line); display:flex; flex-direction:column; gap:10px; }
+.lab-eta-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.lab-eta-now{ display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); }
+.lab-eta-now svg{ width:13px; height:13px; }
+.lab-eta-now strong{ color:var(--ink); }
+.lab-eta-now.is-late, .lab-eta-now.is-late strong{ color:#be123c; }
+.lab-eta-now.is-today, .lab-eta-now.is-today strong{ color:#c2410c; }
+.lab-eta-now.is-none{ font-style:italic; }
+.lab-eta-row{ display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap; }
+.lab-eta-date{ display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:700; color:var(--muted); }
+.lab-eta-date input{
+  height:36px; padding:0 10px; border-radius:10px; border:1.5px solid var(--line); background:var(--surface, #fff); color:var(--ink);
+  font:inherit; font-size:13px; font-weight:600; color-scheme:light;
+}
+.lab-eta-date input:focus{ outline:none; border-color:var(--accent); }
+body.dark .lab-eta-date input{ background:rgba(255,255,255,.04); color-scheme:dark; }
+.lab-eta-hint{ font-size:11px; color:var(--muted); }
