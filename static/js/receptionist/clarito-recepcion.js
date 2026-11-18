@@ -172,6 +172,7 @@
     image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L6 21"/></svg>',
     phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
     sign: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16c2.5-3.5 4.5-8 6.5-8 1.6 0-.8 7.5 1.2 7.5 1.4 0 2.3-3.5 3.8-3.5 1 0 .6 2.6 2 2.6.9 0 1.9-.8 3-1.8"/><path d="M3 20h18"/></svg>',
+    wa: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.4-.2Z"/></svg>',
     open: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg>'
   };
 
@@ -2373,6 +2374,7 @@
       { icon: ICON.pen, label: 'Editar', run: function () { openSaved(key, name, 'edit'); } },
       { icon: ICON.sign, label: 'Firmar', run: function () { openSaved(key, name, 'sign'); } },
       { icon: ICON.down, label: 'Descargar', run: function () { downloadKey(key); } },
+      { icon: ICON.wa, label: 'Enviar por WhatsApp', run: function () { openWa(key, name); } },
       { icon: ICON.rename, label: 'Renombrar', run: function () {
         askName({ title: 'Renombrar archivo', label: 'Nombre del archivo', value: stripPdf(name), ext: '.pdf' }).then(function (v) {
           if (v === null || v === stripPdf(name)) return;
@@ -2500,9 +2502,12 @@
   /* =======================================================
      VISOR DE PDF
      ======================================================= */
-  var viewerSeq = 0;
+  var viewerSeq = 0, viewerFile = null;
   function viewerHead(name, key) {
     $('clrViewTitle').textContent = name || 'Archivo';
+    // WhatsApp solo para formatos llenos (no para la plantilla en blanco).
+    viewerFile = key.indexOf('clarito/guardados/') === 0 && !/\(en blanco\)$/.test(name || '') ? { key: key, name: name } : null;
+    $('clrViewWa').hidden = !viewerFile;
     $('clrViewOpen').href = fileURL(key);
     $('clrViewDownload').href = fileURL(key, true);
     $('clrViewDownload').setAttribute('download', /\.pdf$/i.test(name || '') ? name : (name || 'archivo') + '.pdf');
@@ -2572,6 +2577,129 @@
     });
   }
   $('clrViewClose').addEventListener('click', function () { viewerSeq++; closeModal('clrViewModal'); });
+  $('clrViewWa').addEventListener('click', function () { if (viewerFile) openWa(viewerFile.key, viewerFile.name); });
+
+  /* =======================================================
+     ENVIAR UN FORMATO LLENO POR WHATSAPP
+     El servidor da un link /formato/<token> (abre el PDF sin sesión,
+     30 días) y se abre wa.me con el mensaje. El celular sale del campo
+     "Teléfono (WhatsApp)" del formato (Registro Clarito+); en los demás
+     formatos se escribe a mano.
+     ======================================================= */
+  var wa = { seq: 0, url: '' };
+  function waDigits(v) {
+    var d = String(v || '').replace(/\D/g, '');
+    if (d.length === 12 && d.indexOf('52') === 0) d = d.slice(2);
+    if (d.length === 13 && d.indexOf('521') === 0) d = d.slice(3);
+    return d;
+  }
+  function waFmt(d) { return d.length === 10 ? d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6) : d; }
+  // Lee el formato guardado: celular (campo tipo teléfono), cliente y nombre del formato.
+  function waInfoFromSaved(key, name) {
+    if (!window.PDFLib) return Promise.resolve({});
+    var bytes;
+    return Promise.all([
+      fetch(fileURL(key), { credentials: 'same-origin', cache: 'no-store' }).then(function (r) {
+        if (!r.ok) throw new Error('pdf');
+        return r.arrayBuffer();
+      }),
+      templatesReady(),
+      recentDocs.length ? null : api('/api/clarito/documents').then(function (d) { recentDocs = d.items || []; }).catch(function () { /* */ })
+    ]).then(function (res) {
+      bytes = res[0];
+      return PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+    }).then(function (doc) {
+      var data = readData(doc);
+      var t = tplForSaved(data, name, key);
+      var rec = recentDocs.filter(function (d) { return d.key === key; })[0] || {};
+      var out = { client: rec.client_name || '', form: t ? t.def.name : (rec.form_name || '') };
+      if (!t) return out;
+      var tel = t.def.fields.filter(function (f) { return f.type === 'tel'; })[0];
+      var cli = t.def.fields.filter(function (f) { return f.client; })[0];
+      function take(vals, sheet) {
+        if (tel) out.phone = String((vals && vals[tel.id]) || (sheet && typeof tel.pdf === 'string' && sheet[tel.pdf]) || '');
+        if (cli && !out.client) out.client = String((vals && vals[cli.id]) || (sheet && typeof cli.pdf === 'string' && sheet[cli.pdf]) || '');
+        return out;
+      }
+      if (data) return take(data.values, data.mode === 'sheet' ? data.sheet : null);
+      if (!tel) return out;
+      // Guardado antes de poder editarse: se lee de la hoja.
+      return readSheetFromPdf(bytes, t).then(function (sheet) { return take(null, sheet); });
+    });
+  }
+  function waMessage(info) {
+    var first = String(info.client || '').trim().split(/\s+/)[0] || '';
+    if (first) first = first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+    return 'Hola' + (first ? ' ' + first : '') + ', te compartimos tu formato' + (info.form ? ' «' + info.form + '»' : '') +
+      ' de Avante Optics. Lo puedes ver y descargar aquí: ' + wa.url;
+  }
+  function waSync() {
+    var d = waDigits($('clrWaPhone').value), ok = d.length === 10;
+    var hint = $('clrWaPhoneHint');
+    if (!d) { hint.textContent = wa.fromForm === false ? 'Este formato no trae celular: escríbelo.' : 'Escribe el celular a 10 dígitos.'; hint.className = 'is-warn'; }
+    else if (!ok) { hint.textContent = 'Faltan dígitos (' + d.length + ' de 10).'; hint.className = 'is-warn'; }
+    else { hint.textContent = wa.fromForm && d === wa.formPhone ? 'Tomado del formato.' : ''; hint.className = 'is-ok'; }
+    var btn = $('clrWaSend');
+    btn.classList.toggle('is-off', !ok || !wa.url);
+    btn.setAttribute('aria-disabled', ok && wa.url ? 'false' : 'true');
+    btn.href = ok && wa.url ? 'https://wa.me/52' + d + '?text=' + encodeURIComponent($('clrWaMsg').value) : '#';
+  }
+  function openWa(key, name) {
+    var my = ++wa.seq;
+    wa.url = ''; wa.fromForm = null; wa.formPhone = '';
+    $('clrWaSub').textContent = stripPdf(name);
+    $('clrWaLoading').hidden = false;
+    $('clrWaLoading').textContent = 'Preparando el link…';
+    $('clrWaForm').hidden = true;
+    $('clrWaPhone').value = ''; $('clrWaMsg').value = '';
+    waSync();
+    openModal('clrWaModal');
+    Promise.all([
+      api('/api/clarito/share', { method: 'POST', body: { key: key } }),
+      waInfoFromSaved(key, name).catch(function (err) { console.warn('Clarito: no se pudo leer el formato', err); return {}; })
+    ]).then(function (r) {
+      if (my !== wa.seq) return;
+      var link = r[0], info = r[1] || {};
+      wa.url = link.url;
+      var d = waDigits(info.phone);
+      wa.fromForm = info.phone !== undefined ? d.length === 10 : false;
+      wa.formPhone = d;
+      $('clrWaUrl').value = link.url;
+      $('clrWaPhone').value = d.length === 10 ? waFmt(d) : d;
+      $('clrWaMsg').value = waMessage(info);
+      var exp = link.expires_at ? new Date(link.expires_at) : null;
+      $('clrWaExp').textContent = 'El link abre el PDF sin cuenta' + (exp && !isNaN(exp) ? ' y vence el ' + exp.getDate() + ' de ' + MESES[exp.getMonth()] + ' de ' + exp.getFullYear() : '') + '.';
+      $('clrWaLoading').hidden = true;
+      $('clrWaForm').hidden = false;
+      waSync();
+      if (!$('clrWaPhone').value) $('clrWaPhone').focus();
+    }).catch(function (err) {
+      if (my !== wa.seq) return;
+      $('clrWaLoading').textContent = err.message || 'No se pudo crear el link.';
+    });
+  }
+  function closeWa() { wa.seq++; closeModal('clrWaModal'); }
+  $('clrWaPhone').addEventListener('input', function () {
+    var d = waDigits(this.value).slice(0, 10);
+    if (d !== this.value.replace(/\D/g, '')) this.value = d;
+    waSync();
+  });
+  $('clrWaPhone').addEventListener('blur', function () { var d = waDigits(this.value); if (d.length === 10) this.value = waFmt(d); });
+  $('clrWaMsg').addEventListener('input', waSync);
+  $('clrWaSend').addEventListener('click', function (e) {
+    if (this.getAttribute('aria-disabled') === 'true') { e.preventDefault(); return; }
+    setTimeout(closeWa, 300);
+    toast('Se abrió WhatsApp con el mensaje. Solo dale enviar.');
+  });
+  $('clrWaCopy').addEventListener('click', function () {
+    var inp = $('clrWaUrl'), btn = this;
+    function ok() { btn.textContent = '¡Copiado!'; setTimeout(function () { btn.textContent = 'Copiar'; }, 1600); }
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(inp.value).then(ok, function () { inp.select(); document.execCommand('copy'); ok(); });
+    else { inp.select(); document.execCommand('copy'); ok(); }
+  });
+  $('clrWaUrl').addEventListener('focus', function () { this.select(); });
+  $('clrWaClose').addEventListener('click', closeWa);
+  $('clrWaCancel').addEventListener('click', closeWa);
 
   /* =======================================================
      ELEGIR CARPETA (guardar, mover o carpeta base)
@@ -2745,6 +2873,7 @@
     if (!menu.hidden) { closeMenu(); return; }
     if ($('clrAskModal').classList.contains('open')) { askDone(false); return; }
     if ($('clrNameModal').classList.contains('open')) { nameDone(null); return; }
+    if ($('clrWaModal').classList.contains('open')) { closeWa(); return; }
     ['clrSignModal', 'clrRemoteModal', 'clrPickModal', 'clrViewModal', 'clrSetModal'].some(function (id) {
       if ($(id).classList.contains('open')) { closeModal(id); return true; }
       return false;

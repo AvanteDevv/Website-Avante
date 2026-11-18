@@ -71,13 +71,17 @@ func DeleteClaritoDocumentsByKey(key string) error {
 func UpdateClaritoDocumentKey(oldKey, newKey, fileName, folderPath string) error {
 	_, err := db.DB.Exec(`UPDATE clarito_documents SET object_key = ?, file_name = ?, folder_path = ? WHERE object_key = ?`,
 		newKey, fileName, folderPath, oldKey)
+	if err == nil {
+		// Los links que ya se mandaron por WhatsApp siguen abriendo el archivo.
+		_, _ = db.DB.Exec(`UPDATE clarito_share_links SET object_key = ? WHERE object_key = ?`, newKey, oldKey)
+	}
 	return err
 }
 
 // UpdateClaritoDocumentContent actualiza el registro cuando se edita o se
 // firma un formato ya guardado (el archivo se reemplaza en su lugar).
 func UpdateClaritoDocumentContent(key, formKey, client string, size int64) error {
-	_, err := db.DB.Exec(`UPDATE clarito_documents SET form_key = IF(? <> '', ?, form_key), client_name = IF(? <> '', ?, client_name), size = ? WHERE object_key = ?`,
+	_, err := db.DB.Exec(`UPDATE clarito_documents SET form_key = IF(? <> '', ?, form_key), client_name = IF(? <> '', ?, client_name), size_bytes = ? WHERE object_key = ?`,
 		formKey, formKey, client, client, size, key)
 	return err
 }
@@ -92,6 +96,10 @@ func MoveClaritoDocumentsPrefix(oldPrefix, newPrefix, oldPath, newPath string) e
 		newPrefix, len([]rune(oldPrefix))+1,
 		oldPath, newPath, newPath, len([]rune(oldPath))+1,
 		likePrefix(oldPrefix)+"%")
+	if err == nil {
+		_, _ = db.DB.Exec(`UPDATE clarito_share_links SET object_key = CONCAT(?, SUBSTRING(object_key, ?)) WHERE object_key LIKE ?`,
+			newPrefix, len([]rune(oldPrefix))+1, likePrefix(oldPrefix)+"%")
+	}
 	return err
 }
 

@@ -564,3 +564,18 @@ body.dark .clr-signdoc-note{ background:rgba(255,193,7,.12); color:#ffcf5c; }
 .clr-loading-dot{ display:inline-block; width:12px; height:12px; margin-right:6px; vertical-align:-1px; border-radius:50%; border:2px solid var(--line); border-top-color:var(--accent); animation:clrSpin .8s linear infinite; }
 @keyframes clrSpin{ to{ transform:rotate(360deg); } }
 #clrItemsEmpty a{ color:var(--accent); font-weight:700; }
+/* ---------- Enviar un formato lleno por WhatsApp ---------- */
+.clr-wa-card{ max-width:520px; }
+.clr-wa-form{ display:flex; flex-direction:column; gap:14px; }
+.clr-wa-field{ display:flex; flex-direction:column; gap:6px; font-size:12px; font-weight:700; color:var(--muted); }
+.clr-wa-field small{ font-weight:600; }
+.clr-wa-field small.is-ok{ color:#128c4a; }
+.clr-wa-field small.is-warn{ color:#b45309; }
+.clr-wa-phone{ display:flex; align-items:center; border:1.5px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface, #fff); }
+.clr-wa-phone:focus-within{ border-color:#25d366; }
+.clr-wa-phone b{ padding:0 10px 0 12px; font-size:14px; color:var(--muted); border-right:1px solid var(--line); line-height:40px; }
+.clr-wa-phone input{ flex:1; min-width:0; border:0; outline:0; background:transparent; padding:0 12px; height:40px; font:inherit; font-size:15px; font-weight:700; letter-spacing:.04em; color:var(--ink); }
+.clr-wa-field textarea{ border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; font-family:var(--sans); font-size:13px; font-weight:500; line-height:1.45; color:var(--ink); background:var(--surface, #fff); resize:vertical; min-height:92px; }
+.clr-wa-field textarea:focus{ outline:none; border-color:#25d366; }
+.clr-wa.is-off{ opacity:.45; pointer-events:none; }
+body.dark .clr-wa-phone, body.dark .clr-wa-field textarea{ background:rgba(255,255,255,.04); }

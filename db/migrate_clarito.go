@@ -50,6 +50,18 @@ func EnsureClaritoTables() {
 			UNIQUE KEY uq_clarito_sign_token (token),
 			INDEX idx_clarito_sign_created (created_at)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+		// Links para mandarle al cliente su formato lleno (por WhatsApp).
+		// /formato/<token> abre el PDF sin sesión mientras no venza.
+		`CREATE TABLE IF NOT EXISTS clarito_share_links (
+			id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+			token       CHAR(24)      NOT NULL,
+			object_key  VARCHAR(700)  NOT NULL,
+			created_by  VARCHAR(120)  NOT NULL DEFAULT '',
+			created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			expires_at  DATETIME      NOT NULL,
+			UNIQUE KEY uq_clarito_share_token (token),
+			INDEX idx_clarito_share_key (object_key(255))
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 	}
 	for _, s := range stmts {
 		if _, err := DB.Exec(s); err != nil {
@@ -71,5 +83,5 @@ func EnsureClaritoTables() {
 			log.Printf("clarito: índice object_key: %v", err)
 		}
 	}
-	log.Println("clarito: tablas clarito_documents, clarito_settings y clarito_sign_requests listas")
+	log.Println("clarito: tablas clarito_documents, clarito_settings, clarito_sign_requests y clarito_share_links listas")
 }

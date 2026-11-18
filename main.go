@@ -815,6 +815,8 @@ func main() {
 		apiClarito.POST("/sign-requests", handlers.ClaritoCreateSignRequest)
 		apiClarito.GET("/sign-requests/:token", handlers.ClaritoGetSignRequest)
 		apiClarito.DELETE("/sign-requests/:token", handlers.ClaritoCancelSignRequest)
+		// Enviar un formato lleno por WhatsApp (handlers/clarito_share.go)
+		apiClarito.POST("/share", handlers.ClaritoShareLink)
 	}
 	// Administración → Documentación (handlers/documentacion.go). Recepción y admin.
 	apiDocs := router.Group("/api/documentacion", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))
@@ -830,6 +832,7 @@ func main() {
 	router.GET("/documento/:token/archivo", handlers.DocPublicFile)
 
 	// Página pública donde el cliente firma con su celular (sin sesión).
+	router.GET("/formato/:token", handlers.ClaritoSharedFile) // formato lleno que se mandó por WhatsApp
 	router.GET("/firmar/:token", handlers.ClaritoSignPage)
 	router.GET("/firmar/:token/documento", handlers.ClaritoSignDocument)
 	router.POST("/firmar/:token", handlers.ClaritoSignSubmit)

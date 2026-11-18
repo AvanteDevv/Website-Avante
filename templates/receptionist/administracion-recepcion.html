@@ -313,6 +313,41 @@
   </div>
 </div>
 
+<!-- ================= Clarito: enviar un formato lleno por WhatsApp ================= -->
+<div class="admin-modal-overlay" id="clrWaModal">
+  <div class="admin-modal-card clr-wa-card" role="dialog" aria-modal="true" aria-labelledby="clrWaTitle">
+    <div class="admin-modal-head">
+      <div>
+        <h3 id="clrWaTitle">Enviar por WhatsApp</h3>
+        <small class="clr-fill-sub" id="clrWaSub"></small>
+      </div>
+      <button type="button" class="admin-modal-close" id="clrWaClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="clr-empty" id="clrWaLoading">Preparando el link…</p>
+      <div class="clr-wa-form" id="clrWaForm" hidden>
+        <label class="clr-wa-field">
+          <span>Celular del cliente</span>
+          <div class="clr-wa-phone"><b>+52</b><input type="tel" id="clrWaPhone" inputmode="numeric" maxlength="14" placeholder="10 dígitos" autocomplete="off"></div>
+          <small id="clrWaPhoneHint"></small>
+        </label>
+        <label class="clr-wa-field">
+          <span>Mensaje</span>
+          <textarea id="clrWaMsg" rows="4"></textarea>
+        </label>
+        <div class="clr-remote-link"><input type="text" id="clrWaUrl" readonly aria-label="Link del formato"><button type="button" class="btn small" id="clrWaCopy">Copiar</button></div>
+        <small class="clr-remote-exp" id="clrWaExp"></small>
+      </div>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn small" id="clrWaCancel">Cancelar</button>
+        <a class="btn small clr-wa is-off" id="clrWaSend" href="#" target="_blank" rel="noopener" aria-disabled="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.4-.2Z"/></svg> Abrir WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ================= Clarito: elegir carpeta ================= -->
 <div class="admin-modal-overlay" id="clrPickModal">
   <div class="admin-modal-card clr-pick-card" role="dialog" aria-modal="true" aria-labelledby="clrPickTitle">
@@ -386,6 +421,7 @@
     <div class="admin-modal-head">
       <h3 id="clrViewTitle">Archivo</h3>
       <div class="clr-view-actions">
+        <button type="button" class="btn small clr-wa" id="clrViewWa" hidden><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.4-.2Z"/></svg> WhatsApp</button>
         <a class="btn small" id="clrViewDownload" href="#" download>Descargar</a>
         <a class="btn small" id="clrViewOpen" href="#" target="_blank" rel="noopener">Abrir en otra pestaña</a>
         <button type="button" class="admin-modal-close" id="clrViewClose" aria-label="Cerrar">
