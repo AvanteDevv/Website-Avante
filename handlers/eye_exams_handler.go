@@ -24,6 +24,45 @@ type createEyeExamInput struct {
 	Data          json.RawMessage `json:"data" binding:"required"`
 	UserID        int64           `json:"userId"`        // 0 si el paciente no tiene cuenta
 	AppointmentID int64           `json:"appointmentId"` // 0 si fue sin cita
+	// SyncName: optometría corrigió el nombre y aceptó el aviso de que
+	// también cambia en recepción (cita y cliente del punto de venta).
+	SyncName *struct {
+		Nombre   string `json:"nombre"`
+		Apellido string `json:"apellido"`
+	} `json:"syncName"`
+}
+
+// applyExamNameSync pone el nombre corregido en lo que ve recepción.
+func applyExamNameSync(input createEyeExamInput) {
+	if input.SyncName == nil || input.AppointmentID <= 0 {
+		return
+	}
+	citas, clientes, err := models.ApplyNameSync(input.AppointmentID, input.SyncName.Nombre, input.SyncName.Apellido)
+	if err != nil {
+		log.Printf("examen: no se pudo pasar el nombre a recepción (cita #%d): %v", input.AppointmentID, err)
+		return
+	}
+	if citas+clientes > 0 {
+		log.Printf("examen: nombre corregido en recepción (cita #%d): %d citas, %d clientes", input.AppointmentID, citas, clientes)
+	}
+}
+
+// PreviewExamNameSync — GET /api/optometrist/cambio-nombre?citaId=&nombre=
+// Para el aviso antes de guardar: si el nombre del examen es distinto al
+// de la cita, qué se cambiaría en recepción.
+func PreviewExamNameSync(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Query("citaId"), 10, 64)
+	if id <= 0 {
+		c.JSON(http.StatusOK, models.NameSyncPreview{})
+		return
+	}
+	p, err := models.PreviewNameSync(id, c.Query("nombre"))
+	if err != nil {
+		log.Printf("PreviewExamNameSync: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo revisar el nombre."})
+		return
+	}
+	c.JSON(http.StatusOK, p)
 }
 
 // CreateEyeExam guarda un examen ya llenado (POST /api/optometrist/examenes).
@@ -48,6 +87,8 @@ func CreateEyeExam(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo guardar el examen."})
 		return
 	}
+
+	applyExamNameSync(input)
 
 	// Si salió de una cita que seguía pendiente/verificada, se marca
 	// "Asistió" — así recepción ya la ve como atendida sin hacerlo a mano.
@@ -95,6 +136,12 @@ func UpdateEyeExam(c *gin.Context) {
 		log.Printf("UpdateEyeExam #%d: %v", id, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron guardar los cambios."})
 		return
+	}
+	if input.SyncName != nil {
+		// La cita es la del examen guardado (no la que mande el navegador).
+		input.AppointmentID = exam.AppointmentID
+		applyExamNameSync(input)
+		BroadcastCitasChanged()
 	}
 	c.JSON(http.StatusOK, exam)
 }

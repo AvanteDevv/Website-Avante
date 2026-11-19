@@ -1200,6 +1200,76 @@
     var originalText = nextBtn.textContent;
     nextBtn.textContent = 'Guardando...';
 
+    // Si el examen salió de una cita y el nombre ya no es el que tiene
+    // recepción, primero se avisa (el cambio también se verá allá).
+    checkNameSync(name).then(function(sync){
+      if (sync === false){ nextBtn.disabled = false; nextBtn.textContent = originalText; return; }
+      if (sync) payload.syncName = sync;
+      postExam(payload, originalText);
+    });
+  }
+
+  /* ---------- Nombre corregido → también en recepción ----------
+     GET /api/optometrist/cambio-nombre: si es distinto al de la cita,
+     se muestra el aviso con nombre(s) y apellidos (editables). Resuelve
+     null = no hay nada que cambiar, false = canceló, {nombre, apellido}
+     = guardar y cambiar en recepción. */
+  function checkNameSync(name){
+    if (!appointmentId) return Promise.resolve(null);
+    return fetch('/api/optometrist/cambio-nombre?citaId=' + appointmentId + '&nombre=' + encodeURIComponent(name), { headers: { Accept: 'application/json' } })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; })
+      .then(function(p){
+        if (!p || !p.changes) return null;
+        return askNameSync(p);
+      });
+  }
+  function askNameSync(p){
+    var modal = document.getElementById('nameSyncModal');
+    var inNom = document.getElementById('nameSyncNombre');
+    var inApe = document.getElementById('nameSyncApellido');
+    var okBtn = document.getElementById('nameSyncOk');
+    document.getElementById('nameSyncOld').textContent = '«' + (p.old || 'sin nombre') + '»';
+    var where = [p.citas > 1 ? 'sus ' + p.citas + ' citas' : 'su cita'];
+    if (p.clientes) where.push(p.clientes > 1 ? 'sus ' + p.clientes + ' registros del punto de venta' : 'su registro del punto de venta');
+    document.getElementById('nameSyncWhere').textContent = where.join(' y ');
+    inNom.value = p.nombre || '';
+    inApe.value = p.apellido || '';
+    function sync(){ okBtn.disabled = !inNom.value.trim(); }
+    sync();
+    return new Promise(function(resolve){
+      function done(v){
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+        okBtn.removeEventListener('click', onOk);
+        modal.removeEventListener('click', onBackdrop);
+        document.getElementById('nameSyncCancel').removeEventListener('click', onCancel);
+        document.getElementById('nameSyncClose').removeEventListener('click', onCancel);
+        document.removeEventListener('keydown', onKey, true);
+        inNom.removeEventListener('input', sync);
+        resolve(v);
+      }
+      function onOk(){ if (!okBtn.disabled) done({ nombre: inNom.value.trim(), apellido: inApe.value.trim() }); }
+      function onCancel(){ done(false); }
+      function onBackdrop(e){ if (e.target === modal) done(false); }
+      function onKey(e){
+        if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); done(false); }
+        else if (e.key === 'Enter' && (e.target === inNom || e.target === inApe)){ e.preventDefault(); e.stopPropagation(); onOk(); }
+        else if (e.key === 'Shift'){ e.stopPropagation(); } // que el "Shift Shift" del examen no se dispare aquí
+      }
+      okBtn.addEventListener('click', onOk);
+      modal.addEventListener('click', onBackdrop);
+      document.getElementById('nameSyncCancel').addEventListener('click', onCancel);
+      document.getElementById('nameSyncClose').addEventListener('click', onCancel);
+      document.addEventListener('keydown', onKey, true);
+      inNom.addEventListener('input', sync);
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      setTimeout(function(){ inNom.focus(); inNom.select(); }, 60);
+    });
+  }
+
+  function postExam(payload, originalText){
     fetch(EDIT_ID ? '/api/optometrist/examenes/' + EDIT_ID : '/api/optometrist/examenes', {
       method: EDIT_ID ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },

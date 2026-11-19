@@ -548,3 +548,16 @@ body.dark .doc-folio{ color:#f19a90; background:rgba(176,58,46,.22); }
 .doc-conv-chips button.is-on{ background:var(--accent, #041cff); border-color:var(--accent, #041cff); color:#fff; animation:docConvPop .3s cubic-bezier(.22,1.4,.36,1); }
 @keyframes docConvPop{ 0%{ transform:scale(.9); } 100%{ transform:none; } }
 @media (prefers-reduced-motion:reduce){ .doc-conv-chips button.is-on{ animation:none; } }
+/* ---------- Aviso: el nombre corregido también cambia en recepción ---------- */
+.name-sync-card{ max-width:480px; }
+.name-sync-warn{ display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:var(--radius-md); background:#fff7e6; border:1px solid #fde3a7; }
+.name-sync-warn svg{ width:20px; height:20px; flex:0 0 20px; color:#b45309; margin-top:1px; }
+.name-sync-warn p{ font-size:13.5px; line-height:1.55; color:var(--ink); }
+.name-sync-warn strong{ font-weight:700; }
+.name-sync-fields{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+.name-sync-fields label{ display:flex; flex-direction:column; gap:6px; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--grey); min-width:0; }
+.name-sync-fields input{ height:40px; padding:0 12px; border:1.5px solid var(--line); border-radius:10px; font:inherit; font-size:14px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--ink); background:var(--white); min-width:0; }
+.name-sync-fields input:focus{ outline:none; border-color:var(--blue-600); }
+.name-sync-hint{ margin-top:10px; font-size:12px; color:var(--grey); }
+body.dark .name-sync-warn{ background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.35); }
+@media (max-width:520px){ .name-sync-fields{ grid-template-columns:1fr; } }

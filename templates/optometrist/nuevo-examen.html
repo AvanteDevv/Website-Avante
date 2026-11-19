@@ -97,6 +97,33 @@
   </main>
 </div>
 
+<!-- Aviso: el nombre corregido también cambia en recepción -->
+<div class="admin-modal-overlay" id="nameSyncModal" aria-hidden="true">
+  <div class="admin-modal-card name-sync-card" role="dialog" aria-modal="true" aria-labelledby="nameSyncTitle">
+    <div class="admin-modal-head">
+      <h3 id="nameSyncTitle">El nombre también cambia en recepción</h3>
+      <button type="button" class="admin-modal-close" id="nameSyncClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="name-sync-warn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <p>Recepción lo tiene como <strong id="nameSyncOld"></strong>. Al guardar, el nombre se cambiará también en <strong id="nameSyncWhere"></strong>.</p>
+      </div>
+      <div class="name-sync-fields">
+        <label><span>Nombre(s)</span><input type="text" id="nameSyncNombre" maxlength="100" autocomplete="off"></label>
+        <label><span>Apellidos</span><input type="text" id="nameSyncApellido" maxlength="100" autocomplete="off"></label>
+      </div>
+      <p class="name-sync-hint">Revisa que el nombre y los apellidos queden separados como van; así se verán en citas.</p>
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn thin" id="nameSyncCancel">Cancelar</button>
+        <button type="button" class="btn solid thin" id="nameSyncOk">Guardar y cambiar en recepción</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/optometrist/sidebar-optometrist.js"></script>
 <script src="/static/js/optometrist/userbar-optometrist.js"></script>

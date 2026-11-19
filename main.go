@@ -899,6 +899,8 @@ func main() {
 		apiOptometrist.POST("/examenes", handlers.CreateEyeExam)
 		apiOptometrist.PUT("/examenes/:id", handlers.UpdateEyeExam)
 		apiOptometrist.DELETE("/examenes/:id", handlers.DeleteEyeExam)
+		// Aviso antes de guardar: el nombre corregido también cambia en recepción.
+		apiOptometrist.GET("/cambio-nombre", handlers.PreviewExamNameSync)
 
 		// Orden de laboratorio (después de la historia clínica)
 		apiOptometrist.GET("/ordenes-lab", handlers.ListLabOrderSheetsHandler)
