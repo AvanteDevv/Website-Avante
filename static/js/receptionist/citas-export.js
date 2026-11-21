@@ -4,8 +4,9 @@
    - Los indicadores cuentan hasta su nuevo valor.
    - "Exportar PDF": estadísticas del día, semana o mes con
      gráfica de barras, de líneas y desgloses.
-   Usa las filas de la tabla (#citasTableBody) como fuente:
-   no pide nada nuevo al servidor.
+   Usa las filas de la tabla (#citasTableBody) como fuente.
+   Va en Recepción y en Admin: en Admin no existe CitaSeg, así
+   que el "¿compró?" se pide aquí mismo al generar el PDF.
    ========================================================= */
 (function () {
   'use strict';
@@ -110,12 +111,25 @@
   var tipo = 'dia';
   var moveExp = glowFor($('ceExpTipo'));
 
+  // Seguimiento (¿compró?): Recepción ya lo tiene en CitaSeg; en Admin se pide.
+  var segMap = {};
+  var SEG_MESES = { 3: '3 meses', 6: '6 meses', 12: '1 año' };
+  function segGet(id) { return window.CitaSeg ? window.CitaSeg.get(id) : (segMap[String(id)] || null); }
+  function loadSeg() {
+    if (window.CitaSeg) return Promise.resolve();
+    return fetch('/api/receptionist/citas/seguimiento', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : { items: {} }; })
+      .then(function (d) { segMap = (d && d.items) || {}; })
+      .catch(function () {});
+  }
+  var AREA = modal.getAttribute('data-area') || 'Recepción';
+
   // ¿Compró? de cada cita que asistió: si / no / sin (no se registró) /
   // chequeo (vino a revisión, no cuenta como venta). "" = no asistió.
   function compraDe(id, status, tag) {
     if (status !== 'asistio') return { k: '' };
-    var seg = window.CitaSeg ? window.CitaSeg.get(id) : null;
-    var meses = seg && seg.compro && seg.meses ? (window.CitaSeg.MESES_LABEL[seg.meses] || '1 año') : '';
+    var seg = segGet(id);
+    var meses = seg && seg.compro && seg.meses ? (SEG_MESES[seg.meses] || '1 año') : '';
     if (tag === 'chequeo') return { k: 'chequeo', meses: meses };
     if (!seg) return { k: 'sin' };
     return seg.compro ? { k: 'si', meses: meses } : { k: 'no' };
@@ -366,6 +380,17 @@
     '.cr-chip.is-si{background:#e3f6ea;color:#1f7a4d;}.cr-chip.is-no{background:#fde8e6;color:#b42318;}',
     '.cr-chip.is-sin{background:#fff4dc;color:#8a6a12;}.cr-chip.is-chequeo{background:#eef1ff;color:#0b2aa8;}',
     '.cr td.cr-l, .cr th.cr-l{text-align:left;}',
+    '.cr-dias{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 12px;}',
+    '.cr-dia{border:1px solid #e6e6e3;border-radius:10px;padding:10px 12px;}',
+    '.cr-dia small{display:block;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#52514e;}',
+    '.cr-dia b{display:block;margin-top:3px;font-size:17px;color:#0b0b0b;}',
+    '.cr-dia em{display:block;font-style:normal;font-size:10px;color:#52514e;margin-top:2px;}',
+    '.cr-dia.is-mas{background:#e3f6ea;border-color:#bfe6cd;}.cr-dia.is-mas b{color:#1f7a4d;}',
+    '.cr-dia.is-menos{background:#fdf0ee;border-color:#f6d3ce;}.cr-dia.is-menos b{color:#b42318;}',
+    '.cr-hb.cr-hb-dia{grid-template-columns:128px 1fr 66px 150px;}',
+    '.cr-hb-x{color:#52514e;font-size:10px;}',
+    '.cr-hb-dia.is-mas .cr-hb-track i{background:#1baf7a;}.cr-hb-dia.is-menos .cr-hb-track i{background:#eb6834;}',
+    '.cr-hb-dia.is-mas .cr-hb-l,.cr-hb-dia.is-menos .cr-hb-l{font-weight:700;}',
     '.cr-foot{display:flex;justify-content:space-between;margin-top:18px;padding-top:8px;border-top:1px solid #e6e6e3;font-size:10px;color:#8a8984;}'
   ].join('');
 
@@ -414,6 +439,77 @@
       }).join('') + '</tbody></table></div>';
   }
 
+  // Qué día de la semana compran más y menos. Cuenta las compras
+  // registradas ("Sí compró") por día de la semana; solo entran los
+  // días en que asistió alguien (un día sin pacientes no es "el que
+  // menos compran", es que no hubo nadie).
+  var SEMANA = [1, 2, 3, 4, 5, 6, 0]; // lunes → domingo
+  function diasSemana(list) {
+    var by = {};
+    list.forEach(function (r) {
+      if (r.status !== 'asistio') return;
+      var d = parseISO(r.date);
+      if (!d) return;
+      var w = d.getDay(), x = by[w] || (by[w] = { w: w, asistio: 0, compro: 0, nocompro: 0, fechas: {} });
+      x.asistio++;
+      x.fechas[r.date] = 1;
+      if (r.compra.k === 'si') x.compro++; else if (r.compra.k === 'no') x.nocompro++;
+    });
+    var dias = SEMANA.filter(function (w) { return by[w]; }).map(function (w) {
+      var x = by[w];
+      x.nombre = cap(DIAS[w]);
+      x.veces = Object.keys(x.fechas).length;
+      x.conv = (x.compro + x.nocompro) ? x.compro / (x.compro + x.nocompro) * 100 : null;
+      return x;
+    });
+    var total = dias.reduce(function (a, x) { return a + x.compro; }, 0);
+    var res = { dias: dias, total: total, mas: [], menos: [] };
+    if (dias.length < 2 || !total) return res;
+    var hi = Math.max.apply(null, dias.map(function (x) { return x.compro; }));
+    var lo = Math.min.apply(null, dias.map(function (x) { return x.compro; }));
+    res.mas = dias.filter(function (x) { return x.compro === hi; });
+    if (lo < hi) res.menos = dias.filter(function (x) { return x.compro === lo; });
+    return res;
+  }
+  function yList(xs) {
+    var n = xs.map(function (x) { return x.nombre; });
+    return n.length > 1 ? n.slice(0, -1).join(', ') + ' y ' + n[n.length - 1] : n[0] || '—';
+  }
+  function diasSemanaHTML(ds, s) {
+    var head = '<div class="cr-sec"><h2>¿Qué día de la semana compran más?</h2>';
+    if (ds.dias.length < 2) {
+      return head + '<p class="cr-note">Compras registradas por día de la semana.</p><div class="cr-empty">' +
+        (ds.dias.length ? 'Solo hay pacientes de un día de la semana en este periodo: exporta una semana o un mes para comparar.' : 'Nadie asistió en este periodo.') + '</div></div>';
+    }
+    if (!ds.total) {
+      return head + '<p class="cr-note">Compras registradas por día de la semana.</p><div class="cr-empty">' +
+        (s.sinreg ? 'Todavía no se registra ninguna compra (' + s.sinreg + ' sin registrar).' : 'Nadie compró en este periodo.') + '</div></div>';
+    }
+    var compr = function (n) { return n + (n === 1 ? ' compra' : ' compras'); };
+    var card = function (cls, label, xs, sub) {
+      return '<div class="cr-dia ' + cls + '"><small>' + label + '</small><b>' + esc(yList(xs)) + '</b><em>' + sub + '</em></div>';
+    };
+    var mas = ds.mas, menos = ds.menos;
+    var cards = card('is-mas', 'Día que más compran', mas, compr(mas[0].compro) + (mas.length > 1 ? ' cada uno' : '')) +
+      (menos.length
+        ? card('is-menos', 'Día que menos compran', menos, compr(menos[0].compro) + (menos.length > 1 ? ' cada uno' : ''))
+        : card('is-menos', 'Día que menos compran', [{ nombre: 'Todos iguales' }], 'mismo número de compras'));
+    var max = Math.max.apply(null, [1].concat(ds.dias.map(function (x) { return x.compro; })));
+    var mark = {};
+    mas.forEach(function (x) { mark[x.w] = 'is-mas'; });
+    menos.forEach(function (x) { mark[x.w] = 'is-menos'; });
+    var bars = '<div class="cr-hbars">' + ds.dias.map(function (x) {
+      var pct = Math.round(x.compro * 100 / ds.total);
+      return '<div class="cr-hb cr-hb-dia ' + (mark[x.w] || '') + '"><span class="cr-hb-l">' + esc(x.nombre) + '</span>' +
+        '<span class="cr-hb-track"><i style="width:' + (x.compro / max * 100).toFixed(1) + '%"></i></span>' +
+        '<span class="cr-hb-v"><b>' + x.compro + '</b> · ' + pct + '%</span>' +
+        '<span class="cr-hb-x">' + x.asistio + (x.asistio === 1 ? ' asistió' : ' asistieron') + (x.conv == null ? '' : ' · ' + Math.round(x.conv) + '% compró') + '</span></div>';
+    }).join('') + '</div>';
+    return head + '<p class="cr-note">Compras registradas ("Sí compró") por día de la semana. Solo aparecen los días en que asistió alguien' +
+      (s.sinreg ? '; ' + s.sinreg + ' sin registrar no cuentan' : '') + '.</p>' +
+      '<div class="cr-dias">' + cards + '</div>' + bars + '</div>';
+  }
+
   function reportHTML(rg, all) {
     var list = all.filter(function (r) { return inR(r, rg); });
     var prev = all.filter(function (r) { return inR(r, prevRange(rg)); });
@@ -440,10 +536,10 @@
     var sinMarcar = list.filter(function (r) { return (r.status === 'verificada' || r.status === 'pendiente') && r.date < today; }).length;
     var kpi = function (label, val, sub, cls) { return '<div class="cr-kpi' + (cls ? ' ' + cls : '') + '"><small>' + label + '</small><b>' + val + '</b>' + (sub ? '<em>' + sub + '</em>' : '') + '</div>'; };
     var pct = function (n) { return s.total ? Math.round(n * 100 / s.total) + '% del total' : ''; };
-    var generado = (document.querySelector('.userbar-name') || {}).textContent || 'Recepción';
+    var generado = (document.querySelector('.userbar-name') || {}).textContent || AREA;
 
     return '<div class="cr">' +
-      '<div class="cr-head"><div class="cr-brand"><img src="/static/images/avante-logo.png" alt=""><div><b>Avante Optics</b><small>Citas · Recepción</small></div></div>' +
+      '<div class="cr-head"><div class="cr-brand"><img src="/static/images/avante-logo.png" alt=""><div><b>Avante Optics</b><small>Citas · ' + esc(AREA) + '</small></div></div>' +
         '<div class="cr-title"><h1>' + esc(rg.titulo) + '</h1><p>' + esc(cap(rg.sub)) + '</p></div></div>' +
       '<div class="cr-kpis">' +
         kpi('Citas totales', String(s.total), pctTxt(s.total, ps.total), 'is-main') +
@@ -469,6 +565,7 @@
         (porComo.length ? hbars(porComo, conCuest) : '<div class="cr-empty">Nadie contestó el cuestionario en este periodo.</div>') + '</div>' +
       '<div class="cr-sec"><h2>¿Compraron?</h2><p class="cr-note">De los que asistieron. Los chequeos no cuentan como venta.</p>' +
         (s.asistio ? hbars([['Sí compraron', s.compro], ['No compraron', s.nocompro], ['Sin registrar', s.sinreg], ['Chequeos', s.chequeos]], s.asistio) : '<div class="cr-empty">Nadie asistió en este periodo.</div>') + '</div>' +
+      (rg.desde !== rg.hasta ? diasSemanaHTML(diasSemana(list), s) : '') +
       porAtenderHTML(list) +
       pacientesHTML(list) +
       '<div class="cr-sec"><h2>Detalle por ' + unidad + '</h2><p class="cr-note">Solo aparecen ' + (bk.mode === 'hora' ? 'las horas' : bk.mode === 'dia' ? 'los días' : 'los meses') + ' con citas.</p>' +
@@ -552,7 +649,7 @@
     var btn = this, rg = expRange();
     btn.disabled = true; btn.textContent = 'Generando…'; $('ceExpError').textContent = '';
     var name = 'Citas Avante ' + (tipo === 'mes' ? rg.sub : rg.desde === rg.hasta ? rg.desde : rg.desde + ' a ' + rg.hasta) + '.pdf';
-    Promise.resolve().then(function () { return makePdf(reportHTML(rg, rows()), name); })
+    loadSeg().then(function () { return makePdf(reportHTML(rg, rows()), name); })
       .then(closeExp)
       .catch(function (err) { $('ceExpError').textContent = (err && err.message) || 'No se pudo generar el PDF.'; })
       .finally(function () { btn.disabled = false; btn.textContent = 'Descargar PDF'; });

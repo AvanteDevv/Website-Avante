@@ -26,6 +26,10 @@
         <h1>Citas</h1>
         <p>Citas agendadas por clientes desde el sitio público.</p>
       </div>
+      <button type="button" class="btn small ce-export-btn" id="ceExportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+        Exportar PDF
+      </button>
     </div>
 
     <!-- Periodo: filtra indicadores y tabla por el día de la cita -->
@@ -190,7 +194,7 @@
           </thead>
           <tbody id="citasTableBody">
             {{range .Citas}}
-            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-celular="{{.Celular}}" data-cancel-reason="{{.CancelReason}}" data-origen="{{.Origen}}">
+            <tr data-id="{{.ID}}" data-status="{{.Status}}" data-date="{{.Date.Format "2006-01-02"}}" data-time="{{.Time}}" data-nombre="{{.Nombre}} {{.Apellido}}" data-celular="{{.Celular}}" data-cuestionario="{{.Cuestionario}}" data-cancel-reason="{{.CancelReason}}" data-origen="{{.Origen}}">
               <td>{{.ID}}</td>
               <td class="cita-cliente">{{with .PrimerNombre}}{{.}}{{else}}—{{end}}</td>
               <td class="cita-cliente">{{with .SegundoNombre}}{{.}}{{else}}—{{end}}</td>
@@ -682,10 +686,51 @@
   </div>
 </div>
 
+<!-- Exportar reporte de citas en PDF -->
+<div class="admin-modal-overlay" id="ceExportModal" data-area="Admin">
+  <div class="admin-modal-card ce-export-card" role="dialog" aria-modal="true" aria-labelledby="ceExportTitle">
+    <div class="admin-modal-head">
+      <h3 id="ceExportTitle">Exportar reporte de citas</h3>
+      <button type="button" class="admin-modal-close" id="ceExportClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="ce-export-hint">Un PDF con las estadísticas del periodo: cuántas citas hubo, cuántos asistieron, cómo llegaron, cómo nos conocieron, qué día de la semana compran más y menos, con gráfica de barras y de líneas.</p>
+      <div class="cf-seg ce-export-seg" id="ceExpTipo" role="tablist" aria-label="Periodo del reporte">
+        <span class="cf-seg-glow" aria-hidden="true"></span>
+        <button type="button" data-tipo="dia" class="is-on">Día</button>
+        <button type="button" data-tipo="semana">Semana</button>
+        <button type="button" data-tipo="mes">Mes</button>
+        <button type="button" data-tipo="actual">Periodo filtrado</button>
+      </div>
+      <div class="ce-export-pick">
+        <label data-for="dia"><span>Día</span><input type="date" id="ceExpDia"></label>
+        <label data-for="semana" hidden><span>Cualquier día de la semana</span><input type="date" id="ceExpSemana"></label>
+        <label data-for="mes" hidden><span>Mes</span><input type="month" id="ceExpMes"></label>
+        <p data-for="actual" hidden class="ce-export-actual" id="ceExpActual"></p>
+      </div>
+      <p class="ce-export-range" id="ceExpRange"></p>
+      <p class="staff-error" id="ceExpError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" id="ceExpCancel">Cancelar</button>
+        <button type="button" class="btn solid small" id="ceExpGo">Descargar PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="/static/js/admin/sidebar.js"></script>
 <script src="/static/js/admin/userbar.js"></script>
 <script src="/static/js/admin/citas.js"></script>
 <script src="/static/js/admin/crear-cita.js"></script>
+<script src="/static/js/receptionist/av-date.js"></script>
+<script>
+  // Calendarios animados del reporte
+  AvDate.enhance(document.getElementById('ceExpDia'));
+  AvDate.enhance(document.getElementById('ceExpSemana'));
+</script>
+<script src="/static/js/receptionist/citas-export.js"></script>
 </body>
 </html>
