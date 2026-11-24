@@ -64,6 +64,7 @@
       <button type="button" class="inv-tool" id="tbAjustar" disabled><i data-feather="sliders"></i><span>Ajustar</span><kbd>F8</kbd></button>
       <button type="button" class="inv-tool" id="tbClonar" disabled><i data-feather="copy"></i><span>Clonar</span><kbd>F9</kbd></button>
       <button type="button" class="inv-tool" id="tbEtiquetas" disabled><i data-feather="printer"></i><span>Etiquetas</span><kbd>F7</kbd></button>
+      <button type="button" class="inv-tool" id="tbGrupo"><i data-feather="tag"></i><span>Precio / promo</span></button>
       <a class="inv-tool" id="tbKardex" href="{{.InvBase}}/movimientos" aria-disabled="true"><i data-feather="repeat"></i><span>Movimientos</span></a>
     </div>
 
@@ -144,16 +145,19 @@
       <form class="staff-form inv-art-form" id="artForm" novalidate autocomplete="off">
         <!-- General -->
         <div class="inv-tabpane is-on" data-pane="general">
+          <!-- Clave: en armazones se arma sola (material · marca · modelo · color);
+               en lo demás (estuches, líquidos…) se escribe a mano. -->
           <div class="staff-form-row">
             <label class="staff-field">
-              <span>Clave</span>
+              <span>Clave <em id="aClaveHint">(se arma sola)</em></span>
               <input type="text" id="aClave" maxlength="60" required placeholder="Ej. AC13" spellcheck="false">
             </label>
-            <label class="staff-field">
-              <span>Clave alterna <em>(opcional)</em></span>
-              <input type="text" id="aClaveAlt" maxlength="60" placeholder="Ej. ARZL-GUE-2702-07" spellcheck="false">
+            <label class="staff-field" id="aModeloField">
+              <span>Modelo del armazón</span>
+              <input type="text" id="aModelo" maxlength="30" placeholder="Ej. 2702" spellcheck="false" autocapitalize="characters">
             </label>
           </div>
+          <div class="inv-clave-parts" id="aClaveParts"></div>
           <label class="staff-field">
             <span>Descripción</span>
             <input type="text" id="aDesc" maxlength="200" required placeholder="Ej. ARMAZON GUESS PASTA ROJO">
@@ -256,6 +260,13 @@
           <div class="inv-prices" id="aPrices">
             <!-- se llena con JS: precio 1 a 4 -->
           </div>
+          <div class="inv-promo-row">
+            <label class="staff-field">
+              <span>Promoción <em>(% de descuento; el Punto de venta lo pone solo)</em></span>
+              <span class="inv-pct"><input type="number" id="aPromo" min="0" max="100" step="1" inputmode="decimal" placeholder="0"><em>%</em></span>
+            </label>
+            <p class="inv-hint" id="aPromoHint">Sin promoción. Para darle promoción a toda una categoría o material usa <strong>Precio / promo</strong> en la barra.</p>
+          </div>
         </div>
 
         <!-- Inventario -->
@@ -297,6 +308,62 @@
           <button type="submit" class="btn solid small" id="artSave">Guardar</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: precio o promoción para un grupo ================= -->
+<div class="admin-modal-overlay" id="grpModal">
+  <div class="admin-modal-card inv-grp-card" role="dialog" aria-modal="true" aria-labelledby="grpTitle">
+    <div class="admin-modal-head">
+      <h3 id="grpTitle">Precio o promoción para un grupo</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <form class="staff-form" id="grpForm" novalidate autocomplete="off">
+        <div class="staff-field">
+          <span>¿A cuáles artículos?</span>
+          <div class="inv-seg inv-grp-seg" id="grpCampo" role="radiogroup" aria-label="Agrupar por">
+            <button type="button" data-campo="categoria" class="is-on">Una categoría</button>
+            <button type="button" data-campo="material">Un material</button>
+          </div>
+        </div>
+        <div class="staff-field">
+          <span id="grpValorLabel">Categoría</span>
+          <div id="grpValor"></div>
+          <p class="inv-hint inv-grp-count" id="grpCount"></p>
+        </div>
+        <div class="staff-field">
+          <span>¿Qué quieres hacer?</span>
+          <div class="inv-seg inv-grp-seg" id="grpAccion" role="radiogroup" aria-label="Acción">
+            <button type="button" data-accion="precio" class="is-on">Mismo precio</button>
+            <button type="button" data-accion="promo">Promoción</button>
+            <button type="button" data-accion="quitar_promo">Quitar promoción</button>
+          </div>
+        </div>
+        <label class="staff-field" id="grpPrecioField">
+          <span>Precio de venta para todos <em>(precio 1, con IVA)</em></span>
+          <span class="inv-money"><span>$</span><input type="number" id="grpPrecio" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></span>
+        </label>
+        <label class="staff-field" id="grpPromoField" hidden>
+          <span>Descuento de promoción</span>
+          <span class="inv-pct"><input type="number" id="grpPromo" min="1" max="100" step="1" inputmode="decimal" placeholder="0"><em>%</em></span>
+        </label>
+        <label class="inv-check" id="grpRecordarWrap">
+          <input type="checkbox" id="grpRecordar" checked>
+          <span class="inv-check-box"></span>
+          <span><strong>También a los que se agreguen después</strong><small id="grpRecordarTxt">Los artículos nuevos de este grupo salen con este precio.</small></span>
+        </label>
+        <p class="inv-grp-sum" id="grpSum"></p>
+        <p class="staff-error" id="grpError"></p>
+        <div class="staff-form-actions">
+          <button type="button" class="btn small" data-close-modal>Cancelar</button>
+          <button type="submit" class="btn solid small" id="grpSave">Aplicar</button>
+        </div>
+      </form>
+      <div class="inv-grp-rules" id="grpRules"></div>
     </div>
   </div>
 </div>

@@ -287,6 +287,9 @@ func main() {
 	db.EnsureLabHojaColumn()
 	// Entrega estimada y «lente express» por trabajo; «Recibido» → «A autorizar», sin «Aprobado».
 	db.EnsureLabEntregaExpress()
+	// Inventario: código de cada color (catálogo de la tienda) para la clave
+	// automática de armazones, promoción por artículo y reglas de precio/promo.
+	db.EnsureInvClavesPromo()
 	// Historia clínica: campo de OBSERVACIONES (3 renglones), una sola vez.
 	db.EnsureHistoriaObservaciones()
 	// App "Avante Offline" (sin conexión): tablets vinculadas y columnas
@@ -742,6 +745,10 @@ func main() {
 		apiInventario.POST("/colores", handlers.InvCreateColor)
 		apiInventario.GET("/materiales", handlers.InvListMateriales)
 		apiInventario.POST("/materiales", handlers.InvCreateMaterial)
+		// Mismo precio / promoción para toda una categoría o un material.
+		apiInventario.GET("/reglas", handlers.InvListReglas)
+		apiInventario.POST("/grupo", handlers.InvApplyGrupo)
+		apiInventario.DELETE("/reglas/:id", handlers.InvDeleteRegla)
 	}
 
 	apiReceptionist := router.Group("/api/receptionist", handlers.RequireAdminAuth(), handlers.RequireRole(handlers.RoleAdmin, handlers.RoleReceptionist))

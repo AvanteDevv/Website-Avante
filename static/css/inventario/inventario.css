@@ -1023,3 +1023,57 @@ body.dark .inv-sw-big{ border-color:#1a1c30; }
 .inv-mat.is-main i{ background:var(--accent); box-shadow:none; animation:invSwPop .3s cubic-bezier(.22,1.6,.36,1); }
 body.dark .inv-mat i{ background:transparent; }
 body.dark .inv-mat.is-main i{ background:var(--accent); }
+
+/* =========================================================
+   Clave automática del armazón (ARZL-GUE-2702-0007)
+   ========================================================= */
+#aClave.is-auto{ background:var(--accent-soft); font-weight:700; letter-spacing:.4px; cursor:default; }
+.inv-clave-parts{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 14px; margin:-4px 0 2px; }
+.inv-clave-parts:empty{ display:none; }
+.inv-cp-row{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:4px; }
+.inv-cp{ display:flex; flex-direction:column; align-items:center; gap:3px; min-width:64px; padding:7px 10px 6px; border-radius:12px; background:var(--white); border:1px solid var(--line); transition:border-color .2s var(--ease), background .2s var(--ease); }
+.inv-cp b{ font-size:13.5px; font-weight:800; letter-spacing:.6px; color:var(--accent); font-family:ui-monospace, SFMono-Regular, Menlo, monospace; }
+.inv-cp small{ font-size:10.5px; font-weight:600; color:var(--muted); max-width:130px; text-align:center; line-height:1.25; }
+.inv-cp.is-missing{ border-style:dashed; border-color:#e0a63a; background:#fff8ea; }
+.inv-cp.is-missing b{ color:#c58a1d; }
+.inv-cp.is-missing small{ color:#a06400; }
+.inv-cp-sep{ align-self:center; margin-top:-14px; font-weight:800; color:var(--muted); }
+.inv-clave-mode{ border:0; background:none; padding:4px 0; font:inherit; font-size:12px; font-weight:700; color:var(--accent); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.inv-clave-mode:hover{ color:var(--accent-hover, var(--accent)); }
+.inv-color-code{ font-style:normal; font-size:11px; font-weight:800; letter-spacing:.4px; padding:2px 7px; border-radius:100px; background:var(--accent-soft); color:var(--accent); margin-left:4px; vertical-align:1px; }
+body.dark .inv-cp{ background:rgba(255,255,255,.04); }
+body.dark .inv-cp.is-missing{ background:rgba(255,192,77,.08); border-color:rgba(255,192,77,.45); }
+body.dark .inv-cp.is-missing b, body.dark .inv-cp.is-missing small{ color:#ffc04d; }
+
+/* Promoción del artículo */
+.inv-promo-row{ display:grid; grid-template-columns:minmax(0, 220px) minmax(0, 1fr); gap:14px; align-items:end; margin-top:14px; padding-top:14px; border-top:1px dashed var(--line); }
+.inv-promo-row .inv-hint{ padding-bottom:10px; }
+.inv-hint-rule{ display:block; margin-top:3px; color:#1f7a4d; font-weight:600; }
+.inv-promo-tag{ display:inline-block; margin-left:6px; padding:2px 7px; border-radius:100px; background:#e3f6ea; color:#1f7a4d; font-size:10.5px; font-weight:800; vertical-align:1px; }
+.inv-d-promo{ display:inline-block; margin-top:6px; padding:4px 10px; border-radius:100px; background:rgba(255,255,255,.18); font-size:11.5px; font-weight:700; color:#fff; }
+body.dark .inv-promo-tag{ background:rgba(27,175,122,.16); color:#5fd6a4; }
+body.dark .inv-hint-rule{ color:#5fd6a4; }
+@media (max-width:560px){ .inv-promo-row{ grid-template-columns:1fr; } .inv-promo-row .inv-hint{ padding-bottom:0; } }
+
+/* =========================================================
+   Precio / promoción para un grupo (categoría o material)
+   ========================================================= */
+.inv-grp-card{ max-width:560px; }
+.inv-grp-seg{ flex-wrap:wrap; border-radius:16px; }
+.inv-grp-seg button{ flex:1 1 auto; }
+.inv-grp-count{ margin-top:6px; }
+.inv-grp-count:empty{ display:none; }
+.inv-grp-sum{ margin:0; padding:10px 12px; border-radius:12px; background:var(--accent-soft); font-size:13px; line-height:1.45; color:var(--ink); }
+.inv-grp-sum[hidden]{ display:none; }
+.inv-grp-rules{ margin-top:18px; }
+.inv-grp-rules:empty{ display:none; }
+.inv-grp-rules h4{ margin:0 0 8px; font-size:11.5px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); }
+.inv-grp-rule{ display:flex; align-items:center; gap:10px; padding:9px 10px; border:1px solid var(--line); border-radius:12px; }
+.inv-grp-rule + .inv-grp-rule{ margin-top:6px; }
+.inv-grp-rule > span:nth-child(2){ flex:1; min-width:0; display:flex; flex-direction:column; }
+.inv-grp-rule strong{ font-size:13px; color:var(--ink); }
+.inv-grp-rule small{ font-size:11.5px; color:var(--muted); }
+.inv-grp-rule-ico{ width:30px; height:30px; flex:none; display:grid; place-items:center; border-radius:10px; font-weight:800; font-size:13px; }
+.inv-grp-rule-ico.is-precio{ background:var(--accent-soft); color:var(--accent); }
+.inv-grp-rule-ico.is-promo{ background:#e3f6ea; color:#1f7a4d; }
+body.dark .inv-grp-rule-ico.is-promo{ background:rgba(27,175,122,.16); color:#5fd6a4; }

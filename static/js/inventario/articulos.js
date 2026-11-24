@@ -171,11 +171,11 @@
       return '<tr data-id="' + a.id + '" class="' + (a.id === selectedId ? 'is-selected' : '') + '" style="--i:' + Math.min(i, 20) + '" tabindex="-1">' +
         '<td class="inv-cell-art"><div class="inv-art-line">' +
           (a.foto ? '<img class="inv-thumb" src="' + esc(a.foto) + '" alt="" loading="lazy">' : '<span class="inv-thumb is-empty" aria-hidden="true"></span>') +
-          '<div><span class="inv-clave">' + esc(a.clave || '—') + (a.clave_alterna ? '<em> / ' + esc(a.clave_alterna) + '</em>' : '') + '</span>' +
+          '<div><span class="inv-clave">' + esc(a.clave || '—') + '</span>' +
           '<strong>' + esc(a.descripcion) + '</strong></div></div></td>' +
         '<td class="c-dep"><span>' + esc(a.categoria || 'Sin categoría') + '</span></td>' +
         '<td class="num">' + existCell(a) + '</td>' +
-        '<td class="num inv-price">' + mxn.format(a.precio_1) + '</td>' +
+        '<td class="num inv-price">' + mxn.format(a.precio_1) + (a.promo_pct > 0 ? '<small class="inv-promo-tag">−' + I.round2(a.promo_pct) + ' %</small>' : '') + '</td>' +
       '</tr>';
     }).join('');
     var empty = $('invEmpty');
@@ -278,9 +278,10 @@
       (a.foto ? '<button type="button" class="inv-d-photo" data-act="fotos" title="Ver / cambiar fotos"><img src="' + esc(a.foto) + '" alt=""></button>' : '') +
       '<small class="inv-d-kicker">Artículo seleccionado</small>' +
       '<h2 class="inv-d-title">' + esc(a.descripcion) + '</h2>' +
-      '<p class="inv-d-claves"><span>' + esc(a.clave || '—') + '</span>' + (a.clave_alterna ? '<span>' + esc(a.clave_alterna) + '</span>' : '') + '</p>' +
+      '<p class="inv-d-claves"><span>' + esc(a.clave || '—') + '</span></p>' +
       '<div class="inv-d-price"><small>Precio de venta' + (a.iva ? ' (con IVA)' : '') + '</small><strong>' + mxn.format(a.precio_1) + '</strong>' +
-        (u1 != null ? '<span class="inv-d-util">' + (u1 >= 0 ? '+' : '') + I.round2(u1).toFixed(1) + ' % sobre costo</span>' : '') + '</div>' +
+        (u1 != null ? '<span class="inv-d-util">' + (u1 >= 0 ? '+' : '') + I.round2(u1).toFixed(1) + ' % sobre costo</span>' : '') +
+        (a.promo_pct > 0 ? '<span class="inv-d-promo">Promoción −' + I.round2(a.promo_pct) + ' % · en Punto de venta ' + mxn.format(I.round2(a.precio_1 * (1 - a.promo_pct / 100))) + '</span>' : '') + '</div>' +
       '<div class="inv-d-stock is-' + st + '">' +
         '<div><small>Cantidad disponible</small><strong>' + (a.servicio ? '—' : I.num(a.existencia)) + '</strong><em>' + esc(a.unidad_venta) + '</em></div>' +
         '<span class="inv-d-chip is-' + st + '">' + stLabel + '</span>' +
@@ -326,7 +327,7 @@
   var artModal = $('artModal'), artForm = $('artForm');
   var editing = null; // artículo que se edita (null = nuevo)
   var formCat = '';
-  var aCat = I.select($('aCategoria'), { placeholder: 'Sin categoría', onChange: function (v) { formCat = v; } });
+  var aCat = I.select($('aCategoria'), { placeholder: 'Sin categoría', onChange: function (v) { formCat = v; rulesPrefill(); } });
   var unitOpts = UNIDADES.map(function (u) { return { value: u, label: u }; });
   var aUC = I.select($('aUCompra'), { options: unitOpts, value: 'PZA' });
   var aUV = I.select($('aUVenta'), { options: unitOpts, value: 'PZA' });
@@ -345,6 +346,7 @@
         '<i>' + (i >= 0 ? '✓' : '') + '</i><span>' + esc(n) + '</span></button>';
     }).join('') + '<button type="button" class="inv-sw is-add" data-mat-new title="Agregar un material"><i>+</i><span>Nuevo</span></button>';
     newMat = '';
+    updateClave();
   }
   $('aMats').addEventListener('click', function (e) {
     if (e.target.closest('[data-mat-new]')) { $('aMatNew').hidden = false; $('aMatName').focus(); return; }
@@ -355,6 +357,7 @@
     else if (formMats.length < 4) formMats.push(n);
     else { I.toast('Máximo 4 materiales.', 'error'); return; }
     renderMats();
+    rulesPrefill();
   });
   function closeMatNew() {
     var box = $('aMatNew');
@@ -436,7 +439,8 @@
     return Promise.all([
       I.api('/api/inventario/tipos-armazon').then(function (d) { tiposArm = d.items || []; }).catch(function () {}),
       I.api('/api/inventario/colores').then(function (d) { colores = d.items || []; }).catch(function () {}),
-      I.api('/api/inventario/materiales').then(function (d) { materiales = d.items || []; }).catch(function () {})
+      I.api('/api/inventario/materiales').then(function (d) { materiales = d.items || []; }).catch(function () {}),
+      loadReglas()
     ]).then(function () { buildTipos(); renderPalette(); renderMats(); if (current()) renderDetail(); });
   }
   function hexOf(name) { var c = colores.filter(function (x) { return x.nombre.toLowerCase() === String(name).toLowerCase(); })[0]; return c ? c.hex : '#9aa0bb'; }
@@ -460,7 +464,7 @@
       var isP = colPrin && c.nombre.toLowerCase() === colPrin.toLowerCase();
       var xi = colExtra.map(function (x) { return x.toLowerCase(); }).indexOf(c.nombre.toLowerCase());
       var nuevo = newColor && c.nombre.toLowerCase() === newColor.toLowerCase();
-      return '<button type="button" class="inv-sw' + (isP ? ' is-main' : xi >= 0 ? ' is-extra' : '') + (nuevo ? ' is-new' : '') + '" data-color="' + esc(c.nombre) + '" title="' + esc(c.nombre) + '">' +
+      return '<button type="button" class="inv-sw' + (isP ? ' is-main' : xi >= 0 ? ' is-extra' : '') + (nuevo ? ' is-new' : '') + '" data-color="' + esc(c.nombre) + '" title="' + esc(c.nombre + (c.codigo ? ' · ' + c.codigo : '')) + '">' +
         '<i style="background:' + esc(c.hex) + '"></i><span>' + esc(c.nombre) + '</span>' +
         (isP ? '<b>1</b>' : xi >= 0 ? '<b>' + (xi + 2) + '</b>' : '') + '</button>';
     }).join('') + '<button type="button" class="inv-sw is-add" data-color-new title="Agregar un color"><i>+</i><span>Nuevo</span></button>';
@@ -468,9 +472,141 @@
     var sumEl = $('aColorSum');
     sumEl.classList.remove('is-swap'); void sumEl.offsetWidth; sumEl.classList.add('is-swap');
     $('aColorSum').innerHTML = colPrin
-      ? '<span class="inv-sw-big" style="' + swatchStyle(all) + '"></span><span><strong>' + esc(colorTxt(colPrin, colExtra)) + '</strong><small>' + (colExtra.length ? 'Combinado' : 'Un solo color') + ' · toca un color para quitarlo</small></span>'
+      ? '<span class="inv-sw-big" style="' + swatchStyle(all) + '"></span><span><strong>' + esc(colorTxt(colPrin, colExtra)) + (codeOf(colPrin) ? ' <em class="inv-color-code">' + esc(codeOf(colPrin)) + '</em>' : '') + '</strong><small>' + (colExtra.length ? 'Combinado' : 'Un solo color') + ' · toca un color para quitarlo</small></span>'
       : '<span class="inv-sw-big is-empty"></span><span><strong>Sin color</strong><small>Toca el color principal; si es combinado, toca hasta 2 más.</small></span>';
+    updateClave();
   }
+  function codeOf(name) {
+    var c = colores.filter(function (x) { return x.nombre.toLowerCase() === String(name || '').toLowerCase(); })[0];
+    return c && c.codigo ? c.codigo : '';
+  }
+
+  /* ---------- Clave automática del armazón ----------
+     TIPO-MARCA-MODELO-COLOR, p. ej. ARZL-GUE-2702-0007:
+       · ARMT (metal) o ARZL (pasta), según el primer material elegido.
+       · Las 3 primeras letras de la marca, que se saca de la descripción.
+       · El modelo, que se escribe a mano.
+       · El código del color principal (catálogo de colores: Rojo 0007).
+     Lo que no es armazón (estuche, líquido, servicio) lleva clave a mano. */
+  var claveAuto = true;
+  var CLAVE_RE = /^(ARMT|ARZL)-([A-Z0-9]{3})-([A-Z0-9.]+)-(\d{4})$/;
+  var METAL_RE = /METAL|TITAN|ACERO|ALUMIN|INOX|MONEL|MEMORIA/;
+  var BRAND_STOP = ('ARMAZON ARMAZONES LENTE LENTES ANTEOJO ANTEOJOS GAFA GAFAS MARCO MARCOS MONTURA MICA ' +
+    'DE DEL LA EL LOS LAS PARA CON SIN Y E AL SOL SOLAR OFTALMICO OFTALMICA OPTICO OPTICA GRADUADO ' +
+    'UNISEX HOMBRE MUJER DAMA CABALLERO NINO NINA NINOS INFANTIL KIDS JUNIOR ADULTO ' +
+    'MODELO MOD COLOR PASTA ACETATO METAL METALICO PLASTICO COMPLETO COMPLETA AIRE MEDIO ARO RIN ' +
+    'NUEVO NUEVA PZA PIEZA').split(' ');
+  function plain(v) { return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(); }
+  // Marca: la primera palabra de la descripción que no sea genérica (ARMAZÓN,
+  // DE, SOL…), ni color, ni material, ni tipo de armazón, ni lleve números.
+  function brandOf(desc) {
+    var stop = {};
+    BRAND_STOP.forEach(function (w) { stop[w] = 1; });
+    colores.concat(materiales).concat(tiposArm).forEach(function (x) {
+      plain(x.nombre).split(/[^A-Z0-9]+/).forEach(function (w) { if (w) stop[w] = 1; });
+    });
+    var words = plain(desc).split(/[^A-Z0-9]+/).filter(Boolean);
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i];
+      if (stop[w] || /\d/.test(w) || w.length < 2) continue;
+      // Marcas cortas (RV STUDIO): se completan las 3 letras con la siguiente palabra.
+      var letters = w;
+      for (var j = i + 1; letters.length < 3 && j < words.length && !stop[words[j]]; j++) letters += words[j];
+      if (letters.length >= 3) return { name: w, code: letters.slice(0, 3) };
+    }
+    return null;
+  }
+  function claveParts() {
+    var mat = formMats[0] || '';
+    var brand = brandOf($('aDesc').value);
+    var modelo = plain($('aModelo').value).replace(/[^A-Z0-9.]/g, '');
+    var col = codeOf(colPrin);
+    return [
+      { v: mat ? (METAL_RE.test(plain(mat)) ? 'ARMT' : 'ARZL') : '', ok: mat, miss: 'Elige el material' },
+      { v: brand ? brand.code : '', ok: brand && brand.name, miss: 'Escribe la marca en la descripción' },
+      { v: modelo, ok: 'Modelo', miss: 'Escribe el modelo' },
+      { v: col, ok: colPrin, miss: colPrin ? 'Ese color no tiene código' : 'Elige el color' }
+    ];
+  }
+  function updateClave() {
+    var box = $('aClaveParts'), input = $('aClave');
+    if (!box) return;
+    $('aModeloField').hidden = !claveAuto;
+    $('aClaveHint').textContent = claveAuto ? '(se arma sola)' : '';
+    input.readOnly = claveAuto;
+    input.classList.toggle('is-auto', claveAuto);
+    if (!claveAuto) {
+      input.placeholder = 'Ej. AC13';
+      box.innerHTML = $('aServicio').checked ? '' : '<button type="button" class="inv-clave-mode" data-clave-mode="auto">Es un armazón: armar la clave sola</button>';
+      return;
+    }
+    var p = claveParts();
+    var complete = p.every(function (x) { return x.v; });
+    input.value = complete ? p.map(function (x) { return x.v; }).join('-') : '';
+    input.placeholder = complete ? '' : 'Se arma sola…';
+    box.innerHTML = '<div class="inv-cp-row">' + p.map(function (x, i) {
+      return (i ? '<span class="inv-cp-sep">-</span>' : '') +
+        '<span class="inv-cp' + (x.v ? '' : ' is-missing') + '"><b>' + esc(x.v || '····') + '</b><small>' + esc(x.v ? x.ok : x.miss) + '</small></span>';
+    }).join('') + '</div>' +
+      '<button type="button" class="inv-clave-mode" data-clave-mode="manual">No es armazón: escribir la clave a mano</button>';
+  }
+  function missingClave() {
+    return claveParts().filter(function (x) { return !x.v; }).map(function (x) { return x.miss.charAt(0).toLowerCase() + x.miss.slice(1); });
+  }
+  $('aClaveParts').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-clave-mode]');
+    if (!b) return;
+    claveAuto = b.getAttribute('data-clave-mode') === 'auto';
+    updateClave();
+    setTimeout(function () { (claveAuto ? $('aModelo') : $('aClave')).focus(); }, 30);
+  });
+  $('aDesc').addEventListener('input', updateClave);
+  $('aModelo').addEventListener('input', function () {
+    var pos = this.selectionStart;
+    this.value = this.value.toUpperCase().replace(/[^A-Z0-9.]/g, '');
+    try { this.setSelectionRange(pos, pos); } catch (e) {}
+    updateClave();
+  });
+
+  /* ---------- Reglas de precio / promoción por grupo ----------
+     Al dar de alta un artículo, si su categoría o material tiene regla
+     ("todos los de LÍNEA valen $500", "20 % a los de acetato") se le
+     pone el precio y la promoción (si no se escribieron otros). */
+  var reglas = [], prefilled = { precio: '', promo: '' };
+  function loadReglas() {
+    return I.api('/api/inventario/reglas').then(function (d) { reglas = d.items || []; }).catch(function () { reglas = []; });
+  }
+  function reglasFor(tipo) {
+    return reglas.filter(function (r) {
+      if (r.tipo !== tipo) return false;
+      if (r.campo === 'categoria') return formCat && r.valor === String(formCat);
+      return formMats.some(function (m) { return m.toLowerCase() === String(r.valor).toLowerCase(); });
+    });
+  }
+  function reglaTxt(r) { return (r.campo === 'categoria' ? 'categoría ' : 'material ') + r.etiqueta; }
+  function rulesPrefill() {
+    if (editing) return;
+    var pIn = priceRow(1).querySelector('[data-precio]'), prIn = $('aPromo');
+    var rp = reglasFor('precio')[0];
+    if (rp && (!pIn.value || pIn.value === prefilled.precio)) {
+      pIn.value = rp.monto.toFixed(2); prefilled.precio = pIn.value;
+      utilFromPrice(priceRow(1)); syncSinIva();
+    }
+    var best = reglasFor('promo').sort(function (x, y) { return y.monto - x.monto; })[0];
+    if (best && (!prIn.value || prIn.value === prefilled.promo)) { prIn.value = String(best.monto); prefilled.promo = prIn.value; }
+    syncPromoHint(rp, best);
+  }
+  function syncPromoHint(rp, best) {
+    var v = parseFloat($('aPromo').value) || 0, p1 = parseFloat(priceRow(1).querySelector('[data-precio]').value) || 0;
+    var txt = v > 0
+      ? 'En el Punto de venta sale con <strong>' + I.round2(v) + ' % de descuento</strong>' + (p1 > 0 ? ': ' + mxn.format(p1) + ' → <strong>' + mxn.format(I.round2(p1 * (1 - v / 100))) + '</strong>' : '') + '.'
+      : 'Sin promoción. Para darle promoción a toda una categoría o material usa <strong>Precio / promo</strong> en la barra.';
+    var from = [];
+    if (rp && !editing) from.push('el precio de la regla de ' + esc(reglaTxt(rp)));
+    if (best && !editing && v === best.monto) from.push('la promoción de ' + esc(reglaTxt(best)));
+    $('aPromoHint').innerHTML = txt + (from.length ? ' <span class="inv-hint-rule">Tomó ' + from.join(' y ') + '.</span>' : '');
+  }
+  $('aPromo').addEventListener('input', function () { syncPromoHint(); });
   $('aPalette').addEventListener('click', function (e) {
     if (e.target.closest('[data-color-new]')) { $('aColorNew').hidden = false; $('aColorName').focus(); return; }
     var b = e.target.closest('[data-color]');
@@ -560,6 +696,7 @@
       utilFromPrice(row);
     }
     syncSinIva();
+    syncPromoHint();
   });
   if ($('aCompra')) $('aCompra').addEventListener('input', function () {
     [1, 2, 3, 4].forEach(function (n) { utilFromPrice(priceRow(n)); });
@@ -573,9 +710,12 @@
     if (s) { $('aExistencia').value = ''; }
     // Los servicios nunca llevan clave de rastreo: la opción no aplica.
     $('aSinRastreoWrap').hidden = s;
+    // Un servicio no es armazón: su clave se escribe a mano.
+    if (s && claveAuto) claveAuto = false;
+    updateClave();
   }
   $('aServicio').addEventListener('change', syncServicio);
-  ['aClave', 'aClaveAlt'].forEach(function (id) {
+  ['aClave'].forEach(function (id) {
     $(id).addEventListener('input', function () {
       var pos = this.selectionStart;
       this.value = this.value.toUpperCase().replace(/\s/g, '-').replace(/[^A-Z0-9./-]/g, '');
@@ -781,7 +921,14 @@
     artForm.reset();
     $('artError').textContent = '';
     $('aClave').value = mode === 'clone' ? '' : (a ? a.clave : '');
-    $('aClaveAlt').value = a ? a.clave_alterna : '';
+    // Clave armada (ARZL-GUE-2702-0007): se recupera el modelo y se sigue
+    // armando sola. Una clave vieja escrita a mano se respeta al editar.
+    var cm = a ? CLAVE_RE.exec(a.clave || '') : null;
+    $('aModelo').value = cm ? cm[3] : '';
+    claveAuto = !a || !!cm || (mode === 'clone' && !!(a.materiales && a.materiales.length));
+    if (a && a.servicio) claveAuto = false;
+    $('aPromo').value = a && a.promo_pct > 0 ? String(a.promo_pct) : '';
+    prefilled = { precio: '', promo: '' };
     $('aDesc').value = a ? a.descripcion : '';
     formCat = a && a.categoria_id ? String(a.categoria_id) : '';
     buildFormCats();
@@ -818,6 +965,8 @@
     $('aTipoNew').hidden = true; $('aTipoName').value = '';
     buildTipos(); renderPalette();
     syncServicio();
+    updateClave();
+    syncPromoHint();
     resetFotos(a, mode);
   }
   function openAdd() { editing = null; $('artTitle').textContent = 'Agregar artículo'; fillForm(null, 'add'); openArt(); }
@@ -827,7 +976,7 @@
     loadArmazonData();
     I.openModal(artModal);
     setTab('general');
-    setTimeout(function () { (editing ? $('aDesc') : $('aClave')).focus(); }, 80);
+    setTimeout(function () { (editing || claveAuto ? $('aDesc') : $('aClave')).focus(); }, 80);
   }
 
   function intVal(id) { var v = parseInt($(id).value, 10); return isNaN(v) ? 0 : v; }
@@ -836,7 +985,6 @@
     var err = $('artError');
     var body = {
       clave: $('aClave').value.trim(),
-      clave_alterna: $('aClaveAlt').value.trim(),
       descripcion: $('aDesc').value.trim().replace(/\s+/g, ' '),
       categoria_id: Number(formCat) || 0,
       unidad_compra: aUC.get(),
@@ -850,6 +998,7 @@
       minimo: intVal('aMinimo'),
       maximo: intVal('aMaximo'),
       localizacion: $('aLocal').value.trim(),
+      promo_pct: I.round2(Math.max(0, Math.min(100, parseFloat($('aPromo').value) || 0))),
       tipo_armazon: formTipo,
       color_principal: colPrin,
       colores_extra: colExtra.slice(),
@@ -862,6 +1011,7 @@
       if (n > 1) body['mayoreo_' + n] = parseInt(row.querySelector('[data-mayoreo]').value, 10) || 0;
     });
     function bad(msg, tab, field) { err.textContent = msg; setTab(tab); if (field) setTimeout(function () { $(field).focus(); }, 60); }
+    if (claveAuto && !body.clave) return bad('Para armar la clave falta: ' + missingClave().join(', ') + '.', 'general', missingClave().length === 1 && !$('aModelo').value ? 'aModelo' : null);
     if (!body.clave) return bad('Escribe la clave del artículo.', 'general', 'aClave');
     if (!body.descripcion) return bad('Escribe la descripción del artículo.', 'general', 'aDesc');
     if (body.precio_1 <= 0 && !body.servicio) return bad('Escribe el precio de venta (precio 1).', 'precios');
@@ -1340,7 +1490,131 @@
     w.document.close();
   }
 
+  /* =======================================================
+     MODAL: mismo precio o promoción para toda una categoría o material
+     ======================================================= */
+  var grpModal = $('grpModal');
+  var grp = { campo: 'categoria', accion: 'precio', valor: '' };
+  var grpSel = I.select($('grpValor'), { placeholder: 'Elige…', onChange: function (v) { grp.valor = v; syncGrp(); } });
+  function grpMatches() {
+    if (!grp.valor) return [];
+    return items.filter(function (a) {
+      if (grp.campo === 'categoria') return String(a.categoria_id) === grp.valor;
+      return (a.materiales || []).some(function (m) { return m.toLowerCase() === grp.valor.toLowerCase(); });
+    });
+  }
+  function grpOptions() {
+    if (grp.campo === 'categoria') {
+      return cats.map(function (c) {
+        var n = items.filter(function (a) { return a.categoria_id === c.id; }).length;
+        return { value: String(c.id), label: c.nombre, hint: n === 1 ? '1 artículo' : I.num(n) + ' artículos' };
+      });
+    }
+    var names = materiales.map(function (m) { return m.nombre; });
+    items.forEach(function (a) { (a.materiales || []).forEach(function (m) { if (!names.some(function (x) { return x.toLowerCase() === m.toLowerCase(); })) names.push(m); }); });
+    return names.map(function (n) {
+      var c = items.filter(function (a) { return (a.materiales || []).some(function (m) { return m.toLowerCase() === n.toLowerCase(); }); }).length;
+      return { value: n, label: n, hint: c === 1 ? '1 artículo' : I.num(c) + ' artículos' };
+    });
+  }
+  function grpLabel() {
+    var o = grpOptions().filter(function (x) { return x.value === grp.valor; })[0];
+    // "de la categoría LÍNEA" / "del material Acetato"
+    return o ? (grp.campo === 'categoria' ? 'de la categoría ' : 'del material ') + o.label : '';
+  }
+  function setSeg(el, attr, v) {
+    Array.prototype.forEach.call(el.querySelectorAll('button[' + attr + ']'), function (b) { b.classList.toggle('is-on', b.getAttribute(attr) === v); });
+  }
+  function syncGrp() {
+    setSeg($('grpCampo'), 'data-campo', grp.campo);
+    setSeg($('grpAccion'), 'data-accion', grp.accion);
+    $('grpValorLabel').textContent = grp.campo === 'categoria' ? 'Categoría' : 'Material';
+    $('grpPrecioField').hidden = grp.accion !== 'precio';
+    $('grpPromoField').hidden = grp.accion !== 'promo';
+    $('grpRecordarWrap').hidden = grp.accion === 'quitar_promo';
+    $('grpRecordarTxt').textContent = grp.accion === 'precio'
+      ? 'Los artículos nuevos de este grupo salen con este precio.'
+      : 'Los artículos nuevos de este grupo salen con esta promoción.';
+    var list = grpMatches(), n = list.length;
+    $('grpCount').textContent = grp.valor ? (n === 1 ? 'Hay 1 artículo.' : 'Hay ' + I.num(n) + ' artículos.') : '';
+    var sum = '';
+    if (grp.valor) {
+      var who = (n === 1 ? 'el artículo' : 'los ' + I.num(n) + ' artículos') + ' ' + esc(grpLabel());
+      var p = parseFloat($('grpPrecio').value), pr = parseFloat($('grpPromo').value);
+      if (grp.accion === 'precio' && p > 0) sum = 'A ' + who + ' se les pone precio de venta <strong>' + mxn.format(p) + '</strong>.';
+      else if (grp.accion === 'promo' && pr > 0) sum = 'A ' + who + ' se les pone <strong>' + I.round2(pr) + ' % de promoción</strong> en el Punto de venta.';
+      else if (grp.accion === 'quitar_promo') {
+        var con = list.filter(function (a) { return a.promo_pct > 0; }).length;
+        sum = con ? 'Se les quita la promoción a <strong>' + I.num(con) + '</strong> ' + esc(grpLabel()) + ' y ya no se pone a los nuevos.' : 'Ninguno ' + esc(grpLabel()) + ' tiene promoción.';
+      }
+    }
+    $('grpSum').innerHTML = sum;
+    $('grpSum').hidden = !sum;
+  }
+  function renderReglas() {
+    var box = $('grpRules');
+    if (!reglas.length) { box.innerHTML = ''; return; }
+    box.innerHTML = '<h4>Se aplican solas a los artículos nuevos</h4>' + reglas.map(function (r) {
+      return '<div class="inv-grp-rule"><span class="inv-grp-rule-ico is-' + r.tipo + '">' + (r.tipo === 'precio' ? '$' : '%') + '</span>' +
+        '<span><strong>' + (r.tipo === 'precio' ? mxn.format(r.monto) : '−' + I.round2(r.monto) + ' % de promoción') + '</strong>' +
+        '<small>' + esc(r.campo === 'categoria' ? 'Categoría ' + r.etiqueta : 'Material ' + r.etiqueta) + '</small></span>' +
+        '<button type="button" class="inv-btn-ghost" data-regla-del="' + r.id + '">Quitar</button></div>';
+    }).join('');
+  }
+  function openGrupo() {
+    grp = { campo: 'categoria', accion: 'precio', valor: '' };
+    $('grpPrecio').value = ''; $('grpPromo').value = ''; $('grpRecordar').checked = true; $('grpError').textContent = '';
+    grpSel.setOptions(grpOptions()); grpSel.set('', true);
+    syncGrp();
+    loadReglas().then(renderReglas);
+    I.openModal(grpModal);
+  }
+  $('grpCampo').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-campo]'); if (!b) return;
+    grp.campo = b.getAttribute('data-campo'); grp.valor = '';
+    grpSel.setOptions(grpOptions()); grpSel.set('', true);
+    syncGrp();
+  });
+  $('grpAccion').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-accion]'); if (!b) return;
+    grp.accion = b.getAttribute('data-accion');
+    syncGrp();
+    var f2 = grp.accion === 'precio' ? $('grpPrecio') : grp.accion === 'promo' ? $('grpPromo') : null;
+    if (f2) setTimeout(function () { f2.focus(); }, 30);
+  });
+  ['grpPrecio', 'grpPromo'].forEach(function (id) { $(id).addEventListener('input', syncGrp); });
+  $('grpRules').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-regla-del]'); if (!b) return;
+    b.disabled = true;
+    I.api('/api/inventario/reglas/' + b.getAttribute('data-regla-del'), { method: 'DELETE' }).then(function () {
+      I.toast('Listo: los artículos nuevos ya no toman esa regla. Los que ya están se quedan igual.');
+      return loadReglas().then(renderReglas);
+    }).catch(function (err) { b.disabled = false; I.toast(err.message, 'error'); });
+  });
+  $('grpForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var err = $('grpError');
+    if (!grp.valor) { err.textContent = grp.campo === 'categoria' ? 'Elige la categoría.' : 'Elige el material.'; return; }
+    var monto = grp.accion === 'precio' ? parseFloat($('grpPrecio').value) : grp.accion === 'promo' ? parseFloat($('grpPromo').value) : 0;
+    if (grp.accion === 'precio' && !(monto > 0)) { err.textContent = 'Escribe el precio de venta.'; $('grpPrecio').focus(); return; }
+    if (grp.accion === 'promo' && !(monto > 0 && monto <= 100)) { err.textContent = 'La promoción va de 1 a 100 %.'; $('grpPromo').focus(); return; }
+    var btn = $('grpSave'); btn.disabled = true; err.textContent = '';
+    var label = grpLabel();
+    I.api('/api/inventario/grupo', { method: 'POST', body: { campo: grp.campo, valor: grp.valor, accion: grp.accion, monto: monto || 0, recordar: $('grpRecordar').checked } })
+      .then(function (d) {
+        var n = d.afectados || 0;
+        I.closeModal(grpModal);
+        I.toast(grp.accion === 'precio' ? 'Precio ' + mxn.format(monto) + ' aplicado a ' + I.num(n) + ' ' + label + '.'
+          : grp.accion === 'promo' ? 'Promoción de ' + I.round2(monto) + ' % aplicada a ' + I.num(n) + ' ' + label + '.'
+          : 'Promoción quitada a ' + I.num(n) + ' ' + label + '.');
+        loadReglas();
+        return load(true);
+      }).catch(function (e2) { err.textContent = e2.message; })
+      .finally(function () { btn.disabled = false; });
+  });
+
   /* ---------- barra de acciones y atajos ---------- */
+  $('tbGrupo').addEventListener('click', openGrupo);
   $('tbAgregar').addEventListener('click', openAdd);
   $('tbEditar').addEventListener('click', function () { openEdit(current()); });
   $('tbRecargar').addEventListener('click', function () { load(true).then(function () { I.toast('Inventario actualizado.'); }); });

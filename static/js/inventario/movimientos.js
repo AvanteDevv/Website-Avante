@@ -127,7 +127,7 @@
     kx.hidden = !(f.item && a);
     if (f.item && a) {
       kx.innerHTML =
-        '<div><small>' + esc(a.clave) + (a.clave_alterna ? ' · ' + esc(a.clave_alterna) : '') + '</small><strong>' + esc(a.descripcion) + '</strong>' +
+        '<div><small>' + esc(a.clave) + '</small><strong>' + esc(a.descripcion) + '</strong>' +
           '<button type="button" class="inv-kx-clear" id="kxClear">Ver todos los artículos</button></div>' +
         '<div class="inv-kx-num"><small>Existencia hoy</small><br><b>' + I.num(a.existencia) + '</b></div>' +
         '<div class="inv-kx-num"><small>Precio</small><br><b>' + I.mxn.format(a.precio_1) + '</b></div>';

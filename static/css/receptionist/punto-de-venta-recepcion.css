@@ -87,6 +87,9 @@ body.dark .pos-preview-tag{ background:rgba(230,126,34,.16); color:#ffb877; }
 .pos-prod-name{ font-size:13px; font-weight:700; line-height:1.3; word-break:break-word; }
 .pos-prod-foot{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:auto; padding-top:6px; flex-wrap:wrap; }
 .pos-prod-foot strong{ font-family:'Fraunces', serif; font-size:16px; font-weight:600; font-variant-numeric:tabular-nums; }
+/* Promoción puesta desde Inventario (el descuento ya va en la línea) */
+.pos-prod-promo{ padding:2px 7px; border-radius:100px; background:#e3f6ea; color:#1f7a4d; font-size:10.5px; font-weight:800; }
+body.dark .pos-prod-promo{ background:rgba(27,175,122,.16); color:#5fd6a4; }
 .pos-stock{ font-size:10px; font-weight:700; padding:3px 8px; border-radius:100px; background:#dff3e4; color:#1f7a3d; white-space:nowrap; }
 .pos-stock.is-low{ background:#fdf0e3; color:#9a4f0c; }
 .pos-stock.is-out{ background:#fbe0e0; color:#a3231b; }

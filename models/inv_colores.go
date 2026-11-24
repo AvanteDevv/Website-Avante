@@ -12,6 +12,9 @@ type InvColor struct {
 	ID     int64  `json:"id"`
 	Nombre string `json:"nombre"`
 	Hex    string `json:"hex"`
+	// Codigo: 4 dígitos del catálogo de colores de la tienda (Negro 0001…);
+	// es la última parte de la clave automática del armazón.
+	Codigo string `json:"codigo"`
 }
 
 var ErrInvColorTaken = errors.New("ese color ya existe")
@@ -28,7 +31,7 @@ func splitColores(s string) []string {
 }
 
 func ListInvColores() ([]InvColor, error) {
-	rows, err := db.DB.Query(`SELECT id, nombre, hex FROM inv_colores ORDER BY orden, nombre`)
+	rows, err := db.DB.Query(`SELECT id, nombre, hex, codigo FROM inv_colores ORDER BY orden, nombre`)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +39,7 @@ func ListInvColores() ([]InvColor, error) {
 	out := []InvColor{}
 	for rows.Next() {
 		var c InvColor
-		if err := rows.Scan(&c.ID, &c.Nombre, &c.Hex); err != nil {
+		if err := rows.Scan(&c.ID, &c.Nombre, &c.Hex, &c.Codigo); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -55,12 +58,14 @@ func CreateInvColor(nombre, hex string) (*InvColor, error) {
 	}
 	var orden int
 	_ = db.DB.QueryRow(`SELECT COALESCE(MAX(orden), 0) + 1 FROM inv_colores`).Scan(&orden)
-	res, err := db.DB.Exec(`INSERT INTO inv_colores (nombre, hex, orden) VALUES (?, ?, ?)`, nombre, hex, orden)
+	// Color nuevo = el siguiente código libre (0028, 0029…).
+	codigo := db.NextColorCode()
+	res, err := db.DB.Exec(`INSERT INTO inv_colores (nombre, hex, codigo, orden) VALUES (?, ?, ?, ?)`, nombre, hex, codigo, orden)
 	if err != nil {
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
-	return &InvColor{ID: id, Nombre: nombre, Hex: hex}, nil
+	return &InvColor{ID: id, Nombre: nombre, Hex: hex, Codigo: codigo}, nil
 }
 
 // TryonSlugExists: ¿hay un estilo del probador con ese slug?

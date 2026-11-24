@@ -166,6 +166,7 @@ type invArticuloBody struct {
 	Minimo         int     `json:"minimo"`
 	Maximo         int     `json:"maximo"`
 	Localizacion   string  `json:"localizacion"`
+	PromoPct       float64 `json:"promo_pct"` // % de promoción (Punto de venta)
 	// Armazones
 	TipoArmazon    string   `json:"tipo_armazon"`
 	ColorPrincipal string   `json:"color_principal"`
@@ -236,6 +237,8 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 		return bad("El inventario mínimo no puede ser mayor que el máximo.")
 	case len([]rune(b.Localizacion)) > 60:
 		return bad("La localización es muy larga (máximo 60 caracteres).")
+	case b.PromoPct < 0 || b.PromoPct > 100 || math.IsNaN(b.PromoPct):
+		return bad("La promoción va de 0 a 100 %.")
 	}
 	// Armazón: tipo (de los estilos del probador) y colores.
 	b.TipoArmazon = strings.TrimSpace(b.TipoArmazon)
@@ -286,7 +289,7 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 		Servicio: b.Servicio, SinRastreo: b.SinRastreo, IVA: b.IVA,
 		PrecioCompra: b.PrecioCompra, Precio1: b.Precio1, Precio2: b.Precio2, Precio3: b.Precio3, Precio4: b.Precio4,
 		Mayoreo2: b.Mayoreo2, Mayoreo3: b.Mayoreo3, Mayoreo4: b.Mayoreo4,
-		Existencia: b.Existencia, Minimo: b.Minimo, Maximo: b.Maximo, Localizacion: b.Localizacion,
+		Existencia: b.Existencia, Minimo: b.Minimo, Maximo: b.Maximo, Localizacion: b.Localizacion, PromoPct: b.PromoPct,
 		TipoArmazon: b.TipoArmazon, ColorPrincipal: b.ColorPrincipal, ColoresExtra: extras, MicaTipo: b.MicaTipo, Materiales: mats,
 	}, true
 }
@@ -1031,4 +1034,66 @@ func InvCreateMaterial(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "item": m})
+}
+
+/* ---------- Precio y promoción por grupo ---------- */
+
+// InvListReglas — GET /api/inventario/reglas
+func InvListReglas(c *gin.Context) {
+	items, err := models.ListInvReglas()
+	if err != nil {
+		invFail(c, "ListReglas", err, "No se pudieron cargar las reglas.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+// InvApplyGrupo — POST /api/inventario/grupo
+// {campo: categoria|material, valor, accion: precio|promo|quitar_promo, monto, recordar}
+func InvApplyGrupo(c *gin.Context) {
+	var b struct {
+		Campo    string  `json:"campo"`
+		Valor    string  `json:"valor"`
+		Accion   string  `json:"accion"`
+		Monto    float64 `json:"monto"`
+		Recordar bool    `json:"recordar"`
+	}
+	if err := c.ShouldBindJSON(&b); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	switch {
+	case b.Accion == "precio" && (b.Monto <= 0 || !invMoneyOK(b.Monto)):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe el precio de venta (mayor a $0)."})
+		return
+	case b.Accion == "promo" && (b.Monto <= 0 || b.Monto > 100 || math.IsNaN(b.Monto)):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "La promoción va de 1 a 100 %."})
+		return
+	case b.Accion != "precio" && b.Accion != "promo" && b.Accion != "quitar_promo":
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige qué quieres hacer."})
+		return
+	}
+	n, err := models.ApplyInvGrupo(b.Campo, b.Valor, b.Accion, b.Monto, b.Recordar, invUser(c))
+	if errors.Is(err, models.ErrInvGrupoInvalido) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige la categoría o el material."})
+		return
+	}
+	if err != nil {
+		invFail(c, "ApplyGrupo", err, "No se pudo aplicar el cambio.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "afectados": n})
+}
+
+// InvDeleteRegla — DELETE /api/inventario/reglas/:id
+func InvDeleteRegla(c *gin.Context) {
+	id, ok := invID(c)
+	if !ok {
+		return
+	}
+	if err := models.DeleteInvRegla(id); err != nil {
+		invFail(c, "DeleteRegla", err, "No se pudo quitar la regla.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
