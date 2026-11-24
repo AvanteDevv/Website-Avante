@@ -147,20 +147,37 @@
         <div class="inv-tabpane is-on" data-pane="general">
           <!-- Clave: en armazones se arma sola (material · marca · modelo · color);
                en lo demás (estuches, líquidos…) se escribe a mano. -->
+          <div class="staff-field inv-clave-field">
+            <span>Clave <em id="aClaveHint">(se arma sola)</em></span>
+            <div class="inv-clave-wrap">
+              <input type="text" id="aClave" maxlength="60" required placeholder="Ej. AC13" spellcheck="false">
+              <button type="button" class="inv-clave-q" id="aClaveHelpBtn" aria-expanded="false" aria-controls="aClaveHelp" title="¿Cómo se forma la clave?">?</button>
+            </div>
+            <div class="inv-clave-help" id="aClaveHelp" hidden>
+              <strong class="inv-clave-help-title">Así se forma la clave del armazón</strong>
+              <div class="inv-clave-parts" id="aClaveParts"></div>
+              <ol class="inv-clave-help-list">
+                <li><b>ARMT</b> o <b>ARZL</b>: sale del material (metal o pasta).</li>
+                <li><b>Marca</b>: sus 3 primeras letras.</li>
+                <li><b>Modelo</b>: el código del modelo del armazón.</li>
+                <li><b>Color</b>: el código del color principal (2 dígitos).</li>
+              </ol>
+              <div class="inv-clave-help-foot" id="aClaveMode"></div>
+            </div>
+          </div>
           <div class="staff-form-row">
             <label class="staff-field">
-              <span>Clave <em id="aClaveHint">(se arma sola)</em></span>
-              <input type="text" id="aClave" maxlength="60" required placeholder="Ej. AC13" spellcheck="false">
+              <span>Marca</span>
+              <input type="text" id="aMarca" maxlength="60" placeholder="Ej. GUESS" spellcheck="false" autocapitalize="characters">
             </label>
             <label class="staff-field" id="aModeloField">
               <span>Modelo del armazón</span>
               <input type="text" id="aModelo" maxlength="30" placeholder="Ej. 2702" spellcheck="false" autocapitalize="characters">
             </label>
           </div>
-          <div class="inv-clave-parts" id="aClaveParts"></div>
           <label class="staff-field">
             <span>Descripción</span>
-            <input type="text" id="aDesc" maxlength="200" required placeholder="Ej. ARMAZON GUESS PASTA ROJO">
+            <input type="text" id="aDesc" maxlength="200" required placeholder="Ej. ARMAZÓN GUESS PASTA ROJO">
           </label>
           <div class="staff-field">
             <span>Categoría</span>
@@ -202,6 +219,10 @@
               <div class="inv-palette inv-mats" id="aMats" role="group" aria-label="Materiales"></div>
               <div class="inv-color-new" id="aMatNew" hidden>
                 <input type="text" id="aMatName" maxlength="30" placeholder="Nombre (ej. Titanio flexible)">
+                <div class="inv-seg inv-mat-ident" id="aMatIdent" role="radiogroup" aria-label="Identificador de la clave">
+                  <button type="button" data-ident="ARMT" role="radio">Metal · ARMT</button>
+                  <button type="button" data-ident="ARZL" role="radio">Pasta · ARZL</button>
+                </div>
                 <button type="button" class="inv-btn-ghost" id="aMatCancel">Cancelar</button>
                 <button type="button" class="btn solid small" id="aMatAdd">Agregar</button>
               </div>

@@ -132,7 +132,7 @@
       if (f.cat && String(a.categoria_id) !== f.cat) return false;
       if (f.estado && estadoOf(a) !== f.estado) return false;
       if (words.length) {
-        var hay = I.norm(a.clave + ' ' + a.clave_alterna + ' ' + a.descripcion + ' ' + a.localizacion + ' ' + (a.color_principal || '') + ' ' + (a.colores_extra || []).join(' ') + ' ' + tipoNombre(a.tipo_armazon || '') + ' ' + (a.materiales || []).join(' '));
+        var hay = I.norm(a.clave + ' ' + a.clave_alterna + ' ' + a.descripcion + ' ' + (a.marca || '') + ' ' + a.localizacion + ' ' + (a.color_principal || '') + ' ' + (a.colores_extra || []).join(' ') + ' ' + tipoNombre(a.tipo_armazon || '') + ' ' + (a.materiales || []).join(' '));
         for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) === -1) return false;
       }
       return true;
@@ -288,6 +288,7 @@
       '</div>' + bar + profit +
       '<div class="inv-d-rows">' +
         '<div class="inv-d-row"><span>Categoría</span><strong>' + esc(a.categoria || '—') + '</strong></div>' +
+        (a.marca ? '<div class="inv-d-row"><span>Marca</span><strong>' + esc(a.marca) + '</strong></div>' : '') +
         '<div class="inv-d-row"><span>Localización</span><strong>' + esc(a.localizacion || '—') + '</strong></div>' +
         (a.tipo_armazon ? '<div class="inv-d-row"><span>Tipo de armazón</span><strong>' + esc(tipoNombre(a.tipo_armazon)) + '</strong></div>' : '') +
         (a.materiales && a.materiales.length ? '<div class="inv-d-row"><span>Material</span><strong>' + esc(matsTxt(a.materiales)) + '</strong></div>' : '') +
@@ -342,14 +343,41 @@
     $('aMats').innerHTML = list.map(function (n) {
       var i = formMats.map(function (x) { return x.toLowerCase(); }).indexOf(n.toLowerCase());
       var nuevo = newMat && n.toLowerCase() === newMat.toLowerCase();
+      var m = matOf(n);
       return '<button type="button" class="inv-sw inv-mat' + (i >= 0 ? ' is-main' : '') + (nuevo ? ' is-new' : '') + '" data-mat="' + esc(n) + '">' +
-        '<i>' + (i >= 0 ? '✓' : '') + '</i><span>' + esc(n) + '</span></button>';
+        '<i>' + (i >= 0 ? '✓' : '') + '</i><span>' + esc(n) + '</span>' +
+        (m && m.identificador ? '<small class="inv-mat-id">' + esc(m.identificador) + '</small>' : '') +
+        (m ? '<span class="inv-mat-del" role="button" tabindex="-1" data-mat-del="' + m.id + '" title="Quitar «' + esc(n) + '» de la lista" aria-label="Quitar ' + esc(n) + ' de la lista">×</span>' : '') +
+        '</button>';
     }).join('') + '<button type="button" class="inv-sw is-add" data-mat-new title="Agregar un material"><i>+</i><span>Nuevo</span></button>';
     newMat = '';
     updateClave();
   }
+  function matOf(n) { return materiales.filter(function (m) { return m.nombre.toLowerCase() === String(n || '').toLowerCase(); })[0]; }
+  // Quitar un material de la lista: el primer toque pregunta, el segundo lo quita.
+  var matDelTimer = null;
+  function deleteMat(x) {
+    var chip = x.closest('.inv-mat');
+    if (!x.classList.contains('is-armed')) {
+      $('aMats').querySelectorAll('.inv-mat-del.is-armed').forEach(function (o) { o.classList.remove('is-armed'); o.textContent = '×'; });
+      x.classList.add('is-armed'); x.textContent = '¿Quitar?';
+      clearTimeout(matDelTimer);
+      matDelTimer = setTimeout(function () { x.classList.remove('is-armed'); x.textContent = '×'; }, 3000);
+      return;
+    }
+    clearTimeout(matDelTimer);
+    var id = x.getAttribute('data-mat-del'), name = chip.getAttribute('data-mat');
+    I.api('/api/inventario/materiales/' + id, { method: 'DELETE' }).then(function () {
+      materiales = materiales.filter(function (m) { return String(m.id) !== id; });
+      formMats = formMats.filter(function (n) { return n.toLowerCase() !== name.toLowerCase(); });
+      renderMats();
+      I.toast('Material «' + name + '» quitado de la lista. Los artículos que ya lo tienen lo conservan.');
+    }).catch(function (err) { I.toast(err.message, 'error'); });
+  }
   $('aMats').addEventListener('click', function (e) {
-    if (e.target.closest('[data-mat-new]')) { $('aMatNew').hidden = false; $('aMatName').focus(); return; }
+    var del = e.target.closest('[data-mat-del]');
+    if (del) { e.preventDefault(); e.stopPropagation(); deleteMat(del); return; }
+    if (e.target.closest('[data-mat-new]')) { $('aMatNew').hidden = false; matIdent = ''; syncMatIdent(); $('aMatName').focus(); return; }
     var b = e.target.closest('[data-mat]');
     if (!b) return;
     var n = b.getAttribute('data-mat'), i = formMats.map(function (x) { return x.toLowerCase(); }).indexOf(n.toLowerCase());
@@ -367,11 +395,24 @@
   }
   $('aMatCancel').addEventListener('click', closeMatNew);
   $('aMatName').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('aMatAdd').click(); } });
+  // Material nuevo: hay que decir si es metal (ARMT) o pasta (ARZL).
+  var matIdent = '';
+  function syncMatIdent() {
+    Array.prototype.forEach.call($('aMatIdent').querySelectorAll('[data-ident]'), function (b) {
+      var on = b.getAttribute('data-ident') === matIdent;
+      b.classList.toggle('is-on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  $('aMatIdent').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ident]'); if (!b) return;
+    matIdent = b.getAttribute('data-ident'); syncMatIdent();
+  });
   $('aMatAdd').addEventListener('click', function () {
     var name = $('aMatName').value.trim(), btn = this;
     if (!name) { $('aMatName').focus(); return; }
+    if (!matIdent) { I.toast('Elige si «' + name + '» es metal (ARMT) o pasta (ARZL).', 'error'); return; }
     btn.disabled = true;
-    I.api('/api/inventario/materiales', { method: 'POST', body: { nombre: name } }).then(function (d) {
+    I.api('/api/inventario/materiales', { method: 'POST', body: { nombre: name, identificador: matIdent } }).then(function (d) {
       materiales.push(d.item);
       newMat = d.item.nombre;
       if (formMats.length < 4) formMats.push(d.item.nombre);
@@ -489,7 +530,7 @@
        · El código del color principal (catálogo de colores: Rojo 0007).
      Lo que no es armazón (estuche, líquido, servicio) lleva clave a mano. */
   var claveAuto = true;
-  var CLAVE_RE = /^(ARMT|ARZL)-([A-Z0-9]{3})-([A-Z0-9.]+)-(\d{4})$/;
+  var CLAVE_RE = /^(ARMT|ARZL)-([A-Z0-9]{2,3})-([A-Z0-9.]+)-(\d{2,4})$/;
   var METAL_RE = /METAL|TITAN|ACERO|ALUMIN|INOX|MONEL|MEMORIA/;
   var BRAND_STOP = ('ARMAZON ARMAZONES LENTE LENTES ANTEOJO ANTEOJOS GAFA GAFAS MARCO MARCOS MONTURA MICA ' +
     'DE DEL LA EL LOS LAS PARA CON SIN Y E AL SOL SOLAR OFTALMICO OFTALMICA OPTICO OPTICA GRADUADO ' +
@@ -516,18 +557,26 @@
     }
     return null;
   }
+  // ARMT / ARZL: el que se le eligió al material al crearlo.
+  function identOf(mat) {
+    var m = matOf(mat);
+    if (m && m.identificador) return m.identificador;
+    return mat ? (METAL_RE.test(plain(mat)) ? 'ARMT' : 'ARZL') : '';
+  }
   function claveParts() {
     var mat = formMats[0] || '';
-    var brand = brandOf($('aDesc').value);
+    var marca = plain($('aMarca').value).replace(/[^A-Z0-9]/g, '');
     var modelo = plain($('aModelo').value).replace(/[^A-Z0-9.]/g, '');
     var col = codeOf(colPrin);
     return [
-      { v: mat ? (METAL_RE.test(plain(mat)) ? 'ARMT' : 'ARZL') : '', ok: mat, miss: 'Elige el material' },
-      { v: brand ? brand.code : '', ok: brand && brand.name, miss: 'Escribe la marca en la descripción' },
+      { v: identOf(mat), ok: mat, miss: 'Elige el material' },
+      { v: marca.length >= 2 ? marca.slice(0, 3) : '', ok: $('aMarca').value.trim().toUpperCase(), miss: 'Escribe la marca' },
       { v: modelo, ok: 'Modelo', miss: 'Escribe el modelo' },
       { v: col, ok: colPrin, miss: colPrin ? 'Ese color no tiene código' : 'Elige el color' }
     ];
   }
+  // La clave se ve en el campo mientras se arma (lo que falta sale como …);
+  // el desglose está en el "?" de la clave.
   function updateClave() {
     var box = $('aClaveParts'), input = $('aClave');
     if (!box) return;
@@ -535,32 +584,61 @@
     $('aClaveHint').textContent = claveAuto ? '(se arma sola)' : '';
     input.readOnly = claveAuto;
     input.classList.toggle('is-auto', claveAuto);
+    $('aClaveHelp').classList.toggle('is-manual', !claveAuto);
     if (!claveAuto) {
+      input.classList.remove('is-partial');
       input.placeholder = 'Ej. AC13';
-      box.innerHTML = $('aServicio').checked ? '' : '<button type="button" class="inv-clave-mode" data-clave-mode="auto">Es un armazón: armar la clave sola</button>';
+      box.innerHTML = '<p class="inv-hint">Ahora la clave se escribe a mano (estuches, líquidos, servicios…).</p>';
+      $('aClaveMode').innerHTML = $('aServicio').checked ? '' : '<button type="button" class="inv-clave-mode" data-clave-mode="auto">Es un armazón: armar la clave sola</button>';
       return;
     }
     var p = claveParts();
+    var any = p.some(function (x) { return x.v; });
     var complete = p.every(function (x) { return x.v; });
-    input.value = complete ? p.map(function (x) { return x.v; }).join('-') : '';
-    input.placeholder = complete ? '' : 'Se arma sola…';
+    input.value = any ? p.map(function (x) { return x.v || '…'; }).join('-') : '';
+    input.classList.toggle('is-partial', any && !complete);
+    input.placeholder = 'Se arma sola: material, marca, modelo y color';
     box.innerHTML = '<div class="inv-cp-row">' + p.map(function (x, i) {
       return (i ? '<span class="inv-cp-sep">-</span>' : '') +
         '<span class="inv-cp' + (x.v ? '' : ' is-missing') + '"><b>' + esc(x.v || '····') + '</b><small>' + esc(x.v ? x.ok : x.miss) + '</small></span>';
-    }).join('') + '</div>' +
-      '<button type="button" class="inv-clave-mode" data-clave-mode="manual">No es armazón: escribir la clave a mano</button>';
+    }).join('') + '</div>';
+    $('aClaveMode').innerHTML = '<button type="button" class="inv-clave-mode" data-clave-mode="manual">No es armazón: escribir la clave a mano</button>';
   }
+  function claveCompleta() {
+    var p = claveParts();
+    return p.every(function (x) { return x.v; }) ? p.map(function (x) { return x.v; }).join('-') : '';
+  }
+  // "?" de la clave: abre / cierra el desglose.
+  function setClaveHelp(open) {
+    var box = $('aClaveHelp');
+    if (open === box.hidden) {
+      box.hidden = !open;
+      $('aClaveHelpBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+      $('aClaveHelpBtn').classList.toggle('is-on', open);
+    }
+  }
+  $('aClaveHelpBtn').addEventListener('click', function (e) { e.stopPropagation(); setClaveHelp($('aClaveHelp').hidden); });
+  $('aClaveHelp').addEventListener('click', function (e) { e.stopPropagation(); });
+  // En modo automático, tocar la clave también abre el desglose.
+  $('aClave').addEventListener('click', function (e) { if (claveAuto) { e.stopPropagation(); setClaveHelp(true); } });
+  document.addEventListener('click', function () { setClaveHelp(false); });
   function missingClave() {
     return claveParts().filter(function (x) { return !x.v; }).map(function (x) { return x.miss.charAt(0).toLowerCase() + x.miss.slice(1); });
   }
-  $('aClaveParts').addEventListener('click', function (e) {
+  $('aClaveMode').addEventListener('click', function (e) {
     var b = e.target.closest('[data-clave-mode]');
     if (!b) return;
     claveAuto = b.getAttribute('data-clave-mode') === 'auto';
     updateClave();
-    setTimeout(function () { (claveAuto ? $('aModelo') : $('aClave')).focus(); }, 30);
+    setClaveHelp(false);
+    setTimeout(function () { (claveAuto ? $('aMarca') : $('aClave')).focus(); }, 30);
   });
-  $('aDesc').addEventListener('input', updateClave);
+  $('aMarca').addEventListener('input', function () {
+    var pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    try { this.setSelectionRange(pos, pos); } catch (e) {}
+    updateClave();
+  });
   $('aModelo').addEventListener('input', function () {
     var pos = this.selectionStart;
     this.value = this.value.toUpperCase().replace(/[^A-Z0-9.]/g, '');
@@ -653,11 +731,20 @@
 
   // Tabs
   var tabs = artModal.querySelectorAll('.inv-tab');
+  var TAB_ORDER = ['general', 'precios', 'inventario', 'fotos'];
+  function curTab() { var on = artModal.querySelector('.inv-tab.is-on'); return on ? on.getAttribute('data-tab') : 'general'; }
+  // Solo en la última pestaña (Fotos) el botón es "Guardar"; antes, "Siguiente".
+  function syncSaveBtn() {
+    var btn = $('artSave');
+    if (btn.disabled) return;
+    btn.textContent = curTab() === 'fotos' ? 'Guardar' : 'Siguiente';
+  }
   function setTab(name) {
     tabs.forEach(function (t) { t.classList.toggle('is-on', t.getAttribute('data-tab') === name); });
     artModal.querySelectorAll('.inv-tabpane').forEach(function (p) { p.classList.toggle('is-on', p.getAttribute('data-pane') === name); });
     var on = artModal.querySelector('.inv-tab.is-on'), glow = $('artTabsGlow');
     if (on && glow) { glow.style.width = on.offsetWidth + 'px'; glow.style.transform = 'translateX(' + on.offsetLeft + 'px)'; }
+    syncSaveBtn();
   }
   tabs.forEach(function (t) { t.addEventListener('click', function () { setTab(t.getAttribute('data-tab')); }); });
 
@@ -925,6 +1012,10 @@
     // armando sola. Una clave vieja escrita a mano se respeta al editar.
     var cm = a ? CLAVE_RE.exec(a.clave || '') : null;
     $('aModelo').value = cm ? cm[3] : '';
+    // Marca: la guardada; en artículos de antes, se sugiere la de la descripción.
+    var guess = a && !a.marca && (cm || (a.materiales && a.materiales.length)) ? brandOf(a.descripcion) : null;
+    $('aMarca').value = a ? (a.marca || (guess ? guess.name : '')) : '';
+    setClaveHelp(false);
     claveAuto = !a || !!cm || (mode === 'clone' && !!(a.materiales && a.materiales.length));
     if (a && a.servicio) claveAuto = false;
     $('aPromo').value = a && a.promo_pct > 0 ? String(a.promo_pct) : '';
@@ -983,8 +1074,18 @@
   artForm.addEventListener('submit', function (e) {
     e.preventDefault();
     var err = $('artError');
+    // "Siguiente": pasa a la otra pestaña; se guarda hasta Fotos.
+    var ti = TAB_ORDER.indexOf(curTab());
+    if (ti < TAB_ORDER.length - 1) {
+      err.textContent = '';
+      setTab(TAB_ORDER[ti + 1]);
+      var body0 = artModal.querySelector('.admin-modal-body');
+      if (body0) body0.scrollTop = 0;
+      return;
+    }
     var body = {
-      clave: $('aClave').value.trim(),
+      clave: claveAuto ? claveCompleta() : $('aClave').value.trim(),
+      marca: $('aMarca').value.trim(),
       descripcion: $('aDesc').value.trim().replace(/\s+/g, ' '),
       categoria_id: Number(formCat) || 0,
       unidad_compra: aUC.get(),
@@ -1047,7 +1148,7 @@
     }).catch(function (e2) {
       err.textContent = e2.message;
     }).finally(function () {
-      btn.disabled = false; btn.textContent = 'Guardar';
+      btn.disabled = false; syncSaveBtn();
     });
   });
   // Después de guardar: que el artículo se vea en la lista aunque haya filtros.

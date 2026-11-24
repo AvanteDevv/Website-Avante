@@ -745,6 +745,7 @@ func main() {
 		apiInventario.POST("/colores", handlers.InvCreateColor)
 		apiInventario.GET("/materiales", handlers.InvListMateriales)
 		apiInventario.POST("/materiales", handlers.InvCreateMaterial)
+		apiInventario.DELETE("/materiales/:id", handlers.InvDeleteMaterial)
 		// Mismo precio / promoción para toda una categoría o un material.
 		apiInventario.GET("/reglas", handlers.InvListReglas)
 		apiInventario.POST("/grupo", handlers.InvApplyGrupo)

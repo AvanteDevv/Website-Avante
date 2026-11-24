@@ -146,6 +146,7 @@ type invArticuloBody struct {
 	Clave          string  `json:"clave"`
 	ClaveAlterna   string  `json:"clave_alterna"`
 	Descripcion    string  `json:"descripcion"`
+	Marca          string  `json:"marca"`
 	DepartamentoID int64   `json:"departamento_id"`
 	CategoriaID    int64   `json:"categoria_id"`
 	UnidadCompra   string  `json:"unidad_compra"`
@@ -198,6 +199,7 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 	b.Clave = models.NormalizeInventoryClave(b.Clave)
 	b.ClaveAlterna = models.NormalizeInventoryClave(b.ClaveAlterna)
 	b.Descripcion = strings.Join(strings.Fields(b.Descripcion), " ")
+	b.Marca = strings.ToUpper(strings.Join(strings.Fields(b.Marca), " "))
 	b.UnidadCompra = strings.ToUpper(strings.TrimSpace(b.UnidadCompra))
 	b.UnidadVenta = strings.ToUpper(strings.TrimSpace(b.UnidadVenta))
 	b.Localizacion = strings.ToUpper(strings.Join(strings.Fields(b.Localizacion), " "))
@@ -221,6 +223,8 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 		return bad("Escribe la descripción del artículo.")
 	case len([]rune(b.Descripcion)) > 200:
 		return bad("La descripción es muy larga (máximo 200 caracteres).")
+	case len([]rune(b.Marca)) > 60:
+		return bad("La marca es muy larga (máximo 60 caracteres).")
 	case !invUnidad[b.UnidadCompra] || !invUnidad[b.UnidadVenta]:
 		return bad("Elige una unidad de compra y de venta válida.")
 	case b.Factor > 10000:
@@ -283,7 +287,7 @@ func bindInvArticulo(c *gin.Context) (models.InvArticulo, bool) {
 		}
 	}
 	return models.InvArticulo{
-		Clave: b.Clave, ClaveAlterna: b.ClaveAlterna, Descripcion: b.Descripcion,
+		Clave: b.Clave, ClaveAlterna: b.ClaveAlterna, Descripcion: b.Descripcion, Marca: b.Marca,
 		DepartamentoID: b.DepartamentoID, CategoriaID: b.CategoriaID,
 		UnidadCompra: b.UnidadCompra, UnidadVenta: b.UnidadVenta, Factor: b.Factor,
 		Servicio: b.Servicio, SinRastreo: b.SinRastreo, IVA: b.IVA,
@@ -1010,7 +1014,8 @@ func InvListMateriales(c *gin.Context) {
 // InvCreateMaterial — POST /api/inventario/materiales {nombre}
 func InvCreateMaterial(c *gin.Context) {
 	var b struct {
-		Nombre string `json:"nombre"`
+		Nombre        string `json:"nombre"`
+		Identificador string `json:"identificador"` // ARMT | ARZL
 	}
 	if err := c.ShouldBindJSON(&b); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
@@ -1021,10 +1026,15 @@ func InvCreateMaterial(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Escribe el nombre del material (máximo 30 letras)."})
 		return
 	}
+	ident := strings.ToUpper(strings.TrimSpace(b.Identificador))
+	if ident != "ARMT" && ident != "ARZL" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige si el material es metal (ARMT) o pasta (ARZL)."})
+		return
+	}
 	if r := []rune(nombre); len(r) > 0 {
 		nombre = strings.ToUpper(string(r[0])) + string(r[1:])
 	}
-	m, err := models.CreateInvMaterial(nombre)
+	m, err := models.CreateInvMaterial(nombre, ident)
 	if errors.Is(err, models.ErrInvMaterialTaken) {
 		c.JSON(http.StatusConflict, gin.H{"error": "El material «" + nombre + "» ya está en la lista."})
 		return
@@ -1093,6 +1103,25 @@ func InvDeleteRegla(c *gin.Context) {
 	}
 	if err := models.DeleteInvRegla(id); err != nil {
 		invFail(c, "DeleteRegla", err, "No se pudo quitar la regla.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// InvDeleteMaterial — DELETE /api/inventario/materiales/:id. Solo lo quita
+// de la lista; los artículos que ya lo tienen lo conservan.
+func InvDeleteMaterial(c *gin.Context) {
+	id, ok := invID(c)
+	if !ok {
+		return
+	}
+	err := models.DeleteInvMaterial(id)
+	if errors.Is(err, models.ErrInvMaterialNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese material ya no existe."})
+		return
+	}
+	if err != nil {
+		invFail(c, "DeleteMaterial", err, "No se pudo quitar el material.")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})

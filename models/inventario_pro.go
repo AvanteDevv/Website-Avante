@@ -57,6 +57,7 @@ type InvArticulo struct {
 	Clave          string  `json:"clave"`
 	ClaveAlterna   string  `json:"clave_alterna"`
 	Descripcion    string  `json:"descripcion"`
+	Marca          string  `json:"marca"` // marca del armazón (va en la clave)
 	DepartamentoID int64   `json:"departamento_id"`
 	Departamento   string  `json:"departamento"`
 	CategoriaID    int64   `json:"categoria_id"`
@@ -98,7 +99,7 @@ type InvArticulo struct {
 }
 
 const invArticuloSelect = `
-	SELECT i.id, COALESCE(i.clave, ''), i.clave_alterna, i.descripcion,
+	SELECT i.id, COALESCE(i.clave, ''), i.clave_alterna, i.descripcion, i.marca,
 	       COALESCE(i.departamento_id, 0), COALESCE(d.nombre, ''),
 	       COALESCE(i.categoria_id, 0), COALESCE(c.nombre, ''),
 	       i.unidad_compra, i.unidad_venta, i.factor, i.servicio, i.sin_rastreo, i.iva,
@@ -116,7 +117,7 @@ func scanInvArticulo(sc interface{ Scan(...interface{}) error }) (InvArticulo, e
 	var a InvArticulo
 	var fotoID int64
 	var extra, mats string
-	err := sc.Scan(&a.ID, &a.Clave, &a.ClaveAlterna, &a.Descripcion,
+	err := sc.Scan(&a.ID, &a.Clave, &a.ClaveAlterna, &a.Descripcion, &a.Marca,
 		&a.DepartamentoID, &a.Departamento, &a.CategoriaID, &a.Categoria,
 		&a.UnidadCompra, &a.UnidadVenta, &a.Factor, &a.Servicio, &a.SinRastreo, &a.IVA,
 		&a.PrecioCompra, &a.Precio1, &a.Precio2, &a.Precio3, &a.Precio4,
@@ -221,14 +222,14 @@ func CreateInvArticulo(a InvArticulo, usuario string) (*InvArticulo, error) {
 		   (clave, clave_alterna, descripcion, departamento_id, categoria_id, unidad_compra, unidad_venta, factor,
 		    servicio, sin_rastreo, iva, precio_costo, precio_venta, precio_2, precio_3, precio_4, mayoreo_2, mayoreo_3, mayoreo_4,
 		    cantidad, cantidad_actual, inv_minimo, inv_maximo, localizacion,
-		    tipo_armazon, color_principal, colores_extra, mica_tipo, materiales, promo_pct)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		    tipo_armazon, color_principal, colores_extra, mica_tipo, materiales, promo_pct, marca)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		nullClave(NormalizeInventoryClave(a.Clave)), a.ClaveAlterna, a.Descripcion, nullID(a.DepartamentoID), nullID(a.CategoriaID),
 		a.UnidadCompra, a.UnidadVenta, a.Factor, a.Servicio, a.SinRastreo, a.IVA,
 		round2(a.PrecioCompra), round2(a.Precio1), round2(a.Precio2), round2(a.Precio3), round2(a.Precio4),
 		a.Mayoreo2, a.Mayoreo3, a.Mayoreo4,
 		a.Existencia, a.Existencia, a.Minimo, a.Maximo, a.Localizacion,
-		a.TipoArmazon, a.ColorPrincipal, strings.Join(a.ColoresExtra, ","), a.MicaTipo, strings.Join(a.Materiales, ","), round2(a.PromoPct),
+		a.TipoArmazon, a.ColorPrincipal, strings.Join(a.ColoresExtra, ","), a.MicaTipo, strings.Join(a.Materiales, ","), round2(a.PromoPct), a.Marca,
 	)
 	if isDuplicateKey(err) {
 		return nil, ErrInventoryClaveTaken
@@ -290,13 +291,13 @@ func UpdateInvArticulo(a InvArticulo, keepCost bool) (*InvArticulo, error) {
 		   unidad_compra = ?, unidad_venta = ?, factor = ?, servicio = ?, sin_rastreo = ?, iva = ?,
 		   precio_costo = ?, precio_venta = ?, precio_2 = ?, precio_3 = ?, precio_4 = ?,
 		   mayoreo_2 = ?, mayoreo_3 = ?, mayoreo_4 = ?, inv_minimo = ?, inv_maximo = ?, localizacion = ?,
-		   tipo_armazon = ?, color_principal = ?, colores_extra = ?, mica_tipo = ?, materiales = ?, promo_pct = ?
+		   tipo_armazon = ?, color_principal = ?, colores_extra = ?, mica_tipo = ?, materiales = ?, promo_pct = ?, marca = ?
 		 WHERE id = ?`,
 		nullClave(NormalizeInventoryClave(a.Clave)), a.ClaveAlterna, a.Descripcion, nullID(a.DepartamentoID), nullID(a.CategoriaID),
 		a.UnidadCompra, a.UnidadVenta, a.Factor, a.Servicio, a.SinRastreo, a.IVA,
 		round2(a.PrecioCompra), round2(a.Precio1), round2(a.Precio2), round2(a.Precio3), round2(a.Precio4),
 		a.Mayoreo2, a.Mayoreo3, a.Mayoreo4, a.Minimo, a.Maximo, a.Localizacion,
-		a.TipoArmazon, a.ColorPrincipal, strings.Join(a.ColoresExtra, ","), a.MicaTipo, strings.Join(a.Materiales, ","), round2(a.PromoPct),
+		a.TipoArmazon, a.ColorPrincipal, strings.Join(a.ColoresExtra, ","), a.MicaTipo, strings.Join(a.Materiales, ","), round2(a.PromoPct), a.Marca,
 		a.ID,
 	)
 	if isDuplicateKey(err) {

@@ -81,12 +81,17 @@ func TryonSlugExists(slug string) bool {
 type InvMaterial struct {
 	ID     int64  `json:"id"`
 	Nombre string `json:"nombre"`
+	// Identificador: ARMT (metal) o ARZL (pasta). Es la primera parte de la
+	// clave automática del armazón.
+	Identificador string `json:"identificador"`
 }
+
+var ErrInvMaterialNotFound = errors.New("material no encontrado")
 
 var ErrInvMaterialTaken = errors.New("ese material ya existe")
 
 func ListInvMateriales() ([]InvMaterial, error) {
-	rows, err := db.DB.Query(`SELECT id, nombre FROM inv_materiales ORDER BY orden, nombre`)
+	rows, err := db.DB.Query(`SELECT id, nombre, identificador FROM inv_materiales ORDER BY orden, nombre`)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +99,7 @@ func ListInvMateriales() ([]InvMaterial, error) {
 	out := []InvMaterial{}
 	for rows.Next() {
 		var m InvMaterial
-		if err := rows.Scan(&m.ID, &m.Nombre); err != nil {
+		if err := rows.Scan(&m.ID, &m.Nombre, &m.Identificador); err != nil {
 			return nil, err
 		}
 		out = append(out, m)
@@ -102,7 +107,7 @@ func ListInvMateriales() ([]InvMaterial, error) {
 	return out, rows.Err()
 }
 
-func CreateInvMaterial(nombre string) (*InvMaterial, error) {
+func CreateInvMaterial(nombre, identificador string) (*InvMaterial, error) {
 	var n int
 	if err := db.DB.QueryRow(`SELECT COUNT(*) FROM inv_materiales WHERE LOWER(nombre) = LOWER(?)`, nombre).Scan(&n); err != nil {
 		return nil, err
@@ -112,12 +117,25 @@ func CreateInvMaterial(nombre string) (*InvMaterial, error) {
 	}
 	var orden int
 	_ = db.DB.QueryRow(`SELECT COALESCE(MAX(orden), 0) + 1 FROM inv_materiales`).Scan(&orden)
-	res, err := db.DB.Exec(`INSERT INTO inv_materiales (nombre, orden) VALUES (?, ?)`, nombre, orden)
+	res, err := db.DB.Exec(`INSERT INTO inv_materiales (nombre, identificador, orden) VALUES (?, ?, ?)`, nombre, identificador, orden)
 	if err != nil {
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
-	return &InvMaterial{ID: id, Nombre: nombre}, nil
+	return &InvMaterial{ID: id, Nombre: nombre, Identificador: identificador}, nil
+}
+
+// DeleteInvMaterial lo quita de la lista. Los artículos que ya lo tienen
+// lo conservan (se guarda por nombre).
+func DeleteInvMaterial(id int64) error {
+	res, err := db.DB.Exec(`DELETE FROM inv_materiales WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrInvMaterialNotFound
+	}
+	return nil
 }
 
 // CleanMateriales deja la lista sin vacíos ni repetidos (máximo 4).
