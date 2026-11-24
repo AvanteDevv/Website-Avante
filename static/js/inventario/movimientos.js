@@ -182,22 +182,65 @@
   }
   function byId(id) { for (var i = 0; i < shown.length; i++) if (shown[i].id === id) return shown[i]; return null; }
   var delIds = [];
+  var delModo = 'revertir', delNeto = {};
+  function setDelModo(v) {
+    delModo = v;
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="mvDelModo"]'), function (r) {
+      r.checked = r.value === v;
+      r.closest('.inv-mvdel-opt').classList.toggle('is-on', r.checked);
+    });
+    renderDelPrev();
+  }
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.name === 'mvDelModo') setDelModo(e.target.value);
+  });
+  function piezas(n) { return I.num(n) + (Math.abs(n) === 1 ? ' pieza' : ' piezas'); }
+  function renderDelPrev() {
+    var box = $('mvDelPrev');
+    if (!box) return;
+    var rows = Object.keys(delNeto).map(function (k) { return delNeto[k]; });
+    var known = arts.length > 0;
+    var html = rows.slice(0, 6).map(function (x) {
+      var a = arts.filter(function (y) { return y.id === x.id; })[0];
+      if (known && !a) {
+        return '<div class="inv-mvdel-row is-gone"><span class="inv-mvdel-name">' + esc(x.nombre) + '</span><span class="inv-mvdel-note">Este artículo ya no existe: solo se borra el renglón (las dos opciones hacen lo mismo).</span></div>';
+      }
+      if (a && a.servicio) {
+        return '<div class="inv-mvdel-row"><span class="inv-mvdel-name">' + esc(x.nombre) + '</span><span class="inv-mvdel-note">Es un servicio: no lleva piezas.</span></div>';
+      }
+      if (!a) {
+        return '<div class="inv-mvdel-row"><span class="inv-mvdel-name">' + esc(x.nombre) + '</span><span class="inv-mvdel-note">' + (delModo === 'revertir' ? (x.neto > 0 ? 'Le quita ' : 'Le regresa ') + piezas(Math.abs(x.neto)) + '.' : 'Sus piezas no cambian.') + '</span></div>';
+      }
+      var hoy = a.existencia, queda = delModo === 'revertir' ? hoy - x.neto : hoy;
+      var bad = queda < 0;
+      return '<div class="inv-mvdel-row' + (bad ? ' is-bad' : '') + '"><span class="inv-mvdel-name">' + esc(x.nombre) + '</span>' +
+        '<span class="inv-mvdel-nums"><span><small>Hoy tiene</small><b>' + I.num(hoy) + '</b></span><i>→</i><span><small>Va a quedar con</small><b>' + I.num(queda) + '</b></span></span>' +
+        (bad ? '<span class="inv-mvdel-note">No se puede deshacer: quedaría en negativo (ya se vendieron o sacaron esas piezas). Elige «Solo borrar el renglón».</span>'
+             : delModo === 'revertir' && x.neto !== 0 ? '<span class="inv-mvdel-note">' + (Math.abs(x.neto) === 1 ? (x.neto > 0 ? 'Se le quita ' : 'Se le regresa ') : (x.neto > 0 ? 'Se le quitan ' : 'Se le regresan ')) + piezas(Math.abs(x.neto)) + ', como si ese movimiento nunca hubiera pasado.</span>'
+             : '<span class="inv-mvdel-note">Sus piezas no cambian.</span>') +
+        '</div>';
+    }).join('') + (rows.length > 6 ? '<div class="inv-mvdel-row is-more">y ' + I.num(rows.length - 6) + ' artículos más</div>' : '');
+    box.innerHTML = html;
+  }
   function openDel(ids) {
     var list = ids.map(byId).filter(Boolean);
     if (!list.length) return;
     delIds = list.map(function (m) { return m.id; });
     var m0 = list[0];
     $('mvDelError').textContent = '';
-    $('mvDelRevertir').checked = true;
+    setDelModo('revertir');
     $('mvDelText').innerHTML = list.length === 1
       ? '¿Eliminar definitivamente la <strong>' + esc((TIPOS[m0.tipo] || m0.tipo).toLowerCase()) + '</strong> de <strong>' + (m0.cantidad > 0 ? '+' : '−') + I.num(Math.abs(m0.cantidad)) + '</strong> de <strong>' + esc(m0.descripcion) + '</strong> (' + esc(I.fechaHora(m0.fecha)) + ')? No se puede deshacer.'
       : '¿Eliminar definitivamente <strong>' + I.num(list.length) + ' movimientos</strong>? No se puede deshacer.';
-    var neto = {};
-    list.forEach(function (m) { neto[m.item_id] = (neto[m.item_id] || 0) + m.cantidad; });
-    var arts = Object.keys(neto).length;
-    $('mvDelRevTxt').textContent = list.length === 1
-      ? 'La existencia de este artículo ' + (m0.cantidad > 0 ? 'baja ' : 'sube ') + I.num(Math.abs(m0.cantidad)) + ', como si el movimiento no hubiera pasado. Desmárcalo si solo quieres borrar el renglón.'
-      : 'Se corrige la existencia de ' + I.num(arts) + (arts === 1 ? ' artículo' : ' artículos') + ', como si estos movimientos no hubieran pasado. Desmárcalo si solo quieres borrar los renglones.';
+    // Vista previa: cuántas piezas tiene hoy cada artículo y con cuántas
+    // queda con cada opción (se piden las existencias al momento).
+    delNeto = {};
+    list.forEach(function (m) {
+      var x = delNeto[m.item_id] || (delNeto[m.item_id] = { id: m.item_id, nombre: m.descripcion, clave: m.clave, neto: 0 });
+      x.neto += m.cantidad;
+    });
+    renderDelPrev();
+    I.api('/api/inventario/articulos').then(function (d) { arts = d.items || []; renderDelPrev(); }).catch(function () {});
     // Movimientos de venta: se borra el ticket completo (es prueba).
     var tk = {};
     list.forEach(function (m) { if (m.venta_id) tk[m.venta_id] = true; });
@@ -231,7 +274,7 @@
     $('mvDelOk').addEventListener('click', function () {
       if (!delIds.length) return;
       var btn = this; btn.disabled = true;
-      var revertir = $('mvDelRevertir').checked;
+      var revertir = delModo === 'revertir';
       I.api('/api/inventario/movimientos/eliminar', { method: 'POST', body: { ids: delIds, revertir: revertir } }).then(function (r) {
         I.closeModal($('mvDelModal'));
         var n = r.eliminados || 0;
