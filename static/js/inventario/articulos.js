@@ -20,6 +20,8 @@
   var filtered = [], page = 1, selectedId = null;
   var f = { q: '', cat: '', estado: '' };
   var loading = false;
+  // Eliminar varios de un jalón (solo admin): ids marcados.
+  var canBulk = !!$('artSelAll'), delSel = {};
 
   /* ---------- estado de existencia ---------- */
   function estadoOf(a) {
@@ -168,7 +170,8 @@
     var start = (page - 1) * PAGE;
     var rows = filtered.slice(start, start + PAGE);
     $('invBody').innerHTML = rows.map(function (a, i) {
-      return '<tr data-id="' + a.id + '" class="' + (a.id === selectedId ? 'is-selected' : '') + '" style="--i:' + Math.min(i, 20) + '" tabindex="-1">' +
+      return '<tr data-id="' + a.id + '" class="' + (a.id === selectedId ? 'is-selected' : '') + (delSel[a.id] ? ' is-marked' : '') + '" style="--i:' + Math.min(i, 20) + '" tabindex="-1">' +
+        (canBulk ? '<td class="inv-mv-sel"><input type="checkbox" data-sel="' + a.id + '"' + (delSel[a.id] ? ' checked' : '') + ' aria-label="Seleccionar ' + esc(a.descripcion) + '"></td>' : '') +
         '<td class="inv-cell-art"><div class="inv-art-line">' +
           (a.foto ? '<img class="inv-thumb" src="' + esc(a.foto) + '" alt="" loading="lazy">' : '<span class="inv-thumb is-empty" aria-hidden="true"></span>') +
           '<div><span class="inv-clave">' + esc(a.clave || '—') + '</span>' +
@@ -188,18 +191,23 @@
     $('pgLabel').textContent = 'Página ' + page + ' de ' + pages;
     $('pgPrev').disabled = page <= 1;
     $('pgNext').disabled = page >= pages;
+    syncDelSel();
     renderDetail();
   }
   $('pgPrev').addEventListener('click', function () { if (page > 1) { page--; render(); } });
   $('pgNext').addEventListener('click', function () { page++; render(); });
 
   $('invBody').addEventListener('click', function (e) {
+    var cb = e.target.closest('input[data-sel]');
+    if (cb) { toggleDelSel(Number(cb.getAttribute('data-sel')), cb.checked); return; }
+    if (e.target.closest('td.inv-mv-sel')) return;
     var tr = e.target.closest('tr[data-id]');
     if (!tr) return;
     select(Number(tr.getAttribute('data-id')));
     if (window.matchMedia('(max-width: 1000px)').matches) openSheet();
   });
   $('invBody').addEventListener('dblclick', function (e) {
+    if (e.target.closest('td.inv-mv-sel')) return;
     var tr = e.target.closest('tr[data-id]');
     if (tr) openEdit(byId[Number(tr.getAttribute('data-id'))]);
   });
@@ -1308,6 +1316,69 @@
     }).catch(function (e2) { $('delError').textContent = e2.message; })
       .finally(function () { btn.disabled = false; });
   });
+
+  /* =======================================================
+     ELIMINAR VARIOS (solo admin): definitivo, aunque tengan existencia
+     ======================================================= */
+  function toggleDelSel(id, on) {
+    if (on) delSel[id] = true; else delete delSel[id];
+    var tr = $('invBody').querySelector('tr[data-id="' + id + '"]');
+    if (tr) tr.classList.toggle('is-marked', !!on);
+    syncDelSel();
+  }
+  function delSelIds() { return Object.keys(delSel).map(Number).filter(function (id) { return byId[id]; }); }
+  function syncDelSel() {
+    if (!canBulk) return;
+    var ids = delSelIds();
+    var btn = $('artDelSel');
+    btn.hidden = !ids.length;
+    btn.lastChild.textContent = ids.length === 1 ? 'Eliminar 1 seleccionado' : 'Eliminar ' + I.num(ids.length) + ' seleccionados';
+    var all = $('artSelAll');
+    var inList = filtered.filter(function (a) { return delSel[a.id]; }).length;
+    all.checked = filtered.length > 0 && inList === filtered.length;
+    all.indeterminate = inList > 0 && inList < filtered.length;
+  }
+  if (canBulk) {
+    // "Todos": los de la lista con los filtros de arriba (todas las páginas).
+    $('artSelAll').addEventListener('change', function () {
+      var on = this.checked;
+      filtered.forEach(function (a) { if (on) delSel[a.id] = true; else delete delSel[a.id]; });
+      render();
+    });
+    var artDelModal = $('artDelModal');
+    $('artDelSel').addEventListener('click', function () {
+      var list = delSelIds().map(function (id) { return byId[id]; });
+      if (!list.length) return;
+      var conExist = list.filter(function (a) { return !a.servicio && a.existencia > 0; });
+      var piezas = conExist.reduce(function (t, a) { return t + a.existencia; }, 0);
+      $('artDelText').innerHTML = '¿Eliminar definitivamente ' + (list.length === 1 ? 'este artículo' : 'estos <strong>' + I.num(list.length) + ' artículos</strong>') + '? No se puede deshacer.';
+      $('artDelList').innerHTML = list.slice(0, 8).map(function (a) {
+        return '<li><span>' + esc(a.clave || '—') + '</span>' + esc(a.descripcion) + (!a.servicio && a.existencia > 0 ? ' <em>' + I.num(a.existencia) + ' en existencia</em>' : '') + '</li>';
+      }).join('') + (list.length > 8 ? '<li class="is-more">y ' + I.num(list.length - 8) + ' más</li>' : '');
+      var warn = $('artDelWarn');
+      warn.hidden = !conExist.length;
+      warn.innerHTML = conExist.length
+        ? (conExist.length === 1 ? '1 tiene' : I.num(conExist.length) + ' tienen') + ' existencia (' + I.num(piezas) + (piezas === 1 ? ' pieza' : ' piezas') + '): se eliminan con todo y su existencia. Sus movimientos pasados se conservan en Movimientos.'
+        : '';
+      $('artDelError').textContent = '';
+      $('artDelOk').textContent = list.length === 1 ? 'Sí, eliminar' : 'Sí, eliminar ' + I.num(list.length);
+      I.openModal(artDelModal);
+    });
+    $('artDelOk').addEventListener('click', function () {
+      var ids = delSelIds(), btn = this;
+      if (!ids.length) return;
+      btn.disabled = true;
+      I.api('/api/inventario/articulos/eliminar', { method: 'POST', body: { ids: ids } }).then(function (d) {
+        I.closeModal(artDelModal);
+        var n = d.eliminados || 0;
+        I.toast(n === 1 ? '1 artículo eliminado.' : I.num(n) + ' artículos eliminados.');
+        delSel = {};
+        if (ids.indexOf(selectedId) >= 0) selectedId = null;
+        return load(false);
+      }).catch(function (e2) { $('artDelError').textContent = e2.message; })
+        .finally(function () { btn.disabled = false; });
+    });
+  }
 
   /* =======================================================
      NÚMEROS DE RASTREO (uno por pieza: AVT000001…)

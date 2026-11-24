@@ -326,6 +326,50 @@ func DeleteInvArticulo(id int64) error {
 	return err
 }
 
+// DeleteInvArticulosAdmin borra definitivamente varios artículos de un
+// jalón (Inventario → seleccionar → Eliminar, solo admin). A diferencia de
+// DeleteInvArticulo, NO pide existencia en 0: el artículo desaparece con
+// todo y su existencia. Se borran sus fotos y sus piezas sin vender; los
+// movimientos del kárdex y las piezas ya vendidas se conservan (historial
+// de ventas). Regresa cuántos se borraron y las fotos a quitar del bucket.
+func DeleteInvArticulosAdmin(ids []int64) (int, []string, error) {
+	if len(ids) == 0 {
+		return 0, nil, nil
+	}
+	ph := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	var keys []string
+	for _, id := range ids {
+		keys = append(keys, InvFotoKeysOfItem(id)...)
+	}
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return 0, nil, err
+	}
+	defer tx.Rollback()
+	for _, stmt := range []string{
+		`DELETE FROM inv_fotos WHERE item_id IN (` + ph + `)`,
+		`DELETE FROM inv_piezas WHERE item_id IN (` + ph + `) AND estado = 'disponible'`,
+		`UPDATE products SET inv_item_id = NULL WHERE inv_item_id IN (` + ph + `)`,
+	} {
+		if _, err := tx.Exec(stmt, args...); err != nil {
+			return 0, nil, err
+		}
+	}
+	res, err := tx.Exec(`DELETE FROM inventory_items WHERE id IN (`+ph+`)`, args...)
+	if err != nil {
+		return 0, nil, err
+	}
+	n, _ := res.RowsAffected()
+	if err := tx.Commit(); err != nil {
+		return 0, nil, err
+	}
+	return int(n), keys, nil
+}
+
 /* =========================================================
    AJUSTES DE EXISTENCIA
    ========================================================= */

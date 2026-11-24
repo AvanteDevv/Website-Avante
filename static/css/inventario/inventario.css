@@ -1107,3 +1107,13 @@ body.dark .inv-hint-rule{ color:#5fd6a4; }
 .inv-grp-rule-ico.is-precio{ background:var(--accent-soft); color:var(--accent); }
 .inv-grp-rule-ico.is-promo{ background:#e3f6ea; color:#1f7a4d; }
 body.dark .inv-grp-rule-ico.is-promo{ background:rgba(27,175,122,.16); color:#5fd6a4; }
+
+/* Eliminar varios artículos (solo admin) */
+.inv-table tbody tr.is-marked:not(.is-selected) td{ background:#fdecea; }
+body.dark .inv-table tbody tr.is-marked:not(.is-selected) td{ background:rgba(226,85,74,.12); }
+.inv-del-list{ list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow:auto; border:1px solid var(--line); border-radius:12px; }
+.inv-del-list li{ padding:7px 11px; font-size:12.5px; color:var(--ink); border-top:1px solid var(--line); }
+.inv-del-list li:first-child{ border-top:0; }
+.inv-del-list li span{ font-weight:800; color:var(--accent); margin-right:6px; }
+.inv-del-list li em{ font-style:normal; font-weight:700; color:#b42318; margin-left:4px; white-space:nowrap; }
+.inv-del-list li.is-more{ color:var(--muted); font-weight:600; }

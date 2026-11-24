@@ -378,6 +378,46 @@ func InvDeleteArticulo(c *gin.Context) {
 	}
 }
 
+// InvDeleteArticulosVarios — POST /api/inventario/articulos/eliminar {ids}
+// Solo admin: borra definitivamente los artículos elegidos aunque tengan
+// existencia (los movimientos del kárdex se conservan).
+func InvDeleteArticulosVarios(c *gin.Context) {
+	if !invCanCost(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo el administrador puede eliminar varios artículos."})
+		return
+	}
+	var in struct {
+		IDs []int64 `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	ids := make([]int64, 0, len(in.IDs))
+	seen := map[int64]bool{}
+	for _, id := range in.IDs {
+		if id > 0 && !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige al menos un artículo."})
+		return
+	}
+	if len(ids) > 5000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Máximo 5,000 artículos a la vez."})
+		return
+	}
+	n, keys, err := models.DeleteInvArticulosAdmin(ids)
+	if err != nil {
+		invFail(c, "DeleteArticulosVarios", err, "No se pudieron eliminar los artículos.")
+		return
+	}
+	invDeleteFotoFiles(keys)
+	c.JSON(http.StatusOK, gin.H{"ok": true, "eliminados": n})
+}
+
 // InvAjustarArticulo — POST /api/inventario/articulos/:id/ajustar
 // {modo: "entrada"|"salida"|"fijar", cantidad, comentario}
 func InvAjustarArticulo(c *gin.Context) {

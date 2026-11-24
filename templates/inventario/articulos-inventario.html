@@ -90,11 +90,15 @@
           <button type="button" data-estado="servicio">Servicios</button>
         </div>
 
-        <p class="inv-caption" id="invCaption">Cargando…</p>
+        <div class="inv-sel-bar">
+          <p class="inv-caption" id="invCaption">Cargando…</p>
+          {{if .CanCost}}<button type="button" class="inv-btn-ghost inv-mv-del" id="artDelSel" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg><span>Eliminar seleccionados</span></button>{{end}}
+        </div>
         <div class="inv-table-wrap">
           <table class="inv-table" id="invTable">
             <thead>
               <tr>
+                {{if .CanCost}}<th class="inv-mv-sel"><input type="checkbox" id="artSelAll" aria-label="Seleccionar todos los de la lista"></th>{{end}}
                 <th>Clave / Descripción</th>
                 <th class="c-dep">Categoría</th>
                 <th class="num">Exist.</th>
@@ -574,6 +578,30 @@
     </div>
   </div>
 </div>
+
+{{if .CanCost}}
+<!-- ================= Modal: eliminar varios artículos (solo admin) ================= -->
+<div class="admin-modal-overlay" id="artDelModal">
+  <div class="admin-modal-card inv-confirm-card" role="dialog" aria-modal="true" aria-labelledby="artDelTitle">
+    <div class="admin-modal-head">
+      <h3 id="artDelTitle">Eliminar artículos</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="inv-confirm-text" id="artDelText"></p>
+      <ul class="inv-del-list" id="artDelList"></ul>
+      <p class="inv-mv-del-warn" id="artDelWarn" hidden></p>
+      <p class="staff-error" id="artDelError"></p>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" data-close-modal>Cancelar</button>
+        <button type="button" class="btn solid small inv-btn-danger" id="artDelOk">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}
 
 <!-- ================= Modal: nueva categoría (como el de SICAR) ================= -->
 <div class="admin-modal-overlay" id="catModal">

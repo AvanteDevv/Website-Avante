@@ -717,6 +717,7 @@ func main() {
 		apiInventario.POST("/articulos", handlers.InvCreateArticulo)
 		apiInventario.PUT("/articulos/:id", handlers.InvUpdateArticulo)
 		apiInventario.DELETE("/articulos/:id", handlers.InvDeleteArticulo)
+		apiInventario.POST("/articulos/eliminar", onlyAdmin, handlers.InvDeleteArticulosVarios)
 		apiInventario.POST("/articulos/:id/ajustar", handlers.InvAjustarArticulo)
 		apiInventario.GET("/articulos/:id/fotos", handlers.InvListFotos)
 		apiInventario.POST("/articulos/:id/fotos", handlers.InvUploadFotos)
