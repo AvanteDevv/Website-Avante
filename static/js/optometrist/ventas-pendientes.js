@@ -6,6 +6,8 @@
      GET  /api/optometrist/ventas-pendientes
      POST /api/optometrist/ventas-pendientes/:id/sin-orden
    La lista la carga userbar-optometrist.js (evento "lab-pendientes").
+   "Historial clínico" (a la derecha de "Ver ticket") abre su historia
+   clínica para verla mientras se hace la orden.
    ========================================================= */
 (function () {
   'use strict';
@@ -41,6 +43,8 @@
         '</div>' +
         '<div class="vp-actions">' +
           '<button type="button" class="btn thin" data-ticket="' + esc(v.ticketPath) + '" data-folio="' + v.folio + '">Ver ticket</button>' +
+          // Su historia clínica (para verla mientras se hace la orden).
+          '<button type="button" class="btn thin" data-hc="1" data-nombre="' + esc(publico(v.cliente) ? '' : v.cliente) + '" data-tel="' + esc(v.celular || '') + '">Historial clínico</button>' +
           '<a class="btn thin solid" href="/optometrist/ordenes-lab/nueva?' + q.toString() + '">Hacer orden de laboratorio</a>' +
           '<button type="button" class="vp-skip" data-skip="' + v.pedidoId + '" title="Esta venta no necesita orden: el trabajo pasa al laboratorio sin hoja">No lleva orden</button>' +
         '</div>' +
@@ -50,19 +54,41 @@
   window.addEventListener('lab-pendientes', function (e) { render(e.detail || []); });
 
   var ov = document.getElementById('vpTicketOv'), frame = document.getElementById('vpTicketFrame');
+  var card = ov.querySelector('.vp-ticket-card'), pop = document.getElementById('vpTicketPop');
+  // URL del Historial clínico de esa persona (sin sidebar: modo embed).
+  function hcURL(nombre, tel, embed) {
+    var q = new URLSearchParams();
+    if (embed) q.set('embed', '1');
+    if (nombre) q.set('buscar', nombre);
+    if (tel) q.set('tel', tel);
+    return '/optometrist/historial-clinico?' + q.toString();
+  }
+  window.AvanteHcURL = hcURL;
   // Cierra con animación (la tarjeta baja y se desvanece).
   function closeTicket() {
     if (ov.hidden || ov.classList.contains('is-closing')) return;
     ov.classList.add('is-closing');
-    setTimeout(function () { ov.hidden = true; ov.classList.remove('is-closing'); frame.src = 'about:blank'; document.body.style.overflow = ''; }, 220);
+    setTimeout(function () { ov.hidden = true; ov.classList.remove('is-closing'); card.classList.remove('is-wide'); pop.hidden = true; frame.src = 'about:blank'; document.body.style.overflow = ''; }, 220);
   }
   document.getElementById('vpTicketClose').addEventListener('click', closeTicket);
   ov.addEventListener('click', function (e) { if (e.target === ov) closeTicket(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !ov.hidden) closeTicket(); });
 
   listEl.addEventListener('click', function (e) {
+    var h = e.target.closest('[data-hc]');
+    if (h) {
+      document.getElementById('vpTicketTitle').textContent = 'Historial clínico' + (h.dataset.nombre ? ' · ' + h.dataset.nombre : '');
+      card.classList.add('is-wide');
+      frame.src = hcURL(h.dataset.nombre, h.dataset.tel, true);
+      pop.href = hcURL(h.dataset.nombre, h.dataset.tel, false);
+      pop.hidden = false;
+      ov.hidden = false;
+      document.body.style.overflow = 'hidden';
+      return;
+    }
     var t = e.target.closest('[data-ticket]');
     if (t) {
+      card.classList.remove('is-wide'); pop.hidden = true;
       document.getElementById('vpTicketTitle').textContent = 'Ticket ' + t.dataset.folio;
       // El ticket con el mismo tema del panel (claro / oscuro).
       var dark = document.body.classList.contains('dark');

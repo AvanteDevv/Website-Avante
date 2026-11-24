@@ -124,6 +124,16 @@ body.dark .pos-stock.is-serv{ background:rgba(90,110,255,.18); color:#a9b4ff; }
 .pos-client-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
 .pos-client-text small{ font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
 .pos-client-text strong{ font-size:14px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* El nombre del cliente: clic = su perfil. */
+.pos-client-name{
+  display:block; max-width:100%; padding:0; border:none; background:none; cursor:pointer; text-align:left;
+  font-family:var(--sans); font-size:14px; font-weight:700; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  text-decoration:underline; text-decoration-color:transparent; text-underline-offset:3px;
+  transition:color .15s var(--ease), text-decoration-color .15s var(--ease);
+}
+.pos-client-name:hover{ color:var(--accent); text-decoration-color:currentColor; }
+.pos-client-name.is-empty{ color:var(--accent); }
 .pos-client-text span{ font-size:11.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .pos-client-text span:empty{ display:none; }
 .pos-client-change{
@@ -191,6 +201,23 @@ body.dark .pos-client-tag{ background:rgba(245,179,1,.18); color:#ffd46b; }
 .pos-client-new svg{ width:15px; height:15px; }
 .pos-client-new:hover{ background:var(--accent-soft); }
 
+/* Citas de hoy en el buscador de clientes */
+.pos-client-sec{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:8px 8px 2px; }
+.pos-cita-hora{
+  flex-direction:column; line-height:1; font-size:11px !important; font-variant-numeric:tabular-nums;
+  background:#e7f6ee !important; color:#1f7a4d !important;
+}
+.pos-cita-hora small{ font-size:8.5px; font-weight:700; text-transform:uppercase; margin-top:1px; color:inherit !important; }
+body.dark .pos-cita-hora{ background:rgba(27,175,122,.16) !important; color:#5fd6a4 !important; }
+.pos-cita-tag{
+  font-style:normal; font-size:10px; font-weight:700; letter-spacing:.03em; white-space:nowrap;
+  padding:3px 8px; border-radius:100px; background:var(--accent-soft); color:var(--accent);
+}
+.pos-cita-tag.is-known{ background:#eef1ff; color:#3b4bc4; }
+.pos-cita-tag.is-done{ background:#dff3e4; color:#1f7a3d; }
+body.dark .pos-cita-tag.is-known{ background:rgba(90,110,255,.18); color:#a9b4ff; }
+body.dark .pos-cita-tag.is-done{ background:rgba(27,175,122,.16); color:#5fd6a4; }
+
 /* Líneas */
 .pos-lines-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px 6px; }
 .pos-lines-head span{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
@@ -252,21 +279,96 @@ body.dark .pos-client-tag{ background:rgba(245,179,1,.18); color:#ffd46b; }
 .pos-pay{ margin:10px 16px 16px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:13px; padding:15px; }
 .pos-pay kbd{ background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.35); color:#fff; }
 .pos-pay:disabled{ opacity:.45; cursor:default; transform:none; box-shadow:none; }
+.pos-pay-need{ margin:10px 16px -2px; padding:8px 12px; border-radius:10px; background:#fff6e5; color:#8a5a00; font-size:12px; font-weight:600; text-align:center; }
+.pos-pay-need[hidden]{ display:none; }
+body.dark .pos-pay-need{ background:rgba(245,179,1,.12); color:#ffd46b; }
+.pos-done-cita{ color:#1f7a3d; font-weight:600; }
+body.dark .pos-done-cita{ color:#5fd6a4; }
 
 /* =========================================================
    Modales
    ========================================================= */
-.pos-client-card{ max-width:540px; }
-.pos-clave-chips{ align-items:center; margin-top:-4px; }
-.pos-clave-chips small{ font-size:11.5px; color:var(--muted); font-weight:600; }
-.pos-clave-chips button{
-  padding:6px 12px; border-radius:100px; border:1.5px solid var(--line); background:var(--white); cursor:pointer;
-  font-family:var(--sans); font-size:12px; font-weight:700; color:var(--ink);
-  transition:background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease);
+.pos-client-card{ max-width:580px; }
+/* Clave: ¿es miembro Clarito+? / Particular o empresa */
+.pc-miembro{ display:flex; gap:4px; padding:4px; border-radius:13px; background:var(--accent-soft); }
+.pc-miembro button{
+  flex:1; padding:8px 10px; border:none; border-radius:10px; background:none; cursor:pointer;
+  font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--muted); white-space:nowrap;
+  transition:background .18s var(--ease), color .18s var(--ease), box-shadow .18s var(--ease);
 }
-.pos-clave-chips button:hover{ border-color:var(--accent-border); }
-.pos-clave-chips button.is-on{ background:linear-gradient(135deg, #f5b301, #e67e22); border-color:transparent; color:#fff; }
+.pc-miembro button:hover{ color:var(--ink); }
+.pc-miembro button.is-on{ background:var(--white); color:var(--accent); box-shadow:0 1px 4px rgba(20,10,60,.12); }
+#pcMiembro button[data-miembro="1"].is-on{ background:linear-gradient(135deg, #f5b301, #e67e22); color:#fff; }
+.pc-folio{ position:relative; animation:dayItemIn .25s var(--ease); }
+.pc-folio[hidden], #pcEmpresaWrap[hidden], .pc-cita-note[hidden]{ display:none; }
 #pcClave{ text-transform:uppercase; letter-spacing:.03em; }
+.pc-folio-list{
+  position:absolute; left:0; right:0; top:calc(100% - 22px); z-index:5;
+  background:var(--white); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-lg);
+  padding:6px; max-height:230px; overflow-y:auto; animation:posDrop .18s var(--ease);
+}
+.pc-folio-list[hidden]{ display:none; }
+.pc-folio-list button{
+  display:flex; align-items:center; gap:10px; width:100%; padding:8px 10px; border:none; border-radius:10px;
+  background:none; cursor:pointer; text-align:left; font-family:var(--sans);
+}
+.pc-folio-list button:hover{ background:var(--accent-soft); }
+.pc-folio-list b{ font-size:12px; color:#9a6a00; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; min-width:78px; }
+.pc-folio-list span{ flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pc-folio-list small{ font-size:11px; color:var(--muted); }
+body.dark .pc-folio-list b{ color:#ffd46b; }
+.pc-folio-hint{ font-size:11.5px; color:var(--muted); margin:-8px 0 12px; min-height:1em; }
+.pc-folio-hint.is-ok{ color:#1f7a3d; font-weight:600; }
+.pc-folio-hint.is-warn{ color:#9a6a00; }
+body.dark .pc-folio-hint.is-ok{ color:#5fd6a4; }
+.pc-cita-note{
+  margin:0 0 14px; padding:10px 12px; border-radius:12px; font-size:12.5px; font-weight:600;
+  background:#e7f6ee; color:#1f7a4d;
+}
+body.dark .pc-cita-note{ background:rgba(27,175,122,.14); color:#5fd6a4; }
+
+/* Perfil del cliente */
+.pos-perfil-card{ max-width:720px; }
+.pos-perfil-head{ gap:12px; align-items:center; }
+.pos-perfil-head .pos-client-avatar{ width:46px; height:46px; font-size:15px; }
+.pos-perfil-title{ flex:1; min-width:0; }
+.pos-perfil-title h3{ margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pos-perfil-title p{ margin:2px 0 0; font-size:12px; color:var(--muted); }
+.pos-perfil-tiles{ display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; margin-bottom:16px; }
+.pos-perfil-tabs{ display:flex; gap:4px; padding:4px; border-radius:13px; background:var(--accent-soft); margin-bottom:14px; }
+.pos-perfil-tabs button{
+  flex:1; padding:9px 10px; border:none; border-radius:10px; background:none; cursor:pointer;
+  font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--muted);
+  transition:background .18s var(--ease), color .18s var(--ease);
+}
+.pos-perfil-tabs button.is-on{ background:var(--white); color:var(--accent); box-shadow:0 1px 4px rgba(20,10,60,.12); }
+.pos-perfil-tabs span{ font-weight:600; opacity:.75; }
+.pos-perfil-pane{ min-height:180px; animation:dayItemIn .25s var(--ease); }
+.pos-perfil-pane[hidden]{ display:none; }
+.pos-perfil-loading, .pos-perfil-empty{ text-align:center; padding:34px 10px; font-size:13px; color:var(--muted); }
+.pos-perfil-dl{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 18px; margin:0; }
+.pos-perfil-dl > div{ padding:9px 12px; border-radius:12px; border:1px solid var(--line); min-width:0; }
+.pos-perfil-dl dt{ font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+.pos-perfil-dl dd{ margin:0; font-size:13.5px; font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
+.pos-perfil-dl dd.is-empty{ color:var(--muted); font-weight:500; font-style:italic; }
+.pos-perfil-table{ max-height:320px; overflow:auto; border:1px solid var(--line); border-radius:14px; }
+.pos-perfil-table table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+.pos-perfil-table th{ position:sticky; top:0; background:var(--white); text-align:left; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:9px 10px; border-bottom:1px solid var(--line); }
+.pos-perfil-table td{ padding:9px 10px; border-bottom:1px solid var(--line); color:var(--ink); vertical-align:top; }
+.pos-perfil-table tr:last-child td{ border-bottom:none; }
+.pos-perfil-table .num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.pos-perfil-table tr.is-cancelled td{ color:var(--muted); }
+.pos-perfil-rev{ font-size:13px; color:var(--ink); margin:0 0 12px; padding:10px 12px; border-radius:12px; background:var(--accent-soft); }
+.pos-perfil-year{ margin-bottom:12px; }
+.pos-perfil-year h4{ margin:0 0 6px; font-size:14px; color:var(--ink); }
+.pos-perfil-year h4 small{ font-size:11.5px; font-weight:600; color:var(--muted); margin-left:6px; }
+.pos-perfil-exam{ display:flex; justify-content:space-between; gap:10px; padding:8px 12px; border-radius:10px; border:1px solid var(--line); margin-bottom:6px; font-size:13px; font-weight:600; color:var(--ink); }
+.pos-perfil-exam small{ font-weight:500; color:var(--muted); }
+.pos-perfil-hc{ margin-top:4px; }
+@media (max-width:560px){
+  .pos-perfil-dl{ grid-template-columns:1fr; }
+  .pos-perfil-tabs button{ font-size:11.5px; padding:8px 4px; }
+}
 
 .pos-money{ position:relative; display:block; }
 .pos-money > span{ position:absolute; left:12px; top:50%; transform:translateY(-50%); font-weight:700; color:var(--muted); pointer-events:none; font-size:13px; }

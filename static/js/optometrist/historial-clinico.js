@@ -1029,11 +1029,28 @@
 
   /* ---------- arranque ---------- */
   loadDirectory().then(function(){
+    var qs = new URLSearchParams(window.location.search);
     // ?paciente=<key> abre directo la ficha (p. ej. desde otro lado del panel)
-    var key = new URLSearchParams(window.location.search).get('paciente');
-    if (!key) return;
-    var p = patients.filter(function(x){ return x.key === key; })[0];
-    openPatient(key, p || { key: key, name: '', phone: '' });
+    var key = qs.get('paciente');
+    if (key){
+      var p = patients.filter(function(x){ return x.key === key; })[0];
+      openPatient(key, p || { key: key, name: '', phone: '' });
+      return;
+    }
+    // ?buscar=<nombre>&tel=<celular>: desde una venta (ticket). Si se
+    // encuentra al paciente se abre su ficha; si no, queda buscado.
+    var buscar = (qs.get('buscar') || '').trim();
+    var tel = (qs.get('tel') || '').replace(/\D/g, '').slice(-10);
+    if (!buscar && !tel) return;
+    var want = normalize(buscar);
+    var hit = patients.filter(function(x){ return want && normalize(x.name) === want; })[0] ||
+      patients.filter(function(x){ return tel.length === 10 && String(x.phone || '').replace(/\D/g, '').slice(-10) === tel; })[0];
+    if (hit){ openPatient(hit.key, hit); return; }
+    if (buscar){
+      searchInput.value = buscar;
+      searchInput.dispatchEvent(new Event('input'));
+      hintEl.textContent = 'Todavía no hay exámenes de ' + buscar + '. Búscalo con otro nombre si se registró distinto.';
+    }
   });
 
   if (window.feather) feather.replace();

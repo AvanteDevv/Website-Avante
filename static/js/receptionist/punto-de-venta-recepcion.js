@@ -1,8 +1,11 @@
 /* =========================================================
    RECEPCIÓN — Punto de venta (como en SICAR)
    · Productos: del inventario (GET /api/receptionist/inventario).
-   · Clientes: /api/receptionist/pos/clientes (No., clave,
-     representante, días y límite de crédito) con lo que deben.
+   · Clientes: /api/receptionist/pos/clientes (No., folio Clarito+,
+     perfil, días y límite de crédito) con lo que deben. Toda venta
+     lleva cliente; se puede traer de las citas de hoy
+     (/api/receptionist/pos/citas-hoy) y al cobrar la cita queda
+     "Asistió · Compró". Clic en el nombre = su perfil.
    · Cobrar: efectivo, tarjeta, transferencia, vales, cheque y
      crédito. CRÉDITO = lo que el cliente queda a deber (deja un
      anticipo y paga el resto al recoger sus lentes). No es MSI.
@@ -180,7 +183,7 @@
     $('posMobileBar').hidden = !lines.length;
     $('posMobileCount').textContent = t.items;
     $('posMobileTotal').textContent = mxn.format(t.total);
-    $('posPayBtn').disabled = !lines.length;
+    syncPayBtn();
     $('posClearBtn').disabled = !lines.length;
   }
 
@@ -228,13 +231,21 @@
 
   /* =======================================================
      CLIENTES (guardados en el servidor, con lo que deben)
+     · Ya no hay "Público en general": toda venta lleva cliente.
+     · Citas de hoy: se elige al que llegó y se traen sus datos; al
+       cobrar, en Citas queda "Asistió · Compró".
+     · Clave = folio de miembro Clarito+ (vacía = no es miembro).
+     · Clic en el nombre = su perfil (datos, compras y exámenes).
      ======================================================= */
   var clients = [];   // resultados de la última búsqueda
-  var client = null;  // null = Público en general
+  var client = null;  // null = todavía no se elige
+  var saleCita = null; // la cita de hoy de la que viene esta venta
+  var citasHoy = [];
   var drop = $('posClientDrop');
   var clientSearch = $('posClientSearch');
   var clientReq = 0, clientTimer;
   var HOY = '';
+  var ICON_USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
 
   function api(url, opts) {
     opts = opts || {};
@@ -255,15 +266,40 @@
     if (!c || !(c.limite > 0)) return Infinity;
     return round2(c.limite - (c.saldo || 0));
   }
+  function hora12(h) {
+    var m = /^(\d{1,2}):(\d{2})/.exec(h || '');
+    if (!m) return h || '';
+    var H = +m[1], ap = H >= 12 ? 'pm' : 'am';
+    return ((H % 12) || 12) + ':' + m[2] + ' ' + ap;
+  }
+
+  // Clave: folio Clarito+ (CPAV-012, H5037…). Las claves viejas sin
+  // número (FRECUENTE, VIP…) se muestran como clave, no como folio.
+  function esFolio(k) { return /\d/.test(k || ''); }
+  function claveCorta(c) { return !c.clave ? 'No es miembro' : esFolio(c.clave) ? 'Clarito+ ' + c.clave : 'Clave ' + c.clave; }
+  function claveLarga(c) { return !c.clave ? 'No es miembro' : esFolio(c.clave) ? 'Miembro Clarito+ · folio ' + c.clave : 'Clave ' + c.clave + ' (no es folio Clarito+)'; }
+
+  // Cobrar solo con cliente.
+  function syncPayBtn() {
+    var need = lines.length > 0 && !client;
+    $('posPayBtn').disabled = !lines.length || !client;
+    $('posPayNeed').hidden = !need;
+  }
 
   function renderClient() {
-    $('posClientName').textContent = client ? client.nombre : 'Público en general';
+    var nameBtn = $('posClientName');
+    nameBtn.textContent = client ? client.nombre : 'Elige al cliente';
+    nameBtn.classList.toggle('is-empty', !client);
+    nameBtn.title = client ? 'Ver su perfil: datos, compras y exámenes de la vista' : 'Busca al cliente, tráelo de las citas de hoy o regístralo';
     var meta = [];
     if (client) {
       meta.push('No. ' + client.numero);
-      if (client.clave) meta.push(client.clave);
+      meta.push(claveCorta(client));
+      if (saleCita) meta.push('Cita ' + hora12(saleCita.hora));
       if (client.limite > 0) meta.push('Límite ' + mxn.format(client.limite) + (client.dias ? ' · ' + client.dias + ' días' : ''));
       else if (client.dias) meta.push(client.dias + ' días de crédito');
+    } else {
+      meta.push('Sin cliente no se puede cobrar');
     }
     $('posClientMeta').textContent = meta.join(' · ');
     $('posClientEdit').hidden = !client;
@@ -272,7 +308,7 @@
     av.classList.toggle('is-set', !!client);
     av.classList.toggle('is-vip', !!(client && client.clave));
     if (client) av.textContent = initials(client.nombre) || '?';
-    else av.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
+    else av.innerHTML = ICON_USER;
 
     // Lo que debe (como el aviso "CRÉDITO VENCIDO" de SICAR)
     var debt = $('posClientDebt');
@@ -284,12 +320,31 @@
       $('posClientDebtLabel').textContent = vencido ? 'Crédito vencido · debe' : 'Debe' + (client.proximo_vence ? ' · vence ' + fechaISO(client.proximo_vence) : '');
       $('posClientDebtAmount').textContent = mxn.format(client.saldo);
     }
+    syncPayBtn();
   }
 
+  function citaMatches(c, q) {
+    if (!q) return true;
+    var n = norm(c.nombre), d = String(c.celular || '');
+    return norm(q).split(/\s+/).every(function (w) { return n.indexOf(w) !== -1 || (/^\d+$/.test(w) && d.indexOf(w) !== -1); });
+  }
   function renderClientList() {
-    var html = '<button type="button" class="pos-client-opt' + (!client ? ' is-active' : '') + '" data-client="">' +
-      '<span class="pos-client-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>' +
-      '<span><strong>Público en general</strong><small>Sin cliente</small></span></button>';
+    var q = clientSearch.value.trim();
+    var html = '';
+    var citas = citasHoy.filter(function (c) { return citaMatches(c, q); });
+    if (citas.length) {
+      html += '<p class="pos-client-sec">Citas de hoy</p>';
+      html += citas.map(function (c) {
+        var tag = c.compro ? '<em class="pos-cita-tag is-done">Ya compró</em>'
+          : c.client_id ? '<em class="pos-cita-tag is-known">Ya es cliente</em>'
+          : '<em class="pos-cita-tag">Nuevo</em>';
+        return '<button type="button" class="pos-client-opt pos-cita-opt' + (saleCita && saleCita.id === c.id ? ' is-active' : '') + '" data-cita="' + c.id + '">' +
+          '<span class="pos-client-avatar pos-cita-hora">' + esc(hora12(c.hora).replace(/\s?[ap]m$/, '')) + '<small>' + (/pm$/.test(hora12(c.hora)) ? 'pm' : 'am') + '</small></span>' +
+          '<span><strong>' + esc(c.nombre) + '</strong><small>Cita de hoy' + (c.celular ? ' · ' + esc(c.celular) : '') + '</small></span>' + tag +
+        '</button>';
+      }).join('');
+      if (clients.length) html += '<p class="pos-client-sec">Clientes</p>';
+    }
     html += clients.map(function (c) {
       var debt = c.saldo > 0
         ? '<em class="pos-client-owes' + (c.saldo_vencido > 0 ? ' is-overdue' : '') + '">' + (c.saldo_vencido > 0 ? 'Vencido ' : 'Debe ') + esc(mxn.format(c.saldo)) + '</em>'
@@ -300,9 +355,8 @@
         (c.clave ? '<em class="pos-client-tag">' + esc(c.clave) + '</em>' : '') + debt +
       '</button>';
     }).join('');
-    var q = clientSearch.value.trim();
-    if (!clients.length && q) html += '<p class="pos-client-none">No hay clientes con «' + esc(q) + '».</p>';
-    if (!clients.length && !q) html += '<p class="pos-client-none">Todavía no hay clientes. Crea uno con «Nuevo cliente».</p>';
+    if (!clients.length && !citas.length && q) html += '<p class="pos-client-none">No hay clientes ni citas de hoy con «' + esc(q) + '». Regístralo con «Nuevo cliente».</p>';
+    if (!clients.length && !citas.length && !q) html += '<p class="pos-client-none">Todavía no hay clientes. Crea uno con «Nuevo cliente».</p>';
     $('posClientList').innerHTML = html;
   }
 
@@ -321,6 +375,12 @@
         $('posClientList').innerHTML = '<p class="pos-client-none">' + esc(err.message) + '</p>';
       });
   }
+  function fetchCitasHoy() {
+    return api('/api/receptionist/pos/citas-hoy').then(function (d) {
+      citasHoy = d.items || [];
+      if (!drop.hidden) renderClientList();
+    }).catch(function () { citasHoy = []; });
+  }
   // Vuelve a leer al cliente elegido (su saldo cambia al vender o abonar).
   function refreshClient() {
     if (!client) return Promise.resolve();
@@ -336,18 +396,25 @@
     clientSearch.value = '';
     renderClientList();
     fetchClients();
+    fetchCitasHoy();
     setTimeout(function () { clientSearch.focus(); }, 30);
   }
   function closeDrop() { drop.hidden = true; $('posClient').classList.remove('is-open'); }
   $('posClientBtn').addEventListener('click', function (e) { e.stopPropagation(); drop.hidden ? openDrop() : closeDrop(); });
-  $('posClientPick').addEventListener('click', function (e) { if (!e.target.closest('#posClientBtn, #posClientEdit') && drop.hidden) openDrop(); });
-  clientSearch.addEventListener('input', function () { clearTimeout(clientTimer); clientTimer = setTimeout(fetchClients, 220); });
+  $('posClientPick').addEventListener('click', function (e) { if (!e.target.closest('#posClientBtn, #posClientEdit, #posClientName') && drop.hidden) openDrop(); });
+  // El nombre: abre su perfil (o el buscador si todavía no hay cliente).
+  $('posClientName').addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (client) openPerfil();
+    else if (drop.hidden) openDrop();
+  });
+  clientSearch.addEventListener('input', function () { renderClientList(); clearTimeout(clientTimer); clientTimer = setTimeout(fetchClients, 220); });
   clientSearch.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
       e.preventDefault();
       clearTimeout(clientTimer);
       fetchClients().then(function () {
-        var first = $('posClientList').querySelector('.pos-client-opt:not([data-client=""])');
+        var first = $('posClientList').querySelector('.pos-client-opt');
         if (first) first.click();
       });
     }
@@ -355,37 +422,181 @@
   $('posClientList').addEventListener('click', function (e) {
     var b = e.target.closest('.pos-client-opt');
     if (!b) return;
+    if (b.hasAttribute('data-cita')) { pickCita(Number(b.getAttribute('data-cita'))); return; }
     var id = Number(b.getAttribute('data-client'));
-    client = id ? clients.filter(function (c) { return c.id === id; })[0] || null : null;
+    var picked = clients.filter(function (c) { return c.id === id; })[0] || null;
+    if (!picked) return;
+    // Si ese cliente tiene cita hoy, la venta se liga a ella.
+    if (!saleCita || !client || client.id !== picked.id) saleCita = citasHoy.filter(function (c) { return c.client_id === picked.id && !c.compro; })[0] || null;
+    client = picked;
     renderClient(); closeDrop();
   });
+  // Cita de hoy: si ya es cliente se elige; si no, se registra con sus datos.
+  function pickCita(id) {
+    var c = citasHoy.filter(function (x) { return x.id === id; })[0];
+    if (!c) return;
+    if (c.client_id) {
+      api('/api/receptionist/pos/clientes/' + c.client_id + '/creditos').then(function (d) {
+        client = d.cliente;
+        saleCita = c;
+        renderClient(); closeDrop();
+        toast(client.nombre + ' (cita de las ' + hora12(c.hora) + '). Al cobrar queda en Citas que compró.');
+      }).catch(function (err) { toast(err.message); });
+      return;
+    }
+    openClientModal('', c);
+  }
   document.addEventListener('click', function (e) { if (!drop.hidden && !e.target.closest('#posClient')) closeDrop(); });
   $('posClientDebt').addEventListener('click', function () { openCredits(); });
 
   /* ---------- modal: nuevo cliente / editar cliente ---------- */
   var clientModal = $('posClientModal');
   var cForm = $('posClientForm');
+  var pcClave = $('pcClave');
   var editingClient = null; // cliente que se está editando (null = nuevo)
+  var modalCita = null;     // cita de la que se trajeron los datos
+  var miembro = false, tipo = 'Particular';
+
   function setClientModalMode(edit) {
     $('posClientModalTitle').textContent = edit ? 'Editar cliente' : 'Nuevo cliente';
     cForm.querySelector('[type="submit"]').textContent = edit ? 'Guardar cambios' : 'Guardar cliente';
   }
-  function openClientModal(prefillName) {
+  function setMiembro(on) {
+    miembro = !!on;
+    $('pcMiembro').querySelectorAll('button').forEach(function (b) {
+      var is = b.getAttribute('data-miembro') === (miembro ? '1' : '0');
+      b.classList.toggle('is-on', is); b.setAttribute('aria-checked', is ? 'true' : 'false');
+    });
+    $('pcFolioWrap').hidden = !miembro;
+    if (!miembro) { pcClave.value = ''; $('pcFolioList').hidden = true; }
+    folioHint();
+  }
+  function setTipo(t) {
+    tipo = t === 'Empresa' ? 'Empresa' : 'Particular';
+    $('pcTipo').querySelectorAll('button').forEach(function (b) {
+      var is = b.getAttribute('data-tipo') === tipo;
+      b.classList.toggle('is-on', is); b.setAttribute('aria-checked', is ? 'true' : 'false');
+    });
+    $('pcEmpresaWrap').hidden = tipo !== 'Empresa';
+  }
+  $('pcMiembro').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-miembro]');
+    if (!b) return;
+    setMiembro(b.getAttribute('data-miembro') === '1');
+    if (miembro) setTimeout(function () { pcClave.focus(); }, 30);
+  });
+  $('pcTipo').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-tipo]');
+    if (!b) return;
+    setTipo(b.getAttribute('data-tipo'));
+    if (tipo === 'Empresa') setTimeout(function () { $('pcEmpresa').focus(); }, 30);
+  });
+
+  /* Folios de Clarito+ (se cargan una vez por página). */
+  var folios = null, foliosReq = null;
+  function loadFolios() {
+    if (folios) return Promise.resolve(folios);
+    if (!foliosReq) foliosReq = api('/api/receptionist/pos/clarito-folios').then(function (d) { folios = d.items || []; return folios; })
+      .catch(function () { foliosReq = null; return []; });
+    return foliosReq;
+  }
+  function folioOf(v) {
+    v = String(v || '').trim().toUpperCase();
+    return (folios || []).filter(function (f) { return f.folio === v; })[0] || null;
+  }
+  function folioHint() {
+    var h = $('pcFolioHint');
+    if (!miembro) { h.textContent = ''; return; }
+    var v = pcClave.value.trim();
+    var f = folioOf(v);
+    h.className = 'pc-folio-hint';
+    if (!v) { h.textContent = folios && folios.length ? 'Elige su folio de la lista de Clarito+ o escríbelo a mano.' : 'Escribe su folio de miembro.'; return; }
+    if (f) {
+      h.classList.add('is-ok');
+      h.textContent = 'Miembro Clarito+: ' + f.nombre + (f.vigencia ? ' · vigencia ' + fechaISO(f.vigencia) : '');
+    } else {
+      h.classList.add('is-warn');
+      h.textContent = 'Ese folio no está en Clarito+; se guarda como lo escribiste.';
+    }
+  }
+  function renderFolios() {
+    var list = $('pcFolioList');
+    var q = norm(pcClave.value.trim());
+    var items = (folios || []).filter(function (f) { return !q || norm(f.folio).indexOf(q) !== -1 || norm(f.nombre).indexOf(q) !== -1; }).slice(0, 8);
+    if (!items.length || (items.length === 1 && items[0].folio === pcClave.value.trim().toUpperCase())) { list.hidden = true; return; }
+    list.innerHTML = items.map(function (f) {
+      return '<button type="button" data-folio="' + esc(f.folio) + '"><b>' + esc(f.folio) + '</b><span>' + esc(f.nombre) + '</span>' +
+        (f.telefono ? '<small>' + esc(f.telefono) + '</small>' : '') + '</button>';
+    }).join('');
+    list.hidden = false;
+  }
+  // Al elegir el folio se llenan los datos que estén vacíos.
+  function fillFromFolio(f) {
+    var put = function (id, v) { var el = $(id); if (v && !el.value.trim()) el.value = v; };
+    put('pcNombre', f.nombre);
+    put('pcCelular', String(f.telefono || '').replace(/\D/g, '').slice(-10));
+    put('pcCorreo', f.correo);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f.nacimiento || '')) put('pcNacimiento', f.nacimiento);
+    put('pcDireccion', f.direccion);
+    put('pcPasatiempo', f.pasatiempo);
+    put('pcProfesion', f.profesion);
+    if (f.tipo === 'Empresa') { setTipo('Empresa'); put('pcEmpresa', f.empresa); }
+  }
+  pcClave.addEventListener('focus', function () { loadFolios().then(renderFolios); });
+  pcClave.addEventListener('input', function () {
+    var pos = pcClave.selectionStart;
+    pcClave.value = pcClave.value.toUpperCase();
+    pcClave.setSelectionRange(pos, pos);
+    loadFolios().then(function () { renderFolios(); folioHint(); });
+  });
+  pcClave.addEventListener('blur', function () { setTimeout(function () { $('pcFolioList').hidden = true; folioHint(); }, 160); });
+  $('pcFolioList').addEventListener('mousedown', function (e) { e.preventDefault(); });
+  $('pcFolioList').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-folio]');
+    if (!b) return;
+    var f = folioOf(b.getAttribute('data-folio'));
+    pcClave.value = b.getAttribute('data-folio');
+    $('pcFolioList').hidden = true;
+    if (f) fillFromFolio(f);
+    folioHint();
+  });
+
+  function resetClientForm() {
+    cForm.reset();
+    ['pcNumero', 'pcClave', 'pcNombre', 'pcCelular', 'pcCorreo', 'pcNacimiento', 'pcRepresentante', 'pcDireccion', 'pcEmpresa', 'pcPasatiempo', 'pcProfesion', 'pcDias', 'pcLimite']
+      .forEach(function (id) { $(id).value = ''; });
+    $('pcError').textContent = '';
+    $('pcFolioList').hidden = true;
+    var note = $('pcCitaNote');
+    note.hidden = true; note.textContent = '';
+    setTipo('Particular');
+    setMiembro(false);
+    loadFolios();
+  }
+  // prefill: texto que se buscaba (nombre o celular); cita: datos de su cita de hoy.
+  function openClientModal(prefillName, cita) {
     closeDrop();
     editingClient = null;
+    modalCita = cita || null;
     setClientModalMode(false);
-    cForm.reset();
-    $('pcNumero').value = '';
+    resetClientForm();
     api('/api/receptionist/pos/clientes/siguiente').then(function (d) {
       if (!$('pcNumero').value) $('pcNumero').value = d.numero || '';
     }).catch(function () {});
     $('pcRepresentante').value = cajero;
     if (prefillName && !/^\d+$/.test(prefillName)) $('pcNombre').value = prefillName;
     if (prefillName && /^\d{10}$/.test(prefillName)) $('pcCelular').value = prefillName;
-    $('pcError').textContent = '';
-    syncClaveChips();
+    if (cita) {
+      $('pcNombre').value = cita.nombre || '';
+      $('pcCelular').value = String(cita.celular || '').replace(/\D/g, '').slice(-10);
+      $('pcCorreo').value = cita.correo || '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(cita.nacimiento || '')) $('pcNacimiento').value = cita.nacimiento;
+      var note = $('pcCitaNote');
+      note.textContent = 'Datos traídos de su cita de hoy (' + hora12(cita.hora) + '). Completa lo que falte y guarda.';
+      note.hidden = false;
+    }
     openModal(clientModal);
-    setTimeout(function () { $('pcNombre').focus(); }, 80);
+    setTimeout(function () { $(cita ? 'pcDireccion' : 'pcNombre').focus(); }, 80);
   }
   $('posClientNew').addEventListener('click', function () { openClientModal(clientSearch.value.trim()); });
 
@@ -394,17 +605,25 @@
     if (!c) return;
     closeDrop();
     editingClient = c;
+    modalCita = null;
     setClientModalMode(true);
-    cForm.reset();
+    resetClientForm();
     $('pcNumero').value = c.numero || '';
+    setMiembro(!!c.clave);
     pcClave.value = c.clave || '';
     $('pcNombre').value = c.nombre || '';
     $('pcCelular').value = c.celular || '';
+    $('pcCorreo').value = c.correo || '';
+    $('pcNacimiento').value = c.nacimiento || '';
     $('pcRepresentante').value = c.representante || '';
+    $('pcDireccion').value = c.direccion || '';
+    setTipo(c.tipo);
+    $('pcEmpresa').value = c.empresa || '';
+    $('pcPasatiempo').value = c.pasatiempo || '';
+    $('pcProfesion').value = c.profesion || '';
     $('pcDias').value = c.dias ? String(c.dias) : '';
     $('pcLimite').value = c.limite > 0 ? String(c.limite) : '';
-    $('pcError').textContent = '';
-    syncClaveChips();
+    loadFolios().then(folioHint);
     openModal(clientModal);
     setTimeout(function () { $('pcNombre').focus(); }, 80);
   }
@@ -412,23 +631,6 @@
   $('posClientModalClose').addEventListener('click', function () { closeModal(clientModal); });
   $('pcCancel').addEventListener('click', function () { closeModal(clientModal); });
 
-  var pcClave = $('pcClave');
-  function syncClaveChips() {
-    var v = pcClave.value.trim().toUpperCase();
-    $('pcClaveChips').querySelectorAll('button').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-clave') === v); });
-  }
-  pcClave.addEventListener('input', function () {
-    var pos = pcClave.selectionStart;
-    pcClave.value = pcClave.value.toUpperCase();
-    pcClave.setSelectionRange(pos, pos);
-    syncClaveChips();
-  });
-  $('pcClaveChips').addEventListener('click', function (e) {
-    var b = e.target.closest('button');
-    if (!b) return;
-    pcClave.value = b.classList.contains('is-on') ? '' : b.getAttribute('data-clave');
-    syncClaveChips();
-  });
   $('pcCelular').addEventListener('input', function () { this.value = this.value.replace(/\D/g, ''); });
   $('pcNumero').addEventListener('input', function () { this.value = this.value.replace(/[^A-Za-z0-9-]/g, ''); });
 
@@ -437,19 +639,28 @@
     var err = $('pcError');
     var body = {
       numero: $('pcNumero').value.trim(),
-      clave: pcClave.value.trim().toUpperCase(),
+      clave: miembro ? pcClave.value.trim().toUpperCase() : '',
       nombre: $('pcNombre').value.trim().replace(/\s+/g, ' '),
       celular: $('pcCelular').value.trim(),
+      correo: $('pcCorreo').value.trim(),
+      nacimiento: $('pcNacimiento').value,
       representante: $('pcRepresentante').value.trim(),
+      direccion: $('pcDireccion').value.trim(),
+      tipo: tipo,
+      empresa: tipo === 'Empresa' ? $('pcEmpresa').value.trim() : '',
+      pasatiempo: $('pcPasatiempo').value.trim(),
+      profesion: $('pcProfesion').value.trim(),
       dias: parseInt($('pcDias').value, 10) || 0,
       limite: round2(parseFloat($('pcLimite').value) || 0)
     };
     if (!body.numero) { err.textContent = 'Escribe el número de cliente.'; $('pcNumero').focus(); return; }
+    if (miembro && !body.clave) { err.textContent = 'Elige o escribe su folio de miembro (o marca «No es miembro»).'; pcClave.focus(); return; }
     if (!body.nombre) { err.textContent = 'Escribe el nombre del cliente.'; $('pcNombre').focus(); return; }
-    if (body.celular && body.celular.length !== 10) { err.textContent = 'El celular debe tener 10 dígitos.'; $('pcCelular').focus(); return; }
+    if (body.celular && body.celular.length !== 10) { err.textContent = 'El teléfono debe tener 10 dígitos.'; $('pcCelular').focus(); return; }
+    if (body.correo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.correo)) { err.textContent = 'Revisa el correo (ej. nombre@correo.com).'; $('pcCorreo').focus(); return; }
     if (body.limite < 0 || body.dias < 0) { err.textContent = 'El crédito no puede ser negativo.'; return; }
     var btn = cForm.querySelector('[type="submit"]');
-    var editing = editingClient;
+    var editing = editingClient, cita = modalCita;
     btn.disabled = true; btn.textContent = 'Guardando…';
     err.textContent = '';
     var req = editing
@@ -466,9 +677,11 @@
         toast('Se guardaron los cambios de ' + d.item.nombre + '.');
       } else {
         client = d.item;
+        saleCita = cita;
+        if (cita) cita.client_id = client.id;
         renderClient();
         closeModal(clientModal);
-        toast('Cliente ' + client.nombre + ' creado y seleccionado.');
+        toast('Cliente ' + client.nombre + ' creado y seleccionado.' + (cita ? ' Al cobrar queda en Citas que compró.' : ''));
       }
     }).catch(function (e2) {
       err.textContent = e2.message;
@@ -476,6 +689,116 @@
       btn.disabled = false; btn.textContent = editing ? 'Guardar cambios' : 'Guardar cliente';
     });
   });
+
+  /* ---------- perfil del cliente (clic en su nombre) ---------- */
+  var perfilModal = $('posPerfilModal');
+  var MESES_L = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function fechaLarga(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? (+m[3]) + ' de ' + MESES_L[+m[2] - 1] + ' de ' + m[1] : '—';
+  }
+  function edad(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    if (!m) return '';
+    var hoy = new Date(), a = hoy.getFullYear() - (+m[1]);
+    if (hoy.getMonth() + 1 < +m[2] || (hoy.getMonth() + 1 === +m[2] && hoy.getDate() < +m[3])) a--;
+    return a >= 0 && a < 130 ? a + ' años' : '';
+  }
+  function setPerfilTab(t) {
+    perfilModal.querySelectorAll('[data-ptab]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-ptab') === t); });
+    perfilModal.querySelectorAll('[data-ppane]').forEach(function (p) { p.hidden = p.getAttribute('data-ppane') !== t; });
+  }
+  perfilModal.querySelector('.pos-perfil-tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ptab]');
+    if (b) setPerfilTab(b.getAttribute('data-ptab'));
+  });
+  function openPerfil() {
+    if (!client) { openDrop(); return; }
+    closeDrop();
+    var c = client;
+    $('posPerfilAvatar').textContent = initials(c.nombre) || '?';
+    $('posPerfilAvatar').classList.toggle('is-vip', !!c.clave);
+    $('posPerfilName').textContent = c.nombre;
+    $('posPerfilSub').textContent = 'No. ' + c.numero + ' · ' + claveLarga(c);
+    $('posPerfilTiles').innerHTML = '';
+    $('posPerfilNCompras').textContent = '';
+    $('posPerfilNExam').textContent = '';
+    $('posPerfilDatos').innerHTML = '<p class="pos-perfil-loading">Cargando perfil…</p>';
+    $('posPerfilCompras').innerHTML = '';
+    $('posPerfilExamenes').innerHTML = '';
+    setPerfilTab('datos');
+    openModal(perfilModal);
+    api('/api/receptionist/pos/clientes/' + c.id + '/perfil').then(function (p) {
+      if (!client || client.id !== c.id) return;
+      if (p.cliente) { client = p.cliente; renderClient(); }
+      renderPerfil(p);
+    }).catch(function (err) {
+      $('posPerfilDatos').innerHTML = '<p class="pos-perfil-loading">' + esc(err.message) + '</p>';
+    });
+  }
+  function renderPerfil(p) {
+    var c = p.cliente;
+    var ventas = (p.ventas || []).filter(function (v) { return !v.cancelada; });
+    var rev = p.revision ? (new Date(p.revision + 'T12:00:00') < new Date() ? 'Vencida · ' : '') + fechaISO(p.revision) : '—';
+    $('posPerfilTiles').innerHTML =
+      '<div class="pos-cr-card"><small>Compras</small><strong>' + ventas.length + '</strong></div>' +
+      '<div class="pos-cr-card"><small>Total comprado</small><strong>' + mxn.format(p.total_compras || 0) + '</strong></div>' +
+      '<div class="pos-cr-card"><small>Exámenes</small><strong>' + (p.examenes || []).length + '</strong></div>' +
+      '<div class="pos-cr-card' + (/Vencida/.test(rev) ? ' is-overdue' : '') + '"><small>Próxima revisión</small><strong>' + esc(rev) + '</strong></div>' +
+      (c.saldo > 0 ? '<div class="pos-cr-card is-owes"><small>Debe</small><strong>' + mxn.format(c.saldo) + '</strong></div>' : '');
+    $('posPerfilNCompras').textContent = ventas.length ? '(' + ventas.length + ')' : '';
+    $('posPerfilNExam').textContent = (p.examenes || []).length ? '(' + p.examenes.length + ')' : '';
+
+    function row(label, v) { return '<div><dt>' + label + '</dt><dd' + (v ? '' : ' class="is-empty"') + '>' + (v ? esc(v) : 'Sin capturar') + '</dd></div>'; }
+    $('posPerfilDatos').innerHTML = '<dl class="pos-perfil-dl">' +
+      row('Nombre', c.nombre) +
+      row('Teléfono', c.celular) +
+      row('Correo', c.correo) +
+      row('Fecha de nacimiento', c.nacimiento ? fechaLarga(c.nacimiento) + (edad(c.nacimiento) ? ' (' + edad(c.nacimiento) + ')' : '') : '') +
+      row('Dirección', c.direccion) +
+      row('Particular o empresa', c.tipo === 'Empresa' ? 'Empresa' + (c.empresa ? ' · ' + c.empresa : '') : 'Particular') +
+      row('Pasatiempo', c.pasatiempo) +
+      row('Profesión', c.profesion) +
+      row('Clave', claveLarga(c)) +
+      row('Representante', c.representante) +
+      '</dl>';
+
+    var all = p.ventas || [];
+    $('posPerfilCompras').innerHTML = all.length
+      ? '<div class="pos-perfil-table"><table><thead><tr><th>Ticket</th><th>Fecha</th><th>Productos</th><th class="num">Total</th></tr></thead><tbody>' +
+        all.map(function (v) {
+          return '<tr' + (v.cancelada ? ' class="is-cancelled"' : '') + '><td><b>' + v.folio + '</b></td><td>' + fechaISO(v.fecha) + '</td>' +
+            '<td>' + esc(v.productos || '—') + (v.cancelada ? ' <span class="pos-cr-chip is-cancelled">Cancelada</span>' : v.credito > 0 ? ' <span class="pos-cr-chip">Crédito ' + mxn.format(v.credito) + '</span>' : '') + '</td>' +
+            '<td class="num"><b>' + mxn.format(v.total) + '</b></td></tr>';
+        }).join('') + '</tbody></table></div>'
+      : '<p class="pos-perfil-empty">Todavía no tiene compras.</p>';
+
+    var ex = p.examenes || [];
+    if (!ex.length) {
+      $('posPerfilExamenes').innerHTML = '<p class="pos-perfil-empty">No tiene exámenes de la vista con este nombre o teléfono.</p>';
+    } else {
+      var byYear = {}, years = [];
+      ex.forEach(function (e) {
+        var y = String(e.fecha).slice(0, 4);
+        if (!byYear[y]) { byYear[y] = []; years.push(y); }
+        byYear[y].push(e);
+      });
+      var link = p.paciente_key ? '/receptionist/historial-clinico?paciente=' + encodeURIComponent(p.paciente_key) : '';
+      $('posPerfilExamenes').innerHTML =
+        '<p class="pos-perfil-rev">Revisión cada ' + (p.revision_meses === 12 || !p.revision_meses ? 'año' : p.revision_meses + ' meses') +
+          (p.revision ? ' · le toca el <b>' + fechaLarga(p.revision) + '</b>' : '') + '</p>' +
+        years.map(function (y) {
+          return '<div class="pos-perfil-year"><h4>' + y + ' <small>' + byYear[y].length + (byYear[y].length === 1 ? ' examen' : ' exámenes') + '</small></h4>' +
+            byYear[y].map(function (e) {
+              return '<div class="pos-perfil-exam"><span>' + fechaLarga(String(e.fecha).slice(0, 10)) + '</span><small>' + (e.por ? 'por ' + esc(e.por) : '') + '</small></div>';
+            }).join('') + '</div>';
+        }).join('') +
+        (link ? '<a class="btn small pos-perfil-hc" href="' + link + '" target="_blank" rel="noopener">Ver su historial clínico</a>' : '');
+    }
+  }
+  $('posPerfilClose').addEventListener('click', function () { closeModal(perfilModal); });
+  $('posPerfilOk').addEventListener('click', function () { closeModal(perfilModal); });
+  $('posPerfilEdit').addEventListener('click', function () { closeModal(perfilModal); openEditClientModal(client); });
 
   /* =======================================================
      COBRAR
@@ -548,6 +871,7 @@
 
   function openPay() {
     if (!lines.length) return;
+    if (!client) { toast('Para cobrar, elige o registra al cliente.'); openDrop(); return; }
     closeDrop();
     payTotal = totals().total;
     $('payTotal').textContent = mxn.format(payTotal);
@@ -592,6 +916,7 @@
       method: 'POST',
       body: {
         client_id: saleClient ? saleClient.id : 0,
+        cita_id: saleCita ? saleCita.id : 0,
         productos: lines.map(function (l) { return { inventory_id: l.id, cantidad: l.cantidad, descuento: l.descuento || 0 }; }),
         pagos: s.v,
         referencia: $('payRef').value.trim(),
@@ -605,7 +930,7 @@
         folio: v.folio,
         fecha: new Date(),
         caja: 'Caja 1',
-        cliente: v.cliente || 'PÚBLICO EN GENERAL',
+        cliente: v.cliente || '',
         cajero: v.cajero || cajero,
         productos: (v.productos || []).map(function (p) { return { descripcion: p.descripcion, cantidad: p.cantidad, precio: p.precio, descuento: p.descuento || 0, rastreo: p.rastreo || [] }; }),
         pedido: v.pedido && v.pedido.code ? v.pedido.code : '',
@@ -622,6 +947,7 @@
       $('posDoneText').innerHTML = 'Total <strong>' + mxn.format(v.total) + '</strong>' +
         (v.cambio > 0 ? ' · Cambio <strong>' + mxn.format(v.cambio) + '</strong>' : '') +
         (saleClient ? '<br>' + esc(saleClient.nombre) : '') +
+        (d.cita_id ? '<br><span class="pos-done-cita">En Citas quedó: asistió y compró.</span>' : '') +
         (v.pedido && v.pedido.code ? '<br>Clave de rastreo <strong>' + esc(v.pedido.code) + '</strong>' : '');
       var cr = v.pagos && v.pagos.credito > 0;
       $('posDoneCredit').hidden = !cr;
@@ -696,7 +1022,7 @@
   });
   function newSale() {
     closeModal($('posDoneModal'));
-    lines = []; client = null; lastSale = null;
+    lines = []; client = null; saleCita = null; lastSale = null;
     renderCart(); renderClient(); renderProducts();
     searchInput.value = ''; searchProducts();
     searchInput.focus();
@@ -954,7 +1280,7 @@
     if (e.key === 'Escape') {
       if (!drop.hidden) { closeDrop(); return; }
       if (abModal.classList.contains('open')) { closeModal(abModal); return; }
-      [clientModal, crModal].forEach(function (m) { if (m.classList.contains('open')) closeModal(m); });
+      [clientModal, crModal, perfilModal].forEach(function (m) { if (m.classList.contains('open')) closeModal(m); });
       if (payModal.classList.contains('open') && !saving) closeModal(payModal);
     }
     if (e.key === 'Enter' && payModal.classList.contains('open') && e.target.matches('[data-pay], #payRef') && !$('payAccept').disabled) {

@@ -290,6 +290,7 @@ func main() {
 	// Inventario: código de cada color (catálogo de la tienda) para la clave
 	// automática de armazones, promoción por artículo y reglas de precio/promo.
 	db.EnsureInvClavesPromo()
+	db.EnsurePosClientePerfil()
 	// Historia clínica: campo de OBSERVACIONES (3 renglones), una sola vez.
 	db.EnsureHistoriaObservaciones()
 	// App "Avante Offline" (sin conexión): tablets vinculadas y columnas
@@ -772,6 +773,9 @@ func main() {
 		apiReceptionist.PUT("/pos/clientes/:id", handlers.PosUpdateClient)
 		apiReceptionist.GET("/pos/clientes/:id/creditos", handlers.PosClientCredits)
 		apiReceptionist.GET("/pos/clientes/:id/ultima-venta", handlers.PosClientLastSale)
+		apiReceptionist.GET("/pos/clientes/:id/perfil", handlers.PosClientPerfil)
+		apiReceptionist.GET("/pos/citas-hoy", handlers.PosCitasHoy)
+		apiReceptionist.GET("/pos/clarito-folios", handlers.PosClaritoFolios)
 		apiReceptionist.GET("/pos/ventas", handlers.PosListSales)
 		apiReceptionist.GET("/pos/ventas/:id", handlers.PosGetSale)
 		apiReceptionist.POST("/pos/ventas", handlers.PosCreateSale)

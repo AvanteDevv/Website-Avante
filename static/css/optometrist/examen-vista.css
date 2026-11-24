@@ -561,3 +561,34 @@ body.dark .doc-folio{ color:#f19a90; background:rgba(176,58,46,.22); }
 .name-sync-hint{ margin-top:10px; font-size:12px; color:var(--grey); }
 body.dark .name-sync-warn{ background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.35); }
 @media (max-width:520px){ .name-sync-fields{ grid-template-columns:1fr; } }
+/* =========================================================
+   Orden de laboratorio a dos pantallas: historia clínica al lado
+   ========================================================= */
+.hc-split-btn{ display:inline-flex; align-items:center; gap:7px; }
+.hc-split-btn svg{ width:15px; height:15px; }
+.hc-split-btn.is-on{ background:var(--blue-50); border-color:var(--blue-500); color:var(--blue-500); }
+body.has-hc-split .cuenta-shell{ align-items:flex-start; }
+.hc-split{
+  position:sticky; top:16px; flex:0 0 min(46%, 760px); align-self:flex-start;
+  height:calc(100vh - 32px); display:flex; flex-direction:column;
+  border:1.5px solid var(--line); border-radius:20px; overflow:hidden; background:var(--white);
+  box-shadow:0 18px 40px -24px rgba(20,10,60,.35);
+  animation:hcSplitIn .3s cubic-bezier(.22,1,.36,1) both;
+}
+.hc-split[hidden]{ display:none; }
+@keyframes hcSplitIn{ from{ opacity:0; transform:translateX(18px); } to{ opacity:1; transform:none; } }
+.hc-split-head{ display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; border-bottom:1px solid var(--line); }
+.hc-split-head strong{ flex:1; font-size:14px; color:var(--ink); }
+.hc-split-head a{ font-size:12px; font-weight:700; color:var(--blue-500); text-decoration:none; white-space:nowrap; }
+.hc-split-head a:hover{ text-decoration:underline; }
+.hc-split-x{
+  width:30px; height:30px; border-radius:50%; border:1.5px solid var(--line); background:var(--white); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; color:var(--grey);
+}
+.hc-split-x svg{ width:14px; height:14px; }
+.hc-split-x:hover{ color:var(--blue-500); border-color:var(--blue-500); }
+.hc-split iframe{ flex:1; width:100%; border:0; background:var(--blue-50); }
+@media (max-width:1099px){
+  .hc-split{ position:fixed; inset:12px; z-index:300; height:auto; flex:none; }
+}
+@media (prefers-reduced-motion: reduce){ .hc-split{ animation:none; } }

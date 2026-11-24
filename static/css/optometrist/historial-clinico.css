@@ -627,3 +627,15 @@ body.dark .pf-doc-tag.is-lab{ color:#aab2ff; }
   .pf-tab{ flex:0 0 auto; }
   .pf-docs-actions .btn{ flex:1 1 auto; justify-content:center; text-align:center; }
 }
+/* =========================================================
+   Modo "embed": el Historial clínico dentro de otra pantalla
+   (Orden de laboratorio a dos pantallas / Ventas por hacer orden).
+   Sin sidebar ni barra de arriba.
+   ========================================================= */
+html.hc-embed .header-outer,
+html.hc-embed .cuenta-sidebar,
+html.hc-embed .cuenta-header,
+html.hc-embed .hc-stats{ display:none !important; }
+html.hc-embed body .cuenta-shell{ display:block; padding:14px 14px 30px; }
+html.hc-embed .admin-modal-overlay{ padding:10px; }
+html.hc-embed .admin-modal-card.pf-card{ max-height:calc(100vh - 20px); }

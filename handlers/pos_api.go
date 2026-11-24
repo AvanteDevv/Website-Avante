@@ -74,6 +74,27 @@ type posClientInput struct {
 	Representante string  `json:"representante"`
 	Dias          int     `json:"dias"`
 	Limite        float64 `json:"limite"`
+	Correo        string  `json:"correo"`
+	Nacimiento    string  `json:"nacimiento"`
+	Direccion     string  `json:"direccion"`
+	Tipo          string  `json:"tipo"`
+	Empresa       string  `json:"empresa"`
+	Pasatiempo    string  `json:"pasatiempo"`
+	Profesion     string  `json:"profesion"`
+}
+
+var (
+	posCorreoRe = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
+	posFechaRe  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+)
+
+// posCut recorta espacios y deja como máximo n caracteres.
+func posCut(s string, n int) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if r := []rune(s); len(r) > n {
+		s = string(r[:n])
+	}
+	return s
 }
 
 var posCelularRe = regexp.MustCompile(`^\d{10}$`)
@@ -104,9 +125,29 @@ func bindPosClient(c *gin.Context) (models.PosClient, bool) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Revisa los días y el límite de crédito."})
 		return models.PosClient{}, false
 	}
+	in.Correo = strings.ToLower(strings.TrimSpace(in.Correo))
+	in.Nacimiento = strings.TrimSpace(in.Nacimiento)
+	if in.Correo != "" && !posCorreoRe.MatchString(in.Correo) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Revisa el correo (ej. nombre@correo.com)."})
+		return models.PosClient{}, false
+	}
+	if in.Nacimiento != "" && !posFechaRe.MatchString(in.Nacimiento) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Revisa la fecha de nacimiento."})
+		return models.PosClient{}, false
+	}
+	tipo := "Particular"
+	if strings.EqualFold(strings.TrimSpace(in.Tipo), "empresa") {
+		tipo = "Empresa"
+	}
+	empresa := ""
+	if tipo == "Empresa" {
+		empresa = posCut(in.Empresa, 120)
+	}
 	return models.PosClient{
-		Numero: in.Numero, Clave: in.Clave, Nombre: in.Nombre, Celular: in.Celular,
+		Numero: in.Numero, Clave: posCut(in.Clave, 30), Nombre: in.Nombre, Celular: in.Celular,
 		Representante: strings.TrimSpace(in.Representante), DiasCredito: in.Dias, LimiteCredito: in.Limite,
+		Correo: posCut(in.Correo, 160), Nacimiento: in.Nacimiento, Direccion: posCut(in.Direccion, 255),
+		Tipo: tipo, Empresa: empresa, Pasatiempo: posCut(in.Pasatiempo, 120), Profesion: posCut(in.Profesion, 120),
 	}, true
 }
 
@@ -184,6 +225,7 @@ func PosClientCredits(c *gin.Context) {
 func PosCreateSale(c *gin.Context) {
 	var in struct {
 		ClientID   int64                `json:"client_id"`
+		CitaID     int64                `json:"cita_id"`
 		Items      []models.PosSaleItem `json:"productos"`
 		Pagos      models.PosPayments   `json:"pagos"`
 		Referencia string               `json:"referencia"`
@@ -192,6 +234,11 @@ func PosCreateSale(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&in); err != nil || len(in.Items) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "La venta no trae productos."})
+		return
+	}
+	// Ya no se vende a "Público en general": la venta lleva cliente.
+	if in.ClientID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige o registra al cliente antes de cobrar."})
 		return
 	}
 	ref := strings.TrimSpace(in.Referencia)
@@ -222,11 +269,17 @@ func PosCreateSale(c *gin.Context) {
 		}
 		return
 	}
+	// En Citas queda "Asistió · Compró" (la cita que eligió recepción o
+	// la de hoy con el celular / nombre del cliente).
+	citaID := models.MarkCitaCompro(sale.ID, in.CitaID, in.ClientID, posStaffName(c))
+	if citaID > 0 {
+		BroadcastCitasChanged()
+	}
 	if sale.Pedido != nil {
 		// Le avisa al optometrista: hay una venta para hacer su orden de laboratorio.
 		BroadcastLabPendiente()
 	}
-	c.JSON(http.StatusCreated, gin.H{"venta": sale})
+	c.JSON(http.StatusCreated, gin.H{"venta": sale, "cita_id": citaID})
 }
 
 // PosAddPayment — POST /api/receptionist/pos/creditos/:id/abonos
@@ -432,4 +485,48 @@ func PosSetPedidoStatus(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"pedido": p})
+}
+
+// PosCitasHoy — GET /api/receptionist/pos/citas-hoy
+// Las citas de hoy para traer al cliente al Punto de venta.
+func PosCitasHoy(c *gin.Context) {
+	list, err := models.ListPosCitasHoy()
+	if err != nil {
+		log.Printf("pos.CitasHoy: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar las citas de hoy."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": list})
+}
+
+// PosClaritoFolios — GET /api/receptionist/pos/clarito-folios
+// Los folios de los miembros Clarito+ (con sus datos).
+func PosClaritoFolios(c *gin.Context) {
+	list, err := models.ListClaritoFolios()
+	if err != nil {
+		log.Printf("pos.ClaritoFolios: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron cargar los folios de Clarito+."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": list})
+}
+
+// PosClientPerfil — GET /api/receptionist/pos/clientes/:id/perfil
+// Datos, compras y exámenes de la vista del cliente.
+func PosClientPerfil(c *gin.Context) {
+	id, ok := posID(c, "id")
+	if !ok {
+		return
+	}
+	p, err := models.GetPosPerfil(id)
+	if errors.Is(err, models.ErrPosClientNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese cliente ya no existe."})
+		return
+	}
+	if err != nil {
+		log.Printf("pos.ClientPerfil: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo cargar el perfil."})
+		return
+	}
+	c.JSON(http.StatusOK, p)
 }

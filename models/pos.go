@@ -65,6 +65,15 @@ type PosClient struct {
 	Representante string  `json:"representante"`
 	DiasCredito   int     `json:"dias"`
 	LimiteCredito float64 `json:"limite"`
+	// Perfil (los mismos datos de Clarito+). Clave = folio de miembro
+	// Clarito+ (vacía = no es miembro).
+	Correo     string `json:"correo"`
+	Nacimiento string `json:"nacimiento"` // "YYYY-MM-DD" o ""
+	Direccion  string `json:"direccion"`
+	Tipo       string `json:"tipo"`    // "Particular" | "Empresa"
+	Empresa    string `json:"empresa"` // nombre de la empresa (si es Empresa)
+	Pasatiempo string `json:"pasatiempo"`
+	Profesion  string `json:"profesion"`
 	// Calculados a partir de sus créditos abiertos:
 	Saldo        float64 `json:"saldo"`         // lo que debe en total
 	SaldoVencido float64 `json:"saldo_vencido"` // de eso, lo que ya pasó su fecha
@@ -74,6 +83,7 @@ type PosClient struct {
 
 const posClientSelect = `
 	SELECT c.id, c.numero, c.clave, c.nombre, c.celular, c.representante, c.dias_credito, c.limite_credito,
+	       c.correo, c.nacimiento, c.direccion, c.tipo, c.empresa, c.pasatiempo, c.profesion,
 	       COALESCE(SUM(cr.saldo), 0),
 	       COALESCE(SUM(CASE WHEN cr.vence IS NOT NULL AND cr.vence < ? THEN cr.saldo ELSE 0 END), 0),
 	       COALESCE(DATE_FORMAT(MIN(cr.vence), '%Y-%m-%d'), ''),
@@ -84,6 +94,7 @@ const posClientSelect = `
 func scanPosClient(sc interface{ Scan(...interface{}) error }) (PosClient, error) {
 	var c PosClient
 	err := sc.Scan(&c.ID, &c.Numero, &c.Clave, &c.Nombre, &c.Celular, &c.Representante, &c.DiasCredito, &c.LimiteCredito,
+		&c.Correo, &c.Nacimiento, &c.Direccion, &c.Tipo, &c.Empresa, &c.Pasatiempo, &c.Profesion,
 		&c.Saldo, &c.SaldoVencido, &c.ProximoVence, &c.Creditos)
 	c.Saldo, c.SaldoVencido = round2(c.Saldo), round2(c.SaldoVencido)
 	return c, err
@@ -100,8 +111,8 @@ func ListPosClients(q string, limit int) ([]PosClient, error) {
 	where := []string{}
 	for _, w := range strings.Fields(strings.ToLower(q)) {
 		like := "%" + w + "%"
-		where = append(where, "(LOWER(c.nombre) LIKE ? OR c.numero LIKE ? OR LOWER(c.clave) LIKE ? OR c.celular LIKE ?)")
-		args = append(args, like, like, like, like)
+		where = append(where, "(LOWER(c.nombre) LIKE ? OR c.numero LIKE ? OR LOWER(c.clave) LIKE ? OR c.celular LIKE ? OR LOWER(c.correo) LIKE ?)")
+		args = append(args, like, like, like, like, like)
 	}
 	query := posClientSelect
 	if len(where) > 0 {
@@ -152,9 +163,11 @@ func NextPosClientNumero() (string, error) {
 // CreatePosClient guarda un cliente nuevo.
 func CreatePosClient(c PosClient, createdBy string) (*PosClient, error) {
 	res, err := db.DB.Exec(
-		`INSERT INTO pos_clients (numero, clave, nombre, celular, representante, dias_credito, limite_credito, created_by)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		c.Numero, c.Clave, c.Nombre, c.Celular, c.Representante, c.DiasCredito, round2(c.LimiteCredito), createdBy,
+		`INSERT INTO pos_clients (numero, clave, nombre, celular, representante, dias_credito, limite_credito,
+		        correo, nacimiento, direccion, tipo, empresa, pasatiempo, profesion, created_by)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		c.Numero, c.Clave, c.Nombre, c.Celular, c.Representante, c.DiasCredito, round2(c.LimiteCredito),
+		c.Correo, c.Nacimiento, c.Direccion, c.Tipo, c.Empresa, c.Pasatiempo, c.Profesion, createdBy,
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "1062") {
@@ -173,9 +186,11 @@ func CreatePosClient(c PosClient, createdBy string) (*PosClient, error) {
 func UpdatePosClient(id int64, c PosClient) (*PosClient, error) {
 	_, err := db.DB.Exec(
 		`UPDATE pos_clients SET numero = ?, clave = ?, nombre = ?, celular = ?, representante = ?,
-		        dias_credito = ?, limite_credito = ?
+		        dias_credito = ?, limite_credito = ?, correo = ?, nacimiento = ?, direccion = ?,
+		        tipo = ?, empresa = ?, pasatiempo = ?, profesion = ?
 		 WHERE id = ?`,
-		c.Numero, c.Clave, c.Nombre, c.Celular, c.Representante, c.DiasCredito, round2(c.LimiteCredito), id,
+		c.Numero, c.Clave, c.Nombre, c.Celular, c.Representante, c.DiasCredito, round2(c.LimiteCredito),
+		c.Correo, c.Nacimiento, c.Direccion, c.Tipo, c.Empresa, c.Pasatiempo, c.Profesion, id,
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "1062") {

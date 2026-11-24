@@ -61,7 +61,7 @@
             </span>
             <div class="pos-client-text">
               <small>Cliente</small>
-              <strong id="posClientName">Público en general</strong>
+              <button type="button" class="pos-client-name" id="posClientName" title="Ver su perfil: datos, compras y exámenes de la vista">Elige al cliente</button>
               <span id="posClientMeta"></span>
             </div>
             <button type="button" class="pos-client-edit" id="posClientEdit" title="Editar datos del cliente" aria-label="Editar datos del cliente" hidden>
@@ -84,7 +84,7 @@
           <div class="pos-client-drop" id="posClientDrop" hidden>
             <div class="pos-client-search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              <input type="search" id="posClientSearch" placeholder="Nombre, celular, No. de cliente o clave…" autocomplete="off">
+              <input type="search" id="posClientSearch" placeholder="Nombre, celular, No. de cliente o folio…" autocomplete="off">
             </div>
             <div class="pos-client-list" id="posClientList"></div>
             <button type="button" class="pos-client-new" id="posClientNew">
@@ -110,6 +110,7 @@
           <div class="pos-row pos-row-desc" id="posDescRow" hidden><span>Descuentos</span><span id="posDesc">−$0.00</span></div>
           <div class="pos-row pos-total"><span>Total</span><strong id="posTotal">$0.00</strong></div>
         </div>
+        <p class="pos-pay-need" id="posPayNeed" hidden>Para cobrar, elige o registra al cliente.</p>
         <button type="button" class="btn solid pos-pay" id="posPayBtn" disabled>
           Cobrar <kbd>F12</kbd>
         </button>
@@ -136,23 +137,29 @@
     </div>
     <div class="admin-modal-body">
       <form class="staff-form" id="posClientForm" novalidate autocomplete="off">
-        <div class="form-section-title"><span class="form-section-num">1</span> Datos básicos</div>
+        <div class="form-section-title"><span class="form-section-num">1</span> Datos del cliente</div>
+        <div class="pc-cita-note" id="pcCitaNote" hidden></div>
         <div class="staff-form-row">
           <label class="staff-field">
             <span>No. de cliente</span>
             <input type="text" id="pcNumero" maxlength="12" inputmode="numeric" required>
           </label>
-          <label class="staff-field">
-            <span>Clave <em>(opcional)</em></span>
-            <input type="text" id="pcClave" maxlength="30" placeholder="Ej. FRECUENTE" spellcheck="false">
-          </label>
+          <div class="staff-field">
+            <span>Clave <em>(Clarito+)</em></span>
+            <div class="pc-miembro" id="pcMiembro" role="radiogroup" aria-label="¿Es miembro Clarito+?">
+              <button type="button" data-miembro="0" class="is-on" role="radio">No es miembro</button>
+              <button type="button" data-miembro="1" role="radio">Es miembro</button>
+            </div>
+          </div>
         </div>
-        <div class="qchips pos-clave-chips" id="pcClaveChips">
-          <small>Rápido:</small>
-          <button type="button" data-clave="FRECUENTE">Frecuente</button>
-          <button type="button" data-clave="VIP">VIP</button>
-          <button type="button" data-clave="EMPRESA">Empresa</button>
-          <button type="button" data-clave="UNISON">Unison</button>
+        {{/* Solo si es miembro: su folio (se elige de Clarito+ o se escribe). */}}
+        <div class="pc-folio" id="pcFolioWrap" hidden>
+          <label class="staff-field">
+            <span>Folio de miembro</span>
+            <input type="text" id="pcClave" maxlength="30" placeholder="Busca o escribe el folio (ej. CPAV-012)" spellcheck="false" autocomplete="off">
+          </label>
+          <div class="pc-folio-list" id="pcFolioList" hidden></div>
+          <p class="pc-folio-hint" id="pcFolioHint"></p>
         </div>
         <label class="staff-field">
           <span>Nombre</span>
@@ -160,12 +167,49 @@
         </label>
         <div class="staff-form-row">
           <label class="staff-field">
-            <span>Celular</span>
+            <span>Teléfono</span>
             <input type="tel" id="pcCelular" maxlength="10" inputmode="numeric" placeholder="10 dígitos">
+          </label>
+          <label class="staff-field">
+            <span>Correo <em>(opcional)</em></span>
+            <input type="email" id="pcCorreo" maxlength="160" placeholder="nombre@correo.com" autocomplete="off">
+          </label>
+        </div>
+        <div class="staff-form-row">
+          <label class="staff-field">
+            <span>Fecha de nacimiento</span>
+            <input type="date" id="pcNacimiento">
           </label>
           <label class="staff-field">
             <span>Representante <em>(quién lo atendió)</em></span>
             <input type="text" id="pcRepresentante" maxlength="120">
+          </label>
+        </div>
+        <label class="staff-field">
+          <span>Dirección</span>
+          <input type="text" id="pcDireccion" maxlength="255" placeholder="Calle, número y colonia">
+        </label>
+        <div class="staff-form-row">
+          <div class="staff-field">
+            <span>Particular o empresa</span>
+            <div class="pc-miembro" id="pcTipo" role="radiogroup" aria-label="Particular o empresa">
+              <button type="button" data-tipo="Particular" class="is-on" role="radio">Particular</button>
+              <button type="button" data-tipo="Empresa" role="radio">Empresa</button>
+            </div>
+          </div>
+          <label class="staff-field" id="pcEmpresaWrap" hidden>
+            <span>Nombre de la empresa</span>
+            <input type="text" id="pcEmpresa" maxlength="120" placeholder="Ej. Ford, Bachoco, Unison">
+          </label>
+        </div>
+        <div class="staff-form-row">
+          <label class="staff-field">
+            <span>Pasatiempo</span>
+            <input type="text" id="pcPasatiempo" maxlength="120">
+          </label>
+          <label class="staff-field">
+            <span>Profesión</span>
+            <input type="text" id="pcProfesion" maxlength="120">
           </label>
         </div>
 
@@ -186,6 +230,37 @@
           <button type="submit" class="btn solid small">Guardar cliente</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: perfil del cliente ================= -->
+<div class="admin-modal-overlay" id="posPerfilModal">
+  <div class="admin-modal-card pos-perfil-card" role="dialog" aria-modal="true" aria-labelledby="posPerfilName">
+    <div class="admin-modal-head pos-perfil-head">
+      <span class="pos-client-avatar is-set" id="posPerfilAvatar"></span>
+      <div class="pos-perfil-title">
+        <h3 id="posPerfilName"></h3>
+        <p id="posPerfilSub"></p>
+      </div>
+      <button type="button" class="admin-modal-close" id="posPerfilClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body pos-perfil-body">
+      <div class="pos-perfil-tiles" id="posPerfilTiles"></div>
+      <div class="pos-perfil-tabs" role="tablist">
+        <button type="button" class="is-on" data-ptab="datos" role="tab">Perfil</button>
+        <button type="button" data-ptab="compras" role="tab">Compras <span id="posPerfilNCompras"></span></button>
+        <button type="button" data-ptab="examenes" role="tab">Exámenes de la vista <span id="posPerfilNExam"></span></button>
+      </div>
+      <div class="pos-perfil-pane" data-ppane="datos" id="posPerfilDatos"></div>
+      <div class="pos-perfil-pane" data-ppane="compras" id="posPerfilCompras" hidden></div>
+      <div class="pos-perfil-pane" data-ppane="examenes" id="posPerfilExamenes" hidden></div>
+      <div class="staff-form-actions">
+        <button type="button" class="btn small" id="posPerfilEdit">Editar datos</button>
+        <button type="button" class="btn solid small" id="posPerfilOk">Listo</button>
+      </div>
     </div>
   </div>
 </div>
