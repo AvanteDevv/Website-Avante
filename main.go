@@ -289,6 +289,9 @@ func main() {
 	db.EnsureLabEntregaExpress()
 	// Historia clínica: campo de OBSERVACIONES (3 renglones), una sola vez.
 	db.EnsureHistoriaObservaciones()
+	// App "Avante Offline" (sin conexión): tablets vinculadas y columnas
+	// client_uuid / offline_folio para sincronizar sin duplicar.
+	db.EnsureOfflineTables()
 
 	storage.Connect()
 	// Clarito: sube una sola vez los 3 formatos de static/pdf/clarito al
@@ -1051,6 +1054,17 @@ func main() {
 		gateway.GET("/sms/siguiente", handlers.GetPendingSMS)
 		gateway.POST("/sms/:id/confirmar", handlers.ConfirmSMSSent)
 		gateway.POST("/sms/:id/fallido", handlers.ReportSMSFailed)
+	}
+
+	// App "Avante Offline" (punto de venta y examen de la vista donde no
+	// hay internet). No usa la cookie del panel: la tablet se vincula una
+	// vez con correo y contraseña de staff y luego manda su token
+	// (Authorization: Bearer …). Ver handlers/offline.go.
+	router.POST("/api/offline/vincular", handlers.OfflineVincular)
+	apiOffline := router.Group("/api/offline", handlers.RequireOfflineDevice())
+	{
+		apiOffline.GET("/datos", handlers.OfflineDatos)
+		apiOffline.POST("/sync", handlers.OfflineSync)
 	}
 
 	// Webhook de WhatsApp Cloud API (Meta) — pública, sin sesión: Meta la
