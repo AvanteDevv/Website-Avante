@@ -1089,12 +1089,19 @@ body.dark .cancel-cita-icon{ background:rgba(255,193,7,.16); color:#ffcf5c; }
   font-size:10px; font-weight:700; letter-spacing:.3px; text-transform:uppercase;
   padding:3px 8px; border-radius:100px;
 }
-.time-picker-option.is-occupied, .time-picker-option.is-past{ cursor:not-allowed; color:var(--muted); }
-.time-picker-option.is-occupied span, .time-picker-option.is-past span{ text-decoration:line-through; opacity:.7; }
-.time-picker-option.is-occupied small{ background:#fbe0e0; color:#a3231b; }
+.time-picker-option.is-past{ cursor:not-allowed; color:var(--muted); }
+/* Ocupada sin "Vino sin cita": bloqueada como antes */
+.time-picker-option.is-occupied:disabled{ cursor:not-allowed; color:var(--muted); }
+.time-picker-option.is-occupied:disabled span{ text-decoration:line-through; opacity:.7; }
+.time-picker-option.is-occupied:disabled:hover{ background:none; color:var(--muted); }
+.time-picker-option.is-past span{ text-decoration:line-through; opacity:.7; }
+/* Ocupada: se puede elegir (se encima la cita); solo lleva quién la tiene */
+.time-picker-option.is-occupied small{ background:#fff1d6; color:#a06400; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .time-picker-option.is-past small{ background:var(--accent-soft); color:var(--muted); }
-.time-picker-option.is-occupied:hover, .time-picker-option.is-past:hover{ background:none; color:var(--muted); }
-body.dark .time-picker-option.is-occupied small{ background:rgba(231,76,60,.16); color:#ff8b7d; }
+.time-picker-option.is-past:hover{ background:none; color:var(--muted); }
+body.dark .time-picker-option.is-occupied small{ background:rgba(255,192,77,.14); color:#ffc04d; }
+.crear-cita-busy-hint{ background:#fff7e6; border:1px solid #f5dca8; border-radius:10px; padding:8px 11px; line-height:1.4; }
+body.dark .crear-cita-busy-hint{ background:rgba(255,192,77,.08); border-color:rgba(255,192,77,.25); }
 
 /* "¿De qué empresa?" en Crear cita — aparece deslizándose */
 .crear-cita-empresa{

@@ -167,6 +167,10 @@ type createAppointmentByStaffInput struct {
 	// Cuestionario opcional del modal "Crear cita" (null si no se
 	// contestó). Se guarda tal cual como JSON, igual que el público.
 	Cuestionario json.RawMessage `json:"cuestionario"`
+	// Encimar: recepción le dio a propósito una hora que ya tiene cita a
+	// alguien que vino sin cita (si el de las 10:00 no llegó, se le da esa
+	// hora y se quedan las dos citas). Solo cuenta con Tag "sin_cita".
+	Encimar bool `json:"encimar"`
 	// Etiqueta "¿Cómo llegó?" elegida al crear (sin_cita, chequeo,
 	// telefono, whatsapp). Solo se usa para decidir si se avisa por
 	// WhatsApp: a quien "vino sin cita" o es chequeo no se le manda "tu
@@ -247,6 +251,10 @@ func cuestionarioIsUnison(txt string) bool {
 	return strings.EqualFold(strings.TrimSpace(q.Procedencia), "unison")
 }
 
+// slotJustTakenMsg: la hora ya tiene cita (p. ej. alguien la agendó
+// mientras se llenaba el modal). El modal la vuelve a pintar "Ocupada".
+const slotJustTakenMsg = "Esa hora ya está ocupada. Elige otra."
+
 // CreateAppointmentByStaff crea una cita desde el botón "+ Crear cita"
 // del panel de recepción/admin — a diferencia de CreateAppointment
 // (handlers/appointments.go, flujo público de agendar.js), NO pide
@@ -284,15 +292,18 @@ func CreateAppointmentByStaff(c *gin.Context) {
 	}
 
 	// Mismo anti-doble-booking que el flujo público, para que recepción
-	// no pueda crear dos citas encimadas en el mismo horario por error.
-	booked, err := models.IsSlotBooked(date, input.Time)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo verificar el horario."})
-		return
-	}
-	if booked {
-		c.JSON(http.StatusConflict, gin.H{"error": "Esa hora ya está ocupada. Elige otra."})
-		return
+	// no encime dos citas POR ERROR. Solo con "Vino sin cita" se deja
+	// dar una hora ocupada (el modal lo avisa y manda encimar).
+	if !(input.Encimar && strings.TrimSpace(input.Tag) == "sin_cita") {
+		booked, err := models.IsSlotBooked(date, input.Time)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo verificar el horario."})
+			return
+		}
+		if booked {
+			c.JSON(http.StatusConflict, gin.H{"error": slotJustTakenMsg})
+			return
+		}
 	}
 
 	appt, err := models.CreateAppointmentByStaff(date, input.Time, input.Nombre, input.Apellido, input.Celular, input.Correo, input.FechaNacimiento, cuestionario, input.Status)
@@ -423,7 +434,7 @@ func UpdateAppointmentByStaff(c *gin.Context) {
 			return
 		}
 		if booked {
-			c.JSON(http.StatusConflict, gin.H{"error": "Esa hora ya está ocupada. Elige otra."})
+			c.JSON(http.StatusConflict, gin.H{"error": slotJustTakenMsg})
 			return
 		}
 	}

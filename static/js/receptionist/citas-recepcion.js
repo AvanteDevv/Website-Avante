@@ -2277,16 +2277,41 @@ window.CitasFiltro = (function(){
      Se juntan dos fuentes: lo que dice el servidor
      (/api/horarios/ocupadas, lo mismo que usa Agendar) y las citas que
      ya están en esta página (por si la API falla). Las citas canceladas
-     no ocupan. Esas horas salen como "Ocupada" y no se pueden elegir;
-     si el día es hoy, las horas que ya pasaron tampoco. */
+     no ocupan. Esas horas salen como "Ocupada · Nombre" y solo se
+     pueden elegir con "Vino sin cita": si el de las 10:00 no llegó,
+     recepción le da esa hora al que vino sin cita y las dos citas se
+     quedan a la misma hora (el servidor las acepta con encimar). Con
+     cualquier otro tipo, al editar o al reagendar, siguen bloqueadas. */
   var occupied = [];
   var occupiedReq = 0;
 
+  // Quién tiene cada hora ocupada ("10:00" → ["Juan Pérez"]), sacado de
+  // las filas de la página (la API pública solo da las horas, sin nombres).
+  var occupiedWho = {};
   function occupiedFromPage(dateISO){
+    occupiedWho = {};
     return Array.prototype.slice.call(document.querySelectorAll('#citasTableBody tr[data-id]'))
       .filter(function(r){ return r.dataset.date === dateISO && r.dataset.status !== 'cancelada' && !(editId && r.dataset.id === String(editId)); })
-      .map(function(r){ return (r.dataset.time || '').slice(0, 5); });
+      .map(function(r){
+        var t = (r.dataset.time || '').slice(0, 5);
+        var who = (r.dataset.nombre || '').replace(/\s+/g, ' ').trim();
+        if (who) (occupiedWho[t] || (occupiedWho[t] = [])).push(who);
+        return t;
+      });
   }
+  function whoAt(t){
+    var w = occupiedWho[t] || [];
+    if (!w.length) return 'otra persona';
+    return w.length === 1 ? w[0] : w.slice(0, -1).join(', ') + ' y ' + w[w.length - 1];
+  }
+  function busyLabel(t){
+    var w = occupiedWho[t] || [];
+    if (w.length > 1) return 'Ocupada · ' + w.length + ' citas';
+    return w.length ? 'Ocupada · ' + w[0].split(' ')[0] : 'Ocupada';
+  }
+  // ¿Se puede dar una hora ocupada? Solo al crear con "Vino sin cita".
+  function canOverlap(){ return mode === 'create' && newTag === 'sin_cita'; }
+  function escH(v){ return String(v).replace(/[&<>"']/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
   function loadOccupied(dateISO){
     var req = ++occupiedReq;
@@ -2328,30 +2353,49 @@ window.CitasFiltro = (function(){
     var row = timeBtn.closest('.staff-form-row');
     if (row && row.parentNode) row.parentNode.insertBefore(pastHint, row.nextSibling);
   })();
+  // Aviso cuando se elige una hora que ya tiene cita.
+  var busyHint = document.createElement('p');
+  busyHint.className = 'crear-cita-tipo-hint crear-cita-busy-hint';
+  busyHint.id = 'crearCitaBusyHint';
+  busyHint.hidden = true;
+  pastHint.parentNode && pastHint.parentNode.insertBefore(busyHint, pastHint.nextSibling);
+  function syncBusyHint(){
+    var t = timeHidden.value;
+    if (!t || occupied.indexOf(t) === -1 || !canOverlap()) { busyHint.hidden = true; return; }
+    var many = (occupiedWho[t] || []).length > 1;
+    busyHint.textContent = 'A las ' + to12h(t) + ' ya tiene cita ' + whoAt(t) + '. ' +
+      (many ? 'Todas se quedan a la misma hora; a quien no llegue, márcalo como «No asistió».'
+            : 'Las dos citas se quedan a la misma hora; si no llega, márcala como «No asistió».');
+    busyHint.hidden = false;
+  }
   function syncPastHint(){
     var t = timeHidden.value;
     pastHint.hidden = !(mode === 'create' && newTag !== 'sin_cita' && dateHidden.value && (dateHidden.value < todayISO || (t && isPastSlot(t))));
   }
 
   function fillTimeMenu(){
-    // Si la hora elegida resultó ocupada (o ya pasó), se quita.
-    if (timeHidden.value && occupied.indexOf(timeHidden.value) !== -1) {
+    // Las ocupadas solo se pueden elegir con "Vino sin cita"; si se
+    // cambió a otro tipo con una ocupada ya elegida, se quita.
+    var overlap = canOverlap();
+    if (!overlap && timeHidden.value && occupied.indexOf(timeHidden.value) !== -1) {
       timeHidden.value = '';
       timeLabel.textContent = '—';
-      errorEl.textContent = 'Esa hora ya está ocupada, elige otra.';
+      errorEl.textContent = 'Esa hora ya está ocupada. Solo con «Vino sin cita» se puede dar una hora ocupada.';
     }
     timeMenu.innerHTML = HOURS.map(function(t){
       var busy = occupied.indexOf(t) !== -1;
       var past = !busy && isPastSlot(t);
       var cls = 'time-picker-option' + (t === timeHidden.value ? ' active' : '') + (busy ? ' is-occupied' : '') + (past ? ' is-before' : '');
-      var tag = busy ? '<small>Ocupada</small>' : (past ? '<small>Ya pasó</small>' : '');
-      return '<button type="button" class="' + cls + '" data-time="' + t + '"' + (busy ? ' disabled' : '') + '>' +
+      var tag = busy ? '<small title="' + escH('Ya tiene cita: ' + whoAt(t)) + '">' + escH(busyLabel(t)) + '</small>' : (past ? '<small>Ya pasó</small>' : '');
+      return '<button type="button" class="' + cls + '" data-time="' + t + '"' + (busy && !overlap ? ' disabled' : '') + '>' +
         '<span>' + to12h(t) + '</span>' + tag + '</button>';
     }).join('');
+    syncBusyHint();
   }
   function setTime(t){
     timeHidden.value = t;
     syncPastHint();
+    syncBusyHint();
     timeLabel.textContent = to12h(t);
     timeMenu.querySelectorAll('.time-picker-option').forEach(function(opt){
       opt.classList.toggle('active', opt.dataset.time === t);
@@ -2363,6 +2407,12 @@ window.CitasFiltro = (function(){
     closeAllPickers();
     timePicker.classList.add('is-open');
     var active = timeMenu.querySelector('.time-picker-option.active');
+    if (!active && dateHidden.value === todayISO) {
+      // Sin hora elegida y es hoy: se abre en la hora de ahora.
+      var now = new Date(), nowHM = pad(now.getHours()) + ':' + pad(now.getMinutes());
+      var opts = timeMenu.querySelectorAll('.time-picker-option');
+      for (var i = 0; i < opts.length; i++) { if (opts[i].dataset.time <= nowHM) active = opts[i]; }
+    }
     if (active) active.scrollIntoView({ block: 'center' });
   });
   timeMenu.addEventListener('click', function(e){
@@ -2678,14 +2728,14 @@ window.CitasFiltro = (function(){
   var tagsEl = document.getElementById('crearCitaTags');
   var tagHint = document.getElementById('crearCitaTagHint');
   function renderNewTags(){ if (tagsEl) tagsEl.innerHTML = CitaTags.options(newTag); }
-  // Vino sin cita: hoy, a la hora libre más cercana a "ahora" (hacia atrás).
-  function pickWalkInTime(){
-    var now = new Date();
-    var nowHM = pad(now.getHours()) + ':' + pad(now.getMinutes());
-    var free = HOURS.filter(function(t){ return occupied.indexOf(t) === -1; });
-    var before = free.filter(function(t){ return t <= nowHM; });
-    var t = before.length ? before[before.length - 1] : free[0];
-    if (t) setTime(t);
+  // Vino sin cita: el día se pone en hoy, pero la hora la elige
+  // recepción a mano (antes se tomaba sola la libre más cercana y no se
+  // daban cuenta si quedaba mal). Se quita la que hubiera.
+  function clearWalkInTime(){
+    timeHidden.value = '';
+    timeLabel.textContent = '—';
+    syncPastHint();
+    fillTimeMenu();
   }
   tagsEl && tagsEl.addEventListener('click', function(e){
     var b = e.target.closest('.cita-tag-opt');
@@ -2698,7 +2748,7 @@ window.CitasFiltro = (function(){
       viewYear = today.getFullYear(); viewMonth = today.getMonth();
       var p = loadOccupiedFor(today);
       renderDateGrid();
-      p.then(pickWalkInTime);
+      p.then(clearWalkInTime);
     } else {
       fillTimeMenu();
     }
@@ -2981,7 +3031,7 @@ window.CitasFiltro = (function(){
       errorEl.textContent = 'Elige un día u hora diferente a la que ya tiene.';
       return;
     }
-    if (occupied.indexOf(time) !== -1) { errorEl.textContent = 'Esa hora ya está ocupada, elige otra.'; return; }
+    if (occupied.indexOf(time) !== -1 && !canOverlap()) { errorEl.textContent = 'Esa hora ya está ocupada, elige otra.'; return; }
     if (!nombre || !apellido) { errorEl.textContent = 'Completa nombre y apellido.'; return; }
     if (!/^\d{10}$/.test(celularDigits)) { errorEl.textContent = 'Ingresa un celular a 10 dígitos.'; return; }
     if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { errorEl.textContent = 'El correo no es válido.'; return; }
@@ -3020,7 +3070,9 @@ window.CitasFiltro = (function(){
         cuestionario: cuestionario,
         // Con "Vino sin cita" el servidor no le manda el WhatsApp de
         // "tu cita quedó agendada" (ya está aquí).
-        tag: newTag || ''
+        tag: newTag || '',
+        // Vino sin cita y se le dio a propósito una hora que ya tiene cita.
+        encimar: canOverlap() && occupied.indexOf(time) !== -1
       })
     }).then(function(res){
       if (res.status === 409) {
