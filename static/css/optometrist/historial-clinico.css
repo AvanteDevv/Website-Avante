@@ -639,3 +639,23 @@ html.hc-embed .hc-stats{ display:none !important; }
 html.hc-embed body .cuenta-shell{ display:block; padding:14px 14px 30px; }
 html.hc-embed .admin-modal-overlay{ padding:10px; }
 html.hc-embed .admin-modal-card.pf-card{ max-height:calc(100vh - 20px); }
+/* Paginación de la lista de pacientes (20 por página) */
+.hc-pager{
+  display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px;
+  padding:14px 24px; border-top:1px solid var(--line); font-size:12px; color:var(--grey, #6b6f8a);
+}
+.hc-pager[hidden]{ display:none; }
+.hc-pager-nav{ display:flex; align-items:center; gap:14px; }
+.hc-page-arrow{
+  width:30px; height:30px; border-radius:9px; border:1px solid var(--line); background:var(--white);
+  display:flex; align-items:center; justify-content:center; color:var(--ink); cursor:pointer;
+  transition:background .18s ease, color .18s ease, opacity .18s ease;
+}
+.hc-page-arrow svg{ width:15px; height:15px; }
+.hc-page-arrow:hover:not(:disabled){ background:var(--blue-50, #F5F7FF); color:var(--blue-500, #3E50FF); }
+.hc-page-arrow:disabled{ opacity:.35; cursor:default; }
+.hc-page-current{ font-size:12.5px; font-weight:600; color:var(--ink); white-space:nowrap; }
+@media (max-width:560px){
+  .hc-pager{ grid-template-columns:1fr; justify-items:center; padding:12px 14px; }
+  .hc-pager > span:last-child{ display:none; }
+}

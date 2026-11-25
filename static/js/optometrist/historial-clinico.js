@@ -115,7 +115,18 @@
     document.getElementById('statSoon').textContent = c.soon;
   }
 
+  function goPage(n){
+    page = n;
+    renderRows();
+    var t = document.querySelector('.hc-table');
+    if (t && t.getBoundingClientRect().top < 0) t.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  if (document.getElementById('hcPager')){
+    document.getElementById('hcPagPrev').addEventListener('click', function(){ goPage(page - 1); });
+    document.getElementById('hcPagNext').addEventListener('click', function(){ goPage(page + 1); });
+  }
   function setFilter(f){
+    page = 0;
     filter = f;
     chipsEl.querySelectorAll('.hc-chip').forEach(function(b){ b.classList.toggle('active', b.dataset.filter === f); });
     document.querySelectorAll('.hc-stat').forEach(function(b){ b.classList.toggle('active', b.dataset.filter === f && f !== 'all'); });
@@ -150,6 +161,9 @@
   }
 
   var visible = [];
+  // Paginación: 20 pacientes por página (al buscar o filtrar vuelve a la 1).
+  var PAGE_SIZE = 20, page = 0;
+  var pagerEl = document.getElementById('hcPager');
   function renderRows(){
     var term = normalize(searchInput.value);
     var termDigits = searchInput.value.replace(/\D/g, '');
@@ -161,8 +175,14 @@
     });
     var extra = (term && filter === 'all') ? accountMatches : [];
 
-    var html = visible.map(function(p, i){ return rowHTML(p, i, false); }).join('');
-    if (extra.length){
+    var pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+    if (page > pages - 1) page = pages - 1;
+    if (page < 0) page = 0;
+    var from = page * PAGE_SIZE, to = Math.min(visible.length, from + PAGE_SIZE);
+    var html = '';
+    for (var i = from; i < to; i++) html += rowHTML(visible[i], i, false);
+    // Las cuentas sin examen van al final (en la última página).
+    if (extra.length && page === pages - 1){
       html += '<tr class="hc-sep"><td colspan="5">Cuentas sin examen todavía</td></tr>' +
         extra.map(function(p, i){ return rowHTML(p, i, true); }).join('');
     }
@@ -177,6 +197,13 @@
       emptyEl.textContent = 'Ningún paciente coincide con este filtro.';
     } else {
       emptyEl.style.display = 'none';
+    }
+    if (pagerEl){
+      pagerEl.hidden = visible.length <= PAGE_SIZE;
+      document.getElementById('hcPagCount').textContent = visible.length ? 'Mostrando ' + (from + 1) + '–' + to + ' de ' + visible.length : '';
+      document.getElementById('hcPagCurrent').textContent = 'Página ' + (page + 1) + ' de ' + pages;
+      document.getElementById('hcPagPrev').disabled = page <= 0;
+      document.getElementById('hcPagNext').disabled = page >= pages - 1;
     }
     hintEl.textContent = (term || filter !== 'all')
       ? total + ' de ' + plural(patients.length, 'paciente', 'pacientes')
@@ -199,6 +226,7 @@
   // de clientes que todavía no tienen examen.
   var searchTimer;
   searchInput.addEventListener('input', function(){
+    page = 0;
     renderRows();
     clearTimeout(searchTimer);
     var term = searchInput.value.trim();
