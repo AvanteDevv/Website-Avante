@@ -832,6 +832,8 @@
     if (s && claveAuto) claveAuto = false;
     // Un servicio no lleva marca ni pestaña de Inventario (no tiene existencia).
     $('aMarcaField').hidden = s;
+    // Tampoco lleva tipo de armazón, mica, color ni material.
+    $('aArmazon').hidden = s;
     var invTab = artModal.querySelector('.inv-tab[data-tab="inventario"]');
     if (invTab) invTab.hidden = s;
     setTab(s && curTab() === 'inventario' ? 'general' : curTab());
@@ -1144,6 +1146,11 @@
       mica_tipo: formMica,
       materiales: formMats.slice()
     };
+    // Un servicio no es armazón: no se guardan tipo, mica, color ni material.
+    if (body.servicio) {
+      body.tipo_armazon = ''; body.color_principal = ''; body.colores_extra = [];
+      body.mica_tipo = ''; body.materiales = [];
+    }
     [1, 2, 3, 4].forEach(function (n) {
       var row = priceRow(n);
       body['precio_' + n] = I.round2(parseFloat(row.querySelector('[data-precio]').value) || 0);
