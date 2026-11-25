@@ -1195,3 +1195,40 @@ body.dark .inv-mvdel-row.is-gone{ background:rgba(255,255,255,.05); }
   .inv-step-dot, .inv-steps .inv-tabs-glow{ transition:none; }
   .inv-steps .inv-tab.is-done .inv-step-dot svg{ animation:none; }
 }
+/* Borrados: cantidad 0 (ni + ni −) */
+.inv-qty.is-zero{ color:var(--muted); font-weight:700; }
+
+/* ---------- Movimientos borrados (solo admin) ---------- */
+.inv-borr-card{ max-width:940px; }
+.inv-borr-search{
+  display:flex; align-items:center; gap:8px; margin:12px 0 14px; padding:0 14px; height:42px;
+  border:1.5px solid var(--line); border-radius:100px; background:var(--white);
+}
+.inv-borr-search svg{ width:16px; height:16px; color:var(--muted); flex-shrink:0; }
+.inv-borr-search input{ flex:1; border:none; outline:none; background:none; font-family:var(--sans); font-size:13.5px; color:var(--ink); }
+.inv-borr-search:focus-within{ border-color:var(--accent); }
+.inv-borr-list{ display:flex; flex-direction:column; gap:12px; max-height:62vh; overflow-y:auto; padding-right:2px; }
+.inv-borr-lote{ border:1px solid var(--line); border-radius:16px; overflow:hidden; animation:dayItemIn .25s var(--ease); }
+.inv-borr-lote header{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 14px;
+  background:var(--accent-soft); font-size:13px; color:var(--ink);
+}
+.inv-borr-lote header small{ display:block; margin-top:2px; font-size:11.5px; color:var(--muted); }
+.inv-borr-modo{
+  flex-shrink:0; padding:4px 10px; border-radius:100px; font-size:11px; font-weight:700; white-space:nowrap;
+  background:var(--white); color:var(--muted); border:1px solid var(--line);
+}
+.inv-borr-modo.is-rev{ background:#fff4e0; color:#9a5b00; border-color:#f5d9a8; }
+body.dark .inv-borr-modo.is-rev{ background:rgba(245,166,35,.14); color:#ffc56b; border-color:rgba(245,166,35,.3); }
+.inv-borr-table{ overflow-x:auto; }
+.inv-borr-table table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+.inv-borr-table th{ text-align:left; padding:8px 12px; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--line); white-space:nowrap; }
+.inv-borr-table td{ padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink); }
+.inv-borr-table tr:last-child td{ border-bottom:none; }
+.inv-borr-table .num{ text-align:right; }
+.inv-borr-table .inv-cell-art strong{ display:block; }
+.inv-chip.t-ticket{ background:#eef1ff; color:#3b4bc4; }
+body.dark .inv-chip.t-ticket{ background:rgba(90,110,255,.18); color:#a9b4ff; }
+@media (max-width:640px){
+  .inv-borr-lote header{ flex-direction:column; align-items:flex-start; }
+}

@@ -92,6 +92,7 @@
         <p class="inv-caption" id="mvCaption">Cargando…</p>
         <div class="inv-mv-export">
           {{if .CanDeleteMov}}<button type="button" class="inv-btn-ghost inv-mv-del" id="mvDelSel" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg><span>Eliminar seleccionados</span></button>{{end}}
+          {{if .CanDeleteMov}}<button type="button" class="inv-btn-ghost" id="mvBorrBtn" title="Qué movimientos y tickets se borraron, quién y cuándo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Borrados</button>{{end}}
           <button type="button" class="inv-btn-ghost" id="mvPdf" title="Reporte en PDF con los filtros de arriba"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h2"/></svg>Reporte PDF</button>
           <button type="button" class="inv-btn-ghost" id="mvXlsx" title="Los mismos movimientos en Excel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13l4 5M12 13l-4 5"/></svg>Excel</button>
         </div>
@@ -151,6 +152,26 @@
         <button type="button" class="btn small" data-close-modal>Cancelar</button>
         <button type="button" class="btn solid small inv-btn-danger" id="mvDelOk">Sí, eliminar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: movimientos borrados (solo admin) ================= -->
+<div class="admin-modal-overlay" id="mvBorrModal">
+  <div class="admin-modal-card inv-borr-card" role="dialog" aria-modal="true" aria-labelledby="mvBorrTitle">
+    <div class="admin-modal-head">
+      <h3 id="mvBorrTitle">Movimientos borrados</h3>
+      <button type="button" class="admin-modal-close" data-close-modal aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <p class="inv-hint">Cada vez que se borran movimientos (aquí) o un ticket de prueba (en Ventas) queda registrado quién lo hizo, cuándo, qué se quitó y si se deshizo la existencia.</p>
+      <div class="inv-borr-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="mvBorrQ" placeholder="Buscar por clave, artículo o quién lo borró…" autocomplete="off">
+      </div>
+      <div class="inv-borr-list" id="mvBorrList"></div>
     </div>
   </div>
 </div>

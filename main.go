@@ -291,6 +291,7 @@ func main() {
 	// automática de armazones, promoción por artículo y reglas de precio/promo.
 	db.EnsureInvClavesPromo()
 	db.EnsurePosClientePerfil()
+	db.EnsureInvMovBorrados()
 	// Historia clínica: campo de OBSERVACIONES (3 renglones), una sola vez.
 	db.EnsureHistoriaObservaciones()
 	// App "Avante Offline" (sin conexión): tablets vinculadas y columnas
@@ -737,6 +738,7 @@ func main() {
 		apiInventario.POST("/ajustes", handlers.InvAplicarAjuste)
 		apiInventario.GET("/movimientos", handlers.InvListMovimientos)
 		apiInventario.POST("/movimientos/eliminar", onlyAdmin, handlers.InvDeleteMovimientos)
+		apiInventario.GET("/movimientos/borrados", onlyAdmin, handlers.InvListMovBorrados)
 		apiInventario.GET("/articulos/:id/rastreo", handlers.InvListRastreo)
 		apiInventario.GET("/rastreo/:numero", handlers.InvGetRastreo)
 		apiInventario.GET("/tipos-armazon", handlers.InvTiposArmazon)

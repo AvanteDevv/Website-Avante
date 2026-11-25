@@ -424,3 +424,82 @@
   I.api('/api/inventario/articulos').then(function (d) { arts = d.items || []; }).catch(function () {});
   load();
 })();
+/* =========================================================
+   Movimientos borrados (solo admin): quién borró qué y cuándo.
+     GET /api/inventario/movimientos/borrados?q=
+   ========================================================= */
+(function () {
+  var I = window.Inv;
+  if (!I || !I.$('mvBorrBtn')) return;
+  var $ = I.$, esc = I.esc;
+  var TIPOS = { venta: 'Venta', entrada: 'Entrada', salida: 'Salida', ajuste: 'Ajuste', inicial: 'Alta', ticket: 'Ticket' };
+  var DESDE = { movimientos: 'desde Movimientos', ventas: 'desde Ventas (ticket de prueba)' };
+  var timer, req = 0;
+
+  function qty(c) {
+    if (!c) return '<span class="inv-qty is-zero">0</span>';
+    return '<span class="inv-qty ' + (c > 0 ? 'is-up' : 'is-down') + '">' + (c > 0 ? '+' : '−') + I.num(Math.abs(c)) + '</span>';
+  }
+  function row(m) {
+    if (m.tipo === 'ticket') {
+      return '<tr><td colspan="2"><span class="inv-chip t-ticket">Ticket</span> <strong>' + esc(m.descripcion) + '</strong></td>' +
+        '<td colspan="3" class="inv-muted">Se borró la venta con su crédito y pedido.</td></tr>';
+    }
+    var arts = m.item_id && !m.clave && !m.descripcion ? '<span class="inv-muted">(artículo eliminado)</span>'
+      : '<span class="inv-clave">' + esc(m.clave || '—') + '</span><strong>' + esc(m.descripcion || '—') + '</strong>';
+    var exist = '—';
+    if (m.exist_hoy != null) {
+      exist = m.exist_queda != null && m.exist_queda !== m.exist_hoy
+        ? '<span class="inv-muted">' + I.num(m.exist_hoy) + ' →</span> <strong>' + I.num(m.exist_queda) + '</strong>'
+        : '<strong>' + I.num(m.exist_hoy) + '</strong> <span class="inv-muted">(sin cambio)</span>';
+    }
+    return '<tr>' +
+      '<td class="inv-cell-art">' + arts + '</td>' +
+      '<td><span class="inv-chip t-' + esc(m.tipo) + '">' + esc(TIPOS[m.tipo] || m.tipo) + '</span>' +
+        '<small class="inv-ref">' + (m.fecha ? esc(I.fechaHora(m.fecha)) : '') + (m.usuario ? ' · ' + esc(m.usuario) : '') + '</small>' +
+        (m.comentario ? '<small class="inv-ref">' + esc(m.comentario) + '</small>' : '') + '</td>' +
+      '<td class="num">' + qty(m.cantidad) + '</td>' +
+      '<td class="num inv-nowrap"><span class="inv-muted">' + I.num(m.antes) + ' →</span> <strong>' + I.num(m.despues) + '</strong></td>' +
+      '<td class="num inv-nowrap">' + exist + '</td>' +
+    '</tr>';
+  }
+  function render(items) {
+    var list = $('mvBorrList');
+    if (!items.length) {
+      list.innerHTML = '<p class="inv-empty">' + ($('mvBorrQ').value.trim() ? 'No hay borrados con esa búsqueda.' : 'Todavía no se ha borrado ningún movimiento.') + '</p>';
+      return;
+    }
+    list.innerHTML = items.map(function (l) {
+      var movs = l.movimientos || [];
+      var nMov = movs.filter(function (m) { return m.tipo !== 'ticket'; }).length;
+      var nTk = movs.length - nMov;
+      var que = [];
+      if (nMov) que.push(nMov + (nMov === 1 ? ' movimiento' : ' movimientos'));
+      if (nTk) que.push(nTk + (nTk === 1 ? ' ticket' : ' tickets'));
+      return '<article class="inv-borr-lote">' +
+        '<header><div><strong>' + esc(l.por || 'Alguien') + '</strong> borró ' + esc(que.join(' y ') || 'nada') +
+          ' <span class="inv-muted">' + esc(DESDE[l.desde] || '') + '</span>' +
+          '<small>' + esc(I.fechaHora(l.fecha)) + '</small></div>' +
+          '<span class="inv-borr-modo' + (l.revertido ? ' is-rev' : '') + '">' + (l.revertido ? 'Deshizo la existencia' : 'Solo borró el renglón') + '</span>' +
+        '</header>' +
+        '<div class="inv-borr-table"><table><thead><tr><th>Artículo</th><th>Movimiento borrado</th><th class="num">Cantidad</th><th class="num">Existencia del mov.</th><th class="num">Artículo: tenía → quedó</th></tr></thead>' +
+        '<tbody>' + movs.map(row).join('') + '</tbody></table></div>' +
+      '</article>';
+    }).join('');
+  }
+  function load() {
+    var my = ++req;
+    $('mvBorrList').innerHTML = '<p class="inv-empty">Cargando…</p>';
+    I.api('/api/inventario/movimientos/borrados?q=' + encodeURIComponent($('mvBorrQ').value.trim())).then(function (d) {
+      if (my === req) render(d.items || []);
+    }).catch(function (e) {
+      if (my === req) $('mvBorrList').innerHTML = '<p class="inv-empty">' + esc(e.message) + '</p>';
+    });
+  }
+  $('mvBorrBtn').addEventListener('click', function () {
+    $('mvBorrQ').value = '';
+    I.openModal($('mvBorrModal'));
+    load();
+  });
+  $('mvBorrQ').addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(load, 250); });
+})();

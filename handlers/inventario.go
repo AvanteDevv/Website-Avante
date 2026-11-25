@@ -834,7 +834,7 @@ func InvDeleteMovimientos(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Máximo 1,000 movimientos a la vez."})
 		return
 	}
-	r, err := models.DeleteInvMovimientos(ids, in.Revertir)
+	r, err := models.DeleteInvMovimientos(ids, in.Revertir, invUser(c))
 	if err != nil {
 		if strings.Contains(err.Error(), "quedaría con existencia") {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error() + "."})
@@ -1165,4 +1165,20 @@ func InvDeleteMaterial(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// InvListMovBorrados — GET /api/inventario/movimientos/borrados?q=
+// Solo admin: qué movimientos / tickets se borraron, quién y cuándo.
+func InvListMovBorrados(c *gin.Context) {
+	if !invCanCost(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Solo el administrador puede ver los movimientos borrados."})
+		return
+	}
+	limit, _ := strconv.Atoi(c.Query("limit"))
+	items, err := models.ListInvMovBorrados(c.Query("q"), limit)
+	if err != nil {
+		invFail(c, "ListMovBorrados", err, "No se pudieron cargar los movimientos borrados.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
 }

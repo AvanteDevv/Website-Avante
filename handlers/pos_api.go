@@ -376,7 +376,7 @@ func PosDeleteSalePrueba(c *gin.Context) {
 		Revertir bool `json:"revertir"`
 	}
 	_ = c.ShouldBindJSON(&in)
-	r, err := models.DeletePosVentaPrueba(id, in.Revertir)
+	r, err := models.DeletePosVentaPrueba(id, in.Revertir, posStaffName(c))
 	if errors.Is(err, models.ErrPosSaleNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ese ticket ya no existe."})
 		return

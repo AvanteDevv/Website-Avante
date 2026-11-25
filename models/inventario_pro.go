@@ -756,15 +756,15 @@ type InvMovBorrado struct {
 //
 // Todo va en una sola transacción: si un artículo quedaría en negativo,
 // no se borra nada.
-func DeleteInvMovimientos(ids []int64, revertir bool) (*InvMovBorrado, error) {
-	return deleteInvMovs(ids, nil, revertir)
+func DeleteInvMovimientos(ids []int64, revertir bool, quien string) (*InvMovBorrado, error) {
+	return deleteInvMovs(ids, nil, revertir, quien, "movimientos")
 }
 
 // DeletePosVentaPrueba borra definitivamente un ticket de prueba desde
 // Ventas (solo admin), con lo mismo que DeleteInvMovimientos: la venta,
 // su crédito y abonos, su pedido y sus movimientos de inventario. Sirve
 // también para tickets sin movimientos (solo servicios).
-func DeletePosVentaPrueba(saleID int64, revertir bool) (*InvMovBorrado, error) {
+func DeletePosVentaPrueba(saleID int64, revertir bool, quien string) (*InvMovBorrado, error) {
 	var n int
 	if err := db.DB.QueryRow("SELECT COUNT(*) FROM pos_sales WHERE id = ?", saleID).Scan(&n); err != nil {
 		return nil, err
@@ -772,10 +772,10 @@ func DeletePosVentaPrueba(saleID int64, revertir bool) (*InvMovBorrado, error) {
 	if n == 0 {
 		return nil, ErrPosSaleNotFound
 	}
-	return deleteInvMovs(nil, []int64{saleID}, revertir)
+	return deleteInvMovs(nil, []int64{saleID}, revertir, quien, "ventas")
 }
 
-func deleteInvMovs(ids []int64, extraVentas []int64, revertir bool) (*InvMovBorrado, error) {
+func deleteInvMovs(ids []int64, extraVentas []int64, revertir bool, quien, desde string) (*InvMovBorrado, error) {
 	out := &InvMovBorrado{Revertido: revertir}
 	if len(ids) == 0 && len(extraVentas) == 0 {
 		return out, nil
@@ -857,6 +857,9 @@ func deleteInvMovs(ids []int64, extraVentas []int64, revertir bool) (*InvMovBorr
 	if len(found) == 0 && len(ventas) == 0 {
 		return out, nil
 	}
+	// Antes de borrar: copia de lo que se va a quitar, con quién y cuándo
+	// (Movimientos → «Borrados»).
+	lote := logInvMovBorrados(tx, found, ventas, revertir, quien, desde)
 
 	if revertir {
 		for item, cant := range porArticulo {
@@ -882,6 +885,12 @@ func deleteInvMovs(ids []int64, extraVentas []int64, revertir bool) (*InvMovBorr
 			}
 			out.Articulos++
 		}
+	}
+
+	// Con qué existencia quedó cada artículo.
+	if lote != "" {
+		_, _ = tx.Exec(`UPDATE inv_mov_borrados b JOIN inventory_items i ON i.id = b.item_id
+			SET b.exist_queda = i.cantidad_actual WHERE b.lote = ?`, lote)
 	}
 
 	if len(found) > 0 {
