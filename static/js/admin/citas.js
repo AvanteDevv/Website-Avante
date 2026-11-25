@@ -373,7 +373,7 @@ window.CitasFiltro = (function(){
           row.dataset.tag = tag;
           var badge = row.querySelector('td .admin-badge');
           if (tag && badge && !badge.parentNode.querySelector('.cita-tag-ico')) {
-            badge.insertAdjacentHTML('afterend', '<i class="cita-tag-ico in-table tag-' + tag + '" title="' + TIPOS[tag].title + '">' + TIPOS[tag].icon + '</i>');
+            badge.parentNode.insertAdjacentHTML('beforeend', '<i class="cita-tag-ico in-table tag-' + tag + '" title="' + TIPOS[tag].title + '">' + TIPOS[tag].icon + '</i>');
           }
         });
         emit();

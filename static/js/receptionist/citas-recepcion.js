@@ -515,7 +515,7 @@ window.CitasFiltro = (function(){
           row.dataset.tag = tag;
           var badge = row.querySelector('td .admin-badge');
           if (tag && badge && !badge.parentNode.querySelector('.cita-tag-ico')) {
-            badge.insertAdjacentHTML('afterend', '<i class="cita-tag-ico in-table tag-' + tag + '" title="' + TIPOS[tag].title + '">' + TIPOS[tag].icon + '</i>');
+            badge.parentNode.insertAdjacentHTML('beforeend', '<i class="cita-tag-ico in-table tag-' + tag + '" title="' + TIPOS[tag].title + '">' + TIPOS[tag].icon + '</i>');
           }
         });
         emit();
@@ -1087,7 +1087,8 @@ window.CitasFiltro = (function(){
     if (!cell) return;
     var old = cell.parentNode.querySelector('.cita-tag-ico');
     if (old) old.remove();
-    if (tag) cell.insertAdjacentHTML('afterend', CitaTags.icon(tag, 'in-table'));
+    // El ícono va al final, después de los badges (origen · estado · ícono).
+    if (tag) cell.parentNode.insertAdjacentHTML('beforeend', CitaTags.icon(tag, 'in-table'));
   }
   CitaTags.load().then(function(){
     allRows.forEach(applyRowTag);
