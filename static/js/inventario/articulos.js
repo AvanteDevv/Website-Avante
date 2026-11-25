@@ -37,10 +37,10 @@
   }
 
   /* ---------- carga ---------- */
-  function load(keepSelection) {
+  function load(keepSelection, silent) {
     if (loading) return Promise.resolve();
     loading = true;
-    $('invBody').classList.add('is-loading');
+    if (!silent) $('invBody').classList.add('is-loading');
     return I.api('/api/inventario/articulos').then(function (d) {
       items = d.items || [];
       cats = flatCats(d.departamentos);
@@ -51,6 +51,7 @@
       renderStats();
       apply(true);
     }).catch(function (err) {
+      if (silent) return;
       $('invCaption').textContent = err.message;
       I.toast(err.message, 'error');
     }).finally(function () {
@@ -58,6 +59,14 @@
       $('invBody').classList.remove('is-loading');
     });
   }
+  // Tiempo real: si alguien vende, ajusta o da de alta, la lista y los
+  // indicadores de arriba se actualizan solos. Si hay un modal abierto o
+  // renglones marcados para borrar, espera a que se cierre.
+  I.watch(function () {
+    if (document.querySelector('.admin-modal-overlay.open')) return false;
+    if (Object.keys(delSel).length) return false;
+    load(true, true);
+  });
 
   function renderStats() {
     var piezas = 0, costo = 0, venta = 0, bajo = 0, agot = 0, arts = 0;

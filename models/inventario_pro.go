@@ -1354,3 +1354,17 @@ func DeleteInvTipoArmazon(id int64) error {
 	_, err = DeleteTryonEstilo(id)
 	return err
 }
+
+// InvVersion: una "firma" barata del inventario. Cambia cada vez que se
+// agrega, edita, vende, ajusta o borra algo (artículos o movimientos), así
+// las pantallas de Inventario se actualizan solas sin recargar.
+func InvVersion() (string, error) {
+	var n, maxID, piezas, movN, movMax int64
+	var upd sql.NullString
+	if err := db.DB.QueryRow(`SELECT COUNT(*), COALESCE(MAX(id), 0), COALESCE(SUM(cantidad_actual), 0),
+			DATE_FORMAT(MAX(updated_at), '%Y%m%d%H%i%s') FROM inventory_items`).Scan(&n, &maxID, &piezas, &upd); err != nil {
+		return "", err
+	}
+	_ = db.DB.QueryRow(`SELECT COUNT(*), COALESCE(MAX(id), 0) FROM inv_movimientos`).Scan(&movN, &movMax)
+	return fmt.Sprintf("%d.%d.%d.%s.%d.%d", n, maxID, piezas, upd.String, movN, movMax), nil
+}

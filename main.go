@@ -713,7 +713,9 @@ func main() {
 		apiLaboratorio.DELETE("/pedidos/:id", handlers.RequireRole(handlers.RoleAdmin), handlers.LabDeleteOrder)
 	}
 
-	apiInventario := router.Group("/api/inventario", handlers.RequireAdminAuth(), inventarioStaff)
+	// NotifyInventarioChanged: todo lo que se guarde aquí avisa en vivo a
+	// las pantallas de Inventario abiertas (ver handlers/inv_realtime.go).
+	apiInventario := router.Group("/api/inventario", handlers.RequireAdminAuth(), inventarioStaff, handlers.NotifyInventarioChanged())
 	{
 		apiInventario.GET("/articulos", handlers.InvListArticulos)
 		apiInventario.POST("/articulos", handlers.InvCreateArticulo)
@@ -737,6 +739,8 @@ func main() {
 		apiInventario.GET("/ajustes/:id", handlers.InvGetAjuste)
 		apiInventario.POST("/ajustes", handlers.InvAplicarAjuste)
 		apiInventario.GET("/movimientos", handlers.InvListMovimientos)
+		apiInventario.GET("/version", handlers.InvVersion)
+		apiInventario.GET("/eventos", handlers.InvEventos)
 		apiInventario.POST("/movimientos/eliminar", onlyAdmin, handlers.InvDeleteMovimientos)
 		apiInventario.GET("/movimientos/borrados", onlyAdmin, handlers.InvListMovBorrados)
 		apiInventario.GET("/articulos/:id/rastreo", handlers.InvListRastreo)
@@ -783,9 +787,9 @@ func main() {
 		apiReceptionist.GET("/pos/ventas", handlers.PosListSales)
 		apiReceptionist.GET("/pos/ventas/por-material", handlers.PosVentasPorMaterial)
 		apiReceptionist.GET("/pos/ventas/:id", handlers.PosGetSale)
-		apiReceptionist.POST("/pos/ventas", handlers.PosCreateSale)
-		apiReceptionist.POST("/pos/ventas/:id/cancelar", handlers.PosCancelSale)
-		apiReceptionist.POST("/pos/ventas/:id/eliminar", onlyAdmin, handlers.PosDeleteSalePrueba)
+		apiReceptionist.POST("/pos/ventas", handlers.NotifyInventarioChanged(), handlers.PosCreateSale)
+		apiReceptionist.POST("/pos/ventas/:id/cancelar", handlers.NotifyInventarioChanged(), handlers.PosCancelSale)
+		apiReceptionist.POST("/pos/ventas/:id/eliminar", onlyAdmin, handlers.NotifyInventarioChanged(), handlers.PosDeleteSalePrueba)
 		// Corte de caja
 		apiReceptionist.GET("/caja/estado", handlers.CajaEstadoAPI)
 		// Clarito+
@@ -1082,7 +1086,7 @@ func main() {
 	apiOffline := router.Group("/api/offline", handlers.RequireOfflineDevice())
 	{
 		apiOffline.GET("/datos", handlers.OfflineDatos)
-		apiOffline.POST("/sync", handlers.OfflineSync)
+		apiOffline.POST("/sync", handlers.NotifyInventarioChanged(), handlers.OfflineSync)
 	}
 
 	// Webhook de WhatsApp Cloud API (Meta) — pública, sin sesión: Meta la

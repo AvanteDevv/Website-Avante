@@ -1244,3 +1244,16 @@ func InvDeleteColor(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
+
+// InvVersion — GET /api/inventario/version
+// Firma del inventario: las pantallas la consultan cada pocos segundos y,
+// si cambió, recargan solas (tiempo real sin tener que darle refresh).
+func InvVersion(c *gin.Context) {
+	v, err := models.InvVersion()
+	if err != nil {
+		invFail(c, "Version", err, "No se pudo revisar el inventario.")
+		return
+	}
+	c.Header("Cache-Control", "no-store")
+	c.JSON(http.StatusOK, gin.H{"v": v})
+}

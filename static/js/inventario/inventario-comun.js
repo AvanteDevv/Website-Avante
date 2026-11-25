@@ -320,7 +320,68 @@ window.Inv = (function () {
   function pdfLibs() { return lib('jspdf').then(function () { return lib('autotable'); }); }
   function ahoraLocal() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19); }
 
+  /* ---------- Tiempo real ----------
+     watch(fn): fn() se llama en cuanto alguien cambia el inventario
+     (alta, edición, ajuste, venta, cancelación, borrado), para TODOS los
+     que tengan la pantalla abierta, sin darle refresh.
+       · Aviso al instante: el servidor lo empuja por
+         /api/inventario/eventos (EventSource) en cuanto alguien guarda.
+       · Respaldo: también se revisa la firma del inventario
+         (/api/inventario/version) cada 30 s — o cada 6 s si el aviso en
+         vivo no está conectado —, así nada se queda atrás.
+     fn puede regresar false si en ese momento no conviene recargar (un
+     modal abierto, renglones marcados): se reintenta cada 2 s. */
+  var watchers = [], lastV = null, pending = false, watchTimer = null, checking = false, es = null, live = false, retryTimer = null;
+  function runWatchers() {
+    if (!pending || document.visibilityState !== 'visible') return;
+    var ok = watchers.every(function (fn) { try { return fn() !== false; } catch (e) { return true; } });
+    if (ok) { pending = false; lastV = null; }
+    else if (!retryTimer) retryTimer = setTimeout(function () { retryTimer = null; runWatchers(); }, 2000);
+  }
+  function checkVersion() {
+    if (checking || document.visibilityState !== 'visible') return;
+    checking = true;
+    fetch('/api/inventario/version', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.v) return;
+        if (lastV !== null && d.v !== lastV) pending = true;
+        lastV = d.v;
+        runWatchers();
+      })
+      .catch(function () {})
+      .finally(function () { checking = false; });
+  }
+  function schedulePoll() {
+    clearInterval(watchTimer);
+    watchTimer = setInterval(checkVersion, live ? 30000 : 6000);
+  }
+  function connectLive() {
+    if (!window.EventSource || es) return;
+    es = new EventSource('/api/inventario/eventos');
+    es.addEventListener('hola', function () { if (!live) { live = true; schedulePoll(); } });
+    es.addEventListener('inventario', function () { pending = true; runWatchers(); });
+    es.onerror = function () {
+      // EventSource reintenta solo; mientras, se revisa más seguido.
+      if (live) { live = false; schedulePoll(); }
+    };
+  }
+  function watch(fn) {
+    watchers.push(fn);
+    if (watchTimer) return;
+    checkVersion();
+    schedulePoll();
+    connectLive();
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible') return;
+      if (pending) runWatchers(); else checkVersion();
+    });
+  }
+  // Para marcar que esta pestaña ya está al día.
+  function touch() { lastV = null; }
+
   return {
+    watch: watch, touch: touch,
     lib: lib, pdfLibs: pdfLibs, ahoraLocal: ahoraLocal, segGlow: segGlow, segGlowAll: segGlowAll,
     isRastreo: isRastreo, lookupRastreo: lookupRastreo,
     base: base, canCost: canCost,

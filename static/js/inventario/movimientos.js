@@ -420,6 +420,13 @@
       .finally(function () { busy(btn, false, 'Excel'); });
   });
 
+  // Tiempo real: cuando alguien vende, ajusta o da de alta, el kárdex se
+  // actualiza solo (salvo con un modal abierto o movimientos marcados).
+  I.watch(function () {
+    if (document.querySelector('.admin-modal-overlay.open')) return false;
+    if (Object.keys(sel).length) return false;
+    load();
+  });
   syncPer();
   I.api('/api/inventario/articulos').then(function (d) { arts = d.items || []; }).catch(function () {});
   load();
