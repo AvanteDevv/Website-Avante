@@ -354,7 +354,7 @@
       var m = matOf(n);
       return '<button type="button" class="inv-sw inv-mat' + (i >= 0 ? ' is-main' : '') + (nuevo ? ' is-new' : '') + '" data-mat="' + esc(n) + '">' +
         '<i>' + (i >= 0 ? '✓' : '') + '</i><span>' + esc(n) + '</span>' +
-        (m && m.identificador ? '<small class="inv-mat-id">' + esc(m.identificador) + '</small>' : '') +
+        (m ? '<small class="inv-mat-id" role="button" tabindex="-1" data-mat-edit="' + m.id + '" title="Cambiar su identificador o subidentificador">' + esc(m.identificador || '¿?') + (m.subidentificador ? ' · ' + esc(m.subidentificador) : '') + '</small>' : '') +
         (m ? '<span class="inv-mat-del" role="button" tabindex="-1" data-mat-del="' + m.id + '" title="Quitar «' + esc(n) + '» de la lista" aria-label="Quitar ' + esc(n) + ' de la lista">×</span>' : '') +
         '</button>';
     }).join('') + '<button type="button" class="inv-sw is-add" data-mat-new title="Agregar un material"><i>+</i><span>Nuevo</span></button>';
@@ -385,7 +385,9 @@
   $('aMats').addEventListener('click', function (e) {
     var del = e.target.closest('[data-mat-del]');
     if (del) { e.preventDefault(); e.stopPropagation(); deleteMat(del); return; }
-    if (e.target.closest('[data-mat-new]')) { $('aMatNew').hidden = false; matIdent = ''; syncMatIdent(); $('aMatName').focus(); return; }
+    var ed = e.target.closest('[data-mat-edit]');
+    if (ed) { e.preventDefault(); e.stopPropagation(); openMatEdit(Number(ed.getAttribute('data-mat-edit'))); return; }
+    if (e.target.closest('[data-mat-new]')) { openMatEdit(0); return; }
     var b = e.target.closest('[data-mat]');
     if (!b) return;
     var n = b.getAttribute('data-mat'), i = formMats.map(function (x) { return x.toLowerCase(); }).indexOf(n.toLowerCase());
@@ -395,12 +397,35 @@
     renderMats();
     rulesPrefill();
   });
+  // El mismo cuadro sirve para agregar un material (id 0) o para cambiarle
+  // el identificador / subidentificador a uno de la lista.
+  var matEditId = 0;
+  function openMatEdit(id) {
+    var m = id ? materiales.filter(function (x) { return x.id === id; })[0] : null;
+    matEditId = m ? m.id : 0;
+    $('aMatName').value = m ? m.nombre : '';
+    $('aMatName').disabled = !!m;
+    $('aMatSub').value = m ? (m.subidentificador || '') : '';
+    matIdent = m ? (m.identificador || '') : '';
+    syncMatIdent();
+    $('aMatAdd').textContent = m ? 'Guardar' : 'Agregar';
+    $('aMatNew').hidden = false;
+    setTimeout(function () { (m ? $('aMatSub') : $('aMatName')).focus(); }, 30);
+  }
   function closeMatNew() {
     var box = $('aMatNew');
     if (box.hidden) return;
     box.classList.add('is-closing');
-    setTimeout(function () { box.hidden = true; box.classList.remove('is-closing'); $('aMatName').value = ''; }, 200);
+    setTimeout(function () {
+      box.hidden = true; box.classList.remove('is-closing');
+      $('aMatName').value = ''; $('aMatName').disabled = false; $('aMatSub').value = '';
+      matEditId = 0; $('aMatAdd').textContent = 'Agregar';
+    }, 200);
   }
+  $('aMatSub').addEventListener('input', function () {
+    var pos = this.selectionStart; this.value = this.value.toUpperCase(); this.setSelectionRange(pos, pos);
+  });
+  $('aMatSub').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('aMatAdd').click(); } });
   $('aMatCancel').addEventListener('click', closeMatNew);
   $('aMatName').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('aMatAdd').click(); } });
   // Material nuevo: hay que decir si es metal (ARMT) o pasta (ARZL).
@@ -416,11 +441,21 @@
     matIdent = b.getAttribute('data-ident'); syncMatIdent();
   });
   $('aMatAdd').addEventListener('click', function () {
-    var name = $('aMatName').value.trim(), btn = this;
+    var name = $('aMatName').value.trim(), btn = this, sub = $('aMatSub').value.trim();
     if (!name) { $('aMatName').focus(); return; }
     if (!matIdent) { I.toast('Elige si «' + name + '» es metal (ARMT) o pasta (ARZL).', 'error'); return; }
     btn.disabled = true;
-    I.api('/api/inventario/materiales', { method: 'POST', body: { nombre: name, identificador: matIdent } }).then(function (d) {
+    if (matEditId) {
+      I.api('/api/inventario/materiales/' + matEditId, { method: 'PUT', body: { identificador: matIdent, subidentificador: sub } }).then(function (d) {
+        materiales = materiales.map(function (m) { return m.id === d.item.id ? d.item : m; });
+        closeMatNew();
+        renderMats();
+        I.toast('Material «' + d.item.nombre + '»: ' + d.item.identificador + (d.item.subidentificador ? ' · ' + d.item.subidentificador : '') + '.');
+      }).catch(function (err) { I.toast(err.message, 'error'); })
+        .finally(function () { btn.disabled = false; });
+      return;
+    }
+    I.api('/api/inventario/materiales', { method: 'POST', body: { nombre: name, identificador: matIdent, subidentificador: sub } }).then(function (d) {
       materiales.push(d.item);
       newMat = d.item.nombre;
       if (formMats.length < 4) formMats.push(d.item.nombre);
@@ -513,9 +548,11 @@
       var isP = colPrin && c.nombre.toLowerCase() === colPrin.toLowerCase();
       var xi = colExtra.map(function (x) { return x.toLowerCase(); }).indexOf(c.nombre.toLowerCase());
       var nuevo = newColor && c.nombre.toLowerCase() === newColor.toLowerCase();
-      return '<button type="button" class="inv-sw' + (isP ? ' is-main' : xi >= 0 ? ' is-extra' : '') + (nuevo ? ' is-new' : '') + '" data-color="' + esc(c.nombre) + '" title="' + esc(c.nombre + (c.codigo ? ' · ' + c.codigo : '')) + '">' +
+      return '<button type="button" class="inv-sw inv-col' + (isP ? ' is-main' : xi >= 0 ? ' is-extra' : '') + (nuevo ? ' is-new' : '') + '" data-color="' + esc(c.nombre) + '" title="' + esc(c.nombre + (c.codigo ? ' · ' + c.codigo : '')) + '">' +
         '<i style="background:' + esc(c.hex) + '"></i><span>' + esc(c.nombre) + '</span>' +
-        (isP ? '<b>1</b>' : xi >= 0 ? '<b>' + (xi + 2) + '</b>' : '') + '</button>';
+        (isP ? '<b>1</b>' : xi >= 0 ? '<b>' + (xi + 2) + '</b>' : '') +
+        (c.id ? '<span class="inv-mat-del" role="button" tabindex="-1" data-color-del="' + c.id + '" title="Quitar «' + esc(c.nombre) + '» de la paleta" aria-label="Quitar ' + esc(c.nombre) + ' de la paleta">×</span>' : '') +
+        '</button>';
     }).join('') + '<button type="button" class="inv-sw is-add" data-color-new title="Agregar un color"><i>+</i><span>Nuevo</span></button>';
     newColor = '';
     var sumEl = $('aColorSum');
@@ -693,7 +730,29 @@
     $('aPromoHint').innerHTML = txt + (from.length ? ' <span class="inv-hint-rule">Tomó ' + from.join(' y ') + '.</span>' : '');
   }
   $('aPromo').addEventListener('input', function () { syncPromoHint(); });
+  // Quitar un color de la paleta: el primer toque pregunta, el segundo lo quita.
+  var colDelTimer = null;
+  function deleteColor(x) {
+    if (!x.classList.contains('is-armed')) {
+      $('aPalette').querySelectorAll('.inv-mat-del.is-armed').forEach(function (o) { o.classList.remove('is-armed'); o.textContent = '×'; });
+      x.classList.add('is-armed'); x.textContent = '¿Quitar?';
+      clearTimeout(colDelTimer);
+      colDelTimer = setTimeout(function () { x.classList.remove('is-armed'); x.textContent = '×'; }, 3000);
+      return;
+    }
+    clearTimeout(colDelTimer);
+    var id = x.getAttribute('data-color-del'), name = x.closest('[data-color]').getAttribute('data-color'), low = name.toLowerCase();
+    I.api('/api/inventario/colores/' + id, { method: 'DELETE' }).then(function () {
+      colores = colores.filter(function (c) { return String(c.id) !== id; });
+      if (colPrin && colPrin.toLowerCase() === low) colPrin = colExtra.shift() || '';
+      colExtra = colExtra.filter(function (n) { return n.toLowerCase() !== low; });
+      renderPalette();
+      I.toast('Color «' + name + '» quitado de la paleta. Los artículos que ya lo tienen lo conservan.');
+    }).catch(function (err) { I.toast(err.message, 'error'); });
+  }
   $('aPalette').addEventListener('click', function (e) {
+    var cdel = e.target.closest('[data-color-del]');
+    if (cdel) { e.preventDefault(); e.stopPropagation(); deleteColor(cdel); return; }
     if (e.target.closest('[data-color-new]')) { $('aColorNew').hidden = false; $('aColorName').focus(); return; }
     var b = e.target.closest('[data-color]');
     if (!b) return;

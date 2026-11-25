@@ -12,6 +12,8 @@ import "log"
 //     están en él reciben el siguiente código libre (28, 29…), cada arranque.
 //   - inv_materiales.identificador: ARMT (metal) o ARZL (pasta), la primera
 //     parte de la clave; se elige al crear el material.
+//   - inv_materiales.subidentificador: texto libre (ACETATO, TR90…) para
+//     las estadísticas de ventas; no va en la clave.
 //   - inventory_items.marca: la marca del armazón (3 primeras letras en la
 //     clave).
 //   - inventory_items.promo_pct: % de descuento de promoción; el Punto de
@@ -32,6 +34,11 @@ func EnsureInvClavesPromo() {
 	}
 	if err := addColumnIfMissing("inv_materiales", "identificador", "VARCHAR(4) NOT NULL DEFAULT ''"); err != nil {
 		log.Printf("inventario: no se pudo agregar inv_materiales.identificador: %v", err)
+	}
+	// Subidentificador (ACETATO, TR90, TITANIO…): no va en la clave; sirve
+	// para ver en el reporte de Ventas qué se vende más.
+	if err := addColumnIfMissing("inv_materiales", "subidentificador", "VARCHAR(30) NOT NULL DEFAULT ''"); err != nil {
+		log.Printf("inventario: no se pudo agregar inv_materiales.subidentificador: %v", err)
 	}
 	// Materiales que ya estaban: los metálicos son ARMT, los demás ARZL.
 	_, _ = DB.Exec(`UPDATE inv_materiales SET identificador =
@@ -186,6 +193,12 @@ func NextColorCode() string {
 	var max int
 	if err := DB.QueryRow(`SELECT COALESCE(MAX(CAST(codigo AS UNSIGNED)), 0) FROM inv_colores WHERE codigo <> ''`).Scan(&max); err != nil {
 		return ""
+	}
+	// Códigos de colores que se borraron: no se vuelven a usar.
+	var usado int
+	_ = DB.QueryRow(`SELECT CAST(v AS UNSIGNED) FROM caja_config WHERE k = 'color_codigo_max'`).Scan(&usado)
+	if usado > max {
+		max = usado
 	}
 	n := max + 1
 	if n < 28 {

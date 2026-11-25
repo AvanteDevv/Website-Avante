@@ -1195,3 +1195,11 @@ body.dark .inv-mvdel-row.is-gone{ background:rgba(255,255,255,.05); }
   .inv-step-dot, .inv-steps .inv-tabs-glow{ transition:none; }
   .inv-steps .inv-tab.is-done .inv-step-dot svg{ animation:none; }
 }
+/* Material: subidentificador (no va en la clave) */
+#aMatNew > .inv-mat-sub{ order:2; flex:1 1 100%; }
+#aMatNew > .inv-mat-sub-hint{ order:2; flex:1 1 100%; margin:-2px 2px 0; font-size:11px; color:var(--muted); }
+#aMatName:disabled{ opacity:.7; cursor:default; }
+.inv-mat-id[data-mat-edit]{ cursor:pointer; }
+.inv-mat-id[data-mat-edit]:hover{ color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+/* Color: quitar de la paleta (igual que los materiales) */
+.inv-col:hover .inv-mat-del, .inv-col .inv-mat-del.is-armed{ display:inline-block; }

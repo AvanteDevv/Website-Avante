@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"errors"
 	"strings"
 
@@ -84,6 +85,9 @@ type InvMaterial struct {
 	// Identificador: ARMT (metal) o ARZL (pasta). Es la primera parte de la
 	// clave automática del armazón.
 	Identificador string `json:"identificador"`
+	// Subidentificador: texto libre (ACETATO, TR90, TITANIO…). No va en la
+	// clave; agrupa las ventas en el reporte de Ventas.
+	Subidentificador string `json:"subidentificador"`
 }
 
 var ErrInvMaterialNotFound = errors.New("material no encontrado")
@@ -91,7 +95,7 @@ var ErrInvMaterialNotFound = errors.New("material no encontrado")
 var ErrInvMaterialTaken = errors.New("ese material ya existe")
 
 func ListInvMateriales() ([]InvMaterial, error) {
-	rows, err := db.DB.Query(`SELECT id, nombre, identificador FROM inv_materiales ORDER BY orden, nombre`)
+	rows, err := db.DB.Query(`SELECT id, nombre, identificador, subidentificador FROM inv_materiales ORDER BY orden, nombre`)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +103,7 @@ func ListInvMateriales() ([]InvMaterial, error) {
 	out := []InvMaterial{}
 	for rows.Next() {
 		var m InvMaterial
-		if err := rows.Scan(&m.ID, &m.Nombre, &m.Identificador); err != nil {
+		if err := rows.Scan(&m.ID, &m.Nombre, &m.Identificador, &m.Subidentificador); err != nil {
 			return nil, err
 		}
 		out = append(out, m)
@@ -107,7 +111,7 @@ func ListInvMateriales() ([]InvMaterial, error) {
 	return out, rows.Err()
 }
 
-func CreateInvMaterial(nombre, identificador string) (*InvMaterial, error) {
+func CreateInvMaterial(nombre, identificador, sub string) (*InvMaterial, error) {
 	var n int
 	if err := db.DB.QueryRow(`SELECT COUNT(*) FROM inv_materiales WHERE LOWER(nombre) = LOWER(?)`, nombre).Scan(&n); err != nil {
 		return nil, err
@@ -117,12 +121,51 @@ func CreateInvMaterial(nombre, identificador string) (*InvMaterial, error) {
 	}
 	var orden int
 	_ = db.DB.QueryRow(`SELECT COALESCE(MAX(orden), 0) + 1 FROM inv_materiales`).Scan(&orden)
-	res, err := db.DB.Exec(`INSERT INTO inv_materiales (nombre, identificador, orden) VALUES (?, ?, ?)`, nombre, identificador, orden)
+	res, err := db.DB.Exec(`INSERT INTO inv_materiales (nombre, identificador, subidentificador, orden) VALUES (?, ?, ?, ?)`, nombre, identificador, sub, orden)
 	if err != nil {
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
-	return &InvMaterial{ID: id, Nombre: nombre, Identificador: identificador}, nil
+	return &InvMaterial{ID: id, Nombre: nombre, Identificador: identificador, Subidentificador: sub}, nil
+}
+
+// UpdateInvMaterial cambia su identificador (ARMT/ARZL) y subidentificador.
+func UpdateInvMaterial(id int64, identificador, sub string) (*InvMaterial, error) {
+	var m InvMaterial
+	if err := db.DB.QueryRow(`SELECT id, nombre FROM inv_materiales WHERE id = ?`, id).Scan(&m.ID, &m.Nombre); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrInvMaterialNotFound
+		}
+		return nil, err
+	}
+	if _, err := db.DB.Exec(`UPDATE inv_materiales SET identificador = ?, subidentificador = ? WHERE id = ?`, identificador, sub, id); err != nil {
+		return nil, err
+	}
+	m.Identificador, m.Subidentificador = identificador, sub
+	return &m, nil
+}
+
+var ErrInvColorNotFound = errors.New("color no encontrado")
+
+// DeleteInvColor lo quita de la paleta. Los artículos que ya lo tienen lo
+// conservan (se guarda por nombre) y su código no se le vuelve a dar a
+// otro color.
+func DeleteInvColor(id int64) error {
+	// Se apunta el código más alto que se ha usado para no repetirlo.
+	var codigo string
+	_ = db.DB.QueryRow(`SELECT codigo FROM inv_colores WHERE id = ?`, id).Scan(&codigo)
+	if codigo != "" {
+		_, _ = db.DB.Exec(`INSERT INTO caja_config (k, v) VALUES ('color_codigo_max', ?)
+			ON DUPLICATE KEY UPDATE v = GREATEST(CAST(v AS UNSIGNED), CAST(VALUES(v) AS UNSIGNED))`, codigo)
+	}
+	res, err := db.DB.Exec(`DELETE FROM inv_colores WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrInvColorNotFound
+	}
+	return nil
 }
 
 // DeleteInvMaterial lo quita de la lista. Los artículos que ya lo tienen

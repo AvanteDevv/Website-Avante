@@ -750,6 +750,8 @@ func main() {
 		apiInventario.GET("/materiales", handlers.InvListMateriales)
 		apiInventario.POST("/materiales", handlers.InvCreateMaterial)
 		apiInventario.DELETE("/materiales/:id", handlers.InvDeleteMaterial)
+		apiInventario.PUT("/materiales/:id", handlers.InvUpdateMaterial)
+		apiInventario.DELETE("/colores/:id", handlers.InvDeleteColor)
 		// Mismo precio / promoción para toda una categoría o un material.
 		apiInventario.GET("/reglas", handlers.InvListReglas)
 		apiInventario.POST("/grupo", handlers.InvApplyGrupo)
@@ -779,6 +781,7 @@ func main() {
 		apiReceptionist.GET("/pos/citas-hoy", handlers.PosCitasHoy)
 		apiReceptionist.GET("/pos/clarito-folios", handlers.PosClaritoFolios)
 		apiReceptionist.GET("/pos/ventas", handlers.PosListSales)
+		apiReceptionist.GET("/pos/ventas/por-material", handlers.PosVentasPorMaterial)
 		apiReceptionist.GET("/pos/ventas/:id", handlers.PosGetSale)
 		apiReceptionist.POST("/pos/ventas", handlers.PosCreateSale)
 		apiReceptionist.POST("/pos/ventas/:id/cancelar", handlers.PosCancelSale)

@@ -765,6 +765,7 @@
     '.vr td{text-align:right;padding:5px 8px;border-bottom:1px solid #eeeeec;font-variant-numeric:tabular-nums;}',
     '.vr tfoot td{font-weight:700;border-top:1px solid #b9b8b2;border-bottom:none;}',
     '.vr-two{display:grid;grid-template-columns:1fr 1fr;gap:18px;}',
+    '.vr-kpis-mat{grid-template-columns:repeat(3,1fr);margin:6px 0 10px;}',
     '.vr-foot{display:flex;justify-content:space-between;margin-top:18px;padding-top:8px;border-top:1px solid #e6e6e3;font-size:10px;color:#8a8984;}'
   ].join('');
 
@@ -774,7 +775,30 @@
     if (Math.round(p) === 0) return 'igual que el periodo anterior';
     return '<span class="' + (p >= 0 ? 'vr-up' : 'vr-down') + '">' + (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p).toFixed(0) + '%</span> vs. periodo anterior';
   }
-  function reportHTML(r, data, prev) {
+  // Ventas por material: ARMT (metal) / ARZL (pasta) y su subidentificador.
+  var IDENT_TXT = { ARMT: 'Metal', ARZL: 'Pasta' };
+  function materialSec(mats) {
+    if (!mats) return '';
+    var head = '<div class="vr-sec"><h2>Armazones vendidos por material</h2><p class="vr-note">Según el material del armazón: ARMT (metal) o ARZL (pasta) y su subidentificador. Sin canceladas; las micas, estuches y servicios no entran.</p>';
+    if (!mats.length) return head + '<table><tbody><tr><td>No se vendieron armazones con material en este periodo.</td></tr></tbody></table></div>';
+    var totP = mats.reduce(function (a, m) { return a + m.piezas; }, 0), totI = mats.reduce(function (a, m) { return a + m.importe; }, 0);
+    var grp = {};
+    mats.forEach(function (m) { var g = grp[m.identificador] = grp[m.identificador] || { piezas: 0, importe: 0 }; g.piezas += m.piezas; g.importe += m.importe; });
+    var gk = Object.keys(grp).sort(function (a, b) { return grp[b].piezas - grp[a].piezas; });
+    var pct = function (n) { return totP ? Math.round(n / totP * 100) + '%' : '—'; };
+    return head +
+      '<div class="vr-kpis vr-kpis-mat">' + gk.map(function (k, i) {
+        return '<div class="vr-kpi' + (i === 0 ? ' is-main' : '') + '"><small>' + esc(k) + (IDENT_TXT[k] ? ' · ' + IDENT_TXT[k] : '') + '</small><b>' + grp[k].piezas + ' pzas</b><em>' + money(grp[k].importe) + ' · ' + pct(grp[k].piezas) + ' de los armazones</em></div>';
+      }).join('') + '</div>' +
+      '<table><thead><tr><th>Identificador</th><th style="text-align:left">Subidentificador</th><th>Tickets</th><th>Piezas</th><th>% piezas</th><th>Importe</th></tr></thead><tbody>' +
+      mats.map(function (m, i) {
+        return '<tr><td>' + (i === 0 ? '<b>' : '') + esc(m.identificador) + (IDENT_TXT[m.identificador] ? ' · ' + IDENT_TXT[m.identificador] : '') + (i === 0 ? '</b>' : '') + '</td>' +
+          '<td style="text-align:left">' + (i === 0 ? '<b>' + esc(m.subidentificador) + '</b> (el más vendido)' : esc(m.subidentificador)) + '</td>' +
+          '<td>' + m.ventas + '</td><td>' + m.piezas + '</td><td>' + pct(m.piezas) + '</td><td>' + money(m.importe) + '</td></tr>';
+      }).join('') +
+      '</tbody><tfoot><tr><td>Total</td><td></td><td></td><td>' + totP + '</td><td>100%</td><td>' + money(totI) + '</td></tr></tfoot></table></div>';
+  }
+  function reportHTML(r, data, prev, mats) {
     var list = data.items || [], t = data.totales || {}, pt = (prev && prev.totales) || {};
     var vivas = list.filter(function (v) { return !v.cancelada; });
     var canc = list.filter(function (v) { return v.cancelada; });
@@ -811,6 +835,7 @@
           return '<tr><td>' + esc(b.label) + '</td><td>' + b.ventas + '</td><td>' + money(b.total) + '</td><td>' + money(b.efectivo) + '</td><td>' + money(b.tarjeta) + '</td><td>' + money(b.transferencia) + '</td><td>' + money(b.otros) + '</td><td>' + money(b.credito) + '</td></tr>';
         }).join('') +
         '</tbody><tfoot><tr><td>Total</td><td>' + (t.ventas || 0) + '</td><td>' + money(t.total) + '</td><td>' + money(t.efectivo) + '</td><td>' + money(t.tarjeta) + '</td><td>' + money(t.transferencia) + '</td><td>' + money(t.otros) + '</td><td>' + money(t.credito) + '</td></tr></tfoot></table></div>' +
+      materialSec(mats) +
       '<div class="vr-sec"><h2>Ventas por cajero</h2><table><thead><tr><th>Cajero</th><th>Ventas</th><th>Total</th><th>Promedio</th></tr></thead><tbody>' +
         (cajList.length ? cajList.map(function (c) { return '<tr><td>' + esc(c[0]) + '</td><td>' + c[1].n + '</td><td>' + money(c[1].total) + '</td><td>' + money(c[1].total / c[1].n) + '</td></tr>'; }).join('') : '<tr><td colspan="4">Sin ventas en este periodo.</td></tr>') +
         '</tbody></table></div>' +
@@ -884,9 +909,10 @@
     var r = expRange(), pr = prevRange(r), btn = this;
     btn.disabled = true; btn.textContent = 'Generando…'; $('vtExpError').textContent = '';
     var q = function (x) { return api('/api/receptionist/pos/ventas?desde=' + x.desde + '&hasta=' + x.hasta + '&q=&estado='); };
-    Promise.all([q(r), q(pr).catch(function () { return null; })]).then(function (res) {
+    var qm = api('/api/receptionist/pos/ventas/por-material?desde=' + r.desde + '&hasta=' + r.hasta).then(function (d) { return d.items || []; }).catch(function () { return null; });
+    Promise.all([q(r), q(pr).catch(function () { return null; }), qm]).then(function (res) {
       var name = 'Ventas Avante ' + (expTipo === 'mes' ? r.sub : r.desde === r.hasta ? r.desde : r.desde + ' a ' + r.hasta) + '.pdf';
-      return makePdf(reportHTML(r, res[0], res[1]), name);
+      return makePdf(reportHTML(r, res[0], res[1], res[2]), name);
     }).then(function () { closeExp(); })
       .catch(function (err) { $('vtExpError').textContent = err.message || 'No se pudo generar el PDF.'; })
       .finally(function () { btn.disabled = false; btn.textContent = 'Descargar PDF'; });

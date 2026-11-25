@@ -1054,8 +1054,9 @@ func InvListMateriales(c *gin.Context) {
 // InvCreateMaterial — POST /api/inventario/materiales {nombre}
 func InvCreateMaterial(c *gin.Context) {
 	var b struct {
-		Nombre        string `json:"nombre"`
-		Identificador string `json:"identificador"` // ARMT | ARZL
+		Nombre           string `json:"nombre"`
+		Identificador    string `json:"identificador"`    // ARMT | ARZL
+		Subidentificador string `json:"subidentificador"` // texto libre (ACETATO, TR90…)
 	}
 	if err := c.ShouldBindJSON(&b); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
@@ -1074,7 +1075,7 @@ func InvCreateMaterial(c *gin.Context) {
 	if r := []rune(nombre); len(r) > 0 {
 		nombre = strings.ToUpper(string(r[0])) + string(r[1:])
 	}
-	m, err := models.CreateInvMaterial(nombre, ident)
+	m, err := models.CreateInvMaterial(nombre, ident, invSubIdent(b.Subidentificador))
 	if errors.Is(err, models.ErrInvMaterialTaken) {
 		c.JSON(http.StatusConflict, gin.H{"error": "El material «" + nombre + "» ya está en la lista."})
 		return
@@ -1181,4 +1182,65 @@ func InvListMovBorrados(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+// invSubIdent: el subidentificador del material en mayúsculas, sin
+// espacios de más (máximo 30 letras).
+func invSubIdent(s string) string {
+	s = strings.ToUpper(strings.Join(strings.Fields(strings.ReplaceAll(s, ",", " ")), " "))
+	if r := []rune(s); len(r) > 30 {
+		s = string(r[:30])
+	}
+	return s
+}
+
+// InvUpdateMaterial — PUT /api/inventario/materiales/:id
+// {identificador, subidentificador}
+func InvUpdateMaterial(c *gin.Context) {
+	id, ok := invID(c)
+	if !ok {
+		return
+	}
+	var b struct {
+		Identificador    string `json:"identificador"`
+		Subidentificador string `json:"subidentificador"`
+	}
+	if err := c.ShouldBindJSON(&b); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos."})
+		return
+	}
+	ident := strings.ToUpper(strings.TrimSpace(b.Identificador))
+	if ident != "ARMT" && ident != "ARZL" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Elige si el material es metal (ARMT) o pasta (ARZL)."})
+		return
+	}
+	m, err := models.UpdateInvMaterial(id, ident, invSubIdent(b.Subidentificador))
+	if errors.Is(err, models.ErrInvMaterialNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese material ya no existe."})
+		return
+	}
+	if err != nil {
+		invFail(c, "UpdateMaterial", err, "No se pudo guardar el material.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "item": m})
+}
+
+// InvDeleteColor — DELETE /api/inventario/colores/:id. Solo lo quita de la
+// paleta; los artículos que ya lo tienen lo conservan.
+func InvDeleteColor(c *gin.Context) {
+	id, ok := invID(c)
+	if !ok {
+		return
+	}
+	err := models.DeleteInvColor(id)
+	if errors.Is(err, models.ErrInvColorNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ese color ya no existe."})
+		return
+	}
+	if err != nil {
+		invFail(c, "DeleteColor", err, "No se pudo quitar el color.")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

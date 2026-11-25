@@ -229,6 +229,9 @@
                   <button type="button" data-ident="ARMT" role="radio">Metal · ARMT</button>
                   <button type="button" data-ident="ARZL" role="radio">Pasta · ARZL</button>
                 </div>
+                {{/* Subidentificador: no va en la clave; agrupa las ventas en el reporte de Ventas. */}}
+                <input type="text" id="aMatSub" class="inv-mat-sub" maxlength="30" placeholder="Subidentificador (ej. ACETATO, TR90, TITANIO)" spellcheck="false" autocapitalize="characters">
+                <p class="inv-mat-sub-hint">El subidentificador no va en la clave: sirve para ver en el reporte de Ventas de qué se vende más.</p>
                 <button type="button" class="inv-btn-ghost" id="aMatCancel">Cancelar</button>
                 <button type="button" class="btn solid small" id="aMatAdd">Agregar</button>
               </div>

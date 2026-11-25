@@ -530,3 +530,21 @@ func PosClientPerfil(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, p)
 }
+
+// PosVentasPorMaterial — GET /api/receptionist/pos/ventas/por-material?desde=&hasta=
+// Piezas e importe vendidos por identificador (ARMT/ARZL) y
+// subidentificador del material (para el reporte PDF de Ventas).
+func PosVentasPorMaterial(c *gin.Context) {
+	desde, hasta := c.Query("desde"), c.Query("hasta")
+	if (desde != "" && !posDateRe.MatchString(desde)) || (hasta != "" && !posDateRe.MatchString(hasta)) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Fechas inválidas."})
+		return
+	}
+	items, err := models.ListPosVentasPorMaterial(desde, hasta)
+	if err != nil {
+		log.Printf("pos.VentasPorMaterial: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron calcular las ventas por material."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
