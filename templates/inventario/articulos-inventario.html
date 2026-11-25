@@ -138,12 +138,14 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
-    <div class="inv-tabs" role="tablist">
+    <div class="inv-tabs inv-steps" role="tablist" aria-label="Pasos para dar de alta el artículo">
+      {{/* Pasos del alta (como un onboarding): la línea se va llenando. */}}
+      <span class="inv-steps-track" id="artStepsTrack"></span>
       <span class="inv-tabs-glow" id="artTabsGlow"></span>
-      <button type="button" class="inv-tab is-on" data-tab="general" role="tab">General</button>
-      <button type="button" class="inv-tab" data-tab="precios" role="tab">Precios</button>
-      <button type="button" class="inv-tab" data-tab="inventario" role="tab">Inventario</button>
-      <button type="button" class="inv-tab" data-tab="fotos" role="tab">Fotos <span class="inv-tab-count" id="aFotosCount" hidden></span></button>
+      <button type="button" class="inv-tab is-on" data-tab="general" role="tab"><span class="inv-step-dot"><b class="inv-step-n">1</b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="inv-step-txt"><small class="inv-step-k">Paso 1</small><span>General</span></span></button>
+      <button type="button" class="inv-tab" data-tab="precios" role="tab"><span class="inv-step-dot"><b class="inv-step-n">2</b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="inv-step-txt"><small class="inv-step-k">Paso 2</small><span>Precios</span></span></button>
+      <button type="button" class="inv-tab" data-tab="inventario" role="tab"><span class="inv-step-dot"><b class="inv-step-n">3</b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="inv-step-txt"><small class="inv-step-k">Paso 3</small><span>Inventario</span></span></button>
+      <button type="button" class="inv-tab" data-tab="fotos" role="tab"><span class="inv-step-dot"><b class="inv-step-n">4</b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="inv-step-txt"><small class="inv-step-k">Paso 4</small><span>Fotos <span class="inv-tab-count" id="aFotosCount" hidden></span></span></span></button>
     </div>
     <div class="admin-modal-body">
       <form class="staff-form inv-art-form" id="artForm" novalidate autocomplete="off">

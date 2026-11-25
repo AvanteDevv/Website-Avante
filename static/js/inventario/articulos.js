@@ -750,11 +750,34 @@
   function setTab(name) {
     tabs.forEach(function (t) { t.classList.toggle('is-on', t.getAttribute('data-tab') === name); });
     artModal.querySelectorAll('.inv-tabpane').forEach(function (p) { p.classList.toggle('is-on', p.getAttribute('data-pane') === name); });
-    var on = artModal.querySelector('.inv-tab.is-on'), glow = $('artTabsGlow');
-    if (on && glow) { glow.style.width = on.offsetWidth + 'px'; glow.style.transform = 'translateX(' + on.offsetLeft + 'px)'; }
+    paintSteps();
     syncSaveBtn();
   }
   tabs.forEach(function (t) { t.addEventListener('click', function () { setTab(t.getAttribute('data-tab')); }); });
+  // Pasos tipo onboarding: los anteriores al actual quedan con palomita,
+  // se numeran solo los visibles (un servicio no tiene Inventario) y la
+  // línea se llena hasta el paso actual.
+  function paintSteps() {
+    var vis = [].filter.call(tabs, function (t) { return !t.hidden; });
+    var cur = -1;
+    vis.forEach(function (t, i) { if (t.classList.contains('is-on')) cur = i; });
+    vis.forEach(function (t, i) {
+      t.classList.toggle('is-done', i < cur);
+      t.querySelector('.inv-step-n').textContent = i + 1;
+      t.querySelector('.inv-step-k').textContent = 'Paso ' + (i + 1) + ' de ' + vis.length;
+      t.setAttribute('aria-selected', i === cur ? 'true' : 'false');
+    });
+    var track = $('artStepsTrack'), fill = $('artTabsGlow');
+    if (!track || !fill || vis.length < 2) return;
+    // Si el modal todavía se está abriendo (sin medidas), se pinta al ratito.
+    if (!vis[0].offsetWidth) { if (artModal.classList.contains('open')) setTimeout(paintSteps, 60); return; }
+    var mid = function (t) { return t.offsetLeft + t.offsetWidth / 2; };
+    var a = mid(vis[0]), z = mid(vis[vis.length - 1]);
+    track.style.left = fill.style.left = a + 'px';
+    track.style.width = (z - a) + 'px';
+    fill.style.width = Math.max(0, mid(vis[Math.max(cur, 0)]) - a) + 'px';
+  }
+  window.addEventListener('resize', function () { if (artModal.classList.contains('open')) paintSteps(); });
 
   // Precios 1 a 4: % utilidad ↔ precio de venta neto
   var pricesEl = $('aPrices');
