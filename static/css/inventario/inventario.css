@@ -1146,3 +1146,6 @@ body.dark .inv-table tbody tr.is-marked:not(.is-selected) td{ background:rgba(22
 body.dark .inv-mvdel-dot{ background:transparent; }
 body.dark .inv-mvdel-row.is-bad{ background:rgba(226,85,74,.12); }
 body.dark .inv-mvdel-row.is-gone{ background:rgba(255,255,255,.05); }
+
+/* Servicio: sin marca ni pestaña de Inventario */
+.inv-tab[hidden], #aMarcaField[hidden]{ display:none; }

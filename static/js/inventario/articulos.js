@@ -807,6 +807,11 @@
     $('aSinRastreoWrap').hidden = s;
     // Un servicio no es armazón: su clave se escribe a mano.
     if (s && claveAuto) claveAuto = false;
+    // Un servicio no lleva marca ni pestaña de Inventario (no tiene existencia).
+    $('aMarcaField').hidden = s;
+    var invTab = artModal.querySelector('.inv-tab[data-tab="inventario"]');
+    if (invTab) invTab.hidden = s;
+    setTab(s && curTab() === 'inventario' ? 'general' : curTab());
     updateClave();
   }
   $('aServicio').addEventListener('change', syncServicio);
@@ -1083,17 +1088,19 @@
     e.preventDefault();
     var err = $('artError');
     // "Siguiente": pasa a la otra pestaña; se guarda hasta Fotos.
-    var ti = TAB_ORDER.indexOf(curTab());
-    if (ti < TAB_ORDER.length - 1) {
+    // Los servicios se saltan la pestaña de Inventario.
+    var order = TAB_ORDER.filter(function (t) { return !($('aServicio').checked && t === 'inventario'); });
+    var ti = order.indexOf(curTab());
+    if (ti < order.length - 1) {
       err.textContent = '';
-      setTab(TAB_ORDER[ti + 1]);
+      setTab(order[ti + 1]);
       var body0 = artModal.querySelector('.admin-modal-body');
       if (body0) body0.scrollTop = 0;
       return;
     }
     var body = {
       clave: claveAuto ? claveCompleta() : $('aClave').value.trim(),
-      marca: $('aMarca').value.trim(),
+      marca: $('aServicio').checked ? '' : $('aMarca').value.trim(),
       descripcion: $('aDesc').value.trim().replace(/\s+/g, ' '),
       categoria_id: Number(formCat) || 0,
       unidad_compra: aUC.get(),
